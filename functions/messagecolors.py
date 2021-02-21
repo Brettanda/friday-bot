@@ -1,0 +1,8 @@
+class MessageColors():
+  MUSIC = 0x7BDCFC
+  SOUPTIME = 0xFFD700
+  NOU = 0xFFD700
+  MEME = 0x00A2E8
+  RPS = 0xBAFAE5
+  ERROR = 0xD40000
+  DEFAULT = 0xFDFDFD
