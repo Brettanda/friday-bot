@@ -150,7 +150,7 @@ class Music(Cog):
   @commands.cooldown(1,4, commands.BucketType.channel)
   @commands.bot_has_permissions(send_messages = True, embed_links = True, read_messages = True)
   async def play(self,ctx, *, url: str):
-    await ctx.guild.chunk(cache=False)
+    # await ctx.guild.chunk(cache=False)
     global songqueue
     if await self.can_play(ctx) == True:
       return
@@ -158,7 +158,7 @@ class Music(Cog):
       await ctx.reply(embed=embed(title="You must be in a voice channel to play music.",color=MessageColors.MUSIC),mention_author=False)
       return
 
-    if "open.spotify.com" in ctx.message.content:
+    if "open.spotify.com" in ctx.message.content or "spotify:track:" in ctx.message.content:
       await ctx.reply(embed=embed(title="At the moment Spotify links are not supported.",color=MessageColors.ERROR),mention_author=False)
       return
 
@@ -189,7 +189,7 @@ class Music(Cog):
   @commands.guild_only()
   @commands.bot_has_permissions(send_messages = True, embed_links = True, read_messages = True)
   async def stop(self,ctx):
-    await ctx.guild.chunk(cache=False)
+    # await ctx.guild.chunk(cache=False)
     global songqueue
     if await self.can_play(ctx) == True:
       return
@@ -216,7 +216,7 @@ class Music(Cog):
   @commands.guild_only()
   @commands.bot_has_permissions(send_messages = True, embed_links = True, read_messages = True)
   async def skip(self,ctx):
-    await ctx.guild.chunk(cache=False)
+    # await ctx.guild.chunk(cache=False)
     global songqueue
     if await self.can_play(ctx) == True:
       return
@@ -246,7 +246,7 @@ class Music(Cog):
   @commands.guild_only()
   @commands.bot_has_permissions(send_messages = True, embed_links = True, read_messages = True)
   async def queue(self,ctx):
-    await ctx.guild.chunk(cache=False)
+    # await ctx.guild.chunk(cache=False)
     global songqueue
     if await self.can_play(ctx) == True:
       return
@@ -272,7 +272,7 @@ class Music(Cog):
   @commands.guild_only()
   @commands.bot_has_permissions(send_messages = True, embed_links = True, read_messages = True)
   async def pause(self,ctx):
-    await ctx.guild.chunk(cache=False)
+    # await ctx.guild.chunk(cache=False)
     if await self.can_play(ctx) == True:
       return
     try:
@@ -290,7 +290,7 @@ class Music(Cog):
   @commands.guild_only()
   @commands.bot_has_permissions(send_messages = True, embed_links = True, read_messages = True)
   async def resume(self,ctx):
-    await ctx.guild.chunk(cache=False)
+    # await ctx.guild.chunk(cache=False)
     if await self.can_play(ctx) == True:
       return
     try:
@@ -313,7 +313,7 @@ class Music(Cog):
   async def listen(self,ctx):
     # TODO: the title from spotify doesn't always play the correct song
     # TODO: won't keep up if the user skips the current song
-    await ctx.guild.chunk(cache=False)
+    # await ctx.guild.chunk(cache=False)
     if await self.can_play(ctx) == True:
       return
     toplay = ctx.author.activities or None

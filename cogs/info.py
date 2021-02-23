@@ -1,13 +1,10 @@
 import discord
-from discord.ext.commands import Cog
 from discord.ext import commands
 
-import os,sys
-sys.path.insert(1, os.path.join(sys.path[0], '..'))
-from functions import *
+from functions import embed
 
 
-class BotInfo(Cog):
+class Info(commands.Cog):
   """description goes here"""
 
   def __init__(self,bot):
@@ -27,4 +24,4 @@ class BotInfo(Cog):
     )
 
 def setup(bot):
-  bot.add_cog(BotInfo(bot))
+  bot.add_cog(Info(bot))

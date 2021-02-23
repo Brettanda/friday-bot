@@ -17,10 +17,17 @@ class Dev(commands.Cog):
   @commands.command(name="say",hidden=True)
   @commands.is_owner()
   @commands.bot_has_permissions(send_messages = True, read_messages = True, manage_messages = True)
-  async def say(self,ctx,*,say):
+  async def say(self,ctx,*,say:str):
     await ctx.message.delete()
     await ctx.channel.send(f"{say}")
-  
+
+  @commands.command(name="edit",hidden=True)
+  @commands.is_owner()
+  @commands.bot_has_permissions(send_messages = True, read_messages = True, manage_messages = True)
+  async def edit(self,ctx,message:discord.Message,*,edit:str):
+    await ctx.message.delete()
+    await message.edit(content=edit)
+
   @commands.command(name="status",hidden=True)
   @commands.is_owner()
   @commands.bot_has_permissions(send_messages = True, read_messages = True, manage_messages = True)
@@ -84,14 +91,14 @@ class Dev(commands.Cog):
         else:
           command = command
         self.bot.reload_extension(f"cogs.{command.lower()}")
-      await ctx.reply(embed=embed(title=f"Cog *{command}* has been reloaded",color=MessageColors.DEFAULT),mention_author=False)
+      await ctx.reply(embed=embed(title=f"Cog *{command}* has been reloaded"),mention_author=False)
     except:
       raise
 
-  @reload.error
-  async def reload_error(self,ctx,error):
-    await ctx.reply(embed=embed(title=f"Failed to reload *{str(''.join(ctx.message.content.split(ctx.prefix+ctx.command.name+' ')))}*",color=MessageColors.ERROR),mention_author=False)
-    raise
+  # @reload.error
+  # async def reload_error(self,ctx,error):
+  #   await ctx.reply(embed=embed(title=f"Failed to reload *{str(''.join(ctx.message.content.split(ctx.prefix+ctx.command.name+' ')))}*",color=MessageColors.ERROR),mention_author=False)
+  #   raise
 
   @commands.command(name="update",hidden=True)
   @commands.is_owner()

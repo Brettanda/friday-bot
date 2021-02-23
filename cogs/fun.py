@@ -70,7 +70,7 @@ class Fun(commands.Cog):
   @commands.bot_has_permissions(send_messages = True, read_messages = True, embed_links = True)
   @commands.has_guild_permissions(move_members = True)
   async def mass_move(self,ctx,fromChannel:discord.VoiceChannel,toChannel:discord.VoiceChannel=None):
-    await ctx.guild.chunk(cache=False)
+    # await ctx.guild.chunk(cache=False)
     if toChannel is None:
       toChannel = fromChannel
       fromChannel = None

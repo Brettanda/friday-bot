@@ -11,7 +11,7 @@ import sys,getopt,time
 import re
 import random
 
-custom = False;
+custom = False
 
 if custom == True:
   data_path = "ml/custom_human_text.txt"

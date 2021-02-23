@@ -1,12 +1,12 @@
 <div align="center">
 <h1>Friday Discord Bot</h1>
-<!-- <a href=""><img src="https://img.shields.io/npm/v/npm.svg?style=flat" alt="NPM Version"/></a>
-<a href="https://github.com/Brettanda/friday-discord-python/blob/master/LICENSE.md"><img src="https://img.shields.io/github/license/Brettanda/friday-discord-python" alt="GitHub license"/></a>
-<a href="https://github.com/Brettanda/friday-discord-python/issues"><img src="https://img.shields.io/github/issues/Brettanda/friday-discord-python" alt="GitHub issues"/></a>
+<!-- <a href=""><img src="https://img.shields.io/npm/v/npm.svg?style=flat" alt="NPM Version"/></a> -->
+<!-- <a href="https://github.com/Brettanda/friday-discord-python/blob/master/LICENSE.md"><img src="https://img.shields.io/github/license/Brettanda/friday-discord-python" alt="GitHub license"/></a> -->
+<!-- <a href="https://github.com/Brettanda/friday-discord-python/issues"><img src="https://img.shields.io/github/issues/Brettanda/friday-discord-python" alt="GitHub issues"/></a> -->
 <a href="https://discord.gg/NTRuFjU"><img src="https://img.shields.io/discord/707441352367013899?color=7289da&logo=discord&logoColor=white" alt="Discord Chat"/></a>
 <a href="https://top.gg/bot/476303446547365891/vote"><img src="https://img.shields.io/badge/Vote-Friday-blue" alt="Vote"/></a>
 <a href="https://discord.com/api/oauth2/authorize?client_id=476303446547365891&permissions=36792384&scope=bot"><img src="https://img.shields.io/badge/Add%20Friday-to%20your%20server-orange" alt="Add Friday to your server"/></a>
-<a href="https://www.patreon.com/fridaybot"><img src="https://img.shields.io/badge/-Become%20a%20Patron!-rgb(232%2C%2091%2C%2070)" alt="Become a Patron!"/></a> -->
+<a href="https://www.patreon.com/fridaybot"><img src="https://img.shields.io/badge/-Become%20a%20Patron!-rgb(232%2C%2091%2C%2070)" alt="Become a Patron!"/></a>
 </div>
 
 ## Privacy Disclaimer
@@ -63,14 +63,15 @@ Dialogflow does not take any information about the Discord guild except for any 
 - [x] Add queue system for playing YouTube audio
 - [x] Add D&D dice rolling command and dialogflow intent
 - [x] Make a modern-looking icon
-- [ ] Add spam protection for the commands like `!issue`
+- [x] Add spam protection for the commands like `!issue`
 - [ ] If a role is tagged that Friday is not apart of, ignore the message.
 - [x] When music is playing and someone sends a message there is a little bit of a lag spike that occurs in the audio. This needs to be fixed.
 - [x] Add a search function to the `!play` command
-- [ ] Friday will sometimes stop playing a video at some point and thinks that it still is playing
+- [x] Friday will sometimes stop playing a video at some point and thinks that it still is playing
 - [ ] Add the ability to play playlists from youtube as well as adding several
 - [ ] Teach friday to see images and recognize them, then play uno with card images
 - [ ] Some commands might be able to work cross servers if getting a channel by name/id without getting the guild first
+- [ ] Make Friday still respond to messages sent while it was offline
 
 
 ## To add to the dashboard

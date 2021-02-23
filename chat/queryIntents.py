@@ -1,4 +1,8 @@
 import nltk
+try:
+  nltk.data.find('tokenizers/punkt.zip')
+except LookupError:
+  nltk.download('punkt')
 from nltk.stem.lancaster import LancasterStemmer
 stemmer = LancasterStemmer()
 # things we need for Tensorflow

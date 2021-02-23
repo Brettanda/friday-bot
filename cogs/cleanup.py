@@ -4,12 +4,12 @@ from discord.ext import commands
 # from functions import 
 
 async def get_delete_time():
-  return 0
+  return 30
 
 class CleanUp(commands.Cog):
   def __init__(self,bot):
     self.bot = bot
-    self.exlusions = ["meme"]
+    self.exlusions = ["meme","issue"]
 
   # @commands.Cog.listener()
   # async def on_command(self,ctx):

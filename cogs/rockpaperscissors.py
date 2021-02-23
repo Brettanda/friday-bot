@@ -1,25 +1,23 @@
 # import discord
-from discord.ext.commands import Cog
-from discord.ext.commands import command
+from discord.ext.commands import Cog,command
 
 import random
 
-import os,sys
-sys.path.insert(1, os.path.join(sys.path[0], '..'))
-from functions import *
+from functions import embed,MessageColors
 
 class RockPaperScissors(Cog):
   def __init__(self,bot):
     self.bot = bot
     self.options = ["rock","paper","scissors"]
 
-  @command(name="rockpaperscissors",description="Play Rock Paper Scissors with Friday",aliases=["rps"],usage="rock, paper or scissors",)
-  async def rock_paper_scissors(self,ctx,*,args:str):
-    args = args.split(" ")
-    arg = args[0].lower()
-    if len(args) > 1:
-      await ctx.reply(embed=embed(title="Please only choose one of three options, Rock, Paper, or Scissors",color=MessageColors.ERROR),mention_author=False)
-      return
+  @command(name="rockpaperscissors",description="Play Rock Paper Scissors with Friday",aliases=["rps"],usage="<rock, paper or scissors>",)
+  async def rock_paper_scissors(self,ctx,args:str):
+    # args = args.split(" ")
+    # arg = args[0].lower()
+    arg = args.lower()
+    # if args not in self.options
+    #   await ctx.reply(embed=embed(title="Please only choose one of three options, Rock, Paper, or Scissors",color=MessageColors.ERROR),mention_author=False)
+    #   return
 
     if arg not in self.options:
       await ctx.reply(embed=embed(title=f"`{arg}` is not Rock, Paper, Scissors. Please choose one of those three.",color=MessageColors.ERROR),mention_author=False)

@@ -1,4 +1,5 @@
 import mysql.connector,os
+from discord.ext import commands
 
 # class MySQL():
 #   def __init__(self):
@@ -28,16 +29,16 @@ def query(mydb,query:str):
 
 def prefix(bot,ctx):
   try:
-    # if str(ctx.channel.type) == "private":
-    #   return commands.when_mentioned_or("!")(bot,ctx)
-    # mydb = mydb_connect()
-    # mycursor = mydb.cursor()
-    # mycursor.execute(f"SELECT prefix FROM servers WHERE id='{ctx.guild.id}'")
+    if str(ctx.channel.type) == "private":
+      return commands.when_mentioned_or("!")(bot,ctx)
+    mydb = mydb_connect()
+    mycursor = mydb.cursor()
+    mycursor.execute(f"SELECT prefix FROM servers WHERE id='{ctx.guild.id}'")
 
-    # result = mycursor.fetchall()
+    result = mycursor.fetchall()
 
-    # return commands.when_mentioned_or(result[0][0])(bot,ctx)
+    return commands.when_mentioned_or(result[0][0])(bot,ctx)
     # return commands.when_mentioned_or("!")(bot,ctx)
-    return "!"
+    # return "!"
   except:
     return "!"

@@ -5,7 +5,7 @@ from discord.ext.menus import MenuPages, ListPageSource
 from discord.ext.commands import Cog
 from discord.ext import commands
 
-import os,sys
+from cogs.cleanup import get_delete_time
 from functions import embed,MessageColors
 
 def syntax(command):
@@ -73,10 +73,12 @@ class Help(Cog):
     self.bot.remove_command("help")
 
 
-  @commands.command(name="help",aliases=["?","commands"],usage="<command>")
+  @commands.command(name="help",aliases=["?","commands"],usage="<command/group>")
   async def show_help(self, ctx, cmd:str=None):
     """Shows this message."""
 
+    delay = await get_delete_time()
+    await ctx.message.delete(delay=delay)
     if cmd is not None:
       for item in self.bot.commands:
         if cmd in item.aliases:
@@ -89,9 +91,9 @@ class Help(Cog):
 
     if cmd is None:
       menu = MenuPages(source=HelpMenu(ctx, commands),
-        delete_message_after=False,
+        delete_message_after=True,
         clear_reactions_after=True,
-        timeout=180.0)
+        timeout=delay)
       await menu.start(ctx)
 
     else:
