@@ -70,7 +70,7 @@ class Dev(commands.Cog):
           await asyncio.sleep(1)
           wait = wait - 1
       finally:
-        await ctx.delete()
+        await ctx.message.delete()
         await stat.delete()
         subprocess.Popen([f"{thispath}{seperator}restart.sh"], stdin=subprocess.PIPE)
 
