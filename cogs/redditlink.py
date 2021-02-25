@@ -107,6 +107,9 @@ class redditlink(commands.Cog):
     if "i.redd.it" in data["url"]:
       image = data["url"]
 
+    if data["url"] in ctx.content:
+      return
+
     if data is None and video is None and embeded is None and image is None:
       return
 
@@ -180,7 +183,11 @@ class redditlink(commands.Cog):
       if (reaction.message.channel.nsfw == True and data["over_18"] == True) or (reaction.message.channel.nsfw == False and data["over_18"] == False) or (reaction.message.channel.nsfw == True and data["over_18"] == False):
         if video == True:
           thispath = os.getcwd()
-          mp4file = f'{thispath}\{linkdata["extractor"]}-{linkdata["id"]}-{linkdata["title"]}.{linkdata["ext"]}'
+          if "\\" in thispath:
+            seperator = "\\\\"
+          else:
+            seperator = "/"
+          mp4file = f'{thispath}{seperator}{linkdata["extractor"]}-{linkdata["id"]}-{linkdata["title"]}.{linkdata["ext"]}'
           try:
             # import pprint
             # pprint.pprint(linkdata)
@@ -202,7 +209,11 @@ class redditlink(commands.Cog):
       else:
         if video == True:
           thispath = os.getcwd()
-          mp4file = f'{thispath}\{linkdata["extractor"]}-{linkdata["id"]}-{linkdata["title"]}.{linkdata["ext"]}'
+          if "\\" in thispath:
+            seperator = "\\\\"
+          else:
+            seperator = "/"
+          mp4file = f'{thispath}{seperator}{linkdata["extractor"]}-{linkdata["id"]}-{linkdata["title"]}.{linkdata["ext"]}'
           try:
             # import pprint
             # pprint.pprint(linkdata)

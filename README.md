@@ -15,8 +15,6 @@
 
 Friday is no longer using Google's Dialogflow, and will not send message to Dialogflow, but messages will still be logged for the purposes of training Friday's Machine Learning, and nothing else. If the recorded messages prove to not be useful for training they will be deleted and not shared with anyone.
 
-[Add Friday](https://discord.com/api/oauth2/authorize?client_id=476303446547365891&permissions=36792384&scope=bot) to your Discord server.
-
 Hello, my name is Friday, I am a chatbot for the platform Discord. I like trying to be human and of course memes.
 
 My goal is to make your Discord server feel more alive. I can do this by responding to chats like 'thanks Friday', 'hello' and if someone would like to make an insult towards me I can respond to that as well.

@@ -16,10 +16,10 @@ intents = discord.Intents.default()
 # intents.members = True
 # intents.presences = True
 
-from functions.mysql_connection import prefix
+from functions.mysql_connection import query_prefix
 from functions import ignore_guilds,dev_guilds
 
-bot = commands.AutoShardedBot(command_prefix=prefix or "!",case_insensitive=True,intents=intents)
+bot = commands.AutoShardedBot(command_prefix=query_prefix or "!",case_insensitive=True,intents=intents)
 # slash = SlashCommand(bot,sync_on_cog_reload=True,sync_commands=True)
 
 songqueue = {}
@@ -107,7 +107,7 @@ async def on_command_error(ctx,error):
       await ctx.reply(embed=embed(title=f"{error}",color=MessageColors.ERROR),delete_after=delete)
     except discord.HTTPException:
       await ctx.reply(f"{error}")
-  raise error
+    raise error
 
 @bot.event
 async def on_error(event, *args, **kwargs):
@@ -157,31 +157,32 @@ async def on_guild_join(guild):
   now = datetime.now()
   # current_time = now.strftime()
   mydb = mydb_connect()
-  query(mydb,f"INSERT INTO servers (id,owner,name,createdAt,updatedAt) VALUES ('{guild.id}','{guild.owner_id}','{guild.name}','{now}','{now}')")
+  owner = guild.owner.id if hasattr(guild.owner,"id") else 0
+  query(mydb,f"INSERT INTO servers (id,owner,name,createdAt,updatedAt) VALUES (%s,%s,%s,%s,%s)",guild.id,owner,guild.name,now,now)
   if guild.system_channel is not None:
     prefix = "!"
     await guild.system_channel.send(
-      f"Thank you for inviting me to your server. My name is Friday, and I like to party. I will respond to some chats directed towards me and commands. To get started with commands type `{prefix}help`.\nAn example of something I will respond to is `Hello Friday` or `@friday hello`. At my current stage of development I am very chaotic, so if I do something I shouldn't have please use send a message Issues channel in Friday's Development server. If something goes terribly wrong and you want it to stop, talk to my creator https://discord.gg/F8KUDwu"
+      f"Thank you for inviting me to your server. My name is Friday, and I like to party. I will respond to some chats directed towards me and commands. To get started with commands type `{prefix}help`.\nAn example of something I will respond to is `Hello Friday` or `{bot.user.mention} hello`. At my current stage of development I am very chaotic, so if I do something I shouldn't have please use send a message Issues channel in Friday's Development server. If something goes terribly wrong and you want it to stop, talk to my creator https://discord.gg/NTRuFjU"
     )
 
 @bot.event
 async def on_guild_remove(guild):
-  await relay_info("",bot,short=f"I have joined a new guild, making the total {len(bot.guilds)}",embed=embed(title=f"I have been removed from a guild, making the total {len(bot.guilds)}"),channel=713270475031183390)
+  await relay_info("",bot,short=f"I have been removed from a guild, making the total {len(bot.guilds)}",embed=embed(title=f"I have been removed from a guild, making the total {len(bot.guilds)}"),channel=713270475031183390)
   mydb = mydb_connect()
-  query(mydb,f"DELETE FROM servers WHERE id='{guild.id}'")
+  query(mydb,f"DELETE FROM servers WHERE id=%s",guild.id)
 
 
 @bot.event
 async def on_member_join(member):
   mydb = mydb_connect()
-  role_id = query(mydb,f"SELECT defaultRole FROM servers WHERE id={member.guild.id}")
+  role_id = query(mydb,f"SELECT defaultRole FROM servers WHERE id=%s",member.guild.id)
   if role_id == 0 or role_id is None or str(role_id).lower() == "null":
     return
   else:
     role = member.guild.get_role(role_id)
     if role is None:
       # await member.guild.owner.send(f"The default role that was chosen for me to add to members when they join yours server \"{member.guild.name}\" could not be found, please update the default role at https://friday-bot.com")
-      query(mydb,f"UPDATE servers SET defaultRole=NULL WHERE id='{member.guild.id}'")
+      query(mydb,f"UPDATE servers SET defaultRole=NULL WHERE id=%s",member.guild.id)
     else:
       await member.add_roles(role,reason="Default Role")
 
@@ -197,7 +198,7 @@ async def on_message(ctx):
   if ctx.activity is not None:
     return
   # Commands
-  if ctx.content.startswith(str(prefix(bot,ctx)[-1])):
+  if ctx.content.startswith(str(query_prefix(bot,ctx,True))):
   # if ctx.content.startswith(ctx.command_prefix):
     # channel = ctx.channel
     print(f'Command: {ctx.content}')

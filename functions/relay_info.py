@@ -5,7 +5,11 @@ async def relay_info(msg:str,bot,embed:discord.Embed=None,file=None,short:str=No
   if log_info is not None:
     if file is not None:
       thispath = os.getcwd()
-      await log_info.send(content=msg,embed=embed,file=discord.File(fp=f"{thispath}\\{file}",filename="Error.txt"))
+      if "\\" in thispath:
+        seperator = "\\\\"
+      else:
+        seperator = "/"
+      await log_info.send(content=msg,embed=embed,file=discord.File(fp=f"{thispath}{seperator}{file}",filename="Error.txt"))
     else:
       await log_info.send(content=msg,embed=embed)
   else:
@@ -14,7 +18,11 @@ async def relay_info(msg:str,bot,embed:discord.Embed=None,file=None,short:str=No
     if owner is not None:
       if file is not None:
         thispath = os.getcwd()
-        await owner.send(content=msg,embed=embed,file=discord.File(fp=f"{thispath}\\{file}",filename="Error.txt"))
+        if "\\" in thispath:
+          seperator = "\\\\"
+        else:
+          seperator = "/"
+        await owner.send(content=msg,embed=embed,file=discord.File(fp=f"{thispath}{seperator}{file}",filename="Error.txt"))
       else:
         await owner.send(content=msg,embed=embed)
   if short is not None:

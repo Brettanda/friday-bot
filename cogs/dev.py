@@ -78,7 +78,7 @@ class Dev(commands.Cog):
   @dev.command(name="mute",hidden=True)
   @commands.is_owner()
   @commands.bot_has_permissions(send_messages = True, read_messages = True, manage_messages = True)
-  async def mute(self,ctx):
+  async def mute(self,ctx,category:str):
     # TODO: Mutes this server and stops responding to commands
     print("")
 

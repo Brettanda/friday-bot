@@ -1,4 +1,4 @@
-import nltk
+import nltk,logging
 try:
   nltk.data.find('tokenizers/punkt.zip')
 except LookupError:
@@ -71,6 +71,7 @@ def bow(sentence, words, show_details=True):
           inbag += f"{w} "
           # print ("found in bag: %s" % w)
   print(f"found in bag: {inbag}")
+  logging.info(f"found in bag: {inbag}")
   return(np.array(bag))
 
 async def classify_local(sentence):
@@ -93,6 +94,7 @@ async def classify_local(sentence):
     tag = [index for index,value in enumerate(intents) if value["tag"] == name]
     intent = intents[tag[0]]
     print(chance)
+    logging.info(chance)
 
     if isinstance(intent["responses"],list) and len(intent["responses"]) > 0:
       indresp = random.randint(0,len(intent["responses"]) - 1)
