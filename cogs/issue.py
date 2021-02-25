@@ -11,9 +11,11 @@ class Issue(commands.Cog):
     self.bot = bot
 
   @commands.command(name="issue",aliases=["problem"],description="If you have an issue or noticed a bug with Friday, this will send a message to the developer.",usage="<Description of issue and steps to recreate the issue>")
+  @commands.cooldown(1,30, commands.BucketType.channel)
+  @commands.bot_has_permissions(send_messages = True, read_messages = True, manage_messages = True)
   async def issue(self,ctx,*,issue:str):
     timeout = 20
-    confirm = await ctx.reply(f"Please confirm your issue by reacting with ✅. This will cancel after {timeout} seconds",embed=embed(title="Are you sure you would like to submit this issue?",description=f"{issue}"),mention_author=False)
+    confirm = await ctx.reply(f"Please confirm your issue by reacting with ✅. This will cancel after {timeout} seconds",embed=embed(title="Are you sure you would like to submit this issue?",description=f"{issue}"))
     delay = await get_delete_time()
     await ctx.message.delete(delay=delay)
     await confirm.add_reaction("✅")

@@ -11,11 +11,12 @@ async def relay_info(msg:str,bot,embed:discord.Embed=None,file=None,short:str=No
   else:
     appinfo = await bot.application_info()
     owner = bot.get_user(appinfo.team.owner.id)
-    if file is not None:
-      thispath = os.getcwd()
-      await owner.send(content=msg,embed=embed,file=discord.File(fp=f"{thispath}\\{file}",filename="Error.txt"))
-    else:
-      await owner.send(content=msg,embed=embed)
+    if owner is not None:
+      if file is not None:
+        thispath = os.getcwd()
+        await owner.send(content=msg,embed=embed,file=discord.File(fp=f"{thispath}\\{file}",filename="Error.txt"))
+      else:
+        await owner.send(content=msg,embed=embed)
   if short is not None:
     print(short)
   else:

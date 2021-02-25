@@ -1,11 +1,11 @@
-import discord,psutil,logging#,asyncio
+import discord,psutil,logging,git
 from discord.ext import commands
 
 from index import restartPending,songqueue
 
 import os,sys
-# sys.path.insert(1, os.path.join(sys.path[0], '..'))
 from functions import embed,MessageColors
+from cogs.help import cmd_help
 
 class Dev(commands.Cog):
   """Commands used by the developer"""
@@ -14,29 +14,35 @@ class Dev(commands.Cog):
     self.bot = bot
     self.loop = bot.loop
 
-  @commands.command(name="say",hidden=True)
+  @commands.group(name="dev",invoke_without_command=True,hidden=True)
+  @commands.is_owner()
+  async def dev(self,ctx):
+    await cmd_help(ctx,ctx.command)
+
+  @dev.command(name="say",hidden=True)
   @commands.is_owner()
   @commands.bot_has_permissions(send_messages = True, read_messages = True, manage_messages = True)
   async def say(self,ctx,*,say:str):
     await ctx.message.delete()
     await ctx.channel.send(f"{say}")
 
-  @commands.command(name="edit",hidden=True)
+  @dev.command(name="edit",hidden=True)
   @commands.is_owner()
   @commands.bot_has_permissions(send_messages = True, read_messages = True, manage_messages = True)
   async def edit(self,ctx,message:discord.Message,*,edit:str):
     await ctx.message.delete()
     await message.edit(content=edit)
 
-  @commands.command(name="status",hidden=True)
+  @dev.command(name="status",hidden=True)
   @commands.is_owner()
   @commands.bot_has_permissions(send_messages = True, read_messages = True, manage_messages = True)
   async def status(self,ctx):
     """Sends the status of the machine running Friday"""
     print("")
 
-  @commands.command(name="restart",hidden=True)
+  @dev.command(name="restart",hidden=True)
   @commands.is_owner()
+  @commands.bot_has_permissions(send_messages = True, read_messages = True, manage_messages = True)
   async def restart(self,ctx):
     global restartPending,songqueue
     if restartPending == True:
@@ -51,6 +57,7 @@ class Dev(commands.Cog):
         await stat.edit(embed=embed(title=f"{len(songqueue)} guilds are playing music"))
       await stat.edit(embed=embed(title=f"{len(songqueue)} guilds are playing music"))
     if len(songqueue) == 0:
+      p = None
       try:
         p = psutil.Process(os.getpid())
         # loop = asyncio.get_event_loop()
@@ -74,14 +81,16 @@ class Dev(commands.Cog):
         self.loop.run_until_complete(self.bot.close())
         self.loop.close()
 
-  @commands.command(name="mute",hidden=True)
+  @dev.command(name="mute",hidden=True)
   @commands.is_owner()
+  @commands.bot_has_permissions(send_messages = True, read_messages = True, manage_messages = True)
   async def mute(self,ctx):
     # TODO: Mutes this server and stops responding to commands
     print("")
 
-  @commands.command(name="reload",hidden=True)
+  @dev.command(name="reload",hidden=True)
   @commands.is_owner()
+  @commands.bot_has_permissions(send_messages = True, read_messages = True, manage_messages = True)
   async def reload(self,ctx,command:str=None):
     try:
       async with ctx.typing():
@@ -97,16 +106,23 @@ class Dev(commands.Cog):
 
   # @reload.error
   # async def reload_error(self,ctx,error):
-  #   await ctx.reply(embed=embed(title=f"Failed to reload *{str(''.join(ctx.message.content.split(ctx.prefix+ctx.command.name+' ')))}*",color=MessageColors.ERROR),mention_author=False)
+  #   await ctx.reply(embed=embed(title=f"Failed to reload *{str(''.join(ctx.message.content.split(ctx.prefix+ctx.command.name+' ')))}*",color=MessageColors.ERROR))
   #   raise
 
-  @commands.command(name="update",hidden=True)
-  @commands.is_owner()
-  async def update(self,ctx):
-    print("")
+  async def do_update(self):
+    g = git.cmd.Git("git@github.com:Brettanda/friday-discord-python.git")
+    g.fetch()
 
-  @commands.command(name="cogs",hidden=True)
+  @dev.command(name="update",hidden=True)
   @commands.is_owner()
+  @commands.bot_has_permissions(send_messages = True, read_messages = True, manage_messages = True)
+  async def update(self,ctx):
+    message = await ctx.reply(embed=embed(title="Updating..."))
+    await self.do_update()
+
+  @dev.command(name="cogs",hidden=True)
+  @commands.is_owner()
+  @commands.bot_has_permissions(send_messages = True, read_messages = True, manage_messages = True)
   async def cogs(self,ctx):
     cogs = ", ".join(self.bot.cogs)
     await ctx.reply(embed=embed(title=f"{len(self.bot.cogs)} total cogs",description=f"{cogs}"))

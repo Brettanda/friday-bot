@@ -72,7 +72,7 @@ Dialogflow does not take any information about the Discord guild except for any 
 - [ ] Teach friday to see images and recognize them, then play uno with card images
 - [ ] Some commands might be able to work cross servers if getting a channel by name/id without getting the guild first
 - [ ] Make Friday still respond to messages sent while it was offline
-
+- [ ] Slash Commands?
 
 ## To add to the dashboard
 

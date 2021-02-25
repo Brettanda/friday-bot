@@ -6,7 +6,7 @@ import youtube_dl,ffmpeg,json,asyncio,datetime,time
 from cogs.cleanup import get_delete_time
 
 import os,sys
-from functions import is_pm,embed,MessageColors
+from functions import embed,MessageColors
 
 from index import songqueue
 
@@ -138,7 +138,7 @@ class Music(Cog):
             thumbnail=thumbnail,
             fieldstitle=["Duration","Total songs in queue"],
             fieldsval=[duration,songsinqueue]
-        )
+          )
         )
     else:
       async with ctx.typing():
@@ -350,7 +350,7 @@ class Music(Cog):
           # fieldsval=[secs,duration]
           fieldstitle=["Duration"],
           fieldsval=[duration]
-      )
+        )
       )
     except BaseException as e:
       print(e)

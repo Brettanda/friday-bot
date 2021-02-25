@@ -4,7 +4,7 @@ from discord.ext import commands
 # from functions import 
 
 async def get_delete_time():
-  return 30
+  return 60
 
 class CleanUp(commands.Cog):
   def __init__(self,bot):

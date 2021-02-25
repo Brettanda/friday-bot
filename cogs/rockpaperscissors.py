@@ -1,5 +1,5 @@
 # import discord
-from discord.ext.commands import Cog,command
+from discord.ext.commands import Cog,command,bot_has_permissions
 
 import random
 
@@ -10,7 +10,8 @@ class RockPaperScissors(Cog):
     self.bot = bot
     self.options = ["rock","paper","scissors"]
 
-  @command(name="rockpaperscissors",description="Play Rock Paper Scissors with Friday",aliases=["rps"],usage="<rock, paper or scissors>",)
+  @command(name="rockpaperscissors",description="Play Rock Paper Scissors with Friday",aliases=["rps"],usage="<rock, paper or scissors>")
+  @bot_has_permissions(send_messages = True, read_messages = True, manage_messages = True)
   async def rock_paper_scissors(self,ctx,args:str):
     # args = args.split(" ")
     # arg = args[0].lower()

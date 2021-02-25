@@ -4,7 +4,7 @@ from discord.ext import commands
 
 import os,sys
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
-from functions import *
+from functions import embed,MessageColors
 
 import aiohttp
 import json,random

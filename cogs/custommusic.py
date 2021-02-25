@@ -2,7 +2,6 @@ import discord
 from discord.ext import commands
 
 import os,sys
-sys.path.insert(1, os.path.join(sys.path[0], '..'))
 from functions import embed,MessageColors,mydb_connect,query
 
 class CustomMusic(commands.Cog):

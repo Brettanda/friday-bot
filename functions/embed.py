@@ -6,7 +6,7 @@ from functions.messagecolors import MessageColors
 #   def __init__(self,MessageColors):
 #     self.MessageColors = MessageColors
 
-def embed(title:str="Text",description:str=None,color=None,author_name:str=None,author_url:str=None,author_icon:str=None,image:str=None,thumbnail:str=None,footer:str=None,footer_icon:str=None,ctx=None,fieldstitle:str or list=None,fieldsval:str or list=None, url:str=None):
+def embed(title:str="Text",description:str="",color=None,author_name:str=None,author_url:str=None,author_icon:str=None,image:str=None,thumbnail:str=None,footer:str=None,footer_icon:str=None,ctx=None,fieldstitle:str or list=None,fieldsval:str or list=None, url:str=None):
   if color is None:
     color = MessageColors.DEFAULT
   r = discord.Embed(title=title,description=description,color=color)

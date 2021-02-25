@@ -62,22 +62,22 @@ class Logging(commands.AutoShardedBot):
       # print(bot.get_cog(ctx.command))
       await cmd_help(ctx,ctx.command,"You're missing some arguments, here is how the command should look")
       # await bot.help_command.send_command_help(ctx.command)
-      # await ctx.reply(embed=embed(title=f"`{ctx.message.content}` is missing required arguments",color=MessageColors.ERROR),mention_author=False)
+      # await ctx.reply(embed=embed(title=f"`{ctx.message.content}` is missing required arguments",color=MessageColors.ERROR))
       return
     elif isinstance(error,commands.CommandNotFound):
-      await ctx.reply(embed=embed(title=f"Command `{ctx.message.content}` was not found",color=MessageColors.ERROR),mention_author=False)
+      await ctx.reply(embed=embed(title=f"Command `{ctx.message.content}` was not found",color=MessageColors.ERROR))
       return
     elif isinstance(error,commands.CommandOnCooldown):
-      await ctx.reply(embed=embed(title=f"This command is on a cooldown, please wait {error.retry_after:,.2f} sec(s)",color=MessageColors.ERROR),mention_author=False)
+      await ctx.reply(embed=embed(title=f"This command is on a cooldown, please wait {error.retry_after:,.2f} sec(s)",color=MessageColors.ERROR))
       return
     elif isinstance(error,commands.NoPrivateMessage):
-      await ctx.reply(embed=embed(title="This command does not work in non-server text channels",color=MessageColors.ERROR),mention_author=False)
+      await ctx.reply(embed=embed(title="This command does not work in non-server text channels",color=MessageColors.ERROR))
       return
     elif isinstance(error,commands.NotOwner):
-      await ctx.reply(embed=embed(title="You have found a secret command.",description="Only my developer can use this command.",color=MessageColors.ERROR),mention_author=False)
+      await ctx.reply(embed=embed(title="You have found a secret command.",description="Only my developer can use this command.",color=MessageColors.ERROR))
       return
     elif isinstance(error,commands.ChannelNotFound):
-      await ctx.reply(embed=embed(title="Could not find that channel",description="Make sure it is the right channel type",color=MessageColors.ERROR),mention_author=False)
+      await ctx.reply(embed=embed(title="Could not find that channel",description="Make sure it is the right channel type",color=MessageColors.ERROR))
       return
     elif isinstance(error,commands.MissingPermissions):
       current = ctx.channel.permissions_for(ctx.author)
@@ -86,9 +86,9 @@ class Logging(commands.AutoShardedBot):
         if value == False and perm.lower() in required_permissions:
           missing.append(perm)
       try:
-        await ctx.reply(embed=embed(title=f"{commands.MissingPermissions(missing)}",color=MessageColors.ERROR),mention_author=False)
+        await ctx.reply(embed=embed(title=f"{commands.MissingPermissions(missing)}",color=MessageColors.ERROR))
       except:
-        await ctx.reply(f"{commands.MissingPermissions(missing)}",mention_author=False)
+        await ctx.reply(f"{commands.MissingPermissions(missing)}")
       return
     elif isinstance(error,commands.BotMissingPermissions):
       current = ctx.channel.permissions_for(ctx.me)
@@ -97,16 +97,16 @@ class Logging(commands.AutoShardedBot):
         if value == False and perm.lower() in bot_required_permissions:
           missing.append(perm)
       try:
-        await ctx.reply(embed=embed(title=f'{commands.BotMissingPermissions(missing)}',color=MessageColors.ERROR),mention_author=False)
+        await ctx.reply(embed=embed(title=f'{commands.BotMissingPermissions(missing)}',color=MessageColors.ERROR))
       except:
-        await ctx.reply(f"{commands.BotMissingPermissions(missing)}",mention_author=False)
+        await ctx.reply(f"{commands.BotMissingPermissions(missing)}")
       return
     else:
       # print(error)
       try:
-        await ctx.reply(embed=embed(title="Something hass gone wrong, please try again later.",color=MessageColors.ERROR),mention_author=False)
+        await ctx.reply(embed=embed(title="Something hass gone wrong, please try again later.",color=MessageColors.ERROR))
       except:
-        await ctx.reply("Something has gone wrong, please try again later.",mention_author=False)
+        await ctx.reply("Something has gone wrong, please try again later.")
         pass
       try:
         appinfo = await self.bot.application_info()
@@ -207,7 +207,7 @@ class Logging(commands.AutoShardedBot):
           from chat.dynamicchat import dynamicchat
           await dynamicchat(ctx,bot,intent)
         else:
-          await ctx.reply(result,mention_author=False)
+          await ctx.reply(result)
     # else:
       # reddit = await redditlink().reddit_link(ctx)
       # if reddit is not False:

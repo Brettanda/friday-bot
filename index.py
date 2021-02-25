@@ -2,6 +2,7 @@ import os,sys,asyncio,validators,traceback,json
 from datetime import datetime
 
 import discord
+# from discord_slash import SlashCommand
 from dotenv import load_dotenv
 from discord.ext import commands
 
@@ -12,12 +13,13 @@ load_dotenv()
 TOKEN = os.getenv('TOKENTEST')
 
 intents = discord.Intents.default()
-# intents.members = True
-# intents.presences = True
+intents.members = True
+intents.presences = True
 
 from functions.mysql_connection import prefix
 
 bot = commands.AutoShardedBot(command_prefix=prefix or "!",case_insensitive=True,intents=intents)
+# slash = SlashCommand(bot,sync_on_cog_reload=True,sync_commands=True)
 
 songqueue = {}
 restartPending = False
@@ -53,7 +55,7 @@ for com in os.listdir("./cogs"):
   # print("setup complete")
 
 from cogs.help import cmd_help
-
+from cogs.cleanup import get_delete_time
 
 @bot.event
 async def on_command_error(ctx,error):
@@ -67,10 +69,8 @@ async def on_command_error(ctx,error):
     if cog._get_overridden_method(cog.cog_command_error) is not None:
       return
 
+  delete = await get_delete_time()
   if isinstance(error,commands.MissingRequiredArgument):
-    # TODO: show the help for the specific command
-    # import pprint
-    # pprint.pprint(ctx)
     # await ctx.send_help(ctx.command)
     # print(bot.get_cog(ctx.command))
     await cmd_help(ctx,ctx.command,"You're missing some arguments, here is how the command should look")
@@ -102,26 +102,32 @@ async def on_command_error(ctx,error):
     await cmd_help(ctx,ctx.command,"Too many arguments were passed for this command, here is how the command should look")
     return
   else:
+    try:
       await ctx.reply(embed=embed(title=f"{error}",color=MessageColors.ERROR),delete_after=delete)
+    except discord.HTTPException:
+      await ctx.reply(f"{error}")
+  raise error
 
 @bot.event
 async def on_error(event, *args, **kwargs):
+  # await bot.get_guild(707441352367013899).chunk(cache=False)
   appinfo = await bot.application_info()
   owner = bot.get_user(appinfo.team.owner.id)
-  # print(traceback.format_exc())
+
   trace = traceback.format_exc()
   try:
-    await relay_info(f"{owner.mention}\n```bash\n{trace}```",bot,short="Error sent",channel=713270561840824361)
+    await relay_info(f"{owner.mention if owner is not None else ''}\n```bash\n{trace}```",bot,short="Error sent",channel=713270561840824361)
   except discord.HTTPException:
     with open("err.log","w") as f:
       f.write(f"{trace}")
       f.close()
-      await relay_info(f"{owner.mention}",bot,file="err.log",channel=713270561840824361)
+      await relay_info(f"{owner.mention if owner is not None else ''}",bot,file="err.log",channel=713270561840824361)
 
   print(trace)
   
 @bot.event
 async def on_shard_connect(shard_id):
+  await bot.wait_until_ready()
   await relay_info(f"Shard #{shard_id} has connected",bot)
 
 @bot.event
@@ -183,9 +189,9 @@ async def on_message(ctx):
   if ctx.guild.id in ignore:
     print("ignored guild")
     return
-  await bot.process_commands(ctx)
   if ctx.author.bot:
     return
+  await bot.process_commands(ctx)
   if ctx.activity is not None:
     return
   # Commands
@@ -198,6 +204,9 @@ async def on_message(ctx):
 
     valid = validators.url(ctx.content)
     
+    if valid == True:
+      return
+
     noContext = ["Title of your sex tape", "I dont want to talk to a chat bot", "The meaning of life?", "Birthday", "Memes", "Self Aware", "Soup Time", "No U", "I'm dad", "Bot discrimination"]
     lastmessages = await ctx.channel.history(limit=3).flatten()
     meinlastmessage = False
@@ -236,7 +245,7 @@ if __name__ == "__main__":
   if "3.8.7" not in sys.version:
     print(f"\t--The version of python that Friday was built on is 3.8.7, somethings might not work")
   if len(sys.argv) > 1:
-    if sys.argv[1] == "--prod" or "--production":
+    if sys.argv[1] == "--prod" or sys.argv[1] == "--production":
       TOKEN = os.getenv("TOKEN")
       bot.load_extension("functions.dbl")
   loop = asyncio.get_event_loop()

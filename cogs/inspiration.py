@@ -1,12 +1,11 @@
-from discord.ext.commands import Cog
-from discord.ext.commands import command
+from discord.ext.commands import Cog,command,bot_has_permissions
 
 from PIL import Image, ImageDraw
 # https://pillow.readthedocs.io/en/stable/reference/ImageDraw.html
 
-import os,sys
-sys.path.insert(1, os.path.join(sys.path[0], '..'))
-from functions import *
+# import os,sys
+# sys.path.insert(1, os.path.join(sys.path[0], '..'))
+from functions import embed
 
 class Inspiration(Cog):
   """description goes here"""
@@ -15,6 +14,7 @@ class Inspiration(Cog):
     self.bot = bot
 
   @command(name="inspiration",enabled=False)
+  @bot_has_permissions(send_messages = True, read_messages = True, manage_messages = True)
   async def inspiration(self,ctx):
     print("pong")
     await ctx.reply(embed=embed(title="Pong!"))

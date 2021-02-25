@@ -1,6 +1,6 @@
 from discord.ext import commands
 
-from functions import embed,is_pm
+from functions import embed
 
 class ServerInfo(commands.Cog):
   def __init__(self,bot):
@@ -8,10 +8,8 @@ class ServerInfo(commands.Cog):
 
   @commands.command(name="serverinfo")
   @commands.guild_only()
+  @commands.bot_has_permissions(send_messages = True, read_messages = True, manage_messages = True)
   async def server_info(self,ctx):
-    if is_pm(ctx) == True:
-      return
-
     await ctx.reply(
       embed=embed(
         title=ctx.guild.name+" - Info",

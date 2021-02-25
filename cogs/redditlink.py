@@ -4,8 +4,7 @@ import discord
 from discord.ext import commands
 
 import os,sys
-sys.path.insert(1, os.path.join(sys.path[0], '..'))
-from functions import *
+from functions import embed,MessageColors
 
 ytdl_format_options = {
   # 'format': 'bestvideo+bestaudio/worstvideo+worstaudio',
@@ -22,10 +21,10 @@ ytdl_format_options = {
   # }],
   'restrictfilenames': True,
   'noplaylist': True,
-  # 'nocheckcertificate': True,
-  # 'ignoreerrors': False,
-  # 'logtostderr': False,
-  # 'quiet': True,
+  'nocheckcertificate': True,
+  'ignoreerrors': False,
+  'logtostderr': False,
+  'quiet': True,
   # 'no_warnings': True,
   'default_search': 'auto',
   'source_address': '0.0.0.0' # bind to ipv4 since ipv6 addresses cause issues sometimes
@@ -111,7 +110,8 @@ class redditlink(commands.Cog):
 
   @commands.Cog.listener()
   async def on_reaction_add(self,reaction,user):
-    if self.bot.user == user or user.bot:
+    # TODO: check the max file size of the server and change the quality of the video to match
+    if self.bot.user == user or self.bot.user == user.bot:
       return
     if user != reaction.message.author:
       return
@@ -146,15 +146,15 @@ class redditlink(commands.Cog):
           except:
             data = body[0]["data"]["children"][0]["data"]
         except KeyError:
-          await reaction.message.reply(embed=embed(title="There was a problem connecting to reddit",color=MessageColors.ERROR),mention_author=False)
+          await reaction.message.reply(embed=embed(title="There was a problem connecting to reddit",color=MessageColors.ERROR))
           return
 
         link = None
         linkdata = None
         video = False
-        try:
-          if "reddit_video" in data["media"]:
-            link = data["media"]["reddit_video"]["hls_url"]
+        # try:
+        if data["media"] != None and "reddit_video" in data["media"]:
+          link = data["media"]["reddit_video"]["hls_url"]
           loop = asyncio.get_event_loop()
           linkdata = await loop.run_in_executor(None, lambda: ytdl.extract_info(link, download=True))
           video = True
@@ -167,12 +167,13 @@ class redditlink(commands.Cog):
           # pprint.pprint(linkdata)
           # print(f'{linkdata["extractor"]}-{linkdata["id"]}-{linkdata["title"]}.{linkdata["ext"]}')
           # link = data["media"]["reddit_video"]["fallback_url"]
-        except:
+        else:
           link = data["url"]
-          raise
+        # except:
+        #   raise
 
       # TODO: Does not get url for videos atm
-      if (reaction.message.channel.nsfw == True and data["over_18"] == True) or (reaction.message.channel.nsfw == False and data["over_18"] == False):
+      if (reaction.message.channel.nsfw == True and data["over_18"] == True) or (reaction.message.channel.nsfw == False and data["over_18"] == False) or (reaction.message.channel.nsfw == True and data["over_18"] == False):
         if video == True:
           thispath = os.getcwd()
           mp4file = f'{thispath}\{linkdata["extractor"]}-{linkdata["id"]}-{linkdata["title"]}.{linkdata["ext"]}'

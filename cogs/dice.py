@@ -1,10 +1,8 @@
 import d20
 
 import discord
-from discord.ext.commands import Cog,command
+from discord.ext.commands import Cog,command,bot_has_permissions
 
-import os,sys
-sys.path.insert(1, os.path.join(sys.path[0], '..'))
 from functions import embed
 
 class Dice(Cog):
@@ -14,6 +12,7 @@ class Dice(Cog):
     self.bot = bot
 
   @command(name="dice",aliases=["d","r","roll"])
+  @bot_has_permissions(send_messages = True, read_messages = True, manage_messages = True)
   async def dice(self,ctx,*,roll:str):
     roll = roll.lower()
     result = d20.roll(roll)
