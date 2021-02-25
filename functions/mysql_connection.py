@@ -1,4 +1,4 @@
-import mysql.connector,os
+import mysql.connector,os,sys
 from discord.ext import commands
 
 # class MySQL():
@@ -7,11 +7,15 @@ from discord.ext import commands
 
 def mydb_connect():
   # https://www.mysqltutorial.org/python-connecting-mysql-databases/
+  if sys.argv[1] == "--prod" or sys.argv[1] == "--production":
+    DATABASE = os.getenv("DATABASE")
+  else:
+    DATABASE = os.getenv("DATABASETEST")
   mydb = mysql.connector.connect(
     host=os.getenv("DBHOST"),
     user=os.getenv("DBUSER"),
     password=os.getenv("DBPASS"),
-    database=os.getenv("DATABASETEST")
+    database=DATABASE
   )
 
   return mydb

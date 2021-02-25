@@ -13,8 +13,8 @@ load_dotenv()
 TOKEN = os.getenv('TOKENTEST')
 
 intents = discord.Intents.default()
-intents.members = True
-intents.presences = True
+# intents.members = True
+# intents.presences = True
 
 from functions.mysql_connection import prefix
 
