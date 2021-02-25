@@ -5,7 +5,7 @@
 <!-- <a href="https://github.com/Brettanda/friday-discord-python/issues"><img src="https://img.shields.io/github/issues/Brettanda/friday-discord-python" alt="GitHub issues"/></a> -->
 <a href="https://discord.gg/NTRuFjU"><img src="https://img.shields.io/discord/707441352367013899?color=7289da&logo=discord&logoColor=white" alt="Discord Chat"/></a>
 <a href="https://top.gg/bot/476303446547365891/vote"><img src="https://img.shields.io/badge/Vote-Friday-blue" alt="Vote"/></a>
-<a href="https://discord.com/api/oauth2/authorize?client_id=476303446547365891&permissions=36792384&scope=bot"><img src="https://img.shields.io/badge/Add%20Friday-to%20your%20server-orange" alt="Add Friday to your server"/></a>
+<a href="https://discord.com/oauth2/authorize?client_id=476303446547365891&permissions=322037824&scope=bot%20applications.commands"><img src="https://img.shields.io/badge/Add%20Friday-to%20your%20server-orange" alt="Add Friday to your server"/></a>
 <a href="https://www.patreon.com/fridaybot"><img src="https://img.shields.io/badge/-Become%20a%20Patron!-rgb(232%2C%2091%2C%2070)" alt="Become a Patron!"/></a>
 </div>
 
@@ -45,11 +45,13 @@ Friday can play music in a voice channel with the command `!play` followed by a 
 
 ## Chat
 
-Friday can respond to normal chat without the message being directed towards Friday
+~~Friday can respond to normal chat without the message being directed towards Friday~~
+
+Friday's chat response system has been disabled for the time being because since I have moved away from Dialogflow i need a larger dataset. So even though Friday will be mute (except for commands) for a bit, Friday will still be learning
 
 ### Context
 
-Friday checks if a message is being directed towards Friday if the message contains a mention (`@Friday`), the word 'Friday' in capital letters or lowercase if the most recent message is from Friday, and Friday will (try) to respond to any message send through a direct message to Friday. If a phrase is said that Friday should respond to for a joke or something it will respond if it matches one of the 'no context' phrases. For example, if someone says 'Goodbye' with no context it will respond because goodbyes are apart of 'no context' and therefore can respond anyway.
+~~Friday checks if a message is being directed towards Friday if the message contains a mention (`@Friday`), the word 'Friday' in capital letters or lowercase if the most recent message is from Friday, and Friday will (try) to respond to any message send through a direct message to Friday. If a phrase is said that Friday should respond to for a joke or something it will respond if it matches one of the 'no context' phrases. For example, if someone says 'Goodbye' with no context it will respond because goodbyes are apart of 'no context' and therefore can respond anyway.~~
 
 <!-- ## Privacy
 
