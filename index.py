@@ -1,4 +1,4 @@
-import os,sys,asyncio,validators,traceback,json
+import os,sys,asyncio,validators,traceback,json,signal
 from datetime import datetime
 
 import discord
@@ -6,8 +6,8 @@ import discord
 from dotenv import load_dotenv
 from discord.ext import commands
 
-# import logging
-# logging.basicConfig(level=logging.INFO)
+import logging
+logging.basicConfig(level=logging.INFO,filename="logging.log")
 
 load_dotenv()
 TOKEN = os.getenv('TOKENTEST')
@@ -124,6 +124,7 @@ async def on_error(event, *args, **kwargs):
       await relay_info(f"{owner.mention if owner is not None else ''}",bot,file="err.log",channel=713270561840824361)
 
   print(trace)
+  logging.error(trace)
   
 @bot.event
 async def on_shard_connect(shard_id):
@@ -188,6 +189,7 @@ async def on_message(ctx):
   ignore = [110373943822540800,752316999194902579]
   if ctx.guild.id in ignore:
     print("ignored guild")
+    logging.info("ignored guild")
     return
   if ctx.author.bot:
     return
@@ -198,7 +200,8 @@ async def on_message(ctx):
   if ctx.content.startswith(str(prefix(bot,ctx)[-1])):
   # if ctx.content.startswith(ctx.command_prefix):
     # channel = ctx.channel
-    print('Command: {0.content}'.format(ctx))
+    print(f'Command: {ctx.content}')
+    logging.info(f'Command: {ctx.content}')
   else:
     # async with ctx.channel.typing():
 
@@ -218,8 +221,10 @@ async def on_message(ctx):
     # TODO: add a check for another bot
     if intent not in noContext and bot.user not in ctx.mentions and "friday" not in ctx.content and meinlastmessage == False and ctx.channel.type != "private":
       print(f"{intent}\tI probably should not respond")
+      logging.info(f"{intent}\tI probably should not respond")
       return
     print(f"input: {ctx.content}")
+    logging.info(f"input: {ctx.content}")
     if result is not None:
       if result == "dynamic":
         from chat.dynamicchat import dynamicchat
@@ -254,5 +259,20 @@ if __name__ == "__main__":
   except KeyboardInterrupt:
     # mydb.close()
     loop.run_until_complete(bot.close())
+    logging.info("STOPED")
   finally:
     loop.close()
+  # def exit(signum,frame):
+  #   loop = asyncio.get_event_loop()
+  #   try:
+  #     asyncio.run
+  #     loop.run_until_complete(bot.close())
+  #   finally:
+  #     loop.close()
+
+  # signal.signal(signal.SIGINT,exit)
+  # signal.signal(signal.SIGTERM,exit)
+  # try:
+  #   loop.run_until_complete(bot.start(TOKEN,bot=True,reconnect=True))
+  # except RuntimeError:
+  #   pass
