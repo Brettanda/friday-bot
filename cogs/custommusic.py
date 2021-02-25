@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 
 import os,sys
-from functions import embed,MessageColors,mydb_connect,query
+from functions import embed,MessageColors,mydb_connect,query,ignore_guilds
 
 class CustomMusic(commands.Cog):
   """description goes here"""
@@ -30,6 +30,10 @@ class CustomMusic(commands.Cog):
   # @commands.Cog.listener()
   # # @commands.before_invoke(get_command)
   # async def on_message(self,ctx):
+      # if ctx.guild.id in ignore_guilds:
+      #   # print("ignored guild")
+      #   # logging.info("ignored guild")
+      #   return
   #   if ctx.author.bot:
   #     return
   #   if str(ctx.channel.type) == "private":

@@ -74,7 +74,7 @@ def bow(sentence, words, show_details=True):
   return(np.array(bag))
 
 async def classify_local(sentence):
-  ERROR_THRESHOLD = 0.25
+  ERROR_THRESHOLD = 0.75
   
   # generate probabilities from the model
   input_data = pd.DataFrame([bow(sentence, words)], dtype=float, index=['input'])
@@ -92,7 +92,7 @@ async def classify_local(sentence):
     index,name,chance = return_list[0]
     tag = [index for index,value in enumerate(intents) if value["tag"] == name]
     intent = intents[tag[0]]
-    # print(intent)
+    print(chance)
 
     if isinstance(intent["responses"],list) and len(intent["responses"]) > 0:
       indresp = random.randint(0,len(intent["responses"]) - 1)

@@ -1,4 +1,4 @@
-import os,sys
+import os,sys,logging
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
 from functions import *
 
@@ -8,6 +8,8 @@ with open('./config.json') as f:
   config = json.load(f)
 
 async def dynamicchat(ctx,bot,intent):
+  print(f"intent: {intent}")
+  logging.info(f"intent: {intent}")
   if intent == "Insults":
     await ctx.add_reaction("😭")
 
@@ -43,8 +45,9 @@ async def dynamicchat(ctx,bot,intent):
     # await msg.channel.send(func.embed({ title: "No u!", color: "#FFD700", author: msg.author, image: unoCards[random.randint(0, unoCards.length)] }));
 
   elif intent == "Memes" or intent == "Memes - Another":
-    from commands.meme import Meme
-    await Meme.meme(ctx)
+    # from cogs.meme import Meme
+    await bot.get_command("meme").__call__(ctx)
+    # await Meme.meme(ctx)
     # await require("../commands/meme").execute(msg);
 
   elif intent == "Title of your sex tape":

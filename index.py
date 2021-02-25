@@ -17,6 +17,7 @@ intents = discord.Intents.default()
 # intents.presences = True
 
 from functions.mysql_connection import prefix
+from functions import ignore_guilds,dev_guilds
 
 bot = commands.AutoShardedBot(command_prefix=prefix or "!",case_insensitive=True,intents=intents)
 # slash = SlashCommand(bot,sync_on_cog_reload=True,sync_commands=True)
@@ -186,10 +187,9 @@ async def on_member_join(member):
 
 @bot.event
 async def on_message(ctx):
-  ignore = [110373943822540800,752316999194902579]
-  if ctx.guild.id in ignore:
-    print("ignored guild")
-    logging.info("ignored guild")
+  if hasattr(ctx,"guild") and ctx.guild.id in ignore_guilds:
+    # print("ignored guild")
+    # logging.info("ignored guild")
     return
   if ctx.author.bot:
     return
@@ -207,9 +207,26 @@ async def on_message(ctx):
 
     valid = validators.url(ctx.content)
     
+    if "friday" in ctx.content.lower() or bot.user in ctx.mentions:
+      print(f"i think i should respond to this: {ctx.content.lower()}")
+      await relay_info("",bot,embed=embed(title="I think i should respond to this",description=f"{ctx.content}"),channel=814349008007856168)
+      logging.info(f"i think i should respond to this: {ctx.content.lower()}")
+
     if valid == True:
       return
 
+    if len(ctx.content) > 256:
+      print("message longer than 256 char")
+      logging.info("message longer than 256 char")
+      return
+
+    if ctx.channel.type == "store" or ctx.channel.type == "voice" or ctx.channel.type == "category" or ctx.channel.type == "news":
+      return
+
+    if hasattr(ctx,"guild") and ctx.guild.id not in dev_guilds:
+      print(f"ignored message: {ctx.content}")
+      logging.info(f"ignored message: {ctx.content}")
+      return
     noContext = ["Title of your sex tape", "I dont want to talk to a chat bot", "The meaning of life?", "Birthday", "Memes", "Self Aware", "Soup Time", "No U", "I'm dad", "Bot discrimination"]
     lastmessages = await ctx.channel.history(limit=3).flatten()
     meinlastmessage = False
@@ -262,17 +279,3 @@ if __name__ == "__main__":
     logging.info("STOPED")
   finally:
     loop.close()
-  # def exit(signum,frame):
-  #   loop = asyncio.get_event_loop()
-  #   try:
-  #     asyncio.run
-  #     loop.run_until_complete(bot.close())
-  #   finally:
-  #     loop.close()
-
-  # signal.signal(signal.SIGINT,exit)
-  # signal.signal(signal.SIGTERM,exit)
-  # try:
-  #   loop.run_until_complete(bot.start(TOKEN,bot=True,reconnect=True))
-  # except RuntimeError:
-  #   pass
