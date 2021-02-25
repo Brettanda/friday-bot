@@ -1,4 +1,4 @@
-import discord,psutil,logging,git
+import discord,psutil,logging,subprocess,asyncio
 from discord.ext import commands
 
 from index import restartPending,songqueue
@@ -55,31 +55,25 @@ class Dev(commands.Cog):
       await stat.edit(embed=embed(title=f"{len(songqueue)} guilds are playing music"))
       while len(songqueue) > 0:
         await stat.edit(embed=embed(title=f"{len(songqueue)} guilds are playing music"))
+        await asyncio.sleep(1)
       await stat.edit(embed=embed(title=f"{len(songqueue)} guilds are playing music"))
     if len(songqueue) == 0:
-      p = None
+      thispath = os.getcwd()
+      if "\\" in thispath:
+        seperator = "\\\\"
+      else:
+        seperator = "/"
       try:
-        p = psutil.Process(os.getpid())
-        # loop = asyncio.get_event_loop()
-        await stat.edit(embed=embed(title="Restarting"))
-        # self.loop.run_until_complete(await self.bot.close())
-        self.loop.close()
-        for handler in p.get_open_files() + p.connections():
-          os.close(handler.fd)
-        # os.execv(sys.argv[0], sys.argv)
-        restartPending = False
-      except Exception as e:
-        logging.error(e)
-        restartPending = True
-        # raise
-      python = sys.executable
-      try:
-        os.execl(python, python, *sys.argv)
-      except KeyboardInterrupt:
-        for handler in p.get_open_files() + p.connections():
-          os.close(handler.fd)
-        self.loop.run_until_complete(self.bot.close())
-        self.loop.close()
+        wait = 5
+        while wait > 0:
+          stat.edit(embed=embed(title=f"Restarting in {wait} seconds"))
+          await asyncio.sleep(1)
+          wait = wait - 1
+      finally:
+        await ctx.delete()
+        await stat.delete()
+        subprocess.Popen([f"{thispath}{seperator}restart.sh"], stdin=subprocess.PIPE)
+
 
   @dev.command(name="mute",hidden=True)
   @commands.is_owner()
@@ -109,16 +103,22 @@ class Dev(commands.Cog):
   #   await ctx.reply(embed=embed(title=f"Failed to reload *{str(''.join(ctx.message.content.split(ctx.prefix+ctx.command.name+' ')))}*",color=MessageColors.ERROR))
   #   raise
 
-  async def do_update(self):
-    g = git.cmd.Git("git@github.com:Brettanda/friday-discord-python.git")
-    g.fetch()
-
   @dev.command(name="update",hidden=True)
   @commands.is_owner()
   @commands.bot_has_permissions(send_messages = True, read_messages = True, manage_messages = True)
   async def update(self,ctx):
     message = await ctx.reply(embed=embed(title="Updating..."))
-    await self.do_update()
+    thispath = os.getcwd()
+    if "\\" in thispath:
+      seperator = "\\\\"
+    else:
+      seperator = "/"
+    try:
+      subprocess.Popen([f"{thispath}{seperator}update.sh"], stdin=subprocess.PIPE)
+    except:
+      raise
+    else:
+      await message.edit(embed=embed(title="Update complete!"))
 
   @dev.command(name="cogs",hidden=True)
   @commands.is_owner()
@@ -126,6 +126,18 @@ class Dev(commands.Cog):
   async def cogs(self,ctx):
     cogs = ", ".join(self.bot.cogs)
     await ctx.reply(embed=embed(title=f"{len(self.bot.cogs)} total cogs",description=f"{cogs}"))
+
+  @dev.command(name="log",hidden=True)
+  @commands.is_owner()
+  @commands.bot_has_permissions(send_messages = True, read_messages = True, manage_messages = True)
+  async def log(self,ctx):
+    thispath = os.getcwd()
+    if "\\" in thispath:
+      seperator = "\\\\"
+    else:
+      seperator = "/"
+    await ctx.reply(file=discord.File(fp=f"{thispath}{seperator}logging.log",filename="logging.txt"))
+  
 
   @commands.Cog.listener()
   async def on_message(self,ctx):
