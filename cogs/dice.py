@@ -18,9 +18,9 @@ class Dice(Cog):
     roll = roll.lower()
     result = d20.roll(roll)
     try:
-      await ctx.reply(embed=embed(title=f"Your total: {str(result.total)}",description=f"Query: {str(result.ast)}\nResult: {str(result)}"),mention_author=False)
+      await ctx.reply(embed=embed(title=f"Your total: {str(result.total)}",description=f"Query: {str(result.ast)}\nResult: {str(result)}"))
     except discord.HTTPException:
-      await ctx.reply(f"Your total: {str(result.total)}\nQuery: {str(result.ast)}\nResult: {str(result)}",mention_author=False)
+      await ctx.reply(f"Your total: {str(result.total)}\nQuery: {str(result.ast)}\nResult: {str(result)}")
 
 def setup(bot):
   bot.add_cog(Dice(bot))

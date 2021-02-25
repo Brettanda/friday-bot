@@ -16,11 +16,11 @@ class RockPaperScissors(Cog):
     # arg = args[0].lower()
     arg = args.lower()
     # if args not in self.options
-    #   await ctx.reply(embed=embed(title="Please only choose one of three options, Rock, Paper, or Scissors",color=MessageColors.ERROR),mention_author=False)
+    #   await ctx.reply(embed=embed(title="Please only choose one of three options, Rock, Paper, or Scissors",color=MessageColors.ERROR))
     #   return
 
     if arg not in self.options:
-      await ctx.reply(embed=embed(title=f"`{arg}` is not Rock, Paper, Scissors. Please choose one of those three.",color=MessageColors.ERROR),mention_author=False)
+      await ctx.reply(embed=embed(title=f"`{arg}` is not Rock, Paper, Scissors. Please choose one of those three.",color=MessageColors.ERROR))
       return
 
     num = random.randint(0,len(self.options)-1)
@@ -42,7 +42,7 @@ class RockPaperScissors(Cog):
     elif mychoice == "scissors" and arg == "paper":
       conclusion = ctx.author
 
-    await ctx.reply(embed=embed(title=f"Your move: {arg} VS My move: {mychoice}",color=MessageColors.RPS,description=f"The winner of this round is: **{conclusion}**"),mention_author=False)
+    await ctx.reply(embed=embed(title=f"Your move: {arg} VS My move: {mychoice}",color=MessageColors.RPS,description=f"The winner of this round is: **{conclusion}**"))
 
 
 def setup(bot):

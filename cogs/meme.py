@@ -40,7 +40,7 @@ class Meme(Cog):
       try:
         body = await self.req(url)
       except:
-        await ctx.reply(embed=embed(title="Something went wrong, please try again.",color=MessageColors.ERROR),mention_author=False)
+        await ctx.reply(embed=embed(title="Something went wrong, please try again.",color=MessageColors.ERROR))
         return
 
       if str(ctx.channel.type) == "private":
@@ -93,7 +93,7 @@ class Meme(Cog):
         # author_name="u/"+data.get("author"),
         image=data["url"],
         color=MessageColors.MEME
-      ),mention_author=False
+      )
     )
 
   # @meme.error

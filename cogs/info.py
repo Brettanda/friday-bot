@@ -20,7 +20,7 @@ class Info(commands.Cog):
         description="Some information about me, Friday ;)",
         fieldstitle=["Username","Guilds joined","Status","Latency","Loving Life"],
         fieldsval=[self.bot.user.name,len(self.bot.guilds),self.bot.activity,f"{self.bot.latency*1000:,.0f} ms","True"]
-      ),mention_author=False
+      )
     )
 
 def setup(bot):

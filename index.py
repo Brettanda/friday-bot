@@ -75,35 +75,34 @@ async def on_command_error(ctx,error):
     # print(bot.get_cog(ctx.command))
     await cmd_help(ctx,ctx.command,"You're missing some arguments, here is how the command should look")
     # await bot.help_command.send_command_help(ctx.command)
-    # await ctx.reply(embed=embed(title=f"`{ctx.message.content}` is missing required arguments",color=MessageColors.ERROR),mention_author=False)
+    # await ctx.reply(embed=embed(title=f"`{ctx.message.content}` is missing required arguments",color=MessageColors.ERROR))
     return
   elif isinstance(error,commands.CommandNotFound):
-    await ctx.reply(embed=embed(title=f"Command `{ctx.message.content}` was not found",color=MessageColors.ERROR),mention_author=False)
+    await ctx.reply(embed=embed(title=f"Command `{ctx.message.content}` was not found",color=MessageColors.ERROR))
     return
   # elif isinstance(error,commands.RoleNotFound):
-  #   await ctx.reply(embed=embed(title=f"{error}",color=MessageColors.ERROR),mention_author=False)
+  #   await ctx.reply(embed=embed(title=f"{error}",color=MessageColors.ERROR))
   #   return
   elif isinstance(error,commands.CommandOnCooldown):
-    await ctx.reply(embed=embed(title=f"This command is on a cooldown, please wait {error.retry_after:,.2f} sec(s)",color=MessageColors.ERROR),mention_author=False)
+    await ctx.reply(embed=embed(title=f"This command is on a cooldown, please wait {error.retry_after:,.2f} sec(s)",color=MessageColors.ERROR))
     return
   elif isinstance(error,commands.NoPrivateMessage):
-    await ctx.reply(embed=embed(title="This command does not work in non-server text channels",color=MessageColors.ERROR),mention_author=False)
+    await ctx.reply(embed=embed(title="This command does not work in non-server text channels",color=MessageColors.ERROR))
     return
   elif isinstance(error,commands.NotOwner):
-    await ctx.reply(embed=embed(title="You have found a secret command.",description="Only my developer can use this command.",color=MessageColors.ERROR),mention_author=False)
+    await ctx.reply(embed=embed(title="You have found a secret command.",description="Only my developer can use this command.",color=MessageColors.ERROR))
     return
   elif isinstance(error,commands.ChannelNotFound):
-    await ctx.reply(embed=embed(title="Could not find that channel",description="Make sure it is the right channel type",color=MessageColors.ERROR),mention_author=False)
+    await ctx.reply(embed=embed(title="Could not find that channel",description="Make sure it is the right channel type",color=MessageColors.ERROR))
     return
   elif isinstance(error,commands.DisabledCommand):
-    await ctx.reply(embed=embed(title="This command has been disabled",color=MessageColors.ERROR),mention_author=False)
+    await ctx.reply(embed=embed(title="This command has been disabled",color=MessageColors.ERROR))
     return
   elif isinstance(error,commands.TooManyArguments):
     await cmd_help(ctx,ctx.command,"Too many arguments were passed for this command, here is how the command should look")
     return
   else:
-    print(error)
-    await ctx.reply(embed=embed(title=f"{error}",color=MessageColors.ERROR),mention_author=False)
+      await ctx.reply(embed=embed(title=f"{error}",color=MessageColors.ERROR),delete_after=delete)
 
 @bot.event
 async def on_error(event, *args, **kwargs):
@@ -217,7 +216,7 @@ async def on_message(ctx):
         from chat.dynamicchat import dynamicchat
         await dynamicchat(ctx,bot,intent)
       else:
-        await ctx.reply(result,mention_author=False)
+        await ctx.reply(result)
   # else:
     # reddit = await redditlink().reddit_link(ctx)
     # if reddit is not False:

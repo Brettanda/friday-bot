@@ -18,7 +18,7 @@ class ServerInfo(commands.Cog):
         thumbnail=ctx.guild.icon_url,
         fieldstitle=["Server Name", "Members", "Server ID", "Region", "Verification level"],
         fieldsval=[ctx.guild.name, ctx.guild.member_count, ctx.guild.id, ctx.guild.region, ctx.guild.verification_level]
-      ),mention_author=False
+      )
     )
 
 def setup(bot):

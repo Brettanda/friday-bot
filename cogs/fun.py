@@ -27,7 +27,7 @@ class Fun(commands.Cog):
   #     await member.move_to(channel,reason=f"{ctx.author} called the move command")
   #   except:
   #     raise
-  #   await ctx.reply(embed=embed(title=f"Successfully moved {member} to {channel}"),mention_author=False)
+  #   await ctx.reply(embed=embed(title=f"Successfully moved {member} to {channel}"))
 
   # @commands.Cog.listener()
   # async def on_voice_state_update(self,member,before,after):
@@ -48,10 +48,10 @@ class Fun(commands.Cog):
   @commands.has_guild_permissions(move_members = True)
   async def rolecall(self,ctx,role:discord.Role,voicechannel:discord.VoiceChannel,time:int=10):
     timeleft = time
-    # message = await ctx.reply(content=f"<@&{role.id}>",embed=embed(title=f"Members of \"{role}\" will be moved to \"{voicechannel}\" in {timeleft}"),mention_author=False)
-    message = await ctx.reply(embed=embed(title=f"Members of \"{role}\" will be moved to \"{voicechannel}\" in {timeleft}"),mention_author=False)
+    # message = await ctx.reply(content=f"<@&{role.id}>",embed=embed(title=f"Members of \"{role}\" will be moved to \"{voicechannel}\" in {timeleft}"))
+    message = await ctx.reply(embed=embed(title=f"Members of \"{role}\" will be moved to \"{voicechannel}\" in {timeleft}"))
     while timeleft >= 0:
-      await message.edit(embed=embed(title=f"Members of \"{role}\" will be moved to \"{voicechannel}\" in {timeleft}"),mention_author=False)
+      await message.edit(embed=embed(title=f"Members of \"{role}\" will be moved to \"{voicechannel}\" in {timeleft}"))
       await asyncio.sleep(1)
       timeleft = timeleft - 1
 
@@ -63,7 +63,7 @@ class Fun(commands.Cog):
       except:
         pass
     
-    await message.edit(embed=embed(title=f"Moved {moved} members with the role {role} to {voicechannel}"),mention_author=False)
+    await message.edit(embed=embed(title=f"Moved {moved} members with the role {role} to {voicechannel}"))
 
   @commands.command(name="massmove",aliases=["move"],usage="<fromChannel:Optional> <toChannel:Required>")
   @commands.bot_has_guild_permissions(move_members = True)
@@ -76,17 +76,17 @@ class Fun(commands.Cog):
       fromChannel = None
 
     if ctx.author.permissions_in(toChannel).view_channel != True:
-      await ctx.reply(embed=embed(title="Trying to connect to a channel you can't view 🤔",description="Im going to have to stop you right there",color=MessageColors.ERROR),mention_author=False)
+      await ctx.reply(embed=embed(title="Trying to connect to a channel you can't view 🤔",description="Im going to have to stop you right there",color=MessageColors.ERROR))
       return
     if ctx.author.permissions_in(toChannel).connect != True:
-      await ctx.reply(embed=embed(title=f"You don't have permission to connect to \"{toChannel}\" so I can't complete this command",color=MessageColors.ERROR),mention_author=False)
+      await ctx.reply(embed=embed(title=f"You don't have permission to connect to \"{toChannel}\" so I can't complete this command",color=MessageColors.ERROR))
       return
 
     try:
       if fromChannel is None:
         fromChannel = ctx.author.voice.channel
     except:
-      await ctx.reply(embed=embed(title="To move users from one channel to another, you need to be connected to one or specify the channel to send from.",color=MessageColors.ERROR),mention_author=False)
+      await ctx.reply(embed=embed(title="To move users from one channel to another, you need to be connected to one or specify the channel to send from.",color=MessageColors.ERROR))
       return
 
     memberCount = len(fromChannel.members)
@@ -96,7 +96,7 @@ class Fun(commands.Cog):
         await member.move_to(toChannel,reason=f"{ctx.author} called the move command")
     except:
       raise
-    await ctx.reply(embed=embed(title=f"Successfully moved {memberCount} members"),mention_author=False)
+    await ctx.reply(embed=embed(title=f"Successfully moved {memberCount} members"))
 
 def setup(bot):
   bot.add_cog(Fun(bot))

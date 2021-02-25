@@ -12,11 +12,10 @@ class Ping(commands.Cog):
   @commands.command(name="ping",hidden=True)
   async def ping(self,ctx):
     print("pong")
-
     try:
-      await ctx.reply(embed=embed(title="Pong!"),mention_author=False)
+      await ctx.send(embed=embed(title="Pong!"))
     except discord.HTTPException:
-      await ctx.reply("Pong!",mention_author=False)
+      await ctx.send("Pong!")
 
 def setup(bot):
   bot.add_cog(Ping(bot))

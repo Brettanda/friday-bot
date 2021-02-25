@@ -181,10 +181,10 @@ class redditlink(commands.Cog):
             # pprint.pprint(linkdata)
             # name = f'{linkdata["extractor"]}-{linkdata["id"]}-{linkdata["title"]}.{linkdata["ext"]}'
             name = data["title"].split()
-            await reaction.message.reply(file=discord.File(fp=mp4file,filename=f'{"_".join(name)}.{linkdata["ext"]}'),mention_author=False)
+            await reaction.message.reply(file=discord.File(fp=mp4file,filename=f'{"_".join(name)}.{linkdata["ext"]}'))
           except discord.HTTPException as e:
             if "Payload Too Large" in str(e):
-              await reaction.message.reply(embed=embed(title="This file is too powerful to be uploaded",description="You will have to open reddit to view this",color=MessageColors.ERROR),mention_author=False)
+              await reaction.message.reply(embed=embed(title="This file is too powerful to be uploaded",description="You will have to open reddit to view this",color=MessageColors.ERROR))
             pass
           finally:
             try:
@@ -192,7 +192,7 @@ class redditlink(commands.Cog):
             except PermissionError:
               pass
         else:
-          await reaction.message.reply(link,mention_author=False)
+          await reaction.message.reply(link)
       # elif reaction.message.channel.nsfw == False and data["over_18"] == False:
       else:
         if video == True:
@@ -203,10 +203,10 @@ class redditlink(commands.Cog):
             # pprint.pprint(linkdata)
             # name = f'{linkdata["extractor"]}-{linkdata["id"]}-{linkdata["title"]}.{linkdata["ext"]}'
             name = data["title"].split(" ")
-            await reaction.message.reply(file=discord.File(fp=mp4file,filename=f'{"_".join(name)}.{linkdata["ext"]}',spoiler=True),mention_author=False)
+            await reaction.message.reply(file=discord.File(fp=mp4file,filename=f'{"_".join(name)}.{linkdata["ext"]}',spoiler=True))
           except discord.HTTPException as e:
             if "Payload Too Large" in str(e):
-              await reaction.message.reply(embed=embed(title="This file is too powerful to be uploaded",description="You will have to open reddit to view this",color=MessageColors.ERROR),mention_author=False)
+              await reaction.message.reply(embed=embed(title="This file is too powerful to be uploaded",description="You will have to open reddit to view this",color=MessageColors.ERROR))
             pass
           finally:
             try:
@@ -214,7 +214,7 @@ class redditlink(commands.Cog):
             except PermissionError:
               pass
         else:
-          await reaction.message.reply("||"+data["url"]+"||",mention_author=False)
+          await reaction.message.reply("||"+data["url"]+"||")
       # print(len(body))
       # if ctx.channel.nsfw and body["data"]["over_18"]:
 

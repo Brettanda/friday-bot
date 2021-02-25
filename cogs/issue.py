@@ -24,9 +24,9 @@ class Issue(commands.Cog):
     try:
       await self.bot.wait_for("reaction_add",timeout=float(timeout),check=check)
     except asyncio.TimeoutError:
-      await confirm.edit(content="",embed=embed(title="Canceled"),mention_author=False)
+      await confirm.edit(content="",embed=embed(title="Canceled"))
     else:
-      await confirm.edit(content="",embed=embed(title="Sent"),mention_author=False)
+      await confirm.edit(content="",embed=embed(title="Sent"))
       await relay_info("",embed=embed(title="Issue",description=f"{issue}",ctx=ctx),bot=self.bot,channel=713270516487553055)
     finally:
       await confirm.delete(delay=delay)

@@ -12,14 +12,14 @@ async def dynamicchat(ctx,bot,intent):
     await ctx.add_reaction("😭")
 
   elif intent == "Activities":
-    await ctx.reply(f"I am playing **{bot.guilds[0].get_member(bot.user.id).activity.name}**",mention_author=False)
+    await ctx.reply(f"I am playing **{bot.guilds[0].get_member(bot.user.id).activity.name}**")
 
   elif intent == "Self Aware":
     await ctx.add_reaction("👀")
 
   elif intent == "Creator":
     appinfo = await bot.application_info()
-    await ctx.reply(f"{appinfo.owner} is my creator :)",mention_author=False)
+    await ctx.reply(f"{appinfo.owner} is my creator :)")
   # elif intent == "Soup Time":
   #   const image = soups[random.randint(0, soups.length)];
   #   console.info(`Soup: ${image}`);
@@ -48,7 +48,7 @@ async def dynamicchat(ctx,bot,intent):
     # await require("../commands/meme").execute(msg);
 
   elif intent == "Title of your sex tape":
-    await ctx.reply(f"*{ctx.content.capitalize()}*, title of your sex-tape",mention_author=False)
+    await ctx.reply(f"*{ctx.content.capitalize()}*, title of your sex-tape")
     # msg.channel.send(`*"${func.capitalize(msg.cleanContent)}"*, title of your sex-tape`);
 
   # TODO: Make the command for this
@@ -90,11 +90,11 @@ async def dynamicchat(ctx,bot,intent):
     await ctx.add_reaction("💩")
 
   elif intent == "How do commands":
-    await ctx.reply("To find all of my command please use the help command",mention_author=False)
+    await ctx.reply("To find all of my command please use the help command")
     # await require("../commands/help")(msg, "", bot);
 
   elif intent == "who am i?":
-    await ctx.reply(f"Well I don't know your real name but your username is {ctx.author.name}",mention_author=False)
+    await ctx.reply(f"Well I don't know your real name but your username is {ctx.author.name}")
     # ctx.channel.send(`Well I don't know your real name but your username is ${msg.author.username}`);
 
   else:

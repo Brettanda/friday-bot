@@ -30,7 +30,7 @@ class Souptime(Cog):
       image=image
     )
 
-    await ctx.reply(embed=r,mention_author=False)
+    await ctx.reply(embed=r)
 
 def setup(bot):
   bot.add_cog(Souptime(bot))

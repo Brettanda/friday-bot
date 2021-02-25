@@ -17,7 +17,7 @@ class Inspiration(Cog):
   @command(name="inspiration",enabled=False)
   async def inspiration(self,ctx):
     print("pong")
-    await ctx.reply(embed=embed(title="Pong!"),mention_author=False)
+    await ctx.reply(embed=embed(title="Pong!"))
 
 def setup(bot):
   bot.add_cog(Inspiration(bot))

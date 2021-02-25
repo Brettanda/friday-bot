@@ -40,21 +40,21 @@ class Dev(commands.Cog):
   async def restart(self,ctx):
     global restartPending,songqueue
     if restartPending == True:
-      await ctx.reply(embed=embed(title="A restart is already pending"),mention_author=False)
+      await ctx.reply(embed=embed(title="A restart is already pending"))
       return
     
     restartPending = True
-    stat = await ctx.reply(embed=embed(title="Pending"),mention_author=False)
+    stat = await ctx.reply(embed=embed(title="Pending"))
     if len(songqueue) > 0:
-      await stat.edit(embed=embed(title=f"{len(songqueue)} guilds are playing music"),mention_author=False)
+      await stat.edit(embed=embed(title=f"{len(songqueue)} guilds are playing music"))
       while len(songqueue) > 0:
-        await stat.edit(embed=embed(title=f"{len(songqueue)} guilds are playing music"),mention_author=False)
-      await stat.edit(embed=embed(title=f"{len(songqueue)} guilds are playing music"),mention_author=False)
+        await stat.edit(embed=embed(title=f"{len(songqueue)} guilds are playing music"))
+      await stat.edit(embed=embed(title=f"{len(songqueue)} guilds are playing music"))
     if len(songqueue) == 0:
       try:
         p = psutil.Process(os.getpid())
         # loop = asyncio.get_event_loop()
-        await stat.edit(embed=embed(title="Restarting"),mention_author=False)
+        await stat.edit(embed=embed(title="Restarting"))
         # self.loop.run_until_complete(await self.bot.close())
         self.loop.close()
         for handler in p.get_open_files() + p.connections():
@@ -91,7 +91,7 @@ class Dev(commands.Cog):
         else:
           command = command
         self.bot.reload_extension(f"cogs.{command.lower()}")
-      await ctx.reply(embed=embed(title=f"Cog *{command}* has been reloaded"),mention_author=False)
+      await ctx.reply(embed=embed(title=f"Cog *{command}* has been reloaded"))
     except:
       raise
 
@@ -109,7 +109,7 @@ class Dev(commands.Cog):
   @commands.is_owner()
   async def cogs(self,ctx):
     cogs = ", ".join(self.bot.cogs)
-    await ctx.reply(embed=embed(title=f"{len(self.bot.cogs)} total cogs",description=f"{cogs}"),mention_author=False)
+    await ctx.reply(embed=embed(title=f"{len(self.bot.cogs)} total cogs",description=f"{cogs}"))
 
   @commands.Cog.listener()
   async def on_message(self,ctx):

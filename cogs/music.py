@@ -45,7 +45,7 @@ class Music(Cog):
     # self.songqueue = {}
 
   async def tryagain(self,ctx):
-    await ctx.reply(embed=embed(title="Something went wrong, please try again later",color=MessageColors.ERROR),mention_author=False)
+    await ctx.reply(embed=embed(title="Something went wrong, please try again later",color=MessageColors.ERROR))
 
   async def can_play(self,ctx):
     # await ctx.guild.chunk(cache=False)
@@ -63,7 +63,7 @@ class Music(Cog):
       if value == False and perm.lower() in connect_perms:
         missing.append(perm)
     if len(missing) > 0:
-      await ctx.reply(embed=embed(title=f"{commands.BotMissingPermissions(missing)}",color=MessageColors.ERROR),mention_author=False)
+      await ctx.reply(embed=embed(title=f"{commands.BotMissingPermissions(missing)}",color=MessageColors.ERROR))
       return True
     return False
 
@@ -128,7 +128,7 @@ class Music(Cog):
             thumbnail=thumbnail,
             fieldstitle=["Duration","Total songs in queue"],
             fieldsval=[duration,songsinqueue]
-          ),mention_author=False,delete_after=await get_delete_time()
+          ),delete_after=await get_delete_time()
         )
       else:
         await ctx.reply(
@@ -138,7 +138,7 @@ class Music(Cog):
             thumbnail=thumbnail,
             fieldstitle=["Duration","Total songs in queue"],
             fieldsval=[duration,songsinqueue]
-          ),mention_author=False
+        )
         )
     else:
       async with ctx.typing():
@@ -155,11 +155,11 @@ class Music(Cog):
     if await self.can_play(ctx) == True:
       return
     if ctx.author.voice is None:
-      await ctx.reply(embed=embed(title="You must be in a voice channel to play music.",color=MessageColors.MUSIC),mention_author=False)
+      await ctx.reply(embed=embed(title="You must be in a voice channel to play music.",color=MessageColors.MUSIC))
       return
 
     if "open.spotify.com" in ctx.message.content or "spotify:track:" in ctx.message.content:
-      await ctx.reply(embed=embed(title="At the moment Spotify links are not supported.",color=MessageColors.ERROR),mention_author=False)
+      await ctx.reply(embed=embed(title="At the moment Spotify links are not supported.",color=MessageColors.ERROR))
       return
 
     voice = discord.utils.get(self.bot.voice_clients,guild=ctx.guild)
@@ -171,7 +171,7 @@ class Music(Cog):
         player = await self.YTDLSource.from_url(url, loop=self.bot.loop, stream=True)
         songqueue[serverQueueId].append(player)
 
-      await ctx.reply(embed=embed(title="Added to queue: **{}**".format(player.title),color=MessageColors.MUSIC),mention_author=False)
+      await ctx.reply(embed=embed(title="Added to queue: **{}**".format(player.title),color=MessageColors.MUSIC))
       return
 
     async with ctx.typing():
@@ -206,9 +206,9 @@ class Music(Cog):
           pass
         finally:
           await voice.disconnect()
-          await ctx.reply(embed=embed(title="Finished"),mention_author=False)
+          await ctx.reply(embed=embed(title="Finished"))
       else:
-        await ctx.reply(embed=embed(title="I am not connected to a voice channel"),mention_author=False)
+        await ctx.reply(embed=embed(title="I am not connected to a voice channel"))
     except:
       await self.tryagain(ctx)
 
@@ -230,9 +230,9 @@ class Music(Cog):
         if voice is not None:
           async with ctx.typing():
             await voice.disconnect()
-          await ctx.reply(embed=embed(title="Finished",color=MessageColors.MUSIC),mention_author=False)
+          await ctx.reply(embed=embed(title="Finished",color=MessageColors.MUSIC))
         else:
-          await ctx.reply(embed=embed(title="I am not connected to a voice channel",color=MessageColors.MUSIC),mention_author=False)
+          await ctx.reply(embed=embed(title="I am not connected to a voice channel",color=MessageColors.MUSIC))
     except:
       await self.tryagain(ctx)
 
@@ -262,9 +262,9 @@ class Music(Cog):
             queueList = "Up Next: \n"
           queueList = queueList + "\t{}: {}\n".format(x,i.title)
 
-        await ctx.reply(embed=embed(title=title,description=queueList,color=MessageColors.MUSIC),mention_author=False)
+        await ctx.reply(embed=embed(title=title,description=queueList,color=MessageColors.MUSIC))
       else:
-        await ctx.reply(embed=embed(title="Nothing is playing right now"),mention_author=False)
+        await ctx.reply(embed=embed(title="Nothing is playing right now"))
     except:
       await self.tryagain(ctx)
 
@@ -279,10 +279,10 @@ class Music(Cog):
       voice = discord.utils.get(self.bot.voice_clients,guild=ctx.guild)
       if voice is not None:
         if voice.is_paused():
-          await ctx.reply(embed=embed(title="I have already been paused",color=MessageColors.MUSIC),mention_author=False)
+          await ctx.reply(embed=embed(title="I have already been paused",color=MessageColors.MUSIC))
         elif voice.is_playing(): 
           voice.pause()
-          await ctx.reply(embed=embed(title="Paused",color=MessageColors.MUSIC),mention_author=False)
+          await ctx.reply(embed=embed(title="Paused",color=MessageColors.MUSIC))
     except:
       await self.tryagain(ctx)
 
@@ -298,11 +298,11 @@ class Music(Cog):
       if voice is not None:
         if voice.is_paused():
           voice.resume()
-          await ctx.reply(embed=embed(title="Resumed",color=MessageColors.MUSIC),mention_author=False)
+          await ctx.reply(embed=embed(title="Resumed",color=MessageColors.MUSIC))
         elif voice.is_playing(): 
-          await ctx.reply(embed=embed(title="I was never paused",color=MessageColors.MUSIC),mention_author=False)
+          await ctx.reply(embed=embed(title="I was never paused",color=MessageColors.MUSIC))
       else:
-        await ctx.reply(embed=embed(title="Failed to resume",color=MessageColors.ERROR),mention_author=False)
+        await ctx.reply(embed=embed(title="Failed to resume",color=MessageColors.ERROR))
     except:
       await self.tryagain(ctx)
 
@@ -350,12 +350,12 @@ class Music(Cog):
           # fieldsval=[secs,duration]
           fieldstitle=["Duration"],
           fieldsval=[duration]
-        ),mention_author=False
+      )
       )
     except BaseException as e:
       print(e)
       if "Already playing audio." in str(e):
-        await ctx.reply(embed=embed(title=f"I'm unable to listen along with you because I am already listening along with someone else",color=MessageColors.ERROR),mention_author=False)
+        await ctx.reply(embed=embed(title=f"I'm unable to listen along with you because I am already listening along with someone else",color=MessageColors.ERROR))
     # else:
     #   while voice.is_playing():
     #     print()
