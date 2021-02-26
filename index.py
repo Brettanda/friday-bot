@@ -138,6 +138,33 @@ async def on_shard_ready(shard_id):
   await relay_info(f"#{shard_id} Apart of {len(bot.guilds)} guilds",bot)
   loop.create_task(choosegame(bot,config,1800,shard_id),name="Gaming")
   # TODO: Check for new servers, if so add them to database, and remove rows if removed from server
+  mydb = mydb_connect()
+  database_guilds = query(mydb,f"SELECT id FROM servers")
+  if len(database_guilds) != len(bot.guilds):
+    current_guilds = []
+    for guild in bot.guilds:
+      current_guilds.append(guild.id)
+    x = 0
+    for guild in database_guilds:
+      database_guilds[x] = guild[0]
+      x = x + 1
+    difference = list(set(database_guilds).symmetric_difference(set(current_guilds)))
+    if len(difference) > 0:
+      now = datetime.now()
+      # print(len(database_guilds),len(current_guilds))
+      # print(database_guilds,current_guilds)
+      # print(difference)
+      if len(database_guilds) < len(current_guilds):
+        for guild_id in difference:
+          guild = bot.get_guild(guild_id)
+          owner = guild.owner.id if hasattr(guild.owner,"id") else 0
+          query(mydb,f"INSERT INTO servers (id,owner,name,createdAt,updatedAt) VALUES (%s,%s,%s,%s,%s)",guild.id,owner,guild.name,now,now)
+      elif len(database_guilds) > len(current_guilds):
+        for guild_id in difference:
+          query(mydb,f"DELETE FROM servers WHERE id=%s",guild_id)
+      else:
+        print("could not sync guilds")
+        logging.warn("could not sync guilds")
 
 @bot.event
 async def on_shard_disconnect(shard_id):
