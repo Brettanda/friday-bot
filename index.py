@@ -228,17 +228,17 @@ async def on_message(ctx):
   if ctx.content.startswith(str(query_prefix(bot,ctx,True))):
   # if ctx.content.startswith(ctx.command_prefix):
     # channel = ctx.channel
-    print(f'Command: {ctx.content}')
-    logging.info(f'Command: {ctx.content}')
+    print(f'Command: {ctx.clean_content.encode("unicode_escape")}')
+    logging.info(f'Command: {ctx.clean_content.encode("unicode_escape")}')
   else:
     # async with ctx.channel.typing():
 
     valid = validators.url(ctx.content)
     
-    if "friday" in ctx.content.lower() or bot.user in ctx.mentions:
-      print(f"i think i should respond to this: {ctx.content.lower()}")
+    if "friday" in ctx.clean_content.lower() or bot.user in ctx.mentions:
+      print(f"i think i should respond to this: {ctx.clean_content.lower()}")
       await relay_info("",bot,embed=embed(title="I think i should respond to this",description=f"{ctx.content}"),channel=814349008007856168)
-      logging.info(f"i think i should respond to this: {ctx.content.lower()}")
+      logging.info(f"i think i should respond to this: {ctx.clean_content.lower()}")
 
     if valid == True:
       return
@@ -252,8 +252,8 @@ async def on_message(ctx):
       return
 
     if hasattr(ctx,"guild") and ctx.guild.id not in dev_guilds:
-      print(f"ignored message: {ctx.content}")
-      logging.info(f"ignored message: {ctx.content}")
+      print(f"ignored message: {ctx.clean_content}")
+      logging.info(f"ignored message: {ctx.clean_content}")
       return
     noContext = ["Title of your sex tape", "I dont want to talk to a chat bot", "The meaning of life?", "Birthday", "Memes", "Self Aware", "Soup Time", "No U", "I'm dad", "Bot discrimination"]
     lastmessages = await ctx.channel.history(limit=3).flatten()
@@ -262,14 +262,14 @@ async def on_message(ctx):
       if msg.author == bot.user:
         meinlastmessage = True
 
-    result,intent = await queryIntents.classify_local(ctx.content)
+    result,intent = await queryIntents.classify_local(ctx.clean_content)
     # TODO: add a check for another bot
     if intent not in noContext and bot.user not in ctx.mentions and "friday" not in ctx.content and meinlastmessage == False and ctx.channel.type != "private":
       print(f"{intent}\tI probably should not respond")
       logging.info(f"{intent}\tI probably should not respond")
       return
-    print(f"input: {ctx.content}")
-    logging.info(f"input: {ctx.content}")
+    print(f"input: {ctx.clean_content}")
+    logging.info(f"input: {ctx.clean_content}")
     if result is not None:
       if result == "dynamic":
         from chat.dynamicchat import dynamicchat

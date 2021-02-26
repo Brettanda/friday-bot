@@ -44,8 +44,11 @@ def query_prefix(bot,ctx,client:bool=False):
     mycursor.execute(f"SELECT prefix FROM servers WHERE id='{ctx.guild.id}'")
 
     result = mycursor.fetchall()
-    mydb.commit()
-    mydb.close()
+    try:
+      mydb.commit()
+      mydb.close()
+    except:
+      pass
 
     if client == True:
       return result[0][0]
