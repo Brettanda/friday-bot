@@ -157,8 +157,11 @@ async def on_shard_ready(shard_id):
       if len(database_guilds) < len(current_guilds):
         for guild_id in difference:
           guild = bot.get_guild(guild_id)
-          owner = guild.owner.id if hasattr(guild.owner,"id") else 0
-          query(mydb,f"INSERT INTO servers (id,owner,name,createdAt,updatedAt) VALUES (%s,%s,%s,%s,%s)",guild.id,owner,guild.name,now,now)
+          if guild is not None:
+            owner = guild.owner.id if hasattr(guild.owner,"id") else 0
+            query(mydb,f"INSERT INTO servers (id,owner,name,createdAt,updatedAt) VALUES (%s,%s,%s,%s,%s)",guild.id,owner,guild.name,now,now)
+          else:
+            logging.warn(f"could not find guild with id {guild_id}")
       elif len(database_guilds) > len(current_guilds):
         for guild_id in difference:
           query(mydb,f"DELETE FROM servers WHERE id=%s",guild_id)
