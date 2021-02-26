@@ -57,22 +57,22 @@ class Dev(commands.Cog):
         await stat.edit(embed=embed(title=f"{len(songqueue)} guilds are playing music"))
         await asyncio.sleep(1)
       await stat.edit(embed=embed(title=f"{len(songqueue)} guilds are playing music"))
-    if len(songqueue) == 0 and force == False:
-      thispath = os.getcwd()
-      if "\\" in thispath:
-        seperator = "\\\\"
-      else:
-        seperator = "/"
-      try:
-        wait = 5
-        while wait > 0:
-          stat.edit(embed=embed(title=f"Restarting in {wait} seconds"))
-          await asyncio.sleep(1)
-          wait = wait - 1
-      finally:
-        await ctx.message.delete()
-        await stat.delete()
-        subprocess.Popen([f"{thispath}{seperator}restart.sh"], stdin=subprocess.PIPE)
+    # if len(songqueue) == 0 or force == True:
+    thispath = os.getcwd()
+    if "\\" in thispath:
+      seperator = "\\\\"
+    else:
+      seperator = "/"
+    try:
+      wait = 5
+      while wait > 0:
+        stat.edit(embed=embed(title=f"Restarting in {wait} seconds"))
+        await asyncio.sleep(1)
+        wait = wait - 1
+    finally:
+      await ctx.message.delete()
+      await stat.delete()
+      subprocess.Popen([f"{thispath}{seperator}restart.sh"], stdin=subprocess.PIPE)
 
 
   @dev.command(name="mute",hidden=True)
