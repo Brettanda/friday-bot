@@ -8,7 +8,7 @@ from functions import embed,MessageColors,ignore_guilds
 
 ytdl_format_options = {
   # 'format': 'bestvideo+bestaudio/worstvideo+worstaudio',
-  'format': 'worstvideo+worstaudio',
+  'format': 'worstvideo+worstaudio/worstvideo',
   # 'audioformat': 'mp3',
   'merge_output_format': 'mp4',
   'outtmpl': '%(extractor)s-%(id)s-%(title)s.%(ext)s',
