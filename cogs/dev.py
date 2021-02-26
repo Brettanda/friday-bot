@@ -43,21 +43,21 @@ class Dev(commands.Cog):
   @dev.command(name="restart",hidden=True)
   @commands.is_owner()
   @commands.bot_has_permissions(send_messages = True, read_messages = True, manage_messages = True)
-  async def restart(self,ctx):
+  async def restart(self,ctx,force:bool=False):
     global restartPending,songqueue
-    if restartPending == True:
+    if restartPending == True and force == False:
       await ctx.reply(embed=embed(title="A restart is already pending"))
       return
     
     restartPending = True
     stat = await ctx.reply(embed=embed(title="Pending"))
-    if len(songqueue) > 0:
+    if len(songqueue) > 0 and force == False:
       await stat.edit(embed=embed(title=f"{len(songqueue)} guilds are playing music"))
       while len(songqueue) > 0:
         await stat.edit(embed=embed(title=f"{len(songqueue)} guilds are playing music"))
         await asyncio.sleep(1)
       await stat.edit(embed=embed(title=f"{len(songqueue)} guilds are playing music"))
-    if len(songqueue) == 0:
+    if len(songqueue) == 0 and force == False:
       thispath = os.getcwd()
       if "\\" in thispath:
         seperator = "\\\\"
