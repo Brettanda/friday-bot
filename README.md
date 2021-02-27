@@ -11,6 +11,8 @@
 
 ## Privacy Disclaimer
 
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/ba6d754997b84d4abe3815b4fdb8c203)](https://app.codacy.com/gh/Brettanda/friday-discord-python?utm_source=github.com&utm_medium=referral&utm_content=Brettanda/friday-discord-python&utm_campaign=Badge_Grade_Settings)
+
 ~~Because this bot is using Dialogflow, Friday records all messages visible to itself and sends them to Dialogflow. Messages that Friday does not send include links and image embeds/links to images. The purpose of sending messages to Dialogflow is to train what Friday will respond to and what the reply would be. Sending messages to Dialogflow will be removed in the future once Friday's responses are more stable and accurate.~~
 
 Friday is no longer using Google's Dialogflow, and will not send message to Dialogflow, but messages will still be logged for the purposes of training Friday's Machine Learning, and nothing else. If the recorded messages prove to not be useful for training they will be deleted and not shared with anyone.
