@@ -10,15 +10,13 @@ ytdl_format_options = {
   # 'format': 'bestvideo+bestaudio/worstvideo+worstaudio',
   'format': 'worstvideo+worstaudio/worstvideo',
   # 'audioformat': 'mp3',
-  'merge_output_format': 'mp4',
+  'merge_output_format': 'webm',
   'outtmpl': '%(extractor)s-%(id)s-%(title)s.%(ext)s',
   # 'max_filesize': '8M',
-  # 'addmetadata': True,
-  # 'postprocessors': [{
-  #   'key': 'FFmpegExtractAudio',
-  #   # 'preferredcodec': 'mp4',
-  #   'preferredquality': '192',
-  # }],
+  'postprocessors': [{
+      'key': 'FFmpegVideoConvertor',
+      'preferedformat': 'webm'
+  }],
   'restrictfilenames': True,
   'noplaylist': True,
   'nocheckcertificate': True,
@@ -164,6 +162,7 @@ class redditlink(commands.Cog):
           link = data["media"]["reddit_video"]["hls_url"]
           loop = asyncio.get_event_loop()
           linkdata = await loop.run_in_executor(None, lambda: ytdl.extract_info(link, download=True))
+          ext = "webm" #linkdata['ext']
           video = True
           # linkdata = await ytdl.extract_info(link, download=True)
 
@@ -187,13 +186,11 @@ class redditlink(commands.Cog):
             seperator = "\\\\"
           else:
             seperator = "/"
-          mp4file = f'{thispath}{seperator}{linkdata["extractor"]}-{linkdata["id"]}-{linkdata["title"]}.{linkdata["ext"]}'
+          mp4file = f'{thispath}{seperator}{linkdata["extractor"]}-{linkdata["id"]}-{linkdata["title"]}.{ext}'
           try:
-            # import pprint
-            # pprint.pprint(linkdata)
             # name = f'{linkdata["extractor"]}-{linkdata["id"]}-{linkdata["title"]}.{linkdata["ext"]}'
             name = data["title"].split()
-            await reaction.message.reply(file=discord.File(fp=mp4file,filename=f'{"_".join(name)}.{linkdata["ext"]}'))
+            await reaction.message.reply(file=discord.File(fp=mp4file,filename=f'{"_".join(name)}.{ext}'))
           except discord.HTTPException as e:
             if "Payload Too Large" in str(e):
               await reaction.message.reply(embed=embed(title="This file is too powerful to be uploaded",description="You will have to open reddit to view this",color=MessageColors.ERROR))
@@ -213,13 +210,11 @@ class redditlink(commands.Cog):
             seperator = "\\\\"
           else:
             seperator = "/"
-          mp4file = f'{thispath}{seperator}{linkdata["extractor"]}-{linkdata["id"]}-{linkdata["title"]}.{linkdata["ext"]}'
+          mp4file = f'{thispath}{seperator}{linkdata["extractor"]}-{linkdata["id"]}-{linkdata["title"]}.{ext}'
           try:
-            # import pprint
-            # pprint.pprint(linkdata)
             # name = f'{linkdata["extractor"]}-{linkdata["id"]}-{linkdata["title"]}.{linkdata["ext"]}'
             name = data["title"].split(" ")
-            await reaction.message.reply(file=discord.File(fp=mp4file,filename=f'{"_".join(name)}.{linkdata["ext"]}',spoiler=True))
+            await reaction.message.reply(file=discord.File(fp=mp4file,filename=f'{"_".join(name)}.{ext}',spoiler=True))
           except discord.HTTPException as e:
             if "Payload Too Large" in str(e):
               await reaction.message.reply(embed=embed(title="This file is too powerful to be uploaded",description="You will have to open reddit to view this",color=MessageColors.ERROR))
