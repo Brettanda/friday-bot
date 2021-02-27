@@ -151,23 +151,25 @@ async def on_shard_ready(shard_id):
     difference = list(set(database_guilds).symmetric_difference(set(current_guilds)))
     if len(difference) > 0:
       now = datetime.now()
-      # print(len(database_guilds),len(current_guilds))
-      # print(database_guilds,current_guilds)
-      # print(difference)
       if len(database_guilds) < len(current_guilds):
         for guild_id in difference:
           guild = bot.get_guild(guild_id)
-          if guild is not None:
-            owner = guild.owner.id if hasattr(guild.owner,"id") else 0
+          owner = guild.owner.id if guild.owner is not None and hasattr(guild.owner,"id") else 0
             query(mydb,f"INSERT INTO servers (id,owner,name,createdAt,updatedAt) VALUES (%s,%s,%s,%s,%s)",guild.id,owner,guild.name,now,now)
-          else:
-            logging.warn(f"could not find guild with id {guild_id}")
+          if guild.system_channel is not None:
+            prefix = "!"
+            await guild.system_channel.send(
+              f"Thank you for inviting me to your server. My name is Friday, and I like to party. I will respond to some chats directed towards me and commands. To get started with commands type `{prefix}help`.\nAn example of something I will respond to is `Hello Friday` or `{bot.user.name} hello`. At my current stage of development I am very chaotic, so if I do something I shouldn't have please use send a message Issues channel in Friday's Development server. If something goes terribly wrong and you want it to stop, talk to my creator https://discord.gg/NTRuFjU"
+            )
       elif len(database_guilds) > len(current_guilds):
         for guild_id in difference:
           query(mydb,f"DELETE FROM servers WHERE id=%s",guild_id)
       else:
-        print("could not sync guilds")
-        logging.warn("could not sync guilds")
+        print("Could not sync guilds")
+        logging.warn("Could not sync guilds")
+        return
+      print("Synced guilds with database")
+      logging.info("Synced guilds with database")
 
 @bot.event
 async def on_shard_disconnect(shard_id):
