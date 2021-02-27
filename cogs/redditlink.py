@@ -108,6 +108,9 @@ class redditlink(commands.Cog):
     if data["url"] in ctx.content:
       return
 
+    if data["url"].endswith(".html"):
+      return
+
     if data is None and video is None and embeded is None and image is None:
       return
 
