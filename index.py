@@ -102,10 +102,15 @@ async def on_command_error(ctx,error):
   elif isinstance(error,commands.TooManyArguments):
     await cmd_help(ctx,ctx.command,"Too many arguments were passed for this command, here is how the command should look")
     return
+  elif isinstance(error,commands.MissingPermissions) or isinstance(error,commands.BotMissingPermissions):
+    try:
+      await ctx.reply(embed=embed(title=f"{error}",color=MessageColors.ERROR),delete_after=delete)
+    except discord.Forbidden:
+      await ctx.reply(f"{error}")
   else:
     try:
       await ctx.reply(embed=embed(title=f"{error}",color=MessageColors.ERROR),delete_after=delete)
-    except discord.HTTPException:
+    except discord.Forbidden:
       await ctx.reply(f"{error}")
     raise error
 
