@@ -155,7 +155,6 @@ async def on_shard_ready(shard_id):
         for guild_id in difference:
           guild = bot.get_guild(guild_id)
           owner = guild.owner.id if hasattr(guild,"owner") and hasattr(guild.owner,"id") else 0
-          
           query(mydb,f"INSERT INTO servers (id,owner,name,createdAt,updatedAt) VALUES (%s,%s,%s,%s,%s)",guild.id,owner,guild.name,now,now)
           if guild.system_channel is not None:
             prefix = "!"
@@ -171,7 +170,7 @@ async def on_shard_ready(shard_id):
         return
       print("Synced guilds with database")
       logging.info("Synced guilds with database")
-
+  else:
   for guild_id in database_guilds:
     guild = bot.get_guild(guild_id[0])
     query(mydb,f"UPDATE servers SET name=%s WHERE id=%s",guild.name,guild_id[0])
@@ -199,7 +198,7 @@ async def on_guild_join(guild):
   if guild.system_channel is not None:
     prefix = "!"
     await guild.system_channel.send(
-      f"Thank you for inviting me to your server. My name is Friday, and I like to party. I will respond to some chats directed towards me and commands. To get started with commands type `{prefix}help`.\nAn example of something I will respond to is `Hello Friday` or `{bot.user.mention} hello`. At my current stage of development I am very chaotic, so if I do something I shouldn't have please use send a message Issues channel in Friday's Development server. If something goes terribly wrong and you want it to stop, talk to my creator https://discord.gg/NTRuFjU"
+      f"Thank you for inviting me to your server. My name is Friday, and I like to party. I will respond to some chats directed towards me and commands. To get started with commands type `{prefix}help`.\nAn example of something I will respond to is `Hello Friday` or `{bot.user.name} hello`. At my current stage of development I am very chaotic, so if I do something I shouldn't have please use send a message Issues channel in Friday's Development server. If something goes terribly wrong and you want it to stop, talk to my creator https://discord.gg/NTRuFjU"
     )
 
 @bot.event
