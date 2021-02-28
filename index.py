@@ -154,7 +154,7 @@ async def on_shard_ready(shard_id):
       if len(database_guilds) < len(current_guilds):
         for guild_id in difference:
           guild = bot.get_guild(guild_id)
-          owner = guild.owner.id if guild.owner is not None and hasattr(guild.owner,"id") else 0
+          owner = guild.owner.id if hasattr(guild,"owner") and hasattr(guild.owner,"id") else 0
             query(mydb,f"INSERT INTO servers (id,owner,name,createdAt,updatedAt) VALUES (%s,%s,%s,%s,%s)",guild.id,owner,guild.name,now,now)
           if guild.system_channel is not None:
             prefix = "!"
@@ -193,7 +193,7 @@ async def on_guild_join(guild):
   now = datetime.now()
   # current_time = now.strftime()
   mydb = mydb_connect()
-  owner = guild.owner.id if guild.owner is not None and hasattr(guild.owner,"id") else 0
+  owner = guild.owner.id if hasattr(guild,"owner") and hasattr(guild.owner,"id") else 0
   query(mydb,f"INSERT INTO servers (id,owner,name,createdAt,updatedAt) VALUES (%s,%s,%s,%s,%s)",guild.id,owner,guild.name,now,now)
   if guild.system_channel is not None:
     prefix = "!"
