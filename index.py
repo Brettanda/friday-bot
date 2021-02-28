@@ -171,7 +171,7 @@ async def on_shard_ready(shard_id):
       print("Synced guilds with database")
       logging.info("Synced guilds with database")
   else:
-  for guild_id in database_guilds:
+    for guild_id in database_guilds:
     guild = bot.get_guild(guild_id[0])
     query(mydb,f"UPDATE servers SET name=%s WHERE id=%s",guild.name,guild_id[0])
 
