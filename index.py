@@ -155,6 +155,7 @@ async def on_shard_ready(shard_id):
         for guild_id in difference:
           guild = bot.get_guild(guild_id)
           owner = guild.owner.id if hasattr(guild,"owner") and hasattr(guild.owner,"id") else 0
+          
             query(mydb,f"INSERT INTO servers (id,owner,name,createdAt,updatedAt) VALUES (%s,%s,%s,%s,%s)",guild.id,owner,guild.name,now,now)
           if guild.system_channel is not None:
             prefix = "!"
