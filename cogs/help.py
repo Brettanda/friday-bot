@@ -74,6 +74,7 @@ class Help(Cog):
 
 
   @commands.command(name="help",aliases=["?","commands"],usage="<command/group>")
+  @commands.bot_has_permissions(send_messages=True,read_messages=True,add_reactions=True,manage_messages=True,embed_links=True)
   async def show_help(self, ctx, cmd:str=None):
     """Shows this message."""
 

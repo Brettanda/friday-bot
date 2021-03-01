@@ -58,7 +58,7 @@ class redditlink(commands.Cog):
     embed_links = True
   )
   async def on_message(self,ctx):
-    if ctx.guild.id in ignore_guilds:
+    if str(ctx.channel.type) != "private" and ctx.guild.id in ignore_guilds:
       # print("ignored guild")
       # logging.info("ignored guild")
       return

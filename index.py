@@ -265,7 +265,7 @@ async def on_message(ctx):
     if ctx.channel.type == "store" or ctx.channel.type == "voice" or ctx.channel.type == "category" or ctx.channel.type == "news":
       return
 
-    if hasattr(ctx,"guild") and ctx.guild.id not in dev_guilds:
+    if str(ctx.channel.type) != "private" and hasattr(ctx,"guild") and ctx.guild.id not in dev_guilds:
       print(f"ignored message: {ctx.clean_content}")
       logging.info(f"ignored message: {ctx.clean_content}")
       return

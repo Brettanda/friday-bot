@@ -25,13 +25,13 @@ class Ping(commands.Cog):
   #   # await ctx.invoke(self.bot.get_command('ping'))
 
   @commands.command(name="ping")
-  @commands.bot_has_permissions(send_messages = True, read_messages = True, manage_messages = True)
+  @commands.bot_has_permissions(send_messages = True, read_messages = True)
   async def ping(self,ctx):
     # await ctx.respond()
     print("pong")
     try:
       await ctx.send(embed=embed(title="Pong!"))
-    except discord.HTTPException:
+    except discord.Forbidden:
       await ctx.send("Pong!")
 
 def setup(bot):
