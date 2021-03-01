@@ -106,12 +106,20 @@ async def on_command_error(ctx,error):
     try:
       await ctx.reply(embed=embed(title=f"{error}",color=MessageColors.ERROR),delete_after=delete)
     except discord.Forbidden:
+      try:
       await ctx.reply(f"{error}")
+      except:
+        print("well guess i just can't respond then")
+        pass
   else:
     try:
       await ctx.reply(embed=embed(title=f"{error}",color=MessageColors.ERROR),delete_after=delete)
     except discord.Forbidden:
+      try:
       await ctx.reply(f"{error}")
+      except:
+        print("well guess i just can't respond then")
+        pass
     raise error
 
 @bot.event
