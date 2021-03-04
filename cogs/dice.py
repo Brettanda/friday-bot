@@ -15,6 +15,10 @@ class Dice(Cog):
   @bot_has_permissions(send_messages = True, read_messages = True, embed_links = True)
   async def dice(self,ctx,*,roll:str):
     roll = roll.lower()
+
+    if "bump" in roll:
+      return
+      
     result = d20.roll(roll)
     try:
       await ctx.reply(embed=embed(title=f"Your total: {str(result.total)}",description=f"Query: {str(result.ast)}\nResult: {str(result)}"))
