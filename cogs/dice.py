@@ -12,13 +12,13 @@ class Dice(Cog):
     self.bot = bot
 
   @command(name="dice",aliases=["d","r","roll"])
-  @bot_has_permissions(send_messages = True, read_messages = True, manage_messages = True)
+  @bot_has_permissions(send_messages = True, read_messages = True, embed_links = True)
   async def dice(self,ctx,*,roll:str):
     roll = roll.lower()
     result = d20.roll(roll)
     try:
       await ctx.reply(embed=embed(title=f"Your total: {str(result.total)}",description=f"Query: {str(result.ast)}\nResult: {str(result)}"))
-    except discord.HTTPException:
+    except discord.Forbidden:
       await ctx.reply(f"Your total: {str(result.total)}\nQuery: {str(result.ast)}\nResult: {str(result)}")
 
 def setup(bot):

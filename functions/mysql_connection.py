@@ -26,7 +26,7 @@ def query(mydb,query:str,*params):
   mycursor = mydb.cursor(prepared=True)
   mycursor.execute(query,params)
   if "select" in query.lower():
-    if "where" in query.lower():
+    if "where" in query.lower() and "," not in query.lower():
       result = mycursor.fetchone()[0]
     else:
       result = mycursor.fetchall()

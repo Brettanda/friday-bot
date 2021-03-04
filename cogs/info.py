@@ -11,7 +11,7 @@ class Info(commands.Cog):
     self.bot = bot
 
   @commands.command(name="info",description="Displays some information about myself :)")
-  @commands.bot_has_permissions(send_messages=True,read_messages=True,manage_messages=True,embed_links=True)
+  @commands.bot_has_permissions(send_messages=True,read_messages=True,embed_links=True)
   async def info(self,ctx):
 
     await ctx.reply(

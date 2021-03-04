@@ -10,26 +10,35 @@ from functions import embed,MessageColors
 
 def syntax(command):
   cmd_and_aliases = "|".join([str(command), *command.aliases])
-  params = []
+  
+  def get_params(com):
+    params = []
+    for key, value in com.params.items():
+      if key not in ("self", "ctx"):
+        if com.usage is not None:
+          # params.append(f"[{command.usage}]" if "NoneType" in str(value) else f"<{command.usage}>")
+          params = f"{com.usage}" if "NoneType" in str(value) else f"{com.usage}"
+        else:
+          params.append(f"[{key}]" if "NoneType" in str(value) else f"<{key}>")
+    if isinstance(params,list):
+      params = " ".join(params)
+    return params
 
-  for key, value in command.params.items():
-    if key not in ("self", "ctx"):
-      if command.usage is not None:
-        # params.append(f"[{command.usage}]" if "NoneType" in str(value) else f"<{command.usage}>")
-        params = f"{command.usage}" if "NoneType" in str(value) else f"{command.usage}"
-      else:
-        params.append(f"[{key}]" if "NoneType" in str(value) else f"<{key}>")
-  if isinstance(params,list):
-    params = " ".join(params)
+  sub_commands = ""
+  if hasattr(command,"commands"):
+    for com in command.commands:
+      sub_commands += f"\n{cmd_and_aliases} {com.name} {get_params(com)}"
+  # sub_commands = "".join(str(command.commands) if hasattr(command,"commands") else "")
 
-  return f"```{cmd_and_aliases} {params}```"
+
+  return f"```{cmd_and_aliases} {get_params(command)}{sub_commands}```"
 
 
 class HelpMenu(ListPageSource):
   def __init__(self, ctx, data):
     self.ctx = ctx
 
-    super().__init__(data, per_page=4)
+    super().__init__(data, per_page=5)
 
   async def write_page(self, menu, fields=[]):
     offset = (menu.current_page*self.per_page) + 1
@@ -72,13 +81,15 @@ class Help(Cog):
     self.bot = bot
     self.bot.remove_command("help")
 
-
   @commands.command(name="help",aliases=["?","commands"],usage="<command/group>")
-  @commands.bot_has_permissions(send_messages=True,read_messages=True,add_reactions=True,manage_messages=True,embed_links=True)
-  async def show_help(self, ctx, cmd:str=None):
+  @commands.bot_has_permissions(send_messages=True,read_messages=True,add_reactions=True,embed_links=True)
+  async def show_help(self, ctx, group:str=None, cmd:str=None):
     """Shows this message."""
 
-    delay = await get_delete_time()
+    if cmd is None:
+      cmd = group
+
+    delay = await get_delete_time(ctx)
     await ctx.message.delete(delay=delay)
     if cmd is not None:
       for item in self.bot.commands:
@@ -101,7 +112,7 @@ class Help(Cog):
       if (command := get(self.bot.commands, name=cmd)):
         await cmd_help(ctx, command)
       else:
-        await ctx.reply(embed=embed(title="The command `{}` does not exist".format(cmd),color=MessageColors.ERROR))
+        await ctx.reply(embed=embed(title=f"The command `{cmd}` does not exist",color=MessageColors.ERROR))
 
 def setup(bot):
   bot.add_cog(Help(bot))

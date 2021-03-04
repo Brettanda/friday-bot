@@ -1,9 +1,9 @@
-import discord,psutil,logging,subprocess,asyncio
+import discord,logging,subprocess,asyncio
 from discord.ext import commands
 
 from index import restartPending,songqueue
 
-import os,sys
+import os
 from functions import embed,MessageColors,ignore_guilds
 from cogs.help import cmd_help
 
@@ -21,17 +21,35 @@ class Dev(commands.Cog):
 
   @dev.command(name="say",hidden=True)
   @commands.is_owner()
-  @commands.bot_has_permissions(send_messages = True, read_messages = True, manage_messages = True)
+  @commands.bot_has_permissions(send_messages = True, read_messages = True)
   async def say(self,ctx,*,say:str):
-    await ctx.message.delete()
+    try:
+      await ctx.message.delete()
+    except:
+      pass
     await ctx.channel.send(f"{say}")
 
   @dev.command(name="edit",hidden=True)
   @commands.is_owner()
-  @commands.bot_has_permissions(send_messages = True, read_messages = True, manage_messages = True)
+  @commands.bot_has_permissions(send_messages = True, read_messages = True)
   async def edit(self,ctx,message:discord.Message,*,edit:str):
-    await ctx.message.delete()
+    try:
+      await ctx.message.delete()
+    except:
+      pass
     await message.edit(content=edit)
+
+  @dev.command(name="react",hidden=True)
+  @commands.is_owner()
+  @commands.bot_has_permissions(send_messages = True, add_reactions=True, read_messages = True, manage_messages = True)
+  async def react(self,ctx,message:discord.Message,*,reactions:str):
+    try:
+      await ctx.message.delete()
+    except:
+      pass
+    reactions = reactions.split(" ")
+    for reaction in reactions:
+      await message.add_reaction(reaction)
 
   @dev.command(name="status",hidden=True)
   @commands.is_owner()
@@ -42,7 +60,7 @@ class Dev(commands.Cog):
 
   @dev.command(name="restart",hidden=True)
   @commands.is_owner()
-  @commands.bot_has_permissions(send_messages = True, read_messages = True, manage_messages = True)
+  @commands.bot_has_permissions(send_messages = True, read_messages = True, manage_messages = True, embed_links = True)
   async def restart(self,ctx,force:bool=False):
     global restartPending,songqueue
     if restartPending == True and force == False:
@@ -77,15 +95,15 @@ class Dev(commands.Cog):
 
   @dev.command(name="mute",hidden=True)
   @commands.is_owner()
-  @commands.bot_has_permissions(send_messages = True, read_messages = True, manage_messages = True)
+  @commands.bot_has_permissions(send_messages = True, read_messages = True)
   async def mute(self,ctx,category:str):
     # TODO: Mutes this server and stops responding to commands
     print("")
 
   @dev.command(name="reload",hidden=True)
   @commands.is_owner()
-  @commands.bot_has_permissions(send_messages = True, read_messages = True, manage_messages = True)
-  async def reload(self,ctx,command:str=None):
+  @commands.bot_has_permissions(send_messages = True, read_messages = True, embed_links = True)
+  async def reload(self,ctx,command:str):
     try:
       async with ctx.typing():
         com = self.bot.get_command(command)
@@ -105,7 +123,7 @@ class Dev(commands.Cog):
 
   @dev.command(name="update",hidden=True)
   @commands.is_owner()
-  @commands.bot_has_permissions(send_messages = True, read_messages = True, manage_messages = True)
+  @commands.bot_has_permissions(send_messages = True, read_messages = True, embed_links = True)
   async def update(self,ctx):
     message = await ctx.reply(embed=embed(title="Updating..."))
     thispath = os.getcwd()
@@ -122,14 +140,14 @@ class Dev(commands.Cog):
 
   @dev.command(name="cogs",hidden=True)
   @commands.is_owner()
-  @commands.bot_has_permissions(send_messages = True, read_messages = True, manage_messages = True)
+  @commands.bot_has_permissions(send_messages = True, read_messages = True, embed_links = True)
   async def cogs(self,ctx):
     cogs = ", ".join(self.bot.cogs)
     await ctx.reply(embed=embed(title=f"{len(self.bot.cogs)} total cogs",description=f"{cogs}"))
 
   @dev.command(name="log",hidden=True)
   @commands.is_owner()
-  @commands.bot_has_permissions(send_messages = True, read_messages = True, manage_messages = True)
+  @commands.bot_has_permissions(send_messages = True, read_messages = True)
   async def log(self,ctx):
     thispath = os.getcwd()
     if "\\" in thispath:
@@ -142,9 +160,9 @@ class Dev(commands.Cog):
   @commands.Cog.listener()
   async def on_message(self,ctx):
     if str(ctx.channel.type) != "private" and ctx.guild.id in ignore_guilds:
-      # print("ignored guild")
-      # logging.info("ignored guild")
-      return
+        # print("ignored guild")
+        # logging.info("ignored guild")
+        return
     # Reacts to any message in the updates channel in the development server
     if ctx.channel.id == 744652167142441020:
       await ctx.add_reaction("♥")

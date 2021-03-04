@@ -16,7 +16,7 @@ class Souptime(commands.Cog):
 
   @commands.command(name='souptime',help='Soup Time')
   @commands.cooldown(1,7, commands.BucketType.user)
-  @commands.bot_has_permissions(send_messages = True, read_messages = True, manage_messages = True)
+  @commands.bot_has_permissions(send_messages = True, read_messages = True, embed_links = True)
   async def souptime(self,ctx):
     image = random.choice(config['soups'])
 

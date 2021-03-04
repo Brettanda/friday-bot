@@ -1,11 +1,11 @@
 <div align="center">
 <h1>Friday Discord Bot</h1>
-<!-- <a href=""><img src="https://img.shields.io/npm/v/npm.svg?style=flat" alt="NPM Version"/></a> -->
-<!-- <a href="https://github.com/Brettanda/friday-discord-python/blob/master/LICENSE.md"><img src="https://img.shields.io/github/license/Brettanda/friday-discord-python" alt="GitHub license"/></a> -->
-<!-- <a href="https://github.com/Brettanda/friday-discord-python/issues"><img src="https://img.shields.io/github/issues/Brettanda/friday-discord-python" alt="GitHub issues"/></a> -->
+<a href="https://www.codacy.com/gh/Brettanda/friday-discord-python/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=Brettanda/friday-discord-python&amp;utm_campaign=Badge_Grade"><img src="https://app.codacy.com/project/badge/Grade/0ad7826bb256410d885a47fca99ce624"/></a>
+<a href="https://github.com/Brettanda/friday-discord-python/blob/master/LICENSE.md"><img src="https://img.shields.io/github/license/Brettanda/friday-discord-python" alt="GitHub license"/></a>
+<a href="https://github.com/Brettanda/friday-discord-python/issues"><img src="https://img.shields.io/github/issues/Brettanda/friday-discord-python" alt="GitHub issues"/></a>
 <a href="https://discord.gg/NTRuFjU"><img src="https://img.shields.io/discord/707441352367013899?color=7289da&logo=discord&logoColor=white" alt="Discord Chat"/></a>
 <a href="https://top.gg/bot/476303446547365891/vote"><img src="https://img.shields.io/badge/Vote-Friday-blue" alt="Vote"/></a>
-<a href="https://discord.com/oauth2/authorize?client_id=476303446547365891&permissions=322037824&scope=bot%20applications.commands"><img src="https://img.shields.io/badge/Add%20Friday-to%20your%20server-orange" alt="Add Friday to your server"/></a>
+<a href="https://discord.com/oauth2/authorize?client_id=476303446547365891&permissions=322037830&scope=bot"><img src="https://img.shields.io/badge/Add%20Friday-to%20your%20server-orange" alt="Add Friday to your server"/></a>
 <a href="https://www.patreon.com/fridaybot"><img src="https://img.shields.io/badge/-Become%20a%20Patron!-rgb(232%2C%2091%2C%2070)" alt="Become a Patron!"/></a>
 </div>
 
@@ -26,6 +26,18 @@ Make sure to add your bot token to the `.env` file or this won't be able to conn
 ## Commands
 
 Another way to see the full list of commands is by typing `!help` in a Discord server that I have been invited to. You can also direct message me any commands as well (if you want to keep our conversation more private).
+
+## Reddit posts
+
+When someone posts a link to a Reddit post with and image or video, Friday will check to see if there is an available link to grab the video or image from, and then react with a 🔗 emoji. To extract the video or image from the post simply add your own 🔗 reaction to your message. Friday will then send a link the image or download the video and post it.
+
+Reddit posts that wont be extracted include text posts and gallary posts. If there is a post type that i missed please use the `!issue` command followed by the Reddit post and I will get to work.
+
+## Custom sounds
+
+This command will let you make a sub-command that plays a specific link of your choosing. This makes it easier to play a song or sound that you would like to play often without having to find the url every time.
+
+For example if you wanted to play `Bruh Sound Effect #2` you can add it to the list like so `!c add bruh https://www.youtube.com/watch?v=2ZIpFytCSVc`.
 
 ## D&D Dice rolling
 
@@ -51,12 +63,6 @@ Friday's chat response system has been disabled for the time being because since
 
 ~~Friday checks if a message is being directed towards Friday if the message contains a mention (`@Friday`), the word 'Friday' in capital letters or lowercase if the most recent message is from Friday, and Friday will (try) to respond to any message send through a direct message to Friday. If a phrase is said that Friday should respond to for a joke or something it will respond if it matches one of the 'no context' phrases. For example, if someone says 'Goodbye' with no context it will respond because goodbyes are apart of 'no context' and therefore can respond anyway.~~
 
-<!-- ## Privacy
-
-Friday uses Googles Dialogflow which records all messages sent visible by Friday. As far as I can tell there is no easy way to remove message records from Dialogflow, but any messages will only be used to train the Friday Dialogflow Agent. If there is a conversation that you would like removed just message me with one of the messages from the conversation and I will remove it from Dialogflow.
-
-Dialogflow does not take any information about the Discord guild except for any persons mentioned in a message and contents of a message. The channel id is used for the Dialogflow session-id for context and so Friday can respond to questions appropriately. -->
-
 ## Todo
 
 - [ ] Auto-add intents or self-teaching ML
@@ -73,12 +79,13 @@ Dialogflow does not take any information about the Discord guild except for any 
 - [ ] Some commands might be able to work cross servers if getting a channel by name/id without getting the guild first
 - [ ] Make Friday still respond to messages sent while it was offline
 - [ ] Slash Commands?
+- [ ] Move to [LavaLink](https://github.com/Devoxin/Lavalink.py) for music playing
 
 ## To add to the dashboard
 
 - [ ] Add some kind of server-specific settings
 - [ ] Custom commands for sound clips to play in a voice channel
-- [ ] Custom prefix setting for paying
+- ~~[ ] Custom prefix setting for paying~~
 - [ ] Disable some intents like "title of your sex tape"
 - [ ] A command to send one message to selected chats (only for admins)
 - [ ] auto delete gifs with certain keywords

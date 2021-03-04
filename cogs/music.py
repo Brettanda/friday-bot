@@ -2,7 +2,7 @@ import discord
 from discord.ext.commands import Cog
 from discord.ext import commands
 
-import youtube_dl,ffmpeg,json,asyncio,datetime,time
+import youtube_dl,json,asyncio,datetime,time
 from cogs.cleanup import get_delete_time
 
 import os,sys
@@ -128,7 +128,7 @@ class Music(Cog):
             thumbnail=thumbnail,
             fieldstitle=["Duration","Total songs in queue"],
             fieldsval=[duration,songsinqueue]
-          ),delete_after=await get_delete_time()
+          ),delete_after=await get_delete_time(ctx)
         )
       else:
         await ctx.reply(
@@ -143,7 +143,7 @@ class Music(Cog):
     else:
       async with ctx.typing():
         await ctx.voice_client.disconnect()
-      await ctx.send(embed=embed(title="Finished the queue",color=MessageColors.MUSIC),delete_after=await get_delete_time())
+      await ctx.send(embed=embed(title="Finished the queue",color=MessageColors.MUSIC),delete_after=await get_delete_time(ctx))
       
   @commands.command(name="play",aliases=['p','add'],usage="<url/title>",description="Follow this command with the title of a song to search for it or just paste the Youtube/SoundCloud url if the search gives and undesirable result")
   @commands.guild_only()
@@ -167,19 +167,35 @@ class Music(Cog):
 
     serverQueueId = "{}".format(ctx.guild.id)
     if voice is not None:#voice.is_playing() is not None or voice.is_paused() is not None:
-      async with ctx.typing():
-        player = await self.YTDLSource.from_url(url, loop=self.bot.loop, stream=True)
-        songqueue[serverQueueId].append(player)
+      try:
+        async with ctx.typing():
+          player = await self.YTDLSource.from_url(url, loop=self.bot.loop, stream=True)
+          if not hasattr(player,"title"):
+            print("nothing")
+          songqueue[serverQueueId].append(player)
 
-      await ctx.reply(embed=embed(title="Added to queue: **{}**".format(player.title),color=MessageColors.MUSIC))
-      return
-
+        await ctx.reply(embed=embed(title="Added to queue: **{}**".format(player.title),color=MessageColors.MUSIC))
+        return
+      except BaseException as e:
+        try:
+          e = "".join(f"{e}".split("ERROR: "))
+        except:
+          pass
+        await ctx.reply(embed=embed(title=f"{e}",color=MessageColors.ERROR))
+        return
     async with ctx.typing():
-      player = await self.YTDLSource.from_url(url, loop=self.bot.loop, stream=True)
-      songqueue[serverQueueId] = [player]
-      await voiceChannel.connect(reconnect=False)
-      await ctx.guild.change_voice_state(channel=voiceChannel,self_mute=False,self_deaf=True)
-
+      try:
+        player = await self.YTDLSource.from_url(url, loop=self.bot.loop, stream=True)
+        songqueue[serverQueueId] = [player]
+        await voiceChannel.connect(reconnect=False)
+        await ctx.guild.change_voice_state(channel=voiceChannel,self_mute=False,self_deaf=True)
+      except BaseException as e:
+        try:
+          e = "".join(f"{e}".split("ERROR: "))
+        except:
+          pass
+        await ctx.reply(embed=embed(title=f"{e}",color=MessageColors.ERROR))
+        return
     # try:
     await self.start_playing(ctx)
     # except:

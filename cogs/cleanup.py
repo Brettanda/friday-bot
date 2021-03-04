@@ -1,10 +1,13 @@
-import discord 
 from discord.ext import commands
 
-# from functions import 
+from functions import mydb_connect,query
 
-async def get_delete_time():
-  return 60
+async def get_delete_time(ctx):
+  mydb = mydb_connect()
+  if ctx.guild is None:
+    return None
+  result = query(mydb,f"SELECT autoDeleteMSGs FROM servers WHERE id=%s",ctx.guild.id)
+  return result
 
 class CleanUp(commands.Cog):
   def __init__(self,bot):
@@ -28,10 +31,13 @@ class CleanUp(commands.Cog):
         msg = message
 
     if msg is not None:
-      delete = await get_delete_time()
-      if delete > 0:
-        await ctx.message.delete(delay=delete)
-        await msg.delete(delay=delete)
+      delete = await get_delete_time(ctx)
+      if delete is not None and delete > 0:
+        try:
+          await ctx.message.delete(delay=delete)
+          await msg.delete(delay=delete)
+        except:
+          pass
 
   @commands.Cog.listener()
   async def on_command_completion(self,ctx):
@@ -42,10 +48,13 @@ class CleanUp(commands.Cog):
       if message.author == self.bot.user and hasattr(message.reference, "resolved") and message.reference.resolved == ctx.message:
         msg = message
     if msg is not None:
-      delete = await get_delete_time()
-      if delete > 0:
-        await ctx.message.delete(delay=delete)
-        await msg.delete(delay=delete)
+      delete = await get_delete_time(ctx)
+      if delete is not None and delete > 0:
+        try:
+          await ctx.message.delete(delay=delete)
+          await msg.delete(delay=delete)
+        except:
+          pass
 
 def setup(bot):
   bot.add_cog(CleanUp(bot))
