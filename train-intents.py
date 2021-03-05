@@ -30,9 +30,12 @@ import json
 with open("ml/intents.json",encoding="utf8") as f:
   intents = json.load(f)
 
+new = []
 for intent in intents:
-  if intent['priority'] == -1:
-    intents.remove(intent)
+  if int(intent["priority"]) > 0:
+    new.append(intent)
+
+intents = new
 
 for intent in intents:
   for pattern in intent['patterns']:

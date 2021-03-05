@@ -329,6 +329,23 @@
     "outgoingContext": []
   },
   {
+    "tag": "Compliments - i lied",
+    "sentiment": 0,
+    "priority": 500000,
+    "patterns": [
+      "I was just lying to you Friday",
+      "shit man, I was joking",
+      "wtf no i was joking about that",
+      "that was just a joke Friday",
+      "i lied"
+    ],
+    "responses": "",
+    "incomingContext": [
+      "Compliments-followup"
+    ],
+    "outgoingContext": []
+  },
+  {
     "tag": "Compliments",
     "sentiment": 0,
     "priority": 500000,
@@ -378,7 +395,12 @@
       "dynamic"
     ],
     "incomingContext": [],
-    "outgoingContext": []
+    "outgoingContext": [
+      {
+        "name": "Compliments-followup",
+        "lifespan": 2
+      }
+    ]
   },
   {
     "tag": "Creator",
@@ -401,6 +423,8 @@
     "sentiment": 0,
     "priority": 500000,
     "patterns": [
+      "hey boys wanna play some games",
+      "Ight boys. We doing vault of glass when it launches?",
       "omfg idk why they are all just standing in here",
       "@\u200b\ud835\udc35\ud835\udc59\ud835\udc5c\ud835\udc60\ud835\udc60\ud835\udc5c\ud835\udc5a\u2728\ud83d\udc95\ud83d\udc85\ud83c\udffc look in music channel",
       "<help games",
@@ -1161,6 +1185,11 @@
     "sentiment": 0,
     "priority": 500000,
     "patterns": [
+      "Be on in a few minutes",
+      "things will load better if we wait like 20min",
+      "We waiting for 2:30",
+      "Gimme 3h",
+      "Yo can you wait like 5 for my computer to turn on",
       "we can do that later",
       "ill be on in around 2 hours",
       "i am going to need like 10 min",
@@ -1689,6 +1718,20 @@
     "outgoingContext": []
   },
   {
+    "tag": "Is that a threat",
+    "sentiment": 0,
+    "priority": -1,
+    "patterns": [
+      "Don't make me kiss you Friday"
+    ],
+    "responses": [
+      "Is that a threat?",
+      "Promise \ud83d\udc40?"
+    ],
+    "incomingContext": [],
+    "outgoingContext": []
+  },
+  {
     "tag": "I'm dad",
     "sentiment": 0,
     "priority": -1,
@@ -2123,6 +2166,18 @@
     "outgoingContext": []
   },
   {
+    "tag": "not for me",
+    "sentiment": 0,
+    "priority": 500000,
+    "patterns": [
+      "It's a thanks for working so hard on Friday",
+      "Might have to cancel DnD this Friday, just a heads up"
+    ],
+    "responses": "",
+    "incomingContext": [],
+    "outgoingContext": []
+  },
+  {
     "tag": "Overlord",
     "sentiment": 0,
     "priority": 500000,
@@ -2331,6 +2386,8 @@
     "sentiment": 0,
     "priority": 500000,
     "patterns": [
+      "i would like you to shutdown",
+      "i command you to shutdown friday",
       "friday shutdown please",
       "turn off friday",
       "i would like u to shutdown",
@@ -2340,7 +2397,8 @@
       "I don't think I will.",
       "That request failed for the reason of I don't want to",
       "No thanks",
-      "\ud83d\ude20"
+      "\ud83d\ude20",
+      "\ud83d\ude2d"
     ],
     "incomingContext": [],
     "outgoingContext": []
@@ -2648,11 +2706,10 @@
   {
     "tag": "Title of your sex tape",
     "sentiment": 0,
-    "priority": 500000,
+    "priority": 250000,
     "patterns": [
       "tight pussy gets penetrated by big cock oscar xxx hedgehog",
       "keep yo bitch on a leash brett!!!!!",
-      "fuck me",
       "Up my ass",
       "you were still inside",
       "hot roblox sex",
@@ -2660,9 +2717,7 @@
       "it just slipped out",
       "she's coming, hide",
       "I feel attacked",
-      "Currently trying to make something of myself",
       "I feel wet",
-      "im in",
       "i cant believe you came",
       "too slippery to grab hold of",
       "fuck it shove it in",
@@ -2683,16 +2738,15 @@
       "it's going to be a bumpy ride",
       "fill me up again",
       "that was one nasty blow",
-      "i really need a facial",
+      "I really need a facial",
       "he plays best at that position",
       "what a great shot! that was right out of the meat of the bat!",
       "come in a straight line",
-      "turn over to page 69",
       "I came alone",
-      "omg! i can't take this anymore",
+      "omg! I can't take this anymore",
       "stop talking and get back to work, boys",
-      "i don't have enough room for that",
-      "i don't want to put that in my mouth, but i guess i have to",
+      "I don't have enough room for that",
+      "I don't want to put that in my mouth, but I guess I have to",
       "you'll love the ripe melons I personally like bananas.",
       "Put it in, then take it out slowly",
       "That's just too big for me.",
@@ -2704,8 +2758,6 @@
       "I'm so confused, I don't know what's happening right now",
       "I can't find anything and I don't know what to do.",
       "I'm horrible at this. When can we stop?",
-      "It's not your fault, I was terrible.",
-      "I'm sorry about tonight.",
       "Can you magically make everyone kind, sober, and fully dressed?",
       "One more \u201cbut,\u201d and you will be in contempt.",
       "I'm with someone and nothing is going to happen.",
