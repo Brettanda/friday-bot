@@ -1,7 +1,6 @@
-import discord,validators,json
+import validators,json
 from discord.ext import commands
 
-import os,sys
 from functions import embed,MessageColors,mydb_connect,query,ignore_guilds
 
 class CustomMusic(commands.Cog):
@@ -19,7 +18,7 @@ class CustomMusic(commands.Cog):
       async with ctx.typing():
         mydb = mydb_connect()
         sounds = query(mydb,f"SELECT customSounds FROM servers WHERE id=%s",ctx.guild.id)
-        sounds = json.loads(sounds)          
+        sounds = json.loads(sounds)
     except KeyError:
       await ctx.reply(embed=embed(title=f"Could not find the custom command `{name}`",color=MessageColors.ERROR))
     except:
@@ -48,8 +47,8 @@ class CustomMusic(commands.Cog):
       async with ctx.typing():
         name = "".join(name.split(" ")).lower()
         mydb = mydb_connect()
-        sounds = query(mydb,f"SELECT tier,customSounds FROM servers WHERE id=%s",ctx.guild.id)[0]
-        if sounds != r"{}":
+        tier,sounds = query(mydb,f"SELECT tier,customSounds FROM servers WHERE id=%s",ctx.guild.id)[0]
+        if sounds == "":
           sounds = r"{}"
         sounds = json.loads(sounds)
         if name in sounds:
