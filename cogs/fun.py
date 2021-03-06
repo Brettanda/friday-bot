@@ -51,7 +51,8 @@ class Fun(commands.Cog):
   @commands.has_guild_permissions(move_members = True)
   @commands.bot_has_guild_permissions(move_members = True)
   @commands.bot_has_permissions(send_messages = True, read_messages = True, embed_links = True)
-  async def rolecall(self,ctx,role:discord.Role,voicechannel:discord.VoiceChannel,*,exclusions:discord.Member=None):
+  # async def rolecall(self,ctx,role:discord.Role,voicechannel:discord.VoiceChannel,*,exclusions:discord.Member=[]):
+  async def rolecall(self,ctx,role:discord.Role,voicechannel:discord.VoiceChannel):
     # timeleft = time
     # message = await ctx.reply(content=f"<@&{role.id}>",embed=embed(title=f"Members of \"{role}\" will be moved to \"{voicechannel}\" in {timeleft}"))
     # message = await ctx.reply(embed=embed(title=f"Members of \"{role}\" will be moved to \"{voicechannel}\" in {timeleft}"))
@@ -59,6 +60,10 @@ class Fun(commands.Cog):
     #   await message.edit(embed=embed(title=f"Members of \"{role}\" will be moved to \"{voicechannel}\" in {timeleft}"))
     #   await asyncio.sleep(1)
     #   timeleft = timeleft - 1
+
+    # exclusions = exclusions.split(" ")
+
+    # print(exclusions)
 
     if ctx.author.permissions_in(voicechannel).view_channel != True:
       await ctx.reply(embed=embed(title="Trying to connect to a channel you can't view 🤔",description="Im going to have to stop you right there",color=MessageColors.ERROR))
@@ -69,12 +74,12 @@ class Fun(commands.Cog):
 
     moved = 0
     for member in role.members:
-      if member not in exclusions:
-        try:
-          await member.move_to(voicechannel,reason=f"Role call command by {ctx.author}")
-          moved += 1
-        except:
-          pass
+      # if member not in exclusions:
+      try:
+        await member.move_to(voicechannel,reason=f"Role call command by {ctx.author}")
+        moved += 1
+      except:
+        pass
     
     await ctx.reply(embed=embed(title=f"Moved {moved} members with the role `{role}` to `{voicechannel}`"))
 
@@ -127,8 +132,12 @@ class Fun(commands.Cog):
         await ctx.reply(embed=embed(title="You either need to specify a voicechannel or be connected to one",color=MessageColors.ERROR))
         return
       voicechannel = ctx.author.voice.channel
-    await voicechannel.edit(user_limit=len(voicechannel.members))
-    await ctx.reply(embed=embed(title=f"Locked {voicechannel}"))
+    if voicechannel.user_limit > 0:
+      await voicechannel.edit(user_limit=0)
+      await ctx.reply(embed=embed(title=f"Unlocked `{voicechannel}`"))
+    else:
+      await voicechannel.edit(user_limit=len(voicechannel.members))
+      await ctx.reply(embed=embed(title=f"Locked `{voicechannel}`"))
 
 def setup(bot):
   bot.add_cog(Fun(bot))
