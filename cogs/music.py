@@ -100,7 +100,8 @@ class Music(Cog):
           filename = d['url'] if stream else ytdl.prepare_filename(d)
           dataa.append(cls(discord.FFmpegPCMAudio(filename, **ffmpeg_options), data=d))
       else:
-        dataa = data
+        filename = data['url'] if stream else ytdl.prepare_filename(data)
+        dataa = [cls(discord.FFmpegPCMAudio(filename, **ffmpeg_options), data=data)]
       return (*dataa,)
       # return cls(discord.FFmpegPCMAudio(filename, **ffmpeg_options), data=data)
 
