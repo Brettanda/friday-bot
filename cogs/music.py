@@ -18,7 +18,7 @@ ytdl_format_options = {
   'postprocessors': [{
     'key': 'FFmpegExtractAudio',
     'preferredcodec': 'mp3',
-    'preferredquality': '192',
+    'preferredquality': '64',
   }],
   'restrictfilenames': True,
   'noplaylist': True,
@@ -83,18 +83,26 @@ class Music(Cog):
       loop = loop or asyncio.get_event_loop()
       data = await loop.run_in_executor(None, lambda: ytdl.extract_info(url, download=not stream))
 
-      if 'entries' in data:
-        # take first item from a playlist
-        data = data['entries'][0]
-        # TODO: Play the full playlists not just the first item
+      # if 'entries' in data:
+      #   # take first item from a playlist
+      #   data = data['entries'][0]
+      #   # TODO: Play the full playlists not just the first item
 
-      filename = data['url'] if stream else ytdl.prepare_filename(data)
       if start != 0:
         new_time = time.time()
         start = start + (new_time - now)
         print(start)
         ffmpeg_options["options"] = f"-vn -ss {start}"
-      return cls(discord.FFmpegPCMAudio(filename, **ffmpeg_options), data=data)
+      # filename = data['url'] if stream else ytdl.prepare_filename(data)
+      dataa = []
+      if "entries" in data:
+        for d in data["entries"]:
+          filename = d['url'] if stream else ytdl.prepare_filename(d)
+          dataa.append(cls(discord.FFmpegPCMAudio(filename, **ffmpeg_options), data=d))
+      else:
+        dataa = data
+      return (*dataa,)
+      # return cls(discord.FFmpegPCMAudio(filename, **ffmpeg_options), data=data)
 
   async def start_playing(self,ctx,pop = False):
     global songqueue
@@ -169,12 +177,16 @@ class Music(Cog):
     if voice is not None:#voice.is_playing() is not None or voice.is_paused() is not None:
       try:
         async with ctx.typing():
-          player = await self.YTDLSource.from_url(url, loop=self.bot.loop, stream=True)
-          if not hasattr(player,"title"):
-            print("nothing")
-          songqueue[serverQueueId].append(player)
-
-        await ctx.reply(embed=embed(title="Added to queue: **{}**".format(player.title),color=MessageColors.MUSIC))
+          players = await self.YTDLSource.from_url(url, loop=self.bot.loop, stream=True)
+          print(players)
+          for player in players:
+            if not hasattr(player,"title"):
+              print("nothing")
+            songqueue[serverQueueId].append(player)
+        if len(players) > 1:
+          await ctx.reply(embed=embed(title=f"Added `{len(players)}` songs to queue",color=MessageColors.MUSIC))
+        else:
+          await ctx.reply(embed=embed(title=f"Added to queue: **{players[0].title}**",color=MessageColors.MUSIC))
         return
       except BaseException as e:
         try:
@@ -185,8 +197,11 @@ class Music(Cog):
         return
     async with ctx.typing():
       try:
-        player = await self.YTDLSource.from_url(url, loop=self.bot.loop, stream=True)
-        songqueue[serverQueueId] = [player]
+        players = await self.YTDLSource.from_url(url, loop=self.bot.loop, stream=True)
+        print(players)
+        songqueue[serverQueueId] = []
+        for player in players:
+          songqueue[serverQueueId].append(player)
         await voiceChannel.connect(reconnect=False)
         await ctx.guild.change_voice_state(channel=voiceChannel,self_mute=False,self_deaf=True)
       except BaseException as e:
