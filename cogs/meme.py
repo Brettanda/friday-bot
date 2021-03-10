@@ -26,17 +26,15 @@ class Meme(Cog):
         if r.status == 200:
           return await r.json()
 
-  @commands.command(name="meme")
+  @commands.command(name="meme",aliases=["shitpost"])
   @commands.cooldown(1,7, commands.BucketType.user)
   @commands.bot_has_permissions(send_messages = True, embed_links = True, read_messages = True)
   async def meme(self,ctx):
-    num = random.randint(1,len(self.subs))
-    num = num - 1
-    url = "https://www.reddit.com/r/{}.json?sort=top&t=week".format(self.subs[num])
+    url = "https://www.reddit.com/r/{}.json?sort=top&t=week".format(random.choice(self.subs))
 
     body = None
 
-    async with ctx.typing():
+    async with ctx.channel.typing():# if hasattr(ctx, "typing") else ctx.channel.typing():
       try:
         body = await self.req(url)
       except:
