@@ -1,4 +1,4 @@
-import discord,asyncio
+import discord,asyncio,typing
 from discord.ext import commands
 
 import os,sys
@@ -46,25 +46,11 @@ class Fun(commands.Cog):
   # @commands.has_guild_permissions(move_members = True)
 
 
-  @commands.command(name="rolecall",description="Moves everyone with a specific role to a voicechannel after some amount of seconds")
+  @commands.command(name="rolecall",aliases=["rc"],description="Moves everyone with a specific role to a voicechannel. Objects that can be exluded are voicechannels,roles,and members")
   @commands.guild_only()
   @commands.has_guild_permissions(move_members = True)
   @commands.bot_has_guild_permissions(move_members = True)
-  @commands.bot_has_permissions(send_messages = True, read_messages = True, embed_links = True)
-  # async def rolecall(self,ctx,role:discord.Role,voicechannel:discord.VoiceChannel,*,exclusions:discord.Member=[]):
-  async def rolecall(self,ctx,role:discord.Role,voicechannel:discord.VoiceChannel):
-    # timeleft = time
-    # message = await ctx.reply(content=f"<@&{role.id}>",embed=embed(title=f"Members of \"{role}\" will be moved to \"{voicechannel}\" in {timeleft}"))
-    # message = await ctx.reply(embed=embed(title=f"Members of \"{role}\" will be moved to \"{voicechannel}\" in {timeleft}"))
-    # while timeleft >= 0:
-    #   await message.edit(embed=embed(title=f"Members of \"{role}\" will be moved to \"{voicechannel}\" in {timeleft}"))
-    #   await asyncio.sleep(1)
-    #   timeleft = timeleft - 1
-
-    # exclusions = exclusions.split(" ")
-
-    # print(exclusions)
-
+  async def rolecall(self,ctx,role:discord.Role,voicechannel:typing.Optional[discord.VoiceChannel],exclusions:commands.Greedy[typing.Union[discord.Member,discord.Role,discord.VoiceChannel]]=None):
     if ctx.author.permissions_in(voicechannel).view_channel != True:
       await ctx.reply(embed=embed(title="Trying to connect to a channel you can't view 🤔",description="Im going to have to stop you right there",color=MessageColors.ERROR))
       return
@@ -74,20 +60,20 @@ class Fun(commands.Cog):
 
     moved = 0
     for member in role.members:
-      # if member not in exclusions:
-      try:
-        await member.move_to(voicechannel,reason=f"Role call command by {ctx.author}")
-        moved += 1
-      except:
-        pass
+      if (exclusions is None or (isinstance(exclusions,list) and exclusions is not None and member not in exclusions)) and member not in voicechannel.members:
+        try:
+          await member.move_to(voicechannel,reason=f"Role call command by {ctx.author}")
+          moved += 1
+        except:
+          pass
     
     await ctx.reply(embed=embed(title=f"Moved {moved} members with the role `{role}` to `{voicechannel}`"))
 
-  @commands.command(name="massmove",aliases=["move"],usage="<fromChannel:Optional> <toChannel:Required>")
+  @commands.command(name="massmove",aliases=["move"])
+  @commands.guild_only()
   @commands.has_guild_permissions(move_members = True)
   @commands.bot_has_guild_permissions(move_members = True)
-  @commands.bot_has_permissions(send_messages = True, read_messages = True, embed_links = True)
-  async def mass_move(self,ctx,fromChannel:discord.VoiceChannel,toChannel:discord.VoiceChannel=None):
+  async def mass_move(self,ctx,fromChannel:typing.Optional[discord.VoiceChannel],toChannel:discord.VoiceChannel=None):
     # await ctx.guild.chunk(cache=False)
     if toChannel is None:
       toChannel = fromChannel
@@ -121,11 +107,10 @@ class Fun(commands.Cog):
 
   @commands.command(name="lock",description="Sets your voice channels user limit to the current number of occupants",hidden=True)
   @commands.guild_only()
-  @commands.is_owner()
+  # @commands.is_owner()
   @commands.has_guild_permissions(manage_channels=True)
   @commands.bot_has_guild_permissions(manage_channels=True)
-  @commands.bot_has_permissions(send_messages = True, read_messages = True, embed_links = True)
-  async def lock(self,ctx,voicechannel:discord.VoiceChannel=None):
+  async def lock(self,ctx,*,voicechannel:typing.Optional[discord.VoiceChannel]=None):
     # await ctx.guild.chunk(cache=False)
     if voicechannel is None:
       if ctx.author.voice is None:
