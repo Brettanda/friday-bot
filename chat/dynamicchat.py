@@ -45,10 +45,7 @@ async def dynamicchat(ctx,bot,intent):
     # await msg.channel.send(func.embed({ title: "No u!", color: "#FFD700", author: msg.author, image: unoCards[random.randint(0, unoCards.length)] }));
 
   elif intent == "Memes" or intent == "Memes - Another":
-    # from cogs.meme import Meme
-    await bot.get_command("meme").__call__(ctx)
-    # await Meme.meme(ctx)
-    # await require("../commands/meme").execute(msg);
+      await ctx.reply(**await get_reddit_post(ctx,["memes","dankmemes"]))
 
   elif intent == "Title of your sex tape":
     await ctx.reply(f"*{ctx.content.capitalize()}*, title of your sex-tape")
@@ -56,14 +53,10 @@ async def dynamicchat(ctx,bot,intent):
 
   # TODO: Make the command for this
   elif intent == "show me something cute":
-    print("something cute")
-  #   if (extra) await msg.reply(extra);
-  #   await require("../commands/smile").execute(msg);
+      await ctx.reply(**await get_reddit_post(ctx,["mademesmile"]))
 
-  # TODO: this
   elif intent == "Something cool":
-    print("something cool")
-    # await require("../commands/meme").execute(msg, "cool");
+      await ctx.reply(**await get_reddit_post(ctx,["nextfuckinglevel","interestingasfuck"]))
 
   elif intent == "Compliments" or intent == "Thanks" or intent == "are you a bot?" or intent == "I love you":
     hearts = ["❤️", "💯", "💕"]
