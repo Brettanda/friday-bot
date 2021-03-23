@@ -7,21 +7,24 @@ import os
 from functions import embed,MessageColors,ignore_guilds
 from cogs.help import cmd_help
 
-class Dev(commands.Cog):
-  """Commands used by the developer"""
+class Dev(commands.Cog,command_attrs=dict(hidden=True)):
+  """Commands used by and for the developer"""
 
   def __init__(self,bot):
     self.bot = bot
     self.loop = bot.loop
 
-  @commands.group(name="dev",invoke_without_command=True,hidden=True)
-  @commands.is_owner()
+  async def cog_check(self,ctx):
+    is_owner = await self.bot.is_owner(ctx.author)
+    if is_owner:
+      return True
+    raise commands.NotOwner("You do not own this bot")
+
+  @commands.group(name="dev",invoke_without_command=True)
   async def dev(self,ctx):
     await cmd_help(ctx,ctx.command)
 
-  @dev.command(name="say",hidden=True)
-  @commands.is_owner()
-  @commands.bot_has_permissions(send_messages = True, read_messages = True)
+  @dev.command(name="say")
   async def say(self,ctx,*,say:str):
     try:
       await ctx.message.delete()
@@ -29,9 +32,7 @@ class Dev(commands.Cog):
       pass
     await ctx.channel.send(f"{say}")
 
-  @dev.command(name="edit",hidden=True)
-  @commands.is_owner()
-  @commands.bot_has_permissions(send_messages = True, read_messages = True)
+  @dev.command(name="edit")
   async def edit(self,ctx,message:discord.Message,*,edit:str):
     try:
       await ctx.message.delete()
@@ -39,9 +40,7 @@ class Dev(commands.Cog):
       pass
     await message.edit(content=edit)
 
-  @dev.command(name="react",hidden=True)
-  @commands.is_owner()
-  @commands.bot_has_permissions(send_messages = True, add_reactions=True, read_messages = True, manage_messages = True)
+  @dev.command(name="react")
   async def react(self,ctx,message:discord.Message,*,reactions:str):
     try:
       await ctx.message.delete()
@@ -51,16 +50,12 @@ class Dev(commands.Cog):
     for reaction in reactions:
       await message.add_reaction(reaction)
 
-  @dev.command(name="status",hidden=True)
-  @commands.is_owner()
-  @commands.bot_has_permissions(send_messages = True, read_messages = True, manage_messages = True)
+  @dev.command(name="status")
   async def status(self,ctx):
     """Sends the status of the machine running Friday"""
     print("")
 
-  @dev.command(name="restart",hidden=True)
-  @commands.is_owner()
-  @commands.bot_has_permissions(send_messages = True, read_messages = True, manage_messages = True, embed_links = True)
+  @dev.command(name="restart")
   async def restart(self,ctx,force:bool=False):
     global restartPending,songqueue
     if restartPending == True and force == False:
@@ -92,17 +87,7 @@ class Dev(commands.Cog):
       await stat.delete()
       subprocess.Popen([f"{thispath}{seperator}restart.sh"], stdin=subprocess.PIPE)
 
-
-  @dev.command(name="mute",hidden=True)
-  @commands.is_owner()
-  @commands.bot_has_permissions(send_messages = True, read_messages = True)
-  async def mute(self,ctx,category:str):
-    # TODO: Mutes this server and stops responding to commands
-    print("")
-
-  @dev.command(name="reload",hidden=True)
-  @commands.is_owner()
-  @commands.bot_has_permissions(send_messages = True, read_messages = True, embed_links = True)
+  @dev.command(name="reload")
   async def reload(self,ctx,command:str):
     try:
       async with ctx.typing():
@@ -121,9 +106,7 @@ class Dev(commands.Cog):
   #   await ctx.reply(embed=embed(title=f"Failed to reload *{str(''.join(ctx.message.content.split(ctx.prefix+ctx.command.name+' ')))}*",color=MessageColors.ERROR))
   #   raise
 
-  @dev.command(name="update",hidden=True)
-  @commands.is_owner()
-  @commands.bot_has_permissions(send_messages = True, read_messages = True, embed_links = True)
+  @dev.command(name="update")
   async def update(self,ctx):
     message = await ctx.reply(embed=embed(title="Updating..."))
     thispath = os.getcwd()
@@ -138,16 +121,12 @@ class Dev(commands.Cog):
     else:
       await message.edit(embed=embed(title="Update complete!"))
 
-  @dev.command(name="cogs",hidden=True)
-  @commands.is_owner()
-  @commands.bot_has_permissions(send_messages = True, read_messages = True, embed_links = True)
+  @dev.command(name="cogs")
   async def cogs(self,ctx):
     cogs = ", ".join(self.bot.cogs)
     await ctx.reply(embed=embed(title=f"{len(self.bot.cogs)} total cogs",description=f"{cogs}"))
 
-  @dev.command(name="log",hidden=True)
-  @commands.is_owner()
-  @commands.bot_has_permissions(send_messages = True, read_messages = True)
+  @dev.command(name="log")
   async def log(self,ctx):
     thispath = os.getcwd()
     if "\\" in thispath:

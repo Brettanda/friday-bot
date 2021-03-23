@@ -8,7 +8,6 @@ class ServerInfo(commands.Cog):
 
   @commands.command(name="serverinfo")
   @commands.guild_only()
-  @commands.bot_has_permissions(send_messages = True, read_messages = True)
   async def server_info(self,ctx):
     async with ctx.typing():
       mydb = mydb_connect()

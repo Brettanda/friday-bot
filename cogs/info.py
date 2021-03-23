@@ -10,10 +10,8 @@ class Info(commands.Cog):
   def __init__(self,bot):
     self.bot = bot
 
-  @commands.command(name="info",description="Displays some information about myself :)")
-  @commands.bot_has_permissions(send_messages=True,read_messages=True,embed_links=True)
+  @commands.group(name="info",description="Displays some information about myself :)")
   async def info(self,ctx):
-
     await ctx.reply(
       embed=embed(
         title=f"{self.bot.user.name} - Info",

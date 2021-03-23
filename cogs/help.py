@@ -82,7 +82,7 @@ class Help(Cog):
     self.bot.remove_command("help")
 
   @commands.command(name="help",aliases=["?","commands"],usage="<command/group>")
-  @commands.bot_has_permissions(send_messages=True,read_messages=True,add_reactions=True,embed_links=True)
+  @commands.bot_has_permissions(add_reactions=True)
   async def show_help(self, ctx, group:str=None, cmd:str=None):
     """Shows this message."""
 

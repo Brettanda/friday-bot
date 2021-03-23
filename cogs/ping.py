@@ -25,7 +25,6 @@ class Ping(commands.Cog):
   #   # await ctx.invoke(self.bot.get_command('ping'))
 
   @commands.command(name="ping")
-  @commands.bot_has_permissions(send_messages = True, read_messages = True)
   async def ping(self,ctx):
     # await ctx.respond()
     print("pong")

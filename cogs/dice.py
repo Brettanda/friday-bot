@@ -1,7 +1,7 @@
 import d20
 
 import discord
-from discord.ext.commands import Cog,command,bot_has_permissions
+from discord.ext.commands import Cog,command
 
 from functions import embed
 
@@ -12,7 +12,6 @@ class Dice(Cog):
     self.bot = bot
 
   @command(name="dice",aliases=["d","r","roll"])
-  @bot_has_permissions(send_messages = True, read_messages = True, embed_links = True)
   async def dice(self,ctx,*,roll:str):
     roll = roll.lower()
 

@@ -9,18 +9,14 @@ class ServerManage(commands.Cog):
   def __init__(self,bot):
     self.bot = bot
 
-  # @commands.group(name="server",invoke_without_command=True,hidden=True)
-  # @commands.guild_only()
-  # @commands.is_owner()
-  # @commands.bot_has_permissions(send_messages = True, read_messages = True, manage_messages = True)
-  # async def server(self,ctx):
-  #   await ctx.reply(embed=embed(title="Invalid subcommand",color=MessageColors.ERROR))
+  async def cog_check(self,ctx):
+    if ctx.guild is None:
+      raise commands.NoPrivateMessage("This command can only be used within a guild")
+    return True
   
   @commands.command(name="defaultrole",hidden=True)
-  @commands.guild_only()
   @commands.is_owner()
   @commands.has_guild_permissions(manage_roles=True)
-  @commands.bot_has_permissions(send_messages = True, read_messages = True)
   async def _defaultrole(self,ctx,role:discord.Role):
     # TODO: Need the members intent so assign the role
     try:
@@ -35,7 +31,6 @@ class ServerManage(commands.Cog):
         await ctx.reply(f"The new default role for new members is `{role}`")
 
   @commands.command(name="prefix")
-  @commands.guild_only()
   @commands.has_guild_permissions(administrator=True)
   @commands.bot_has_permissions(send_messages = True, read_messages = True)
   async def _prefix(self,ctx,new_prefix:str="!"):
@@ -55,11 +50,8 @@ class ServerManage(commands.Cog):
         await ctx.reply(f"My new prefix is `{new_prefix}`")
 
   @commands.command(name="musicchannel",description="Set the channel where I can join and play music. If none then I will join any VC",hidden=True)
-  @commands.guild_only()
   @commands.is_owner()
-  @commands.has_guild_permissions(administrator=True)
-  @commands.bot_has_permissions(send_messages = True, read_messages = True)
-  async def music_channel(self,ctx,voicechannel:discord.VoiceChannel=None):
+  @commands.has_guild_permissions(manage_channels=True)
     try:
       async with ctx.typing():
         mydb = mydb_connect()
@@ -73,10 +65,7 @@ class ServerManage(commands.Cog):
         await ctx.reply(embed=embed(title=f"`{voicechannel}` is now my music channel"))
 
   @commands.command(name="deletecommandsafter",aliases=["deleteafter","delcoms"],description="Set the time in seconds for how long to wait before deleting command messages")
-  @commands.guild_only()
-  @commands.has_guild_permissions(administrator=True)
-  @commands.bot_has_permissions(send_messages = True, read_messages = True)
-  async def delete_commands_after(self,ctx,time:int=0):
+  @commands.has_guild_permissions(manage_channels=True)
     if time < 0:
       await ctx.reply(embed=embed(title="time has to be above 0"))
       return
@@ -93,7 +82,6 @@ class ServerManage(commands.Cog):
         await ctx.reply(embed=embed(title=f"I will now delete commands after `{time}` seconds"))
 
   @commands.command(name="kick")
-  @commands.guild_only()
   @commands.bot_has_guild_permissions(kick_members=True)
   @commands.has_guild_permissions(kick_members=True)
   @commands.bot_has_permissions(send_messages = True, read_messages = True)
@@ -114,7 +102,6 @@ class ServerManage(commands.Cog):
     await ctx.reply(embed=embed(title=f"Kicked `{member}` for reason `{reason}`"))
   
   @commands.command(name="ban")
-  @commands.guild_only()
   @commands.bot_has_guild_permissions(ban_members=True)
   @commands.has_guild_permissions(ban_members=True)
   @commands.bot_has_permissions(send_messages = True, read_messages = True)

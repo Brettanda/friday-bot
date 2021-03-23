@@ -14,7 +14,6 @@ class Inspiration(Cog):
     self.bot = bot
 
   @command(name="inspiration",enabled=False)
-  @bot_has_permissions(send_messages = True, read_messages = True)
   async def inspiration(self,ctx):
     print("pong")
     await ctx.reply(embed=embed(title="Pong!"))

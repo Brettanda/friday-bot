@@ -15,20 +15,8 @@ class Meme(Cog):
     self.subs = ["dankmemes", "memes"]
     self.posted = {}
 
-  async def req(self,url):
-    async with aiohttp.ClientSession() as session:
-      async with session.get(
-        url,
-        headers={
-          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.1916.47 Safari/537.36'
-        }
-      ) as r:
-        if r.status == 200:
-          return await r.json()
-
   @commands.command(name="meme",aliases=["shitpost"])
-  @commands.cooldown(1,7, commands.BucketType.user)
-  @commands.bot_has_permissions(send_messages = True, embed_links = True, read_messages = True)
+  @commands.max_concurrency(1,commands.BucketType.channel,wait=True)
   async def meme(self,ctx):
     url = "https://www.reddit.com/r/{}.json?sort=top&t=week".format(random.choice(self.subs))
 

@@ -54,9 +54,18 @@ for com in os.listdir("./cogs"):
 from cogs.help import cmd_help
 from cogs.cleanup import get_delete_time
 
-@bot.event
-async def on_command_error(ctx,error):
-  # This prevents any commands with local handlers being handled here in on_command_error.
+  def check(self,ctx):
+    required_perms = [("send_messages",True),("read_messages",True),("embed_links",True),("read_message_history",True),("add_reactions",True),("manage_messages",True)]
+    guild = ctx.guild
+    me = guild.me if guild is not None else ctx.bot.user
+    permissions = ctx.channel.permissions_for(me)
+    missing = [perm for perm,value in required_perms if getattr(permissions,perm) != value]
+
+    if not missing:
+      return True
+
+    raise commands.BotMissingPermissions(missing)
+
   if hasattr(ctx.command, 'on_error'):
     return
 

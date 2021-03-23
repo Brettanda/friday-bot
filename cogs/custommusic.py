@@ -9,10 +9,15 @@ class CustomMusic(commands.Cog):
   def __init__(self,bot):
     self.bot = bot
 
+  async def cog_check(self,ctx):
+    if ctx.guild is None:
+      raise commands.NoPrivateMessage("This command can only be used within a guild")
+    return True
+
   @commands.group(name="custom",aliases=["c"],invoke_without_command=True,description="Play sounds/songs without looking for the url everytime")
-  @commands.guild_only()
-  @commands.cooldown(1,4, commands.BucketType.channel)
-  @commands.bot_has_permissions(send_messages = True, read_messages = True, embed_links = True)
+  # @commands.cooldown(1,4, commands.BucketType.channel)
+  @commands.check(can_play)
+  @commands.max_concurrency(1,commands.BucketType.channel,wait=True)
   async def custom(self,ctx,name:str):
     try:
       async with ctx.typing():
@@ -30,9 +35,7 @@ class CustomMusic(commands.Cog):
         await ctx.reply(embed=embed(title=f"Failed to play the custom sound `{name}`",color=MessageColors.ERROR))
 
   @custom.command(name="add")
-  @commands.guild_only()
-  @commands.has_guild_permissions(administrator=True)
-  @commands.bot_has_permissions(send_messages = True, read_messages = True, embed_links = True)
+  @commands.has_guild_permissions(manage_channels=True)
   async def custom_add(self,ctx,name:str,url:str):
     valid = validators.url(url)
     if valid is not True:
@@ -63,8 +66,6 @@ class CustomMusic(commands.Cog):
    
 
   @custom.command(name="list")
-  @commands.guild_only()
-  @commands.bot_has_permissions(send_messages = True, read_messages = True, embed_links = True)
   async def custom_list(self,ctx):
     try:
       async with ctx.typing():
@@ -82,9 +83,7 @@ class CustomMusic(commands.Cog):
       await ctx.reply(embed=embed(title=f"The list of custom sounds",description=result))
 
   @custom.command(name="change",aliases=["replace"])
-  @commands.guild_only()
-  @commands.has_guild_permissions(administrator=True)
-  @commands.bot_has_permissions(send_messages = True, read_messages = True, embed_links = True)
+  @commands.has_guild_permissions(manage_channels=True)
   async def custom_change(self,ctx,name:str,url:str):
     try:
       async with ctx.typing():
@@ -103,9 +102,7 @@ class CustomMusic(commands.Cog):
       await ctx.reply(embed=embed(title=f"Changed `{name}` from `{old}` to `{url}`"))
 
   @custom.command(name="remove",aliases=["del"])
-  @commands.guild_only()
-  @commands.has_guild_permissions(administrator=True)
-  @commands.bot_has_permissions(send_messages = True, read_messages = True, embed_links = True)
+  @commands.has_guild_permissions(manage_channels=True)
   async def custom_del(self,ctx,name:str):
     try:
       async with ctx.typing():
