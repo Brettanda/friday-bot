@@ -21,13 +21,7 @@ class Log(commands.Cog):
 
   @commands.Cog.listener()
   async def on_ready(self):
-    await relay_info(f"Apart of {len(self.bot.guilds)} guilds",self.bot)
-
-  @commands.Cog.listener()
-  async def on_shard_ready(self,shard_id):
-    await relay_info(f"Logged on as #{shard_id} {self.bot.user}! - {self.bot.get_shard(shard_id).latency*1000:,.0f} ms",self.bot)
-    self.loop.create_task(choosegame(self.bot,config,1800,shard_id),name="Gaming")
-    # TODO: Check for new servers, if so add them to database, and remove rows if removed from server
+    await relay_info(f"Apart of {len(self.bot.guilds)} guilds",self.bot,logger=logger)
     mydb = mydb_connect()
     database_guilds = query(mydb,f"SELECT id FROM servers")
     if len(database_guilds) != len(self.bot.guilds):
