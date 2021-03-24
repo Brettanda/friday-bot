@@ -5,6 +5,18 @@ from discord.ext import commands
 import youtube_dl,json,asyncio,datetime,time
 from cogs.cleanup import get_delete_time
 
+def can_play(ctx:commands.Context):
+  connect_perms = ["connect","speak"]
+  missing = []
+  voice = ctx.author.voice
+  if voice is None or voice.channel is None:
+    raise exceptions.UserNotInVoiceChannel("You must be in a voice channel to play music.")
+  for perm,value in voice.channel.permissions_for(ctx.me):
+    if value == False and perm.lower() in connect_perms:
+      missing.append(perm)
+  if len(missing) > 0:
+    raise commands.BotMissingPermissions(missing)
+  return True
 import os,sys
 from functions import embed,MessageColors
 
