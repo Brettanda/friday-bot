@@ -5,3 +5,4 @@ from functions.embed import embed
 from functions.messagecolors import MessageColors
 from functions.mysql_connection import mydb_connect,query
 from functions.relay_info import relay_info
+from functions.get_reddit_post import get_reddit_post
