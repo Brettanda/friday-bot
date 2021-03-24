@@ -33,7 +33,7 @@ restartPending = False
 # from chat import queryGen
 from chat import queryIntents
 
-from functions import embed,MessageColors,relay_info,mydb_connect,query
+from functions import embed,MessageColors,relay_info,mydb_connect,query,exceptions
 from cogs.help import cmd_help
 from cogs.cleanup import get_delete_time
 
