@@ -37,6 +37,9 @@ class Issue(commands.Cog):
         await confirm.remove_reaction("✅",self.bot.user)
         pass
 
+  @commands.command(name="support",description="Get an invite link to my support server")
+  async def support(self,ctx):
+    await ctx.reply("https://discord.gg/NTRuFjU")
 
 def setup(bot):
   bot.add_cog(Issue(bot))
