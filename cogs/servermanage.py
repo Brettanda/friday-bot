@@ -32,8 +32,7 @@ class ServerManage(commands.Cog):
 
   @commands.command(name="prefix")
   @commands.has_guild_permissions(administrator=True)
-  @commands.bot_has_permissions(send_messages = True, read_messages = True)
-  async def _prefix(self,ctx,new_prefix:str="!"):
+  async def _prefix(self,ctx,new_prefix:typing.Optional[str]="!"):
     new_prefix = new_prefix.lower()
     if len(new_prefix) > 5:
       await ctx.reply(embed=embed(title="Can't set a prefix with more than 5 characters",color=MessageColors.ERROR))
@@ -52,6 +51,7 @@ class ServerManage(commands.Cog):
   @commands.command(name="musicchannel",description="Set the channel where I can join and play music. If none then I will join any VC",hidden=True)
   @commands.is_owner()
   @commands.has_guild_permissions(manage_channels=True)
+  async def music_channel(self,ctx,voicechannel:typing.Optional[discord.VoiceChannel]=None):
     try:
       async with ctx.typing():
         mydb = mydb_connect()
@@ -66,6 +66,7 @@ class ServerManage(commands.Cog):
 
   @commands.command(name="deletecommandsafter",aliases=["deleteafter","delcoms"],description="Set the time in seconds for how long to wait before deleting command messages")
   @commands.has_guild_permissions(manage_channels=True)
+  async def delete_commands_after(self,ctx,time:typing.Optional[int]=0):
     if time < 0:
       await ctx.reply(embed=embed(title="time has to be above 0"))
       return
