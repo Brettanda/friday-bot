@@ -2,6 +2,7 @@ import discord
 from discord.ext.commands import Cog
 from discord.ext import commands
 
+import logging
 import youtube_dl,json,asyncio,datetime,time
 from cogs.cleanup import get_delete_time
 
