@@ -2,7 +2,7 @@ import discord,logging,os,json
 from discord.ext import commands
 # from discord_slash import cog_ext,SlashContext
 
-from functions import embed,MessageColors,relay_info,mydb_connect,query,choosegame
+from functions import embed,relay_info,mydb_connect,query#,choosegame
 
 with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'config.json')) as f:
   config = json.load(f)
