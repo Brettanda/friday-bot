@@ -10,6 +10,7 @@ class Fun(commands.Cog):
 
   def __init__(self,bot):
     self.bot = bot
+    self.rpsoptions = ["rock","paper","scissors"]
     # self.timeouter = None
     # self.timeoutCh = None
 
@@ -44,6 +45,41 @@ class Fun(commands.Cog):
   # @commands.bot_has_guild_permissions(move_members = True)
   # @commands.bot_has_permissions(send_messages = True, read_messages = True, embed_links = True)
   # @commands.has_guild_permissions(move_members = True)
+
+  @commands.command(name="rockpaperscissors",description="Play Rock Paper Scissors with Friday",aliases=["rps"],usage="<rock, paper or scissors>")
+  async def rock_paper_scissors(self,ctx,args:str):
+    # args = args.split(" ")
+    # arg = args[0].lower()
+    arg = args.lower()
+    # if args not in self.options
+    #   await ctx.reply(embed=embed(title="Please only choose one of three options, Rock, Paper, or Scissors",color=MessageColors.ERROR))
+    #   return
+
+    if arg not in self.rpsoptions:
+      await ctx.reply(embed=embed(title=f"`{arg}` is not Rock, Paper, Scissors. Please choose one of those three.",color=MessageColors.ERROR))
+      return
+
+    num = random.randint(0,len(self.rpsoptions)-1)
+
+    mychoice = self.rpsoptions[num]
+
+    if mychoice == arg:
+      conclusion = "Draw"
+    elif mychoice == "rock" and arg == "paper":
+      conclusion = self.bot.user
+    elif mychoice == "rock" and arg == "scissors":
+      conclusion = ctx.author
+    elif mychoice == "paper" and arg == "scissors":
+      conclusion = self.bot.user
+    elif mychoice == "paper" and arg == "rock":
+      conclusion = ctx.author
+    elif mychoice == "scissors" and arg == "rock":
+      conclusion = self.bot.user
+    elif mychoice == "scissors" and arg == "paper":
+      conclusion = ctx.author
+
+    await ctx.reply(embed=embed(title=f"Your move: {arg} VS My move: {mychoice}",color=MessageColors.RPS,description=f"The winner of this round is: **{conclusion}**"))
+
 
   EMOTES = {
     "X":"💥",
