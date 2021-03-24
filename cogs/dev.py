@@ -46,9 +46,19 @@ class Dev(commands.Cog,command_attrs=dict(hidden=True)):
       await ctx.message.delete()
     except:
       pass
-    reactions = reactions.split(" ")
-    for reaction in reactions:
-      await message.add_reaction(reaction)
+    new_reactions = []
+    reactions = reactions.encode('unicode_escape')
+    reactions = reactions.replace(b"\\",bytes(b" \\"))
+    reactions = reactions.replace(b"<",bytes(b" <"))
+    reactions = reactions.decode('unicode_escape')
+    for react in reactions.split(" "):
+      if react != "":
+        new_reactions.append(react)
+    for reaction in new_reactions:
+      try:
+        await message.add_reaction(reaction)
+      except:
+        pass
 
   @dev.command(name="status")
   async def status(self,ctx):
