@@ -108,13 +108,35 @@ class Dev(commands.Cog,command_attrs=dict(hidden=True)):
           command = command
         self.bot.reload_extension(f"cogs.{command.lower()}")
       await ctx.reply(embed=embed(title=f"Cog *{command}* has been reloaded"))
+
+
+  @dev.command(name="load")
+  async def load(self,ctx,command:str):
+    try:
+      async with ctx.typing():
+        self.bot.load_extension(f"cogs.{command.lower()}")
     except:
       raise
+    else:
+      await ctx.reply(embed=embed(title=f"Cog *{command}* has been loaded"))
 
-  # @reload.error
-  # async def reload_error(self,ctx,error):
-  #   await ctx.reply(embed=embed(title=f"Failed to reload *{str(''.join(ctx.message.content.split(ctx.prefix+ctx.command.name+' ')))}*",color=MessageColors.ERROR))
-  #   raise
+  @dev.command(name="unload")
+  async def unload(self,ctx,command:str):
+    try:
+      async with ctx.typing():
+        self.bot.unload_extension(f"cogs.{command.lower()}")
+    except:
+      raise
+    else:
+      await ctx.reply(embed=embed(title=f"Cog *{command}* has been unloaded"))
+
+  @reload.error
+  @load.error
+  @unload.error
+  async def reload_error(self,ctx,error):
+    await ctx.reply(embed=embed(title=f"Failed to reload *{str(''.join(ctx.message.content.split(ctx.prefix+ctx.command.name+' ')))}*",color=MessageColors.ERROR))
+    print(error)
+    logger.error(error)
 
   @dev.command(name="update")
   async def update(self,ctx):
