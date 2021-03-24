@@ -85,37 +85,45 @@ class ServerManage(commands.Cog):
   @commands.command(name="kick")
   @commands.bot_has_guild_permissions(kick_members=True)
   @commands.has_guild_permissions(kick_members=True)
-  @commands.bot_has_permissions(send_messages = True, read_messages = True)
-  async def kick(self,ctx,member:discord.Member,*,reason:str):
-    if member == self.bot.user:
-      try:
-        await ctx.add_reaction("😢")
-      except:
-        pass
-      return
-    if member == ctx.author:
-      await ctx.reply(embed=embed(title="Failed to kick yourself",color=MessageColors.ERROR))
-      return
-    try:
-      await member.kick(reason=f"{ctx.author}: {reason}")
-    except discord.Forbidden:
-      raise commands.BotMissingPermissions(["kick_members"])
-    await ctx.reply(embed=embed(title=f"Kicked `{member}` for reason `{reason}`"))
+  async def kick(self,ctx,members:commands.Greedy[discord.Member],*,reason:str):
+    for member in members:
+      if member == self.bot.user:
+        try:
+          await ctx.add_reaction("😢")
+        except:
+          pass
+        return
+      if member == ctx.author:
+        await ctx.reply(embed=embed(title="Failed to kick yourself",color=MessageColors.ERROR))
+        return
+      # try:
+      for member in members:
+        await member.kick(reason=f"{ctx.author}: {reason}")
+      # except discord.Forbidden:
+        # raise commands.BotMissingPermissions(["kick_members"])
+      await ctx.reply(embed=embed(title=f"Kicked `{member}` for reason `{reason}`"))
   
   @commands.command(name="ban")
   @commands.bot_has_guild_permissions(ban_members=True)
   @commands.has_guild_permissions(ban_members=True)
-  @commands.bot_has_permissions(send_messages = True, read_messages = True)
-  async def ban(self,ctx,member:discord.Member,*,reason:str):
-    if member == self.bot.user:
-      try:
-        await ctx.add_reaction("😢")
-      except:
-        pass
-      return
-    if member == ctx.author:
-      await ctx.reply(embed=embed(title="Failed to ban yourself",color=MessageColors.ERROR))
-      return
+  async def ban(self,ctx,members:commands.Greedy[discord.Member],delete_message_days:typing.Optional[int]=0,*,reason:str):
+    for member in members:
+      if member == self.bot.user:
+        try:
+          await ctx.add_reaction("😢")
+        except:
+          pass
+        return
+      if member == ctx.author:
+        await ctx.reply(embed=embed(title="Failed to ban yourself",color=MessageColors.ERROR))
+        return
+      # try:
+      for member in members:
+        await member.ban(delete_message_days=delete_message_days,reason=f"{ctx.author}: {reason}")
+      # except discord.Forbidden:
+        # raise commands.BotMissingPermissions(["ban_members"])
+      await ctx.reply(embed=embed(title=f"Banned `{member}` for reason `{reason}`"))
+
   @commands.command(name="rolecall",aliases=["rc"],description="Moves everyone with a specific role to a voicechannel. Objects that can be exluded are voicechannels,roles,and members")
   @commands.guild_only()
   @commands.has_guild_permissions(move_members = True)
