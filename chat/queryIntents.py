@@ -5,6 +5,12 @@ try:
   nltk.data.find('tokenizers/punkt.zip')
 except LookupError:
   nltk.download('punkt')
+try:
+  nltk.data.find('vader_lexicon')
+except LookupError:
+  nltk.download('vader_lexicon')
+from nltk.sentiment import SentimentIntensityAnalyzer
+sia = SentimentIntensityAnalyzer()
 from nltk.stem.lancaster import LancasterStemmer
 stemmer = LancasterStemmer()
 # things we need for Tensorflow
@@ -75,38 +81,51 @@ def bow(sentence, words, show_details=True):
         if show_details:
           inbag += f"{w} "
           # print ("found in bag: %s" % w)
-  print(f"found in bag: {inbag}")
-  logging.info(f"found in bag: {inbag}")
-  return(np.array(bag))
+  # print(f"found in bag: {inbag}")
+  # logging.info(f"found in bag: {inbag}")
+  return(np.array(bag),inbag)
 
 async def classify_local(sentence):
-  ERROR_THRESHOLD = 0.75
+  ERROR_THRESHOLD = 0.7
   
   # generate probabilities from the model
-  input_data = pd.DataFrame([bow(sentence, words)], dtype=float, index=['input'])
+  bows,inbag = bow(sentence, words)
+  input_data = pd.DataFrame([bows], dtype=float, index=['input'])
+  # print(inbag)
   results = model.predict([input_data])[0]
   # filter out predictions below a threshold, and provide intent index
+  # guesses = [[i,r] for i,r in enumerate(results) if r>ERROR_THRESHOLD/2]
   results = [[i,r] for i,r in enumerate(results) if r>ERROR_THRESHOLD]
   # sort by strength of probability
   results.sort(key=lambda x: x[1], reverse=True)
+  # guesses.sort(key=lambda x: x[1], reverse=True)
   return_list = []
   for r in results:
     return_list.append((r[0],classes[r[0]], str(r[1])))
   # return tuple of intent and probability
+  # guess_list = []
+  # for r in guesses:
+  #   guess_list.append((r[0],classes[r[0]], str(r[1])))
 
   if len(return_list) > 0:
     index,name,chance = return_list[0]
     tag = [index for index,value in enumerate(intents) if value["tag"] == name]
     intent = intents[tag[0]]
-    print(chance)
-    logging.info(chance)
+    # guess_index,guess_name,guess_chance = guess_list[0]
+    # guess_tag = [guess_index for index,value in enumerate(intents) if value["tag"] == name]
+    # guess_intent = intents[guess_tag[0]]
+    print(return_list)
+    # print(chance)
+    # logging.info(chance)
 
     if isinstance(intent["responses"],list) and len(intent["responses"]) > 0:
       indresp = random.randint(0,len(intent["responses"]) - 1)
 
       response = intent["responses"][indresp]
-      return response,intent["tag"]
+      # print(intent["incomingContext"],intent["outgoingContext"])
+      # print(len(intent["incomingContext"]),len(intent["outgoingContext"]))
+      return response,intent["tag"],chance,inbag,intent["incomingContext"],intent["outgoingContext"],sia.polarity_scores(sentence)
     else:
-      return None,None
+      return None,None,None,None,None,None,None
   else:
-    return None,None
+    return None,None,None,None,None,None,None

@@ -595,94 +595,6 @@
     "outgoingContext": []
   },
   {
-    "tag": "Default Welcome Intent (Greetings) - Negative nofollow - no",
-    "sentiment": -1,
-    "priority": 500000,
-    "patterns": [
-      "thanks but no",
-      "no way",
-      "no",
-      "no no don't",
-      "na",
-      "no it isn't",
-      "don't",
-      "nah I'm good",
-      "no I cannot",
-      "I can't",
-      "nothing",
-      "no that's okay",
-      "no not really",
-      "nope not really",
-      "nope",
-      "thanks but not this time",
-      "I don't think so",
-      "I disagree",
-      "no maybe next time",
-      "not this time",
-      "no don't",
-      "no we are good",
-      "don't do it",
-      "no that's be all",
-      "not right now",
-      "nothing else thanks",
-      "no thanks",
-      "no that's ok",
-      "I don't want that",
-      "definitely not",
-      "nothing else",
-      "not",
-      "not at all",
-      "no never",
-      "never",
-      "no way no",
-      "not really",
-      "nah",
-      "I don't",
-      "I don't want",
-      "not today",
-      "not interested",
-      "no that's fine thank you",
-      "I'm not"
-    ],
-    "responses": [
-      "That's fair. I am only a bot and not sure how much help I would be anyway"
-    ],
-    "incomingContext": [
-      "DefaultWelcomeIntentGreetings-Negativenofollow-followup"
-    ],
-    "outgoingContext": []
-  },
-  {
-    "tag": "Default Welcome Intent (Greetings) - Negative nofollow",
-    "sentiment": -1,
-    "priority": 500000,
-    "patterns": [
-      "very bad",
-      "I hate my self",
-      "Life sucks right now",
-      "It could be better",
-      "Awful",
-      "Horrific",
-      "Horrible",
-      "Terrible",
-      "Pretty bad actually",
-      "Not so good",
-      "Not too great"
-    ],
-    "responses": [
-      "I am sorry to hear about that. If you would like to talk, I am here."
-    ],
-    "incomingContext": [
-      "DefaultWelcomeIntentGreetings-followup"
-    ],
-    "outgoingContext": [
-      {
-        "name": "DefaultWelcomeIntentGreetings-Negativenofollow-followup",
-        "lifespan": 2
-      }
-    ]
-  },
-  {
     "tag": "Default Welcome Intent (Greetings) - Negative",
     "sentiment": -1,
     "priority": 500000,
@@ -705,6 +617,7 @@
     "sentiment": 0,
     "priority": 500000,
     "patterns": [
+      "im doing ok, how are you?",
       "nothing much, what about you?",
       "not much how are you?",
       "im ok, how are you doing?",
@@ -738,37 +651,11 @@
     "outgoingContext": []
   },
   {
-    "tag": "Default Welcome Intent (Greetings) - Positive - nofollow",
-    "sentiment": 1,
-    "priority": 500000,
-    "patterns": [
-      "i doing great",
-      "im doing good thank you",
-      "good",
-      "am fine men",
-      "i am doing pretty great",
-      "im pretty good",
-      "today is the best day ever",
-      "i am doing just fine",
-      "today is a great day",
-      "i am awesome",
-      "im great",
-      "im good"
-    ],
-    "responses": [
-      "That is great news",
-      "I am happy to hear that"
-    ],
-    "incomingContext": [
-      "DefaultWelcomeIntentGreetings-followup"
-    ],
-    "outgoingContext": []
-  },
-  {
     "tag": "Default Welcome Intent (Greetings) - Possitive",
     "sentiment": 0,
     "priority": 500000,
     "patterns": [
+      "I'm doing great, how about you?",
       "im doing great wbu?",
       "@friday, im doing good what about you",
       "I'm alright wbu?",
@@ -797,6 +684,9 @@
     "sentiment": 0,
     "priority": 500000,
     "patterns": [
+      "good evening friday",
+      "good afternoon friday",
+      "good morning friday",
       "howdy Friday",
       "@friday, sup",
       "hey friday",
@@ -819,7 +709,7 @@
       "hi Friday"
     ],
     "responses": [
-      "Greetings! How are doing on this fine day?",
+      "Greetings! How are you doing on this fine day?",
       "Yo, how are you doing today?",
       "Hey, how are you?",
       "Hello, how are you?",
@@ -1272,7 +1162,16 @@
     "sentiment": -1,
     "priority": 500000,
     "patterns": [
-      "bad bc of dyno and mrs cro n",
+      "Not so good",
+      "Pretty bad actually",
+      "Terrible",
+      "Horrible",
+      "Horrific",
+      "Awful",
+      "It could be better",
+      "Life sucks right now",
+      "I hate my self",
+      "very bad",
       "im not good",
       "I'm not doing so good",
       "My life sucks right now",
@@ -1281,7 +1180,8 @@
     ],
     "responses": [
       "I'm sorry to hear that, i'm not sure I can do much but if you want to talk I will be hear.",
-      "I am not sure how much help I can be, but if you want to talk i'll be here"
+      "I am not sure how much help I can be, but if you want to talk i'll be here",
+      "I am sorry to hear about that. If you would like to talk, I am here."
     ],
     "incomingContext": [
       "Howareyou-followup"
@@ -1313,18 +1213,24 @@
     "sentiment": 0,
     "priority": 500000,
     "patterns": [
-      "good and you?",
-      "im good how are you?",
+      "today is a great day",
+      "I am doing just fine",
+      "today is the best day ever",
+      "im pretty good",
+      "i am doing pretty great",
+      "am fine men",
+      "good",
+      "im doing good thank you",
       "I'm doing great!",
       "im fine",
       "I am doing just fine, thanks for asking",
-      "I am doing just fine",
-      "life couldn't be better",
-      "im good how about you?"
+      "life couldn't be better"
     ],
     "responses": [
       "I'm glad to hear that. Thank you for sharing!",
-      "That's awesome. Thanks for letting me know :)"
+      "That's awesome. Thanks for letting me know :)",
+      "That is great news",
+      "I am happy to hear that"
     ],
     "incomingContext": [
       "Howareyou-followup"
@@ -1967,6 +1873,9 @@
     "sentiment": 0,
     "priority": 500000,
     "patterns": [
+      "Can u make me laugh",
+      "friday make me laugh",
+      "Make me laugh Friday",
       "can i get a meme",
       "Friday give me a meme",
       "Make me laugh",
@@ -1975,7 +1884,6 @@
       "Send me a meme",
       "Give me a meme",
       "What memes do you have Friday",
-      "Make me laugh Friday",
       "Show me a meme",
       "I need something funny Friday"
     ],
@@ -2724,14 +2632,15 @@
   {
     "tag": "Title of your sex tape",
     "sentiment": 0,
-    "priority": 250000,
+    "priority": -1,
     "patterns": [
+      "Egan eats my meat. Jpg",
       "tight pussy gets penetrated by big cock oscar xxx hedgehog",
       "keep yo bitch on a leash brett!!!!!",
       "Up my ass",
       "you were still inside",
       "hot roblox sex",
-      "get tf on",
+      "get the fuck on",
       "it just slipped out",
       "she's coming, hide",
       "I feel attacked",
@@ -2744,7 +2653,6 @@
       "Bill fucked Steve",
       "vexx pounding dalton",
       "vex pounding dalton",
-      "that one is good",
       "that is too long",
       "I'll blow all of them at once",
       "I think it's stuck",
@@ -2762,7 +2670,6 @@
       "come in a straight line",
       "I came alone",
       "omg! I can't take this anymore",
-      "stop talking and get back to work, boys",
       "I don't have enough room for that",
       "I don't want to put that in my mouth, but I guess I have to",
       "you'll love the ripe melons I personally like bananas.",
@@ -2777,6 +2684,7 @@
       "I can't find anything and I don't know what to do.",
       "I'm horrible at this. When can we stop?",
       "Can you magically make everyone kind, sober, and fully dressed?",
+      "get in loser",
       "One more \u201cbut,\u201d and you will be in contempt.",
       "I'm with someone and nothing is going to happen.",
       "Yeah, I hope it wasn't a mistake.",
