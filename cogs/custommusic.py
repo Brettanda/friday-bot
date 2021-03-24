@@ -1,7 +1,7 @@
 import validators,json
 from discord.ext import commands
 
-from functions import embed,MessageColors,mydb_connect,query,ignore_guilds
+from cogs.music import can_play
 
 class CustomMusic(commands.Cog):
   """Asign music urls to a command so you dont have to find the url everytime you want to play `bruh 2`"""
