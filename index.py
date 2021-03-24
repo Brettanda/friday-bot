@@ -108,7 +108,12 @@ class Friday(commands.AutoShardedBot):
       await cmd_help(ctx,ctx.command,"Too many arguments were passed for this command, here is how the command should look")
     # elif isinstance(error,commands.CommandError) or isinstance(error,commands.CommandInvokeError):
     #   await ctx.reply(embed=embed(title=f"{error}",color=MessageColors.ERROR))
-    elif isinstance(error,commands.MissingPermissions) or isinstance(error,commands.BotMissingPermissions):
+    elif (
+      isinstance(error,commands.MissingPermissions) or
+      isinstance(error,commands.BotMissingPermissions) or
+      isinstance(error,exceptions.UserNotInVoiceChannel) or
+      isinstance(error,exceptions.NoCustomSoundsFound)
+      ):
       try:
         await ctx.reply(embed=embed(title=f"{error}",color=MessageColors.ERROR),delete_after=delete)
       except discord.Forbidden:
