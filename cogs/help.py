@@ -1,4 +1,4 @@
-# import discord
+import discord
 from discord import Embed
 from discord.utils import get
 from discord.ext.menus import MenuPages, ListPageSource
@@ -8,7 +8,7 @@ from discord.ext import commands
 from cogs.cleanup import get_delete_time
 from functions import embed,MessageColors
 
-def syntax(command):
+def syntax(command,quotes:bool=True):
   cmd_and_aliases = "|".join([str(command), *command.aliases])
   
   def get_params(com):
@@ -19,7 +19,10 @@ def syntax(command):
           # params.append(f"[{command.usage}]" if "NoneType" in str(value) else f"<{command.usage}>")
           params = f"{com.usage}" if "NoneType" in str(value) else f"{com.usage}"
         else:
-          params.append(f"[{key}]" if "NoneType" in str(value) else f"<{key}>")
+          post_key = "..." if "_Greedy" in str(value) else ""
+          equals = str(value).split(' = ')[1] if len(str(value).split(' = ')) > 1 else str(None)
+          follow_key = f"={equals}" if equals != str(None) else ""
+          params.append(f"[{key}{follow_key}]{post_key}" if "_Greedy" in str(value) or "NoneType" in str(value) else f"<{key}>")
     if isinstance(params,list):
       params = " ".join(params)
     return params
@@ -30,8 +33,10 @@ def syntax(command):
       sub_commands += f"\n{cmd_and_aliases} {com.name} {get_params(com)}"
   # sub_commands = "".join(str(command.commands) if hasattr(command,"commands") else "")
 
-
-  return f"```{cmd_and_aliases} {get_params(command)}{sub_commands}```"
+  if quotes:
+    return f"```{cmd_and_aliases} {get_params(command)}{sub_commands}```"
+  else:
+    return f"{cmd_and_aliases} {get_params(command)}{sub_commands}"
 
 
 class HelpMenu(ListPageSource):

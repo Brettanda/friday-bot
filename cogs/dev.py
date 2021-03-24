@@ -5,7 +5,7 @@ from index import restartPending,songqueue
 
 import os
 from functions import embed,MessageColors,ignore_guilds
-from cogs.help import cmd_help
+from cogs.help import cmd_help,syntax
 
 class Dev(commands.Cog,command_attrs=dict(hidden=True)):
   """Commands used by and for the developer"""
@@ -168,6 +168,33 @@ class Dev(commands.Cog,command_attrs=dict(hidden=True)):
     shutil.copy(f"{thispath}{seperator}logging.log",f"{thispath}{seperator}logging-send.log")
     await ctx.reply(file=discord.File(fp=f"{thispath}{seperator}logging-send.log",filename="logging.log"))
   
+  @dev.command(name="markdown",aliases=["md"])
+  async def markdown(self,ctx):
+    commands = self.bot.commands
+    cogs = []
+    for command in commands:
+      if command.hidden == False and command.enabled == True and command.cog_name not in cogs:
+        cogs.append(command.cog_name)
+    with open("commands.md","w") as f:
+      f.write("# Commands\n\n")
+      for cog in cogs:
+        f.write(f"## {cog}\n\n")
+        for com in commands:
+          if com.hidden == False and com.enabled == True and com.cog_name == cog:
+            # f.write(f"""### {ctx.prefix}{com.name}\n{(f'Aliases: `{ctx.prefix}'+f", {ctx.prefix}".join(com.aliases)+'`') if len(com.aliases) > 0 else ''}\n{f'Description: {com.description}' if com.description != '' else ''}\n""")
+            f.write(f"### `{ctx.prefix}{com.name}`\n\n")
+            usage = '\n  '.join(syntax(com,quotes=False).split('\n'))
+            usage = discord.utils.escape_markdown(usage).replace("<","\<")
+            f.write(f"Usage:\n\n  {usage}\n\n")
+            f.write(f"Aliases: ```"+(f'{ctx.prefix}'+f",{ctx.prefix}".join(com.aliases) if len(com.aliases) > 0 else 'None')+"```\n\n")
+            f.write(f"Description: ```{com.description or 'None'}```\n\n")
+      f.close()
+    thispath = os.getcwd()
+    if "\\" in thispath:
+      seperator = "\\\\"
+    else:
+      seperator = "/"
+    await ctx.reply(file=discord.File(fp=f"{thispath}{seperator}commands.md",filename="commands.md"))
 
   @commands.Cog.listener()
   async def on_message(self,ctx):
