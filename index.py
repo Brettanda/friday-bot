@@ -193,7 +193,7 @@ class Friday(commands.AutoShardedBot):
           newest = msg
 
       result,intent,chance,inbag,incomingContext,outgoingContext,sentiment = await queryIntents.classify_local(ctx.clean_content)
-    result,intent = await queryIntents.classify_local(ctx.clean_content)
+      
       print(f"Intent: {intent}\t{chance}\n\t| sentiment: {sentiment}\n\t| incoming Context: {incomingContext}\n\t| outgoing Context: {outgoingContext}")
       logging.info(f"Intent: {intent}\t{chance}\n\t| sentiment: {sentiment}\n\t| incoming Context: {incomingContext}\n\t| outgoing Context: {outgoingContext}")
       # TODO: add a check for another bot
