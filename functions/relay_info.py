@@ -1,6 +1,6 @@
 import os,discord,logging
 
-async def relay_info(msg:str,bot,embed:discord.Embed=None,file=None,short:str=None,channel:int=808594696904769546):
+async def relay_info(msg:str,bot,embed:discord.Embed=None,file=None,short:str=None,channel:int=808594696904769546,logger=logging.getLogger(__name__)):
   log_info = bot.get_channel(channel)
   if log_info is not None:
     if file is not None:
@@ -27,7 +27,7 @@ async def relay_info(msg:str,bot,embed:discord.Embed=None,file=None,short:str=No
         await owner.send(content=msg,embed=embed)
   if short is not None:
     print(short)
-    logging.info(short)
+    logger.info(short)
   else:
     print(msg)
-    logging.info(msg)
+    logger.info(msg)

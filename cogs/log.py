@@ -110,4 +110,6 @@ class Log(commands.Cog):
         await member.add_roles(role,reason="Default Role")
 
 def setup(bot):
+  global logger
+  logger = logging.getLogger(__name__)
   bot.add_cog(Log(bot))

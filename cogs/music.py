@@ -428,4 +428,6 @@ class Music(Cog):
 
 
 def setup(bot):
+  global logger
+  logger = logging.getLogger(__name__)
   bot.add_cog(Music(bot))

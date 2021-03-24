@@ -151,4 +151,6 @@ class Dev(commands.Cog,command_attrs=dict(hidden=True)):
       return
 
 def setup(bot):
+  global logger
+  logger = logging.getLogger(__name__)
   bot.add_cog(Dev(bot))
