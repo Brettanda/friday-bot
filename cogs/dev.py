@@ -1,4 +1,4 @@
-import shutil
+import discord,logging,subprocess,asyncio,typing,shutil
 from discord.ext import commands
 
 from index import restartPending,songqueue
