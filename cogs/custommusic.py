@@ -72,10 +72,12 @@ class CustomMusic(commands.Cog):
       async with ctx.typing():
         mydb = mydb_connect()
         sounds = query(mydb,f"SELECT customSounds FROM servers WHERE id=%s",ctx.guild.id)
+        if sounds is None:
+          raise exceptions.NoCustomSoundsFound("There are no custom sounds for this server (yet)")
         sounds = json.loads(sounds)
         result = ""
         for sound in sounds:
-          result += f"```{sound} -> {sounds[sound]}```\n"
+          result += f"```{sound} -> {sounds[sound]}```"
         if result == "":
           result = "There are no custom sounds for this server (yet)"
     except:
