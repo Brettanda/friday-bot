@@ -30,10 +30,9 @@ ytdl_format_options = {
 ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
 
 class redditlink(commands.Cog):
-  """description goes here"""
-
   def __init__(self,bot):
     self.bot = bot
+    self.emoji = "🔗"
     self.pattern = r"https://www.reddit.com/r/[a-zA-Z0-9-_]+/comments/[a-zA-Z0-9]+/[a-zA-Z0-9_-]+"
     self.patternspoiler = r"||https://www.reddit.com/r/[a-zA-Z0-9-_]+/comments/[a-zA-Z0-9]+/[a-zA-Z0-9_-]+||"
 
@@ -114,30 +113,33 @@ class redditlink(commands.Cog):
     if data is None and video is None and embeded is None and image is None:
       return
 
-    await ctx.add_reaction("🔗")
+    await ctx.add_reaction(self.emoji)
 
   @commands.Cog.listener()
-  async def on_reaction_add(self,reaction,user):
+  async def on_raw_reaction_add(self,payload):
+    message = await payload.member.guild.get_channel(payload.channel_id).fetch_message(payload.message_id)
     # TODO: check the max file size of the server and change the quality of the video to match
-    if self.bot.user == user or self.bot.user == user.bot:
+    if self.bot.user == payload.member or self.bot.user == payload.member.bot:
       return
-    if user != reaction.message.author:
+    if payload.member != message.author:
       return
-    if reaction.emoji == "🔗":
+    if payload.emoji.name == self.emoji:
       test:bool = False
-      for react in reaction.message.reactions:
-        if react.me and react.emoji == "🔗":
+      for react in message.reactions:
+        if react.me and react.emoji == self.emoji:
           test = True
         if test == False:
           return
       try:
-        await reaction.message.remove_reaction("🔗",self.bot.user)
-        await reaction.message.remove_reaction("🔗",user)
+        await asyncio.gather(
+          message.remove_reaction(self.emoji,self.bot.user),
+          message.remove_reaction(self.emoji,payload.member)
+        )
       except:
         pass
-      async with reaction.message.channel.typing():
+      async with message.channel.typing():
 
-        reg = re.findall(self.pattern,reaction.message.content)
+        reg = re.findall(self.pattern,message.content)
 
         if len(reg) != 1:
           return
@@ -154,7 +156,7 @@ class redditlink(commands.Cog):
           except:
             data = body[0]["data"]["children"][0]["data"]
         except KeyError:
-          await reaction.message.reply(embed=embed(title="There was a problem connecting to reddit",color=MessageColors.ERROR))
+          await message.reply(embed=embed(title="There was a problem connecting to reddit",color=MessageColors.ERROR))
           return
 
         link = None
@@ -182,7 +184,7 @@ class redditlink(commands.Cog):
         #   raise
 
       # TODO: Does not get url for videos atm
-      if (reaction.message.channel.nsfw == True and data["over_18"] == True) or (reaction.message.channel.nsfw == False and data["over_18"] == False) or (reaction.message.channel.nsfw == True and data["over_18"] == False):
+      if (message.channel.nsfw == True and data["over_18"] == True) or (message.channel.nsfw == False and data["over_18"] == False) or (message.channel.nsfw == True and data["over_18"] == False):
         spoiler = False
       else:
         spoiler = True
@@ -197,9 +199,9 @@ class redditlink(commands.Cog):
         try:
           # name = f'{linkdata["extractor"]}-{linkdata["id"]}-{linkdata["title"]}.{linkdata["ext"]}'
           name = data["title"].split()
-          await reaction.message.reply(file=discord.File(fp=mp4file,filename=f'{"_".join(name)}.{ext}',spoiler=spoiler))
+          await message.reply(file=discord.File(fp=mp4file,filename=f'{"_".join(name)}.{ext}',spoiler=spoiler))
         except discord.HTTPException:
-          await reaction.message.reply(embed=embed(title="This file is too powerful to be uploaded",description="You will have to open reddit to view this",color=MessageColors.ERROR))
+          await message.reply(embed=embed(title="This file is too powerful to be uploaded",description="You will have to open reddit to view this",color=MessageColors.ERROR))
           pass
         finally:
           try:
@@ -208,9 +210,9 @@ class redditlink(commands.Cog):
             pass
       else:
         if spoiler == True:
-          await reaction.message.reply("||"+link+"||")
+          await message.reply("||"+link+"||")
         else:
-          await reaction.message.reply(link)
+          await message.reply(link)
       # elif reaction.message.channel.nsfw == False and data["over_18"] == False:
           
       # print(len(body))
