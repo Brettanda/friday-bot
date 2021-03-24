@@ -17,8 +17,8 @@ class Info(commands.Cog):
         title=f"{self.bot.user.name} - Info",
         thumbnail=self.bot.user.avatar_url,
         description="Some information about me, Friday ;)",
-        fieldstitle=["Username","Guilds joined","Status","Latency","Shards","Audio Nodes","Loving Life","Existed since"],
-        fieldsval=[self.bot.user.name,len(self.bot.guilds),ctx.me.activity.name,f"{self.bot.latency*1000:,.0f} ms",self.bot.shard_count,len(self.bot.wavelink.nodes),"True",self.bot.user.created_at]
+        fieldstitle=["Username","Guilds joined","Status","Latency","Shards","Loving Life","Existed since"],
+        fieldsval=[self.bot.user.name,len(self.bot.guilds),ctx.me.activity.name,f"{self.bot.latency*1000:,.0f} ms",self.bot.shard_count,"True",self.bot.user.created_at]
       )
     )
 
