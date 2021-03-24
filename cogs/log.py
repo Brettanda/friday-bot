@@ -1,15 +1,13 @@
-import discord,logging,os,json
+import logging,os,json,discord
 from discord.ext import commands
 # from discord_slash import cog_ext,SlashContext
 
 from functions import embed,relay_info,mydb_connect,query#,choosegame
 
-with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'config.json')) as f:
-  config = json.load(f)
+# with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'config.json')) as f:
+#   config = json.load(f)
 
 class Log(commands.Cog):
-  """description goes here"""
-
   def __init__(self,bot):
     self.bot = bot
     self.loop = bot.loop
@@ -17,13 +15,13 @@ class Log(commands.Cog):
   @commands.Cog.listener()
   async def on_shard_connect(self,shard_id):
     print(f"Shard #{shard_id} has connected")
-    logging.info(f"Shard #{shard_id} has connected")
+    logger.info(f"Shard #{shard_id} has connected")
 
   @commands.Cog.listener()
   async def on_ready(self):
     await relay_info(f"Apart of {len(self.bot.guilds)} guilds",self.bot,logger=logger)
     mydb = mydb_connect()
-    database_guilds = query(mydb,f"SELECT id FROM servers")
+    database_guilds = query(mydb,"SELECT id FROM servers")
     if len(database_guilds) != len(self.bot.guilds):
       current_guilds = []
       for guild in self.bot.guilds:
@@ -40,44 +38,53 @@ class Log(commands.Cog):
             guild = self.bot.get_guild(guild_id)
             if guild is not None:
               owner = guild.owner.id if hasattr(guild,"owner") and hasattr(guild.owner,"id") else 0
-              query(mydb,f"INSERT INTO servers (id,owner,name) VALUES (%s,%s,%s)",guild.id,owner,guild.name)
+              query(mydb,"INSERT INTO servers (id,owner,name) VALUES (%s,%s,%s)",guild.id,owner,guild.name)
               if guild.system_channel is not None:
                 prefix = "!"
-                await guild.system_channel.send(
-                  f"Thank you for inviting me to your server. My name is Friday, and I like to party. I will respond to some chats directed towards me and commands. To get started with commands type `{prefix}help`.\nAn example of something I will respond to is `Hello Friday` or `{self.bot.user.name} hello`. At my current stage of development I am very chaotic, so if I do something I shouldn't have please use send a message Issues channel in Friday's Development server. If something goes terribly wrong and you want it to stop, talk to my creator https://discord.gg/NTRuFjU"
-                )
+                try:
+                  await guild.system_channel.send(
+                    f"Thank you for inviting me to your server. My name is Friday, and I like to party. I will respond to some chats directed towards me and commands. To get started with commands type `{prefix}help`.\nAn example of something I will respond to is `Hello Friday` or `{self.bot.user.name} hello`. At my current stage of development I am very chaotic, so if I do something I shouldn't have please use send a message Issues channel in Friday's Development server. If something goes terribly wrong and you want it to stop, talk to my creator https://discord.gg/NTRuFjU"
+                  )
+                except discord.Forbidden:
+                  pass
+                except:
+                  raise
             else:
               print(f"HELP guild could not be found {guild_id}")
-              logging.warning(f"HELP guild could not be found {guild_id}")
+              logger.warning(f"HELP guild could not be found {guild_id}")
         elif len(database_guilds) > len(current_guilds):
           for guild_id in difference:
-            query(mydb,f"DELETE FROM servers WHERE id=%s",guild_id)
+            query(mydb,"DELETE FROM servers WHERE id=%s",guild_id)
         else:
           print("Could not sync guilds")
-          logging.warning("Could not sync guilds")
+          logger.warning("Could not sync guilds")
           return
         print("Synced guilds with database")
-        logging.info("Synced guilds with database")
+        logger.info("Synced guilds with database")
     else:
       for guild_id in database_guilds:
         guild = self.bot.get_guild(guild_id[0])
         query(mydb,f"UPDATE servers SET name=%s WHERE id=%s",guild.name,guild_id[0])
 
   @commands.Cog.listener()
+  async def on_shard_ready(self,shard_id):
+    await relay_info(f"Logged on as #{shard_id} {self.bot.user}! - {self.bot.get_shard(shard_id).latency*1000:,.0f} ms",self.bot,logger=logger)
+
+  @commands.Cog.listener()
   async def on_shard_disconnect(self,shard_id):
-    await relay_info(f"Shard #{shard_id} has disconnected",self.bot)
+    await relay_info(f"Shard #{shard_id} has disconnected",self.bot,logger=logger)
 
   @commands.Cog.listener()
   async def on_shard_reconnect(self,shard_id):
-    await relay_info(f"Shard #{shard_id} has reconnected",self.bot)
+    await relay_info(f"Shard #{shard_id} has reconnected",self.bot,logger=logger)
 
   @commands.Cog.listener()
   async def on_shard_resumed(self,shard_id):
-    await relay_info(f"Shard #{shard_id} has resumed",self.bot)
+    await relay_info(f"Shard #{shard_id} has resumed",self.bot,logger=logger)
 
   @commands.Cog.listener()
   async def on_guild_join(self,guild):
-    await relay_info("",self.bot,short=f"I have joined a new guild, making the total {len(self.bot.guilds)}",embed=embed(title=f"I have joined a new guild, making the total {len(self.bot.guilds)}"),channel=713270475031183390)
+    await relay_info("",self.bot,short=f"I have joined a new guild, making the total {len(self.bot.guilds)}",embed=embed(title=f"I have joined a new guild, making the total {len(self.bot.guilds)}"),channel=713270475031183390,logger=logger)
     # now = datetime.now()
     # current_time = now.strftime()
     mydb = mydb_connect()
@@ -85,20 +92,25 @@ class Log(commands.Cog):
     query(mydb,f"INSERT INTO servers (id,owner,name) VALUES (%s,%s,%s)",guild.id,owner,guild.name)
     if guild.system_channel is not None:
       prefix = "!"
-      await guild.system_channel.send(
-        f"Thank you for inviting me to your server. My name is Friday, and I like to party. I will respond to some chats directed towards me and commands. To get started with commands type `{prefix}help`.\nAn example of something I will respond to is `Hello Friday` or `{self.bot.user.name} hello`. At my current stage of development I am very chaotic, so if I do something I shouldn't have please use send a message Issues channel in Friday's Development server. If something goes terribly wrong and you want it to stop, talk to my creator https://discord.gg/NTRuFjU"
-      )
+      try:
+        await guild.system_channel.send(
+          f"Thank you for inviting me to your server. My name is Friday, and I like to party. I will respond to some chats directed towards me and commands. To get started with commands type `{prefix}help`.\nAn example of something I will respond to is `Hello Friday` or `{self.bot.user.name} hello`. At my current stage of development I am very chaotic, so if I do something I shouldn't have please use send a message Issues channel in Friday's Development server. If something goes terribly wrong and you want it to stop, talk to my creator https://discord.gg/NTRuFjU"
+        )
+      except discord.Forbidden:
+        pass
+      except:
+        raise
 
   @commands.Cog.listener()
   async def on_guild_remove(self,guild):
-    await relay_info("",self.bot,short=f"I have been removed from a guild, making the total {len(self.bot.guilds)}",embed=embed(title=f"I have been removed from a guild, making the total {len(self.bot.guilds)}"),channel=713270475031183390)
+    await relay_info("",self.bot,short=f"I have been removed from a guild, making the total {len(self.bot.guilds)}",embed=embed(title=f"I have been removed from a guild, making the total {len(self.bot.guilds)}"),channel=713270475031183390,logger=logger)
     mydb = mydb_connect()
-    query(mydb,f"DELETE FROM servers WHERE id=%s",guild.id)
+    query(mydb,"DELETE FROM servers WHERE id=%s",guild.id)
 
   @commands.Cog.listener()
   async def on_member_join(self,member):
     mydb = mydb_connect()
-    role_id = query(mydb,f"SELECT defaultRole FROM servers WHERE id=%s",member.guild.id)
+    role_id = query(mydb,"SELECT defaultRole FROM servers WHERE id=%s",member.guild.id)
     if role_id == 0 or role_id is None or str(role_id).lower() == "null":
       return
     else:
@@ -108,6 +120,11 @@ class Log(commands.Cog):
         query(mydb,f"UPDATE servers SET defaultRole=NULL WHERE id=%s",member.guild.id)
       else:
         await member.add_roles(role,reason="Default Role")
+
+  @commands.Cog.listener()
+  async def on_command(self,ctx):
+    print(f"Command: {ctx.message.clean_content.encode('unicode_escape')}")
+    logger.info(f"Command: {ctx.message.clean_content.encode('unicode_escape')}")
 
 def setup(bot):
   global logger
