@@ -1,4 +1,4 @@
-import discord,asyncio,typing
+import discord,asyncio,typing,random
 from discord.ext import commands
 
 import os,sys
@@ -27,7 +27,7 @@ class Fun(commands.Cog):
   #     await member.move_to(channel,reason=f"{ctx.author} called the move command")
   #   except:
   #     raise
-  #   await ctx.reply(embed=embed(title=f"Successfully moved {member} to {channel}"))
+  #   await ctx.channel.send(embed=embed(title=f"Successfully moved {member} to {channel}"))
 
   # @timeout.command(name="stop")
   # @commands.guild_only()
@@ -45,19 +45,69 @@ class Fun(commands.Cog):
   # @commands.bot_has_permissions(send_messages = True, read_messages = True, embed_links = True)
   # @commands.has_guild_permissions(move_members = True)
 
+  EMOTES = {
+    "X":"💥",
+    0:"0️⃣",
+    1:"1️⃣",
+    2:"2️⃣",
+    3:"3️⃣",
+    4:"4️⃣",
+    5:"5️⃣",
+    6:"6️⃣",
+    7:"7️⃣",
+    8:"8️⃣"
+  }
+  
+  @commands.command(name="minesweeper",aliases=["ms"])
+  async def mine_sweeper(self,ctx,size:typing.Optional[int]=5,bomb_count:typing.Optional[int]=6):
+    """Source for this command: https://medium.com/swlh/this-is-how-to-create-a-simple-minesweeper-game-in-python-af02077a8de"""
+    if size > 9:
+      raise commands.BadArgument("Size cannot be larger than 9 due to the message character limit of Discord")
+    if bomb_count >= size*size:
+      raise commands.BadArgument("Bomb_count cannot be larger than the game board")
 
+    arr = [[0 for row in range(size)] for column in range(size)]
 
-    
-    await ctx.reply(embed=embed(title=f"Moved {moved} members with the role `{role}` to `{voicechannel}`"))
+    async with ctx.channel.typing():
+      def get_xy():
+        return random.randint(0,size-1),random.randint(0,size-1)
 
+      for num in range(bomb_count):
+        x,y = get_xy()
+        while arr[y][x] == 'X':
+          x,y = get_xy()
+        arr[y][x] = 'X'
+
+        if (x >=0 and x <= size-2) and (y >= 0 and y <= size-1):
+          if arr[y][x+1] != 'X':
+            arr[y][x+1] += 1 # center right
+
+        if (x >=1 and x <= size-1) and (y >= 0 and y <= size-1):
+          if arr[y][x-1] != 'X':
+            arr[y][x-1] += 1 # center left
+
+        if (x >= 1 and x <= size-1) and (y >= 1 and y <= size-1):
+          if arr[y-1][x-1] != 'X':
+            arr[y-1][x-1] += 1 # top left
+
+        if (x >= 0 and x <= size-2) and (y >= 1 and y <= size-1):
+          if arr[y-1][x+1] != 'X':
             arr[y-1][x+1] += 1 # top right
-
+        
+        if (x >= 0 and x <= size-1) and (y >= 1 and y <= size-1):
+          if arr[y-1][x] != 'X':
             arr[y-1][x] += 1 # top center
 
+        if (x >=0 and x <= size-2) and (y >= 0 and y <= size-2):
+          if arr[y+1][x+1] != 'X':
             arr[y+1][x+1] += 1 # bottom right
 
-    memberCount = len(fromChannel.members)
+        if (x >= 1 and x <= size-1) and (y >= 0 and y <= size-2):
+          if arr[y+1][x-1] != 'X':
+            arr[y+1][x-1] += 1 # bottom left
 
+        if (x >= 0 and x <= size-1) and (y >= 0 and y <= size-2):
+          if arr[y+1][x] != 'X':
             arr[y+1][x] += 1 # bottom center
 
     await ctx.reply(embed=embed(title=f"{size}x{size} with {bomb_count} bombs",author_name="Minesweeper",description="||"+"||\n||".join("||||".join(self.EMOTES[cell] for cell in row) for row in arr)+"||"),delete_after=None)
