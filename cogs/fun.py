@@ -1,9 +1,12 @@
-import discord,asyncio,typing,random
+import discord,asyncio,typing,random,json
 from discord.ext import commands
 
 import os,sys
 # sys.path.insert(1, os.path.join(sys.path[0], '..'))
 from functions import embed,MessageColors
+
+with open('./config.json') as f:
+  config = json.load(f)
 
 class Fun(commands.Cog):
   """description goes here"""
@@ -147,6 +150,16 @@ class Fun(commands.Cog):
             arr[y+1][x] += 1 # bottom center
 
     await ctx.reply(embed=embed(title=f"{size}x{size} with {bomb_count} bombs",author_name="Minesweeper",description="||"+"||\n||".join("||||".join(self.EMOTES[cell] for cell in row) for row in arr)+"||"),delete_after=None)
+
+  @commands.command(name='souptime',help='Soup Time')
+  @commands.cooldown(1,7, commands.BucketType.user)
+  async def souptime(self,ctx):
+    await ctx.reply(embed=embed(
+      title="Here is sum soup, just for you",
+      color=MessageColors.SOUPTIME,
+      description="I hope you enjoy!",
+      image=random.choice(config['soups'])
+    ))
 
 def setup(bot):
   bot.add_cog(Fun(bot))
