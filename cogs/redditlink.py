@@ -183,52 +183,36 @@ class redditlink(commands.Cog):
 
       # TODO: Does not get url for videos atm
       if (reaction.message.channel.nsfw == True and data["over_18"] == True) or (reaction.message.channel.nsfw == False and data["over_18"] == False) or (reaction.message.channel.nsfw == True and data["over_18"] == False):
-        if video == True:
-          thispath = os.getcwd()
-          if "\\" in thispath:
-            seperator = "\\\\"
-          else:
-            seperator = "/"
-          mp4file = f'{thispath}{seperator}{linkdata["extractor"]}-{linkdata["id"]}-{linkdata["title"]}.{ext}'
+        spoiler = False
+      else:
+        spoiler = True
+
+      if video == True:
+        thispath = os.getcwd()
+        if "\\" in thispath:
+          seperator = "\\\\"
+        else:
+          seperator = "/"
+        mp4file = f'{thispath}{seperator}{linkdata["extractor"]}-{linkdata["id"]}-{linkdata["title"]}.{ext}'
+        try:
+          # name = f'{linkdata["extractor"]}-{linkdata["id"]}-{linkdata["title"]}.{linkdata["ext"]}'
+          name = data["title"].split()
+          await reaction.message.reply(file=discord.File(fp=mp4file,filename=f'{"_".join(name)}.{ext}',spoiler=spoiler))
+        except discord.HTTPException:
+          await reaction.message.reply(embed=embed(title="This file is too powerful to be uploaded",description="You will have to open reddit to view this",color=MessageColors.ERROR))
+          pass
+        finally:
           try:
-            # name = f'{linkdata["extractor"]}-{linkdata["id"]}-{linkdata["title"]}.{linkdata["ext"]}'
-            name = data["title"].split()
-            await reaction.message.reply(file=discord.File(fp=mp4file,filename=f'{"_".join(name)}.{ext}'))
-          except discord.HTTPException as e:
-            if "Payload Too Large" in str(e):
-              await reaction.message.reply(embed=embed(title="This file is too powerful to be uploaded",description="You will have to open reddit to view this",color=MessageColors.ERROR))
+            os.remove(mp4file)
+          except PermissionError:
             pass
-          finally:
-            try:
-              os.remove(mp4file)
-            except PermissionError:
-              pass
+      else:
+        if spoiler == True:
+          await reaction.message.reply("||"+link+"||")
         else:
           await reaction.message.reply(link)
       # elif reaction.message.channel.nsfw == False and data["over_18"] == False:
-      else:
-        if video == True:
-          thispath = os.getcwd()
-          if "\\" in thispath:
-            seperator = "\\\\"
-          else:
-            seperator = "/"
-          mp4file = f'{thispath}{seperator}{linkdata["extractor"]}-{linkdata["id"]}-{linkdata["title"]}.{ext}'
-          try:
-            # name = f'{linkdata["extractor"]}-{linkdata["id"]}-{linkdata["title"]}.{linkdata["ext"]}'
-            name = data["title"].split(" ")
-            await reaction.message.reply(file=discord.File(fp=mp4file,filename=f'{"_".join(name)}.{ext}',spoiler=True))
-          except discord.HTTPException as e:
-            if "Payload Too Large" in str(e):
-              await reaction.message.reply(embed=embed(title="This file is too powerful to be uploaded",description="You will have to open reddit to view this",color=MessageColors.ERROR))
-            pass
-          finally:
-            try:
-              os.remove(mp4file)
-            except PermissionError:
-              pass
-        else:
-          await reaction.message.reply("||"+data["url"]+"||")
+          
       # print(len(body))
       # if ctx.channel.nsfw and body["data"]["over_18"]:
 
