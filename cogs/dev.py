@@ -1,4 +1,4 @@
-import discord,logging,subprocess,asyncio
+import shutil
 from discord.ext import commands
 
 from index import restartPending,songqueue
@@ -133,7 +133,8 @@ class Dev(commands.Cog,command_attrs=dict(hidden=True)):
       seperator = "\\\\"
     else:
       seperator = "/"
-    await ctx.reply(file=discord.File(fp=f"{thispath}{seperator}logging.log",filename="logging.log"))
+    shutil.copy(f"{thispath}{seperator}logging.log",f"{thispath}{seperator}logging-send.log")
+    await ctx.reply(file=discord.File(fp=f"{thispath}{seperator}logging-send.log",filename="logging.log"))
   
 
   @commands.Cog.listener()
