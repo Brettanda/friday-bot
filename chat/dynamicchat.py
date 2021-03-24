@@ -93,5 +93,8 @@ async def dynamicchat(ctx,bot,intent):
     await ctx.reply(f"Well I don't know your real name but your username is {ctx.author.name}")
     # ctx.channel.send(`Well I don't know your real name but your username is ${msg.author.username}`);
 
+    elif intent == "doggo":
+      await ctx.add_reaction(random.choice(["🐶","🐕","🐩","🐕‍🦺"]))
+
   else:
     print(f"I dont have a response for this: {ctx.content}")

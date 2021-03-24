@@ -867,6 +867,24 @@
     "outgoingContext": []
   },
   {
+    "tag": "doggo",
+    "sentiment": 0,
+    "priority": 500000,
+    "patterns": [
+      "my new puppy",
+      "puppers are so precious",
+      "omg that doggo is soooo cute",
+      "this is the cutest dog i have ever seen",
+      "puppy",
+      "doggo"
+    ],
+    "responses": [
+      "dynamic"
+    ],
+    "incomingContext": [],
+    "outgoingContext": []
+  },
+  {
     "tag": "Error - no",
     "sentiment": 0,
     "priority": -1,
