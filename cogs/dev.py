@@ -133,7 +133,7 @@ class Dev(commands.Cog,command_attrs=dict(hidden=True)):
       seperator = "\\\\"
     else:
       seperator = "/"
-    await ctx.reply(file=discord.File(fp=f"{thispath}{seperator}logging.log",filename="logging.txt"))
+    await ctx.reply(file=discord.File(fp=f"{thispath}{seperator}logging.log",filename="logging.log"))
   
 
   @commands.Cog.listener()
