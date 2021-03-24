@@ -124,7 +124,7 @@ class Log(commands.Cog):
   @commands.Cog.listener()
   async def on_command(self,ctx):
     print(f"Command: {ctx.message.clean_content.encode('unicode_escape')}")
-    logger.info(f"Command: {ctx.message.clean_content.encode('unicode_escape')}")
+    logger.info(f"Command: {ctx.message.clean_content}")
 
 def setup(bot):
   global logger
