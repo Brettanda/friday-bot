@@ -1,4 +1,4 @@
-import discord
+import discord,typing,asyncio
 from discord.ext import commands
 
 from functions import embed,MessageColors,mydb_connect,query
