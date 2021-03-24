@@ -107,6 +107,9 @@ class Dev(commands.Cog,command_attrs=dict(hidden=True)):
         else:
           command = command
         self.bot.reload_extension(f"cogs.{command.lower()}")
+    except:
+      raise
+    else:
       await ctx.reply(embed=embed(title=f"Cog *{command}* has been reloaded"))
 
 
