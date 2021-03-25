@@ -38,12 +38,17 @@ def syntax(command,quotes:bool=True):
   else:
     return f"{cmd_and_aliases} {get_params(command)}{sub_commands}"
 
+class Menu(MenuPages):
+  async def send_initial_message(self,ctx,channel):
+    page = await self._source.get_page(0)
+    kwargs = await self._get_kwargs_from_page(page)
+    return await ctx.reply(**kwargs)
 
 class HelpMenu(ListPageSource):
   def __init__(self, ctx, data):
     self.ctx = ctx
 
-    super().__init__(data, per_page=5)
+    super().__init__(data, per_page=6)
 
   async def write_page(self, menu, fields=[]):
     offset = (menu.current_page*self.per_page) + 1
@@ -95,7 +100,8 @@ class Help(Cog):
       cmd = group
 
     delay = await get_delete_time(ctx)
-    await ctx.message.delete(delay=delay)
+    if delay is not None and delay > 0:
+      await ctx.message.delete(delay=delay)
     if cmd is not None:
       for item in self.bot.commands:
         if cmd in item.aliases:
@@ -107,7 +113,7 @@ class Help(Cog):
         commands.append(com)
 
     if cmd is None:
-      menu = MenuPages(source=HelpMenu(ctx, commands),
+      menu = Menu(source=HelpMenu(ctx, commands),
         delete_message_after=True,
         clear_reactions_after=True,
         timeout=delay)
