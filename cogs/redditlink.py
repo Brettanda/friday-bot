@@ -49,13 +49,6 @@ class redditlink(commands.Cog):
     return json.loads(response.read())
 
   @commands.Cog.listener()
-  @commands.bot_has_permissions(
-    read_messages = True,
-    send_messages = True,
-    manage_messages = True,
-    attach_files = True,
-    embed_links = True
-  )
   async def on_message(self,ctx):
     if str(ctx.channel.type) != "private" and ctx.guild.id in ignore_guilds:
       # print("ignored guild")
@@ -113,11 +106,22 @@ class redditlink(commands.Cog):
     if data is None and video is None and embeded is None and image is None:
       return
 
-    await ctx.add_reaction(self.emoji)
+    try:
+      await ctx.add_reaction(self.emoji)
+    except discord.Forbidden:
+      pass
 
   @commands.Cog.listener()
   async def on_raw_reaction_add(self,payload):
-    message = await payload.member.guild.get_channel(payload.channel_id).fetch_message(payload.message_id)
+    guild = self.bot.get_guild(payload.guild_id)
+    if guild is None:
+      return
+    channel = guild.get_channel(payload.channel_id)
+    if channel is None:
+      return
+    message = await channel.fetch_message(payload.message_id)
+    if message is None:
+      return
     # TODO: check the max file size of the server and change the quality of the video to match
     if self.bot.user == payload.member or self.bot.user == payload.member.bot:
       return
