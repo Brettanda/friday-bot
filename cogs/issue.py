@@ -42,7 +42,7 @@ class Issue(commands.Cog):
   async def norm_support(self,ctx):
     await ctx.reply("https://discord.gg/NTRuFjU")
 
-  @cog_ext.cog_slash(name="support",description="Support server link",guild_ids=[243159711237537802,805579185879121940])
+  @cog_ext.cog_slash(name="support",description="Support server link")
   async def slash_support(self,ctx):
     await ctx.respond(True)
     await ctx.send_hidden("https://discord.gg/NTRuFjU")

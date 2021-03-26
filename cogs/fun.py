@@ -80,8 +80,7 @@ class Fun(commands.Cog):
           )
         ]
       )
-    ],
-    guild_ids=[243159711237537802,805579185879121940]
+    ]
   )
   async def slash_rock_paper_scissors(self,ctx,choice:str):
     await ctx.respond()
@@ -147,8 +146,7 @@ class Fun(commands.Cog):
     options=[
       create_option("size", "SizeXSize", 4, required=False),
       create_option("bomb_count", "Amount of bombs", 4, required=False)
-    ],
-    guild_ids=[243159711237537802,805579185879121940]
+    ]
   )
   async def slash_minesweeper(self,ctx,size:int=5,bomb_count:int=6):
     await ctx.respond()
@@ -215,7 +213,7 @@ class Fun(commands.Cog):
       post = self.souptime()
     await ctx.reply(**post)
 
-  @cog_ext.cog_slash(name='souptime',guild_ids=[243159711237537802,805579185879121940])
+  @cog_ext.cog_slash(name='souptime')
   # @commands.cooldown(1,7, commands.BucketType.user)
   async def slash_souptime(self,ctx):
     await ctx.respond()
