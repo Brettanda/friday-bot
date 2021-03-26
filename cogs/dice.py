@@ -18,7 +18,7 @@ class Dice(commands.Cog):
       post = await self.dice(ctx,roll)
     await ctx.reply(**post)
 
-  @cog_ext.cog_slash(name="dice",description="D&D dice rolling",guild_ids=[243159711237537802,805579185879121940])
+  @cog_ext.cog_slash(name="dice",description="D&D dice rolling")
   async def slash_dice(self,ctx,*,roll:str):
     await ctx.respond()
     post = await self.dice(ctx,roll)
