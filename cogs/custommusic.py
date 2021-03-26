@@ -52,7 +52,7 @@ class CustomMusic(commands.Cog):
         name = "".join(name.split(" ")).lower()
         mydb = mydb_connect()
         tier,sounds = query(mydb,f"SELECT tier,customSounds FROM servers WHERE id=%s",ctx.guild.id)[0]
-        if sounds == "":
+        if sounds == "" or sounds is None:
           sounds = r"{}"
         sounds = json.loads(sounds)
         if name in sounds:
