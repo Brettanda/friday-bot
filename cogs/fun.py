@@ -108,15 +108,15 @@ class Fun(commands.Cog):
     elif mychoice == "rock" and arg == "paper":
       conclusion = self.bot.user
     elif mychoice == "rock" and arg == "scissors":
-      conclusion = ctx.author
-    elif mychoice == "paper" and arg == "scissors":
       conclusion = self.bot.user
+    elif mychoice == "paper" and arg == "scissors":
+      conclusion = ctx.author
     elif mychoice == "paper" and arg == "rock":
       conclusion = ctx.author
     elif mychoice == "scissors" and arg == "rock":
-      conclusion = self.bot.user
-    elif mychoice == "scissors" and arg == "paper":
       conclusion = ctx.author
+    elif mychoice == "scissors" and arg == "paper":
+      conclusion = self.bot.user
 
     return dict(embed=embed(title=f"Your move: {arg} VS My move: {mychoice}",color=MessageColors.RPS,description=f"The winner of this round is: **{conclusion}**"))
 
