@@ -1,9 +1,11 @@
 import discord,asyncio,typing,random,json
 from discord.ext import commands
+from discord_slash import cog_ext,SlashContext
+from discord_slash.utils.manage_commands import create_option,create_choice
 
 import os,sys
 # sys.path.insert(1, os.path.join(sys.path[0], '..'))
-from functions import embed,MessageColors
+from functions import embed,MessageColors,exceptions
 
 with open('./config.json') as f:
   config = json.load(f)
@@ -50,6 +52,42 @@ class Fun(commands.Cog):
   # @commands.has_guild_permissions(move_members = True)
 
   @commands.command(name="rockpaperscissors",description="Play Rock Paper Scissors with Friday",aliases=["rps"],usage="<rock, paper or scissors>")
+  async def norm_rock_paper_scissors(self,ctx,args:str):
+    async with ctx.typing():
+      post = await self.rock_paper_scissors(ctx, args)
+    await ctx.reply(**post)
+
+  @cog_ext.cog_slash(
+    name="rockpaperscissors",
+    options=[
+      create_option(
+        "choice",
+        description="Rock Paper or Scissors",
+        option_type=3,
+        required=True,
+        choices=[
+          create_choice(
+            "rock", 
+            "Rock"
+          ),
+          create_choice(
+            "paper", 
+            "Paper"
+          ),
+          create_choice(
+            "scissors", 
+            "Scissors"
+          )
+        ]
+      )
+    ],
+    guild_ids=[243159711237537802,805579185879121940]
+  )
+  async def slash_rock_paper_scissors(self,ctx,choice:str):
+    await ctx.respond()
+    post = await self.rock_paper_scissors(ctx, choice)
+    await ctx.send(**post)
+
   async def rock_paper_scissors(self,ctx,args:str):
     # args = args.split(" ")
     # arg = args[0].lower()
@@ -81,7 +119,7 @@ class Fun(commands.Cog):
     elif mychoice == "scissors" and arg == "paper":
       conclusion = ctx.author
 
-    await ctx.reply(embed=embed(title=f"Your move: {arg} VS My move: {mychoice}",color=MessageColors.RPS,description=f"The winner of this round is: **{conclusion}**"))
+    return dict(embed=embed(title=f"Your move: {arg} VS My move: {mychoice}",color=MessageColors.RPS,description=f"The winner of this round is: **{conclusion}**"))
 
 
   EMOTES = {
@@ -98,7 +136,26 @@ class Fun(commands.Cog):
   }
   
   @commands.command(name="minesweeper",aliases=["ms"])
-  async def mine_sweeper(self,ctx,size:typing.Optional[int]=5,bomb_count:typing.Optional[int]=6):
+  async def norm_minesweeper(self,ctx,size:typing.Optional[int]=5,bomb_count:typing.Optional[int]=6):
+    async with ctx.typing():
+      post = await self.mine_sweeper(ctx,size,bomb_count)
+    await ctx.reply(**post)
+
+  @cog_ext.cog_slash(
+    name="minesweeper",
+    description="Minesweeper",
+    options=[
+      create_option("size", "SizeXSize", 4, required=False),
+      create_option("bomb_count", "Amount of bombs", 4, required=False)
+    ],
+    guild_ids=[243159711237537802,805579185879121940]
+  )
+  async def slash_minesweeper(self,ctx,size:int=5,bomb_count:int=6):
+    await ctx.respond()
+    post = await self.mine_sweeper(ctx,size,bomb_count)
+    await ctx.send(**post)
+
+  async def mine_sweeper(self,ctx,size,bomb_count):
     """Source for this command: https://medium.com/swlh/this-is-how-to-create-a-simple-minesweeper-game-in-python-af02077a8de"""
     if size > 9:
       raise commands.BadArgument("Size cannot be larger than 9 due to the message character limit of Discord")
@@ -107,54 +164,66 @@ class Fun(commands.Cog):
 
     arr = [[0 for row in range(size)] for column in range(size)]
 
-    async with ctx.channel.typing():
-      def get_xy():
-        return random.randint(0,size-1),random.randint(0,size-1)
+    # async with ctx.channel.typing():
+    def get_xy():
+      return numpy.random.randint(0,size-1),numpy.random.randint(0,size-1)
 
-      for num in range(bomb_count):
+    for num in range(bomb_count):
+      x,y = get_xy()
+      while arr[y][x] == 'X':
         x,y = get_xy()
-        while arr[y][x] == 'X':
-          x,y = get_xy()
-        arr[y][x] = 'X'
+      arr[y][x] = 'X'
 
-        if (x >=0 and x <= size-2) and (y >= 0 and y <= size-1):
-          if arr[y][x+1] != 'X':
-            arr[y][x+1] += 1 # center right
+      if (x >=0 and x <= size-2) and (y >= 0 and y <= size-1):
+        if arr[y][x+1] != 'X':
+          arr[y][x+1] += 1 # center right
 
-        if (x >=1 and x <= size-1) and (y >= 0 and y <= size-1):
-          if arr[y][x-1] != 'X':
-            arr[y][x-1] += 1 # center left
+      if (x >=1 and x <= size-1) and (y >= 0 and y <= size-1):
+        if arr[y][x-1] != 'X':
+          arr[y][x-1] += 1 # center left
 
-        if (x >= 1 and x <= size-1) and (y >= 1 and y <= size-1):
-          if arr[y-1][x-1] != 'X':
-            arr[y-1][x-1] += 1 # top left
+      if (x >= 1 and x <= size-1) and (y >= 1 and y <= size-1):
+        if arr[y-1][x-1] != 'X':
+          arr[y-1][x-1] += 1 # top left
 
-        if (x >= 0 and x <= size-2) and (y >= 1 and y <= size-1):
-          if arr[y-1][x+1] != 'X':
-            arr[y-1][x+1] += 1 # top right
-        
-        if (x >= 0 and x <= size-1) and (y >= 1 and y <= size-1):
-          if arr[y-1][x] != 'X':
-            arr[y-1][x] += 1 # top center
+      if (x >= 0 and x <= size-2) and (y >= 1 and y <= size-1):
+        if arr[y-1][x+1] != 'X':
+          arr[y-1][x+1] += 1 # top right
+      
+      if (x >= 0 and x <= size-1) and (y >= 1 and y <= size-1):
+        if arr[y-1][x] != 'X':
+          arr[y-1][x] += 1 # top center
 
-        if (x >=0 and x <= size-2) and (y >= 0 and y <= size-2):
-          if arr[y+1][x+1] != 'X':
-            arr[y+1][x+1] += 1 # bottom right
+      if (x >=0 and x <= size-2) and (y >= 0 and y <= size-2):
+        if arr[y+1][x+1] != 'X':
+          arr[y+1][x+1] += 1 # bottom right
 
-        if (x >= 1 and x <= size-1) and (y >= 0 and y <= size-2):
-          if arr[y+1][x-1] != 'X':
-            arr[y+1][x-1] += 1 # bottom left
+      if (x >= 1 and x <= size-1) and (y >= 0 and y <= size-2):
+        if arr[y+1][x-1] != 'X':
+          arr[y+1][x-1] += 1 # bottom left
 
-        if (x >= 0 and x <= size-1) and (y >= 0 and y <= size-2):
-          if arr[y+1][x] != 'X':
-            arr[y+1][x] += 1 # bottom center
+      if (x >= 0 and x <= size-1) and (y >= 0 and y <= size-2):
+        if arr[y+1][x] != 'X':
+          arr[y+1][x] += 1 # bottom center
 
-    await ctx.reply(embed=embed(title=f"{size}x{size} with {bomb_count} bombs",author_name="Minesweeper",description="||"+"||\n||".join("||||".join(self.EMOTES[cell] for cell in row) for row in arr)+"||"),delete_after=None)
+    return dict(embed=embed(title=f"{size}x{size} with {bomb_count} bombs",author_name="Minesweeper",description="||"+"||\n||".join("||||".join(self.EMOTES[cell] for cell in row) for row in arr)+"||"),delete_after=None)
 
   @commands.command(name='souptime',help='Soup Time')
   @commands.cooldown(1,7, commands.BucketType.user)
-  async def souptime(self,ctx):
-    await ctx.reply(embed=embed(
+  async def norm_souptime(self,ctx):
+    async with ctx.typing():
+      post = self.souptime()
+    await ctx.reply(**post)
+
+  @cog_ext.cog_slash(name='souptime',guild_ids=[243159711237537802,805579185879121940])
+  # @commands.cooldown(1,7, commands.BucketType.user)
+  async def slash_souptime(self,ctx):
+    await ctx.respond()
+    post = self.souptime()
+    await ctx.send(**post)
+
+  def souptime(self):
+    return dict(embed=embed(
       title="Here is sum soup, just for you",
       color=MessageColors.SOUPTIME,
       description="I hope you enjoy!",

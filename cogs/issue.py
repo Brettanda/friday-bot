@@ -1,5 +1,6 @@
 import discord,asyncio
 from discord.ext import commands
+from discord_slash import cog_ext,SlashContext
 
 from functions import embed,relay_info
 from cogs.cleanup import get_delete_time
@@ -38,8 +39,13 @@ class Issue(commands.Cog):
         pass
 
   @commands.command(name="support",description="Get an invite link to my support server")
-  async def support(self,ctx):
+  async def norm_support(self,ctx):
     await ctx.reply("https://discord.gg/NTRuFjU")
+
+  @cog_ext.cog_slash(name="support",description="Support server link",guild_ids=[243159711237537802,805579185879121940])
+  async def slash_support(self,ctx):
+    await ctx.respond(True)
+    await ctx.send_hidden("https://discord.gg/NTRuFjU")
 
 def setup(bot):
   bot.add_cog(Issue(bot))
