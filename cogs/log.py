@@ -126,6 +126,11 @@ class Log(commands.Cog):
     print(f"Command: {ctx.message.clean_content.encode('unicode_escape')}")
     logger.info(f"Command: {ctx.message.clean_content.encode('unicode_escape')}")
 
+  @commands.Cog.listener()
+  async def on_slash_command(self,ctx):
+    print(f"Slash Command: {ctx.command}")
+    logger.info(f"Slash Command: {ctx.command}")
+    
 def setup(bot):
   global logger
   logger = logging.getLogger(__name__)

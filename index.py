@@ -2,7 +2,7 @@ import os,sys,asyncio,validators,traceback,json
 from datetime import datetime
 
 import discord
-# from discord_slash import SlashCommand
+from discord_slash import SlashCommand,SlashContext
 from dotenv import load_dotenv
 from discord.ext import commands
 
@@ -56,6 +56,7 @@ class MyContext(commands.Context):
 class Friday(commands.AutoShardedBot):
   def __init__(self):
     super(Friday,self).__init__(command_prefix=query_prefix or "!",case_insensitive=True,intents=intents)
+    self.slash = SlashCommand(self,sync_on_cog_reload=True,sync_commands=True,override_type=True)
 
     for com in os.listdir("./cogs"):
       if com.endswith(".py"):
@@ -150,6 +151,12 @@ class Friday(commands.AutoShardedBot):
 
     print(trace)
     logging.error(trace)
+
+  async def on_slash_command_error(self,ctx:SlashContext,ex):
+    print(ex)
+    logging.error(ex)
+    await ctx.send_hidden(str(ex))
+    raise ex
 
   async def on_message(self,ctx):
     if str(ctx.channel.type) != "private" and hasattr(ctx,"guild") and ctx.guild.id in ignore_guilds:
