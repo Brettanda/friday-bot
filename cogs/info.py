@@ -21,13 +21,14 @@ class Info(commands.Cog):
     await ctx.send(**post)
 
   async def info(self,ctx):
+    activity = ctx.guild.me.activity.name if ctx.guild is not None and ctx.guild.me.activity is not None else self.bot.activity.name if self.bot.activity is not None else None
     return dict(
       embed=embed(
         title=f"{self.bot.user.name} - Info",
         thumbnail=self.bot.user.avatar_url,
         description="Some information about me, Friday ;)",
         fieldstitle=["Username","Guilds joined","Status","Latency","Shards","Loving Life","Existed since"],
-        fieldsval=[self.bot.user.name,len(self.bot.guilds),ctx.guild.me.activity.name if ctx.guild.me.activity is not None else None,f"{self.bot.latency*1000:,.0f} ms",self.bot.shard_count,"True",self.bot.user.created_at]
+        fieldsval=[self.bot.user.name,len(self.bot.guilds),activity,f"{self.bot.latency*1000:,.0f} ms",self.bot.shard_count,"True",self.bot.user.created_at]
         # fieldstitle=["Username","Guilds joined","Status","Latency","Shards","Audio Nodes","Loving Life","Existed since"],
         # fieldsval=[self.bot.user.name,len(self.bot.guilds),ctx.guild.me.activity.name if ctx.guild.me.activity is not None else None,f"{self.bot.latency*1000:,.0f} ms",self.bot.shard_count,len(self.bot.wavelink.nodes),"True",self.bot.user.created_at]
       )
