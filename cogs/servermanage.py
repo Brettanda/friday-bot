@@ -48,6 +48,23 @@ class ServerManage(commands.Cog):
       except discord.Forbidden:
         await ctx.reply(f"My new prefix is `{new_prefix}`")
 
+  @commands.group(name="bot",invoke_without_command=True)
+  @commands.has_guild_permissions(manage_channels=True)
+  async def settings_bot(self,ctx):
+    await cmd_help(ctx, ctx.command)
+
+  @settings_bot.command(name="mute")
+  @commands.has_guild_permissions(manage_channels=True)
+  async def settings_bot_mute(self,ctx):
+    mydb = mydb_connect()
+    muted = query(mydb,"SELECT muted FROM servers WHERE id=%s",ctx.guild.id)
+    if muted == 0:
+      query(mydb,"UPDATE servers SET muted=%s WHERE id=%s",1,ctx.guild.id)
+      await ctx.reply(embed=embed(title="I will now only respond to commands"))
+    else:
+      query(mydb,"UPDATE servers SET muted=%s WHERE id=%s",0,ctx.guild.id)
+      await ctx.reply(embed=embed(title="I will now respond to chat message as well as commands"))
+
   @commands.command(name="musicchannel",description="Set the channel where I can join and play music. If none then I will join any VC",hidden=True)
   @commands.is_owner()
   @commands.has_guild_permissions(manage_channels=True)
