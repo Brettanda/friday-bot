@@ -39,7 +39,7 @@ from cogs.cleanup import get_delete_time
 
 class MyContext(commands.Context):
   async def reply(self,content=None,**kwargs):
-    if not hasattr(kwargs,"delete_after") and self.command.name not in ["meme","issue","reactionrole","minesweeper"]:
+    if not hasattr(kwargs,"delete_after") and self.command.name not in ["help","meme","issue","reactionrole","minesweeper"]:
       delete = await get_delete_time(self)
       delete = delete if delete is not None and delete != 0 else None
       if delete != None:
