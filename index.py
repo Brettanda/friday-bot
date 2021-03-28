@@ -23,7 +23,7 @@ intents = discord.Intents.default()
 # intents.members = True
 
 from functions.mysql_connection import query_prefix
-from functions import ignore_guilds,dev_guilds
+from functions import dev_guilds
 
 # slash = SlashCommand(bot,sync_on_cog_reload=True,sync_commands=True)
 
@@ -152,17 +152,7 @@ class Friday(commands.AutoShardedBot):
     print(trace)
     logging.error(trace)
 
-  async def on_slash_command_error(self,ctx:SlashContext,ex):
-    print(ex)
-    logging.error(ex)
-    await ctx.send_hidden(str(ex))
-    raise ex
-
   async def on_message(self,ctx):
-    if str(ctx.channel.type) != "private" and hasattr(ctx,"guild") and ctx.guild.id in ignore_guilds:
-      # print("ignored guild")
-      # logging.info("ignored guild")
-      return
     if ctx.author.bot:
       return
 
@@ -205,6 +195,11 @@ class Friday(commands.AutoShardedBot):
           newest = msg
 
       result,intent,chance,inbag,incomingContext,outgoingContext,sentiment = await queryIntents.classify_local(ctx.clean_content)
+
+      if intent == "Title of your sex tape" and ctx.guild.id not in dev_guilds:
+        print(f"Not responding with TOYST for: `{ctx.clean_content}`")
+        logging.info(f"Not responding with TOYST for: `{ctx.clean_content}`")
+        return
       
       print(f"Intent: {intent}\t{chance}\n\t| sentiment: {sentiment}\n\t| incoming Context: {incomingContext}\n\t| outgoing Context: {outgoingContext}")
       logging.info(f"Intent: {intent}\t{chance}\n\t| sentiment: {sentiment}\n\t| incoming Context: {incomingContext}\n\t| outgoing Context: {outgoingContext}")

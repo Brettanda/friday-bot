@@ -4,7 +4,7 @@ from discord.ext import commands
 from index import restartPending,songqueue
 
 import os
-from functions import embed,MessageColors,ignore_guilds
+from functions import embed,MessageColors
 from cogs.help import cmd_help,syntax
 
 class Dev(commands.Cog,command_attrs=dict(hidden=True)):
@@ -201,10 +201,6 @@ class Dev(commands.Cog,command_attrs=dict(hidden=True)):
 
   @commands.Cog.listener()
   async def on_message(self,ctx):
-    if str(ctx.channel.type) != "private" and ctx.guild.id in ignore_guilds:
-        # print("ignored guild")
-        # logging.info("ignored guild")
-        return
     # Reacts to any message in the updates channel in the development server
     if ctx.channel.id == 744652167142441020:
       await ctx.add_reaction("♥")

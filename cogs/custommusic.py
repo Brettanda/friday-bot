@@ -1,7 +1,7 @@
 import validators,json
 from discord.ext import commands
 
-from functions import embed,MessageColors,mydb_connect,query,ignore_guilds,exceptions
+from functions import embed,MessageColors,mydb_connect,query,exceptions
 from cogs.music import can_play
 
 class CustomMusic(commands.Cog):

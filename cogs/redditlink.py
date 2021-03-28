@@ -4,7 +4,7 @@ import discord
 from discord.ext import commands
 
 import os,sys
-from functions import embed,MessageColors,ignore_guilds
+from functions import embed,MessageColors
 
 ytdl_format_options = {
   # 'format': 'bestvideo+bestaudio/worstvideo+worstaudio',
@@ -50,10 +50,6 @@ class redditlink(commands.Cog):
 
   @commands.Cog.listener()
   async def on_message(self,ctx):
-    if str(ctx.channel.type) != "private" and ctx.guild.id in ignore_guilds:
-      # print("ignored guild")
-      # logging.info("ignored guild")
-      return
     if ctx.author.bot:
       return
     reg = re.findall(self.pattern,ctx.content)
