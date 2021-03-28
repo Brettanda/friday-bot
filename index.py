@@ -153,6 +153,9 @@ class Friday(commands.AutoShardedBot):
     logging.error(trace)
 
   async def on_message(self,ctx):
+    # if str(ctx.channel.type) != "private" and hasattr(ctx,"guild") and ctx.guild.id in ignore_guilds:
+    #   return
+
     if ctx.author.bot:
       return
 
