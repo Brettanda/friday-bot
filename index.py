@@ -180,11 +180,6 @@ class Friday(commands.AutoShardedBot):
         logging.info("message longer than 256 char")
         return
 
-      if str(ctx.channel.type) != "private" and hasattr(ctx,"guild") and ctx.guild.id not in dev_guilds:
-        print(f"ignored message: {ctx.clean_content}")
-        logging.info(f"ignored message: {ctx.clean_content}")
-        return
-        
       noContext = ["Title of your sex tape", "I dont want to talk to a chat bot", "The meaning of life?", "Birthday", "Memes", "Self Aware", "Soup Time", "No U", "I'm dad", "Bot discrimination"]
       lastmessages = await ctx.channel.history(limit=3).flatten()
       meinlastmessage = False
@@ -197,9 +192,7 @@ class Friday(commands.AutoShardedBot):
       result,intent,chance,inbag,incomingContext,outgoingContext,sentiment = await queryIntents.classify_local(ctx.clean_content)
 
       if intent == "Title of your sex tape" and ctx.guild.id not in dev_guilds:
-        print(f"Not responding with TOYST for: `{ctx.clean_content}`")
-        logging.info(f"Not responding with TOYST for: `{ctx.clean_content}`")
-        return
+        return await relay_info(f"Not responding with TOYST for: `{ctx.clean_content}`", bot,channel=814349008007856168)
       
       print(f"Intent: {intent}\t{chance}\n\t| sentiment: {sentiment}\n\t| incoming Context: {incomingContext}\n\t| outgoing Context: {outgoingContext}")
       logging.info(f"Intent: {intent}\t{chance}\n\t| sentiment: {sentiment}\n\t| incoming Context: {incomingContext}\n\t| outgoing Context: {outgoingContext}")
