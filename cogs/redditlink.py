@@ -115,7 +115,11 @@ class redditlink(commands.Cog):
     channel = guild.get_channel(payload.channel_id)
     if channel is None:
       return
-    message = await channel.fetch_message(payload.message_id)
+    message = None
+    try:
+      message = await channel.fetch_message(payload.message_id)
+    except:
+      return
     if message is None:
       return
     # TODO: check the max file size of the server and change the quality of the video to match
