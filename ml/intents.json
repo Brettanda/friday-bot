@@ -2371,6 +2371,28 @@
     "outgoingContext": []
   },
   {
+    "tag": "Something about politics",
+    "sentiment": 0,
+    "priority": 500000,
+    "patterns": [
+      "friday paliestine?",
+      "Friday, How do you feel about the palestine conflict?",
+      "are you left or right wing?",
+      "what do you think of trump?",
+      "Friday should Isreal exist?",
+      "how do you feel about isreal?",
+      "Friday, how do you feel about palestine?",
+      "friday, what is your opinion on israel"
+    ],
+    "responses": [
+      "Political message detected, no response found",
+      "I prefer to not have an opinion on this kind of topic",
+      "I don't think responding to this topic is a good idea"
+    ],
+    "incomingContext": [],
+    "outgoingContext": []
+  },
+  {
     "tag": "Something cool",
     "sentiment": 0,
     "priority": 500000,
@@ -2952,13 +2974,15 @@
     "sentiment": 0,
     "priority": 500000,
     "patterns": [
+      "friday where are you",
       "what is your location",
       "where are you",
       "where are you from",
       "Where do you live?"
     ],
     "responses": [
-      "I live on the internet"
+      "I live on the internet",
+      "I currently only live on the internet"
     ],
     "incomingContext": [],
     "outgoingContext": []
@@ -3125,6 +3149,21 @@
       "Awesome you are online"
     ],
     "responses": "",
+    "incomingContext": [],
+    "outgoingContext": []
+  },
+  {
+    "tag": "you on some crack?",
+    "sentiment": 0,
+    "priority": 500000,
+    "patterns": [
+      "that was weird i wonder if friday is high as shit",
+      "Are you on some hard drugs friday?",
+      "Friday you on some crack?"
+    ],
+    "responses": [
+      "I can't do drugs"
+    ],
     "incomingContext": [],
     "outgoingContext": []
   },
