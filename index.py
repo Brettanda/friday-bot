@@ -204,6 +204,10 @@ class Friday(commands.AutoShardedBot):
       else:
         print(f"No response found: {ctx.clean_content.encode('unicode_escape')}")
         logging.info(f"No response found: {ctx.clean_content.encode('unicode_escape')}")
+        if "friday" in ctx.clean_content.lower() or bot.user in ctx.mentions:
+          await relay_info("",bot,embed=embed(title="I think i should respond to this",description=f"{ctx.content}"),channel=814349008007856168)
+          print(f"I think I should respond to this: {ctx.clean_content.lower()}")
+          logging.info(f"I think I should respond to this: {ctx.clean_content.lower()}")
       # TODO: add a check for another bot
       if intent not in noContext and bot.user not in ctx.mentions and "friday" not in ctx.clean_content.lower() and meinlastmessage == False and ctx.channel.type != "private":
         print(f"\tI probably should not respond")
