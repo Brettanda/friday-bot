@@ -194,8 +194,12 @@ class Friday(commands.AutoShardedBot):
       if intent == "Title of your sex tape" and ctx.guild.id not in dev_guilds:
         return await relay_info(f"Not responding with TOYST for: `{ctx.clean_content}`", bot,channel=814349008007856168)
       
-      print(f"Intent: {intent}\t{chance}\n\t| sentiment: {sentiment}\n\t| incoming Context: {incomingContext}\n\t| outgoing Context: {outgoingContext}")
-      logging.info(f"Intent: {intent}\t{chance}\n\t| sentiment: {sentiment}\n\t| incoming Context: {incomingContext}\n\t| outgoing Context: {outgoingContext}")
+      if result is not None:
+        print(f"Intent: {intent}\t{chance}\n\t| sentiment: {sentiment}\n\t| incoming Context: {incomingContext}\n\t| outgoing Context: {outgoingContext}")
+        logging.info(f"\nIntent: {intent}\t{chance}\n\t| sentiment: {sentiment}\n\t| incoming Context: {incomingContext}\n\t| outgoing Context: {outgoingContext}")
+      else:
+        print(f"No response found: {ctx.clean_content.encode('unicode_escape')}")
+        logging.info(f"No response found: {ctx.clean_content.encode('unicode_escape')}")
       # TODO: add a check for another bot
       if intent not in noContext and bot.user not in ctx.mentions and "friday" not in ctx.clean_content.lower() and meinlastmessage == False and ctx.channel.type != "private":
         print(f"\tI probably should not respond")
