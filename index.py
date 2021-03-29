@@ -197,6 +197,10 @@ class Friday(commands.AutoShardedBot):
       if result is not None:
         print(f"Intent: {intent}\t{chance}\n\t| sentiment: {sentiment}\n\t| incoming Context: {incomingContext}\n\t| outgoing Context: {outgoingContext}")
         logging.info(f"\nIntent: {intent}\t{chance}\n\t| sentiment: {sentiment}\n\t| incoming Context: {incomingContext}\n\t| outgoing Context: {outgoingContext}")
+        print(f"\t| input: {ctx.clean_content}")
+        logging.info(f"\t| input: {ctx.clean_content}")
+        print(f"\t| found in bag: {inbag}")
+        logging.info(u"\t| found in bag: {}".format(inbag))
       else:
         print(f"No response found: {ctx.clean_content.encode('unicode_escape')}")
         logging.info(f"No response found: {ctx.clean_content.encode('unicode_escape')}")
