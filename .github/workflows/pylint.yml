@@ -1,6 +1,6 @@
 name: Pylint
 
-on: [push]
+on: [push,pull_request]
 
 jobs:
   build:
@@ -18,5 +18,6 @@ jobs:
         python -m pip install --upgrade pip
         pip install pylint
     - name: Analysing the code with pylint
+      # pylint `ls -R|grep .py$|xargs` --indent-string="  " --rcfile .pylintrc
       run: |
-        pylint `ls -R|grep .py$|xargs` --indent-string="  " --rcfile .pylintrc
+        python -m pylint --indent-string="  " --fail-under=10 `find -regextype egrep -regex '(.*.py)$'`
