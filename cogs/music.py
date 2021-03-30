@@ -6,6 +6,8 @@ import logging
 import youtube_dl,json,asyncio,datetime,time
 from cogs.cleanup import get_delete_time
 
+from functions import embed,MessageColors,relay_info,exceptions
+
 def can_play(ctx:commands.Context):
   connect_perms = ["connect","speak"]
   missing = []
@@ -19,7 +21,6 @@ def can_play(ctx:commands.Context):
     raise commands.BotMissingPermissions(missing)
   return True
 import os,sys
-from functions import embed,MessageColors
 
 from index import songqueue
 

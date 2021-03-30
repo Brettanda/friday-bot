@@ -217,7 +217,7 @@ def main():
     # print(len(message))
     message = message.split('\n')[0]
     if message:
-      print(generate_response(message) + "\n")
+      print(self.generate_response(message) + "\n")
       # print(generate_response(message)+"\n", flush=True)
     # else:
       # sys.stdout.write("something went wrong\n")

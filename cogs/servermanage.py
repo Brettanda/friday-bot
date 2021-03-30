@@ -1,6 +1,9 @@
 import discord,typing,asyncio
 from discord.ext import commands
 
+
+from cogs.help import cmd_help
+
 from functions import embed,MessageColors,mydb_connect,query
 
 class ServerManage(commands.Cog):
