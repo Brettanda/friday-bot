@@ -49,7 +49,7 @@ async def dynamicchat(ctx,bot,intent):
       await ctx.reply(**await get_reddit_post(ctx,["memes","dankmemes"]))
 
     elif intent == "Title of your sex tape":
-      await ctx.reply(f"*{ctx.content}*, title of your sex-tape")
+      await ctx.reply(f"*{ctx.content_content}*, title of your sex-tape")
       # msg.channel.send(`*"${func.capitalize(msg.cleanContent)}"*, title of your sex-tape`);
 
     # TODO: Make the command for this
