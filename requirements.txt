@@ -1,4 +1,4 @@
-﻿absl-py==0.11.0
+absl-py==0.11.0
 aiohttp==3.7.4
 appdirs==1.4.4
 astroid==2.4.2
@@ -72,14 +72,11 @@ sentry-sdk==0.19.4
 six==1.15.0
 smmap==3.0.5
 spotipy==2.16.1
-tb-nightly==2.5.0a20210126
 tensorboard==2.4.1
 tensorboard-plugin-wit==1.8.0
 tensorflow==2.4.1
 tensorflow-estimator==2.4.0
 termcolor==1.1.0
-tf-estimator-nightly==2.5.0.dev2021012601
-tf-nightly-gpu==2.5.0.dev20210126
 toml==0.10.2
 tqdm==4.56.1
 typed-ast==1.4.2
