@@ -1,3 +1,4 @@
+[MASTER]
 disable=
     too-many-instance-attributes,
     len-as-condition,
