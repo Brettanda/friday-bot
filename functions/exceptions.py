@@ -15,3 +15,10 @@ class NoCustomSoundsFound(CommandError):
 
   def __str__(self):
     return f"{self.message}"
+class ArgumentTooLarge(CommandError):
+  def __init__(self,message="That argument number is too big"):
+    self.message = message
+    super().__init__(self.message)
+
+  def __str__(self):
+    return f"{self.message}"

@@ -1,12 +1,22 @@
-import os,sys,asyncio,validators,traceback,json
-from datetime import datetime
+import asyncio
+import logging
+import os
+import sys
+import traceback
 
 import discord
-from discord_slash import SlashCommand,SlashContext
-from dotenv import load_dotenv
 from discord.ext import commands
+from discord_slash import SlashCommand, SlashContext
+from dotenv import load_dotenv
 
-import logging
+# from chat import queryGen
+from chat import queryIntents
+from cogs.cleanup import get_delete_time
+from cogs.help import cmd_help
+from functions import (MessageColors, dev_guilds, embed, exceptions,
+                       mydb_connect, query, relay_info)
+from functions.mysql_connection import query_prefix
+
 logging.basicConfig(
   level=logging.INFO,
   format="%(asctime)s:%(name)s:%(levelname)-8s%(message)s",
@@ -19,23 +29,17 @@ load_dotenv()
 TOKEN = os.getenv('TOKENTEST')
 
 intents = discord.Intents.default()
-# Members intent required for giving roles appon a member joining a guild, and for reaction roles that will come soon
+# Members intent required for giving roles appon a member
+# joining a guild, and for reaction roles that will come soon
 # intents.members = True
 
-from functions.mysql_connection import query_prefix
-from functions import dev_guilds
 
 # slash = SlashCommand(bot,sync_on_cog_reload=True,sync_commands=True)
 
 songqueue = {}
 restartPending = False
 
-# from chat import queryGen
-from chat import queryIntents
 
-from functions import embed,MessageColors,relay_info,mydb_connect,query,exceptions
-from cogs.help import cmd_help
-from cogs.cleanup import get_delete_time
 
 class MyContext(commands.Context):
   async def reply(self,content=None,**kwargs):
@@ -54,8 +58,9 @@ class MyContext(commands.Context):
         raise e
 
 class Friday(commands.AutoShardedBot):
-  def __init__(self):
-    super(Friday,self).__init__(command_prefix=query_prefix or "!",case_insensitive=True,intents=intents)
+  def __init__(self,*args,**kwargs):
+    super().__init__(*args,**kwargs)
+    
     self.slash = SlashCommand(self,sync_on_cog_reload=True,sync_commands=True,override_type=True)
 
     for com in os.listdir("./cogs"):
@@ -110,11 +115,14 @@ class Friday(commands.AutoShardedBot):
     # elif isinstance(error,commands.CommandError) or isinstance(error,commands.CommandInvokeError):
     #   await ctx.reply(embed=embed(title=f"{error}",color=MessageColors.ERROR))
     elif (
-      isinstance(error,commands.MissingPermissions) or
-      isinstance(error,commands.BotMissingPermissions) or
-      isinstance(error,exceptions.UserNotInVoiceChannel) or
-      isinstance(error,exceptions.NoCustomSoundsFound)
-      ):
+      isinstance(error,(
+        commands.MissingPermissions,
+        commands.BotMissingPermissions,
+        commands.MaxConcurrencyReached,
+        exceptions.UserNotInVoiceChannel,
+        exceptions.NoCustomSoundsFound,
+        exceptions.ArgumentTooLarge)
+      )):
       try:
         await ctx.reply(embed=embed(title=f"{error}",color=MessageColors.ERROR),delete_after=delete)
       except discord.Forbidden:
@@ -136,18 +144,28 @@ class Friday(commands.AutoShardedBot):
       raise error
 
   async def on_error(self,event, *args, **kwargs):
-    # await bot.get_guild(707441352367013899).chunk(cache=False)
-    appinfo = await bot.application_info()
-    owner = bot.get_user(appinfo.team.owner.id)
+    # await self.get_guild(707441352367013899).chunk(cache=False)
+    appinfo = await self.application_info()
+    owner = self.get_user(appinfo.team.owner.id)
 
     trace = traceback.format_exc()
     try:
-      await relay_info(f"{owner.mention if owner is not None and bot.intents.members == True else ''}\n```bash\n{trace}```",bot,short="Error sent",channel=713270561840824361)
+      await relay_info(
+        f"{owner.mention if self.intents.members is True else ''}\n```bash\n{trace}```",
+        self,
+        short="Error sent",
+        channel=713270561840824361
+      )
     except discord.HTTPException:
       with open("err.log","w") as f:
         f.write(f"{trace}")
         f.close()
-        await relay_info(f"{owner.mention if owner is not None and bot.intents.members == True else ''}",bot,file="err.log",channel=713270561840824361)
+        await relay_info(
+          f"{owner.mention if self.intents.members is True else ''}",
+          self,
+          file="err.log",
+          channel=713270561840824361
+        )
 
     print(trace)
     logging.error(trace)
@@ -160,7 +178,7 @@ class Friday(commands.AutoShardedBot):
 
 if __name__ == "__main__":
   print(f"Python version: {sys.version}")
-  bot = Friday()
+  bot = Friday(command_prefix=query_prefix or "!",case_insensitive=True,intents=intents)
   if len(sys.argv) > 1:
     if sys.argv[1] == "--prod" or sys.argv[1] == "--production":
       TOKEN = os.getenv("TOKEN")

@@ -1,17 +1,26 @@
-custom = False
+custom = True
 
 import os
+import random
+import re
+
+import numpy as np
+from keras.callbacks import ModelCheckpoint
+from keras.layers import LSTM, Dense, Input, Reshape
+from keras.models import Model, load_model
+from tensorflow import keras
+
 os.add_dll_directory("C:\Program Files\\NVIDIA GPU Computing Toolkit\CUDA\\v11.0\\bin")
 os.add_dll_directory("C:\Program Files\\NVIDIA GPU Computing Toolkit\CUDA\\v11.0\\libnvvp")
 os.add_dll_directory("C:\Program Files\\NVIDIA GPU Computing Toolkit\CUDA\\v11.0")
-os.add_dll_directory("C:\Program Files\\NVIDIA GPU Computing Toolkit\CUDA\\v11.0\\extras\\CUPTI\\lib64")
+os.add_dll_directory(
+  "C:\Program Files\\NVIDIA GPU Computing Toolkit\CUDA\\v11.0\\extras\\CUPTI\\lib64")
 os.add_dll_directory("C:\Program Files\\NVIDIA GPU Computing Toolkit\CUDA\\v11.0\\include")
 os.add_dll_directory("C:\\tools\\cuda\\bin")
 os.add_dll_directory("C:\\tools\\cuda")
 os.add_dll_directory("C:\Program Files\\NVIDIA Corporation\\Nsight Compute 2019.4.0")
-import re
-import random
-if custom == True:
+
+if custom is True:
   data_path = "ml/custom_human_text.txt"
   data_path2 = "ml/custom_robot_text.txt"
 else:
@@ -31,11 +40,8 @@ pairs = list(zip(lines,lines2))
 # random.shuffle(pairs)
 
 
-import numpy as np
-from tensorflow import keras
-from keras.layers import Input, LSTM, Dense, Reshape
-from keras.models import Model, load_model
-from keras.callbacks import ModelCheckpoint
+
+
 def start(pairss):
   input_docs = []
   target_docs = []
@@ -48,12 +54,12 @@ def start(pairss):
     input_doc, target_doc = line[0], line[1]
     # Appending each input sentence to input_docs
     input_docs.append(input_doc)
-    # Splitting words from punctuation  
+    # Splitting words from punctuation
     target_doc = " ".join(re.findall(r"[\w']+|[^\s\w]", target_doc))
     # Redefine target_doc below and append it to target_docs
     target_doc = '<START> ' + target_doc + ' <END>'
     target_docs.append(target_doc)
-    
+
     # Now we split up each sentence into words and add each unique word to our vocabulary set
     for token in re.findall(r"[\w']+|[^\s\w]", input_doc):
       if token not in input_tokens:
@@ -67,36 +73,38 @@ def start(pairss):
   num_decoder_tokens = len(target_tokens)
 
   input_features_dict = dict(
-      [(token, i) for i, token in enumerate(input_tokens)])
+    [(token, i) for i, token in enumerate(input_tokens)])
   target_features_dict = dict(
-      [(token, i) for i, token in enumerate(target_tokens)])
+    [(token, i) for i, token in enumerate(target_tokens)])
   reverse_input_features_dict = dict(
-      (i, token) for token, i in input_features_dict.items())
+    (i, token) for token, i in input_features_dict.items())
   reverse_target_features_dict = dict(
-      (i, token) for token, i in target_features_dict.items())
+    (i, token) for token, i in target_features_dict.items())
 
 
   #Maximum length of sentences in input and target documents
-  max_encoder_seq_length = max([len(re.findall(r"[\w']+|[^\s\w]", input_doc)) for input_doc in input_docs])
-  max_decoder_seq_length = max([len(re.findall(r"[\w']+|[^\s\w]", target_doc)) for target_doc in target_docs])
+  max_encoder_seq_length = max(
+    [len(re.findall(r"[\w']+|[^\s\w]", input_doc)) for input_doc in input_docs])
+  max_decoder_seq_length = max(
+    [len(re.findall(r"[\w']+|[^\s\w]", target_doc)) for target_doc in target_docs])
   encoder_input_data = np.zeros(
-      (len(input_docs), max_encoder_seq_length, num_encoder_tokens),
-      dtype='float32')
+    (len(input_docs), max_encoder_seq_length, num_encoder_tokens),
+    dtype='float32')
   decoder_input_data = np.zeros(
-      (len(input_docs), max_decoder_seq_length, num_decoder_tokens),
-      dtype='float32')
+    (len(input_docs), max_decoder_seq_length, num_decoder_tokens),
+    dtype='float32')
   decoder_target_data = np.zeros(
-      (len(input_docs), max_decoder_seq_length, num_decoder_tokens),
-      dtype='float32')
+    (len(input_docs), max_decoder_seq_length, num_decoder_tokens),
+    dtype='float32')
   for line, (input_doc, target_doc) in enumerate(zip(input_docs, target_docs)):
-      for timestep, token in enumerate(re.findall(r"[\w']+|[^\s\w]", input_doc)):
-          #Assign 1. for the current line, timestep, & word in encoder_input_data
-          encoder_input_data[line, timestep, input_features_dict[token]] = 1.
-      
-      for timestep, token in enumerate(target_doc.split()):
-          decoder_input_data[line, timestep, target_features_dict[token]] = 1.
-          if timestep > 0:
-              decoder_target_data[line, timestep - 1, target_features_dict[token]] = 1.
+    for timestep, token in enumerate(re.findall(r"[\w']+|[^\s\w]", input_doc)):
+      #Assign 1. for the current line, timestep, & word in encoder_input_data
+      encoder_input_data[line, timestep, input_features_dict[token]] = 1.
+    
+    for timestep, token in enumerate(target_doc.split()):
+      decoder_input_data[line, timestep, target_features_dict[token]] = 1.
+      if timestep > 0:
+        decoder_target_data[line, timestep - 1, target_features_dict[token]] = 1.
   #Dimensionality
   dimensionality = 256
   #The batch size and number of epochs
@@ -112,12 +120,24 @@ def start(pairss):
   decoder_inputs = Input(shape=(None, num_decoder_tokens))
   # decoder_inputs = Input(shape=(None, len(pairs)))
   decoder_lstm = LSTM(dimensionality, return_sequences=True, return_state=True)
-  decoder_outputs, decoder_state_hidden, decoder_state_cell = decoder_lstm(decoder_inputs, initial_state=encoder_states)
+  decoder_outputs, decoder_state_hidden, decoder_state_cell = decoder_lstm(
+    decoder_inputs, initial_state=encoder_states)
   decoder_dense = Dense(num_decoder_tokens, activation='softmax')
   decoder_outputs = decoder_dense(decoder_outputs)
 
   del pairss
-  return (encoder_input_data,decoder_input_data,decoder_target_data,encoder_inputs,decoder_inputs,decoder_outputs,num_encoder_tokens,num_decoder_tokens,epochs,batch_size)
+  return (
+    encoder_input_data,
+    decoder_input_data,
+    decoder_target_data,
+    encoder_inputs,
+    decoder_inputs,
+    decoder_outputs,
+    num_encoder_tokens,
+    num_decoder_tokens,
+    epochs,
+    batch_size
+  )
 
 # chunks = [":500","500:1000","1000:1500","1500:2000","2000:"]
 # chunks = [[0,500],[500,1000],[1000,1500],[1500,2000],[2000,-1]]
@@ -125,7 +145,16 @@ def start(pairss):
 # while i < len(chunks):
   # print(chunks[i])
 # encoder_input_data,decoder_input_data,decoder_target_data,encoder_inputs,decoder_inputs,decoder_outputs,epochs,batch_size = start(pairs[slice(chunks[i][0],chunks[i][1])])
-encoder_input_data,decoder_input_data,decoder_target_data,encoder_inputs,decoder_inputs,decoder_outputs,num_encoder_tokens,num_decoder_tokens,epochs,batch_size = start(pairs)
+encoder_input_data,
+decoder_input_data,
+decoder_target_data,
+encoder_inputs,
+decoder_inputs,
+decoder_outputs,
+num_encoder_tokens,
+num_decoder_tokens,
+epochs,
+batch_size = start(pairs)
 # if i > 0:
 #   training_model = load_model("full_training_model_0.h5")
 #   training_model.layers[0] = Reshape(encoder_input_data.shape)
@@ -137,7 +166,14 @@ training_model = Model([encoder_inputs, decoder_inputs], decoder_outputs)
 training_model.compile(optimizer='rmsprop', loss='categorical_crossentropy', metrics=['accuracy'], sample_weight_mode='temporal')
 # print(encoder_input_data,decoder_input_data,decoder_target_data)
 #Training
-training_model.fit([encoder_input_data, decoder_input_data], decoder_target_data, batch_size = batch_size, epochs = epochs, workers=8, shuffle=True,use_multiprocessing = True) #verbose=2,   validation_split = 0.2
+training_model.fit(
+  [encoder_input_data, decoder_input_data],
+  decoder_target_data,
+  batch_size = batch_size,
+  epochs = epochs,
+  workers=8,
+  shuffle=True,
+  use_multiprocessing = True) #verbose=2,   validation_split = 0.2
 # training_model.build(encoder_input_data.shape)
 training_model.summary()
 scores = training_model.evaluate([encoder_input_data, decoder_input_data], decoder_target_data, verbose=0)
@@ -156,12 +192,27 @@ print("Accuracy: %.2f%%" % (scores[1]*100))
 
 # training_model = load_model("partly_trained.h5")
 
-# training_model.fit([encoder_input_data[500:1000], decoder_input_data[500:1000]], decoder_target_data[500:1000], batch_size = batch_size, epochs = epochs, validation_split = 0.2, shuffle=True, use_multiprocessing = True)
+# training_model.fit(
+# [encoder_input_data[500:1000],
+# decoder_input_data[500:1000]],
+# decoder_target_data[500:1000],
+# batch_size = batch_size,
+# epochs = epochs,
+# validation_split = 0.2,
+# shuffle=True,
+# use_multiprocessing = True)
 # training_model.save("partly_trained-1.h5")
 # filepath="weights-improvement-{epoch:02d}-{accuracy:.4f}.hdf5"
 # checkpoint = ModelCheckpoint(filepath, monitor='accuracy', verbose=1, save_best_only=True, mode='min')
 # callbacks_list = [checkpoint]
-# training_model.fit([encoder_input_data, decoder_input_data], decoder_target_data, batch_size = batch_size, epochs = epochs, callbacks=callbacks_list, validation_split = 0.2, shuffle=True, use_multiprocessing = True)
+# training_model.fit(
+# [encoder_input_data, decoder_input_data],
+# decoder_target_data,
+# batch_size = batch_size, epochs = epochs,
+# callbacks=callbacks_list,
+# validation_split = 0.2,
+# shuffle=True,
+# use_multiprocessing = True)
 
 # print(encoder_inputs)
 # print(encoder_input_data)

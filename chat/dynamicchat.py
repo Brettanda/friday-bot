@@ -1,8 +1,13 @@
-import os,sys,logging,asyncio,discord
-sys.path.insert(1, os.path.join(sys.path[0], '..'))
-from functions import *
+# import asyncio
+import json
+import logging
+import os
+import random
+import sys
 
-import json,random
+# import discord
+
+from functions import *
 
 with open('./config.json') as f:
   config = json.load(f)
@@ -45,7 +50,7 @@ async def dynamicchat(ctx,bot,intent):
       await ctx.channel.send(embed=embed(title="No u!",image=config["unoCards"][random.randint(0,len(config["unoCards"]))],color=MessageColors.NOU))
       # await msg.channel.send(func.embed({ title: "No u!", color: "#FFD700", author: msg.author, image: unoCards[random.randint(0, unoCards.length)] }));
 
-    elif intent == "Memes" or intent == "Memes - Another":
+    elif intent in ("Memes","Memes - Another"):
       await ctx.reply(**await get_reddit_post(ctx,["memes","dankmemes"]))
 
     elif intent == "Title of your sex tape":
@@ -59,7 +64,7 @@ async def dynamicchat(ctx,bot,intent):
     elif intent == "Something cool":
       await ctx.reply(**await get_reddit_post(ctx,["nextfuckinglevel","interestingasfuck"]))
 
-    elif intent == "Compliments" or intent == "Thanks" or intent == "are you a bot?" or intent == "I love you":
+    elif intent in ("Compliments", "Thanks", "are you a bot?", "I love you"):
       hearts = ["❤️", "💯", "💕"]
       await ctx.add_reaction(hearts[random.randint(0, len(hearts) - 1)])
 
