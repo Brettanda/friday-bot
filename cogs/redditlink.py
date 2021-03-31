@@ -58,6 +58,15 @@ class redditlink(commands.Cog):
   async def on_message(self,ctx):
     if ctx.author.bot:
       return
+    # required_perms = [("add_reactions",True)]
+    # guild = ctx.guild
+    # me = guild.me if guild is not None else self.bot.user
+    # permissions = ctx.channel.permissions_for(me)
+    # missing = [perm for perm,value in required_perms if getattr(permissions,perm) != value]
+
+    # if missing:
+    #   return
+
     reg = re.findall(self.pattern,ctx.content)
     # spoiler = re.findall(self.patternspoiler,ctx.content)
 

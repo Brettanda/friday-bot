@@ -5,7 +5,7 @@
 <a href="https://github.com/Brettanda/friday-discord-python/issues"><img src="https://img.shields.io/github/issues/Brettanda/friday-discord-python" alt="GitHub issues"/></a>
 <a href="https://discord.gg/NTRuFjU"><img src="https://img.shields.io/discord/707441352367013899?color=7289da&logo=discord&logoColor=white" alt="Discord Chat"/></a>
 <a href="https://top.gg/bot/476303446547365891/vote"><img src="https://img.shields.io/badge/Vote-Friday-blue" alt="Vote"/></a>
-<a href="https://discord.com/oauth2/authorize?client_id=476303446547365891&permissions=322037830&scope=bot"><img src="https://img.shields.io/badge/Add%20Friday-to%20your%20server-orange" alt="Add Friday to your server"/></a>
+<a href="https://discord.com/api/oauth2/authorize?client_id=476303446547365891&permissions=2469521478&scope=bot%20applications.commands"><img src="https://img.shields.io/badge/Add%20Friday-to%20your%20server-orange" alt="Add Friday to your server"/></a>
 <a href="https://www.patreon.com/fridaybot"><img src="https://img.shields.io/badge/-Become%20a%20Patron!-rgb(232%2C%2091%2C%2070)" alt="Become a Patron!"/></a>
 </div>
 
@@ -13,15 +13,11 @@
 
 ~~Because this bot is using Dialogflow, Friday records all messages visible to itself and sends them to Dialogflow. Messages that Friday does not send include links and image embeds/links to images. The purpose of sending messages to Dialogflow is to train what Friday will respond to and what the reply would be. Sending messages to Dialogflow will be removed in the future once Friday's responses are more stable and accurate.~~
 
-Friday is no longer using Google's Dialogflow, and will not send message to Dialogflow, but messages will still be logged for the purposes of training Friday's Machine Learning, and nothing else. If the recorded messages prove to not be useful for training they will be deleted and not shared with anyone.
+Friday is no longer using Google's Dialogflow, and will not send messages to Dialogflow, but messages will still be logged for the purposes of training Friday's Machine Learning, and nothing else. If the recorded messages prove to not be useful for training they will be deleted and not shared with anyone.
 
 Hello, my name is Friday, I am a chatbot for the platform Discord. I like trying to be human and of course memes.
 
 My goal is to make your Discord server feel more alive. I can do this by responding to chats like 'thanks Friday', 'hello' and if someone would like to make an insult towards me I can respond to that as well.
-
-## Development
-
-Make sure to add your bot token to the `.env` file or this won't be able to connect to anything.
 
 ## Commands
 
@@ -37,7 +33,7 @@ Reddit posts that wont be extracted include text posts and gallary posts. If the
 
 This command will let you make a sub-command that plays a specific link of your choosing. This makes it easier to play a song or sound that you would like to play often without having to find the url every time.
 
-For example if you wanted to play `Bruh Sound Effect #2` you can add it to the list like so `!c add bruh https://www.youtube.com/watch?v=2ZIpFytCSVc`.
+For example if you wanted to play `Bruh Sound Effect #2` you can add it to the list like so `!c add bruh https://www.youtube.com/watch?v=2ZIpFytCSVc`. To then play that sound you would type this command `!c bruh`.
 
 ## D&D Dice rolling
 
@@ -55,9 +51,7 @@ Friday can play music in a voice channel with the command `!play` followed by a 
 
 ## Chat
 
-~~Friday can respond to normal chat without the message being directed towards Friday~~
-
-Friday's chat response system has been disabled for the time being because since I have moved away from Dialogflow i need a larger dataset. So even though Friday will be mute (except for commands) for a bit, Friday will still be learning
+Friday can respond to normal chat without the message being directed towards Friday
 
 ### Context
 
@@ -65,21 +59,28 @@ Friday's chat response system has been disabled for the time being because since
 
 ## Todo
 
-- [ ] Auto-add intents or self-teaching ML
 - [x] Add queue system for playing YouTube audio
-- [x] Add D&D dice rolling command and dialogflow intent
 - [x] Make a modern-looking icon
 - [x] Add spam protection for the commands like `!issue`
-- [ ] If a role is tagged that Friday is not apart of, ignore the message.
 - [x] When music is playing and someone sends a message there is a little bit of a lag spike that occurs in the audio. This needs to be fixed.
 - [x] Add a search function to the `!play` command
 - [x] Friday will sometimes stop playing a video at some point and thinks that it still is playing
-- [ ] Add the ability to play playlists from youtube as well as adding several
+- [x] Ignore the command `!d bump`
+- [ ] Add D&D dice rolling command and dialogflow intent
+- [ ] If a role is tagged that Friday is not apart of, ignore the message.
+- [x] Add the ability to play playlists from youtube as well as adding several
 - [ ] Teach friday to see images and recognize them, then play uno with card images
-- [ ] Some commands might be able to work cross servers if getting a channel by name/id without getting the guild first
 - [ ] Make Friday still respond to messages sent while it was offline
 - [ ] Slash Commands?
-- [ ] Move to [LavaLink](https://github.com/Devoxin/Lavalink.py) for music playing
+- [x] Move to [LavaLink](https://github.com/Devoxin/Lavalink.py) for music playing. this should/will fix the lag when playing music
+- [ ] Reaction roles
+- [ ] Send memes to meme channels at the average time that humans post memes? (could/will take the fun out of sending memes to servers though (make this toggleable))
+- [ ] Auto role on join server (waiting on an email from Discord)
+- [ ] Give Friday a voice (but not from the movies because that voice belongs to a real person)
+- [ ] Generative text responses for the chat bot (GPT-2)
+- [ ] Auto-add intents or self-teaching ML
+- [ ] Make music playback persist through Fridays script restarts
+- [ ] Add named entity recognition/sequence labeling so questions like "friday what is 1+1" can be answered
 
 ## To add to the dashboard
 
@@ -90,3 +91,4 @@ Friday's chat response system has been disabled for the time being because since
 - [ ] A command to send one message to selected chats (only for admins)
 - [ ] auto delete gifs with certain keywords
 - [ ] If the server has a specific nickname scheme send messages to those people for the nicknames like if the scheme is first name then friday will ask for their first name
+- [ ] Option to select a text channel for updates on Friday from the support server

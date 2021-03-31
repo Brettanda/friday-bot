@@ -26,13 +26,20 @@ class Dev(commands.Cog,command_attrs=dict(hidden=True)):
   def cog_check(self,ctx):
     if ctx.bot.owner_id == ctx.author.id:
       return True
-    raise commands.NotOwner("You do not own this bot")
+    if isinstance(ctx, SlashContext):
+      return commands.NotOwner("You do not own this bot and cannot use this command")
+    raise commands.NotOwner("You do not own this bot and cannot use this command")
 
   @commands.group(name="dev",invoke_without_command=True)
-  async def dev(self,ctx):
+  async def norm_dev(self,ctx):
     await cmd_help(ctx,ctx.command)
 
-  @dev.command(name="say")
+  # @cog_ext.cog_slash(name="dev",guild_ids=[243159711237537802,805579185879121940])
+  # async def slash_dev(self,ctx):
+  #   await ctx.defer(True)
+  #   await ctx.send("help")
+
+  @norm_dev.command(name="say")
   async def say(self,ctx,*,say:str):
     try:
       await ctx.message.delete()
@@ -40,7 +47,15 @@ class Dev(commands.Cog,command_attrs=dict(hidden=True)):
       pass
     await ctx.channel.send(f"{say}")
 
-  @dev.command(name="edit")
+  # @cog_ext.cog_subcommand(base="dev",name="say",description="Make me say something",guild_ids=[243159711237537802,805579185879121940])
+  # async def slash_say(self,ctx,*,message:str):
+  #   await ctx.defer(True)
+  #   check = await self.cog_check(ctx)
+  #   if check is not True:
+  #     return await ctx.send(hidden=True,str(check))
+  #   await ctx.send(str(message))
+
+  @norm_dev.command(name="edit")
   async def edit(self,ctx,message:discord.Message,*,edit:str):
     try:
       await ctx.message.delete()
@@ -48,7 +63,27 @@ class Dev(commands.Cog,command_attrs=dict(hidden=True)):
       pass
     await message.edit(content=edit)
 
-  @dev.command(name="react")
+  # @cog_ext.cog_subcommand(
+  #   base="dev",
+  #   name="edit",
+  #   description="Edit a message I have sent before",
+  #   options=[
+  #     create_option("message", "The message to edit", 3, required=True),
+  #     create_option("edit", "The new text", 3, required=True)
+  #   ],
+  #   guild_ids=[243159711237537802,805579185879121940])
+  # async def slash_edit(self,ctx,message:discord.Message,edit:str):
+  #   await ctx.defer(True)
+  #   check = await self.cog_check(ctx)
+  #   if check is not True:
+  #     return await ctx.send(hidden=True,str(check))
+  #   message = await commands.MessageConverter.convert(ctx, message)
+  #   await asyncio.gather(
+  #     message.edit(content=str(edit)),
+  #     ctx.send(hidden=True,f"{message.jump_url} has been edited")
+  #   )
+
+  @norm_dev.command(name="react")
   async def react(self,ctx,message:discord.Message,*,reactions:str):
     try:
       await ctx.message.delete()
@@ -68,12 +103,12 @@ class Dev(commands.Cog,command_attrs=dict(hidden=True)):
       except:
         pass
 
-  @dev.command(name="status")
-  async def status(self,ctx):
+  @norm_dev.command(name="status")
+  async def status(self):
     """Sends the status of the machine running Friday"""
     print("")
 
-  @dev.command(name="restart")
+  @norm_dev.command(name="restart")
   async def restart(self,ctx,force:bool=False):
     # global restartPending,songqueue
     if self.bot.restartPending is True and force is False:
@@ -101,11 +136,13 @@ class Dev(commands.Cog,command_attrs=dict(hidden=True)):
         await asyncio.sleep(1)
         wait = wait - 1
     finally:
-      await ctx.message.delete()
-      await stat.delete()
+      await asyncio.gather(
+        ctx.message.delete(),
+        stat.delete()
+      )
       subprocess.Popen([f"{thispath}{seperator}restart.sh"], stdin=subprocess.PIPE)
 
-  @dev.command(name="reload")
+  @norm_dev.command(name="reload")
   async def reload(self,ctx,command:str):
     async with ctx.typing():
       com = self.bot.get_command(command)
@@ -115,13 +152,13 @@ class Dev(commands.Cog,command_attrs=dict(hidden=True)):
     await ctx.reply(embed=embed(title=f"Cog *{command}* has been reloaded"))
 
 
-  @dev.command(name="load")
+  @norm_dev.command(name="load")
   async def load(self,ctx,command:str):
     async with ctx.typing():
       self.bot.load_extension(f"cogs.{command.lower()}")
     await ctx.reply(embed=embed(title=f"Cog *{command}* has been loaded"))
 
-  @dev.command(name="unload")
+  @norm_dev.command(name="unload")
   async def unload(self,ctx,command:str):
     async with ctx.typing():
       self.bot.unload_extension(f"cogs.{command.lower()}")
@@ -135,7 +172,7 @@ class Dev(commands.Cog,command_attrs=dict(hidden=True)):
     print(error)
     logger.error(error)
 
-  @dev.command(name="update")
+  @norm_dev.command(name="update")
   async def update(self,ctx):
     message = await ctx.reply(embed=embed(title="Updating..."))
     thispath = os.getcwd()
@@ -146,12 +183,12 @@ class Dev(commands.Cog,command_attrs=dict(hidden=True)):
     subprocess.Popen([f"{thispath}{seperator}update.sh"], stdin=subprocess.PIPE)
     await message.edit(embed=embed(title="Update complete!"))
 
-  @dev.command(name="cogs")
+  @norm_dev.command(name="cogs")
   async def cogs(self,ctx):
     cogs = ", ".join(self.bot.cogs)
     await ctx.reply(embed=embed(title=f"{len(self.bot.cogs)} total cogs",description=f"{cogs}"))
 
-  @dev.command(name="log")
+  @norm_dev.command(name="log")
   async def log(self,ctx):
     thispath = os.getcwd()
     if "\\" in thispath:
@@ -161,7 +198,7 @@ class Dev(commands.Cog,command_attrs=dict(hidden=True)):
     shutil.copy(f"{thispath}{seperator}logging.log",f"{thispath}{seperator}logging-send.log")
     await ctx.reply(file=discord.File(fp=f"{thispath}{seperator}logging-send.log",filename="logging.log"))
 
-  @dev.command(name="markdown",aliases=["md"])
+  @norm_dev.command(name="markdown",aliases=["md"])
   async def markdown(self,ctx):
     commands = self.bot.commands
     cogs = []
@@ -195,9 +232,8 @@ class Dev(commands.Cog,command_attrs=dict(hidden=True)):
     if ctx.channel.id == 744652167142441020:
       await ctx.add_reaction("♥")
 
-    if "process.exit()" in ctx.content:
-      await ctx.add_reaction("😡")
-      return
+    if r"process.exit()" in ctx.clean_content:
+      return await ctx.add_reaction("😡")
 
 def setup(bot):
   bot.add_cog(Dev(bot))

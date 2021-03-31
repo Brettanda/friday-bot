@@ -139,5 +139,12 @@ class Log(commands.Cog):
     print(f"Slash Command: {ctx.command}")
     logger.info(f"Slash Command: {ctx.command}")
 
+  @commands.Cog.listener()
+  async def on_slash_command_error(self,ctx:SlashContext,ex):
+    print(ex)
+    logging.error(ex)
+    await ctx.send(hidden=True,content=str(ex))
+    raise ex
+
 def setup(bot):
   bot.add_cog(Log(bot))

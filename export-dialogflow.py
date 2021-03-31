@@ -1,7 +1,7 @@
 import json
 import os
 
-direc = r"C:\Users\brett\downloads\Friday"
+direc = r"E:\Users\Brett\Downloads\Friday"
 intents = f"{direc}\intents"
 entities = f"{direc}\entities"
 

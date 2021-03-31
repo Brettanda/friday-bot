@@ -34,11 +34,12 @@ class CustomMusic(commands.Cog):
       if name in sounds:
         await ctx.invoke(self.bot.get_command("play"),url=sounds[name])
       else:
-        await ctx.reply(embed=embed(title=f"Failed to play the custom sound `{name}`",color=MessageColors.ERROR))
+        await ctx.reply(embed=embed(title=f"The sound `{name}` has not been added, please check the `custom list` command",color=MessageColors.ERROR))
 
   @custom.command(name="add")
   @commands.has_guild_permissions(manage_channels=True)
   async def custom_add(self,ctx,name:str,url:str):
+    url = url.strip("<>")
     valid = validators.url(url)
     if valid is not True:
       await ctx.reply(embed=embed(title=f"Failed to recognize the url `{url}`",color=MessageColors.ERROR))

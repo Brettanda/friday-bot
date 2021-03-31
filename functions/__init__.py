@@ -6,3 +6,5 @@ from functions.mysql_connection import mydb_connect,query
 from functions.relay_info import relay_info
 from functions.get_reddit_post import get_reddit_post
 from functions import exceptions
+from functions.time import timeit
+from functions.slash_context import MySlashContext

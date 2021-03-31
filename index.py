@@ -34,9 +34,10 @@ intents = discord.Intents.default()
 # intents.members = True
 
 
-# slash = SlashCommand(bot,sync_on_cog_reload=True,sync_commands=True)
+# slash = SlashCommand(Friday,sync_on_cog_reload=True,sync_commands=True)
 
 songqueue = {}
+dead_nodes_sent = False
 restartPending = False
 
 
@@ -49,8 +50,15 @@ class MyContext(commands.Context):
       if delete is not None:
         kwargs.update({"delete_after":delete})
         await self.message.delete(delay=delete)
+    if not hasattr(kwargs,"mention_author"):
+      kwargs.update({"mention_author":False})
     try:
       return await self.message.reply(content,**kwargs)
+    except discord.Forbidden as e:
+      if "Cannot reply without permission" in str(e):
+        return await self.message.channel.send(content,**kwargs)
+      else:
+        raise e
     except discord.HTTPException as e:
       if "Unknown message" in str(e):
         return await self.message.channel.send(content,**kwargs)
@@ -108,7 +116,8 @@ class Friday(commands.AutoShardedBot):
     elif isinstance(error,commands.NoPrivateMessage):
       await ctx.reply(embed=embed(title="This command does not work in non-server text channels",color=MessageColors.ERROR))
     elif isinstance(error,commands.ChannelNotFound):
-      await ctx.reply(embed=embed(title="Could not find that channel",description="Make sure it is the right channel type",color=MessageColors.ERROR))
+      await ctx.reply(embed=embed(title=str(error),color=MessageColors.ERROR))
+      # await ctx.reply(embed=embed(title="Could not find that channel",description="Make sure it is the right channel type",color=MessageColors.ERROR))
     elif isinstance(error,commands.DisabledCommand):
       await ctx.reply(embed=embed(title="This command has been disabled",color=MessageColors.ERROR))
     elif isinstance(error,commands.TooManyArguments):
