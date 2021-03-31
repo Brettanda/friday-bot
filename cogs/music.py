@@ -21,9 +21,7 @@ from index import dead_nodes_sent, songqueue
 # import time
 # import typing
 
-
-
-
+logger = logging.getLogger(__name__)
 
 def can_play(ctx:commands.Context):
   connect_perms = ["connect","speak"]
@@ -32,12 +30,11 @@ def can_play(ctx:commands.Context):
   if voice is None or voice.channel is None:
     raise exceptions.UserNotInVoiceChannel("You must be in a voice channel to play music.")
   for perm,value in voice.channel.permissions_for(ctx.me):
-    if value == False and perm.lower() in connect_perms:
+    if value is False and perm.lower() in connect_perms:
       missing.append(perm)
   if len(missing) > 0:
     raise commands.BotMissingPermissions(missing)
   return True
-
 
 SEARCHOPTIONS = {
   "1️⃣":0,
@@ -49,7 +46,6 @@ SEARCHOPTIONS = {
   "7️⃣":6,
   "8️⃣":7
 }
-
 
 class Music(commands.Cog, wavelink.WavelinkMixin):
   def __init__(self,bot):
@@ -341,22 +337,14 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
       difference = list(set(nodes).symmetric_difference(set(previous)))
       if len(previous) > len(nodes):
         for diff in difference:
-          try:
-            await self.bot.wavelink.destroy_node(identifier=str(diff))
-          except:
-            raise
-          else:
-            print(f"Removed `{diff}` from the nodes")
-            logger.warning(f"Removed `{diff}` from the nodes")
+          await self.bot.wavelink.destroy_node(identifier=str(diff))
+          print(f"Removed `{diff}` from the nodes")
+          logger.warning(f"Removed `{diff}` from the nodes")
       elif len(previous) < len(nodes):
         for diff in difference:
-          try:
-            await self.bot.wavelink.initiate_node(**nodes[diff])
-          except:
-            raise
-          else:
-            print(f"Added `{diff}` to nodes")
-            logger.info(f"Added `{diff}` to nodes")
+          await self.bot.wavelink.initiate_node(**nodes[diff])
+          print(f"Added `{diff}` to nodes")
+          logger.info(f"Added `{diff}` to nodes")
     else:
       to_launch = []
       for node in nodes.values():
@@ -774,13 +762,12 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
 
   @commands.Cog.listener()
   async def on_voice_state_update(self,member,before,after):
-    global songqueue
     # TODO: when moved to another voice channel, Friday will some times just stop playing music until !pause and !resume are executed
     try:
       player = self.get_player(member.guild)
       if member == self.bot.user:
         try:
-          if after.channel == None and len(songqueue["{}".format(member.guild.id)]) > 0:
+          if after.channel is None and len(songqueue["{}".format(member.guild.id)]) > 0:
             try:
               await player.text_channel.send(embed=embed(title="Finished",color=MessageColors.MUSIC))
             except discord.Forbidden:
@@ -815,6 +802,4 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
       pass
 
 def setup(bot):
-  global logger
-  logger = logging.getLogger(__name__)
   bot.add_cog(Music(bot))
