@@ -1,6 +1,7 @@
 from discord.ext import commands
 
-from functions import embed,query,mydb_connect
+from functions import embed, mydb_connect, query
+
 
 class ServerInfo(commands.Cog):
   def __init__(self,bot):

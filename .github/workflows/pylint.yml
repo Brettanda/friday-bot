@@ -20,4 +20,4 @@ jobs:
     - name: Analysing the code with pylint
       # pylint `ls -R|grep .py$|xargs` --indent-string="  " --rcfile .pylintrc
       run: |
-        python -m pylint --indent-string="  " --fail-under=10 `find -regextype egrep -regex '(.*.py)$'`
+        python -m pylint --indent-string='  ' --fail-under=10 `find -regextype egrep -regex '(.*.py)$'`

@@ -1,18 +1,20 @@
 # import asyncio
 import json
 import logging
-import os
+# import os
 import random
-import sys
+# import sys
 
 # import discord
 
-from functions import *
+from functions import embed, get_reddit_post,MessageColors
 
 with open('./config.json') as f:
   config = json.load(f)
 
-async def dynamicchat(ctx,bot,intent):
+
+async def dynamicchat(ctx, bot, intent, response=None):
+  response = response.strip("dynamic")
   # print(f"intent: {intent}")
   # logging.info(f"intent: {intent}")
   try:
@@ -20,7 +22,10 @@ async def dynamicchat(ctx,bot,intent):
       await ctx.add_reaction("😭")
 
     elif intent == "Activities":
-      await ctx.reply(f"I am playing **{bot.guilds[0].get_member(bot.user.id).activity.name}**")
+      if ctx.guild.me.activity is not None:
+        await ctx.reply(f"I am playing **{ctx.guild.me.activity.name}**")
+      else:
+        await ctx.reply("I am not currently playing anything. Im just hanging out")
 
     elif intent == "Self Aware":
       await ctx.add_reaction("👀")
@@ -47,19 +52,20 @@ async def dynamicchat(ctx,bot,intent):
       await ctx.add_reaction("😅")
 
     elif intent == "No U":
-      await ctx.channel.send(embed=embed(title="No u!",image=config["unoCards"][random.randint(0,len(config["unoCards"]))],color=MessageColors.NOU))
-      # await msg.channel.send(func.embed({ title: "No u!", color: "#FFD700", author: msg.author, image: unoCards[random.randint(0, unoCards.length)] }));
+      await ctx.channel.send(
+        embed=embed(
+          title="No u!",
+          image=config["unoCards"][random.randint(0,len(config["unoCards"]))],
+          color=MessageColors.NOU))
 
     elif intent in ("Memes","Memes - Another"):
       await ctx.reply(**await get_reddit_post(ctx,["memes","dankmemes"]))
 
     elif intent == "Title of your sex tape":
       await ctx.reply(f"*{ctx.clean_content}*, title of your sex-tape")
-      # msg.channel.send(`*"${func.capitalize(msg.cleanContent)}"*, title of your sex-tape`);
 
-    # TODO: Make the command for this
     elif intent == "show me something cute":
-      await ctx.reply(**await get_reddit_post(ctx,["mademesmile"]))
+      await ctx.reply(content=response,**await get_reddit_post(ctx,["mademesmile","aww"]))
 
     elif intent == "Something cool":
       await ctx.reply(**await get_reddit_post(ctx,["nextfuckinglevel","interestingasfuck"]))
@@ -80,7 +86,6 @@ async def dynamicchat(ctx,bot,intent):
     elif intent == "Math":
       # // (?:.+)([0-9\+\-\/\*]+)(?:.+)
       print("Big math")
-      # await require("../commands/diceRoll").execute(msg, [result.parameters.fields.Equations.stringValue]);
 
     # TODO: this
     elif intent == "Tell me a joke friday":
@@ -88,7 +93,6 @@ async def dynamicchat(ctx,bot,intent):
       # await require("../functions/reddit")(msg, bot, ["Jokes"], "text");
 
     elif intent == "Shit":
-      # if content.includes("shit") or content.includes("shît") or content.includes("crap") or content.includes("poop") or content.includes("poo"):
       await ctx.add_reaction("💩")
 
     elif intent == "How do commands":
@@ -97,14 +101,13 @@ async def dynamicchat(ctx,bot,intent):
 
     elif intent == "who am i?":
       await ctx.reply(f"Well I don't know your real name but your username is {ctx.author.name}")
-      # ctx.channel.send(`Well I don't know your real name but your username is ${msg.author.username}`);
 
     elif intent == "doggo":
       await ctx.add_reaction(random.choice(["🐶","🐕","🐩","🐕‍🦺"]))
 
     else:
       print(f"I dont have a response for this: {ctx.content}")
-      logging.warning(f"I dont have a response for this: {ctx.content}")
+      logging.warning("I dont have a response for this: %s", ctx.clean_content)
   except:
     await ctx.reply("Something in my code failed to run, I'll ask my boss to fix this :)")
     raise

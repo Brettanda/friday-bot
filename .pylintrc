@@ -1,5 +1,15 @@
+[STYLE]
+indent_width = 2
+[MISCELLANEOUS]
+notes=XXX
 [MASTER]
+indent-string='  '
 disable=
+    redefined-outer-name,
+    bare-except,
+    line-too-long,
+    arguments-differ,
+    logging-fstring-interpolation,
     too-many-instance-attributes,
     len-as-condition,
     too-few-public-methods,

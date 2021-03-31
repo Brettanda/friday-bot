@@ -1,10 +1,14 @@
-import discord,typing,asyncio
-from discord.ext import commands
+import asyncio
+import typing
 
+import discord
+from discord.ext import commands
+from discord_slash import SlashContext, cog_ext
+from discord_slash.utils.manage_commands import create_option  # ,create_choice
 
 from cogs.help import cmd_help
+from functions import MessageColors, embed, mydb_connect, query
 
-from functions import embed,MessageColors,mydb_connect,query
 
 class ServerManage(commands.Cog):
   """Commands for managing Friday on your server"""
@@ -12,26 +16,22 @@ class ServerManage(commands.Cog):
   def __init__(self,bot):
     self.bot = bot
 
-  async def cog_check(self,ctx):
+  def cog_check(self,ctx):
     if ctx.guild is None:
       raise commands.NoPrivateMessage("This command can only be used within a guild")
     return True
-  
+
   @commands.command(name="defaultrole",hidden=True)
   @commands.is_owner()
   @commands.has_guild_permissions(manage_roles=True)
   async def _defaultrole(self,ctx,role:discord.Role):
     # TODO: Need the members intent so assign the role
+    mydb = mydb_connect()
+    query(mydb,"UPDATE servers SET defaultRole=%s WHERE id=%s",role.id,ctx.guild.id)
     try:
-      mydb = mydb_connect()
-      query(mydb,f"UPDATE servers SET defaultRole=%s WHERE id=%s",role.id,ctx.guild.id)
-    except:
-      raise
-    else:
-      try:
-        await ctx.reply(embed=embed(title=f"The new default role for new members is `{role}`"))
-      except discord.Forbidden:
-        await ctx.reply(f"The new default role for new members is `{role}`")
+      await ctx.reply(embed=embed(title=f"The new default role for new members is `{role}`"))
+    except discord.Forbidden:
+      await ctx.reply(f"The new default role for new members is `{role}`")
 
   @commands.command(name="prefix")
   @commands.has_guild_permissions(administrator=True)
@@ -40,16 +40,12 @@ class ServerManage(commands.Cog):
     if len(new_prefix) > 5:
       await ctx.reply(embed=embed(title="Can't set a prefix with more than 5 characters",color=MessageColors.ERROR))
       return
+    mydb = mydb_connect()
+    query(mydb,"UPDATE servers SET prefix=%s WHERE id=%s",new_prefix,ctx.guild.id)
     try:
-      mydb = mydb_connect()
-      query(mydb,f"UPDATE servers SET prefix=%s WHERE id=%s",new_prefix,ctx.guild.id)
-    except:
-      raise
-    else:
-      try:
-        await ctx.reply(embed=embed(title=f"My new prefix is `{new_prefix}`"))
-      except discord.Forbidden:
-        await ctx.reply(f"My new prefix is `{new_prefix}`")
+      await ctx.reply(embed=embed(title=f"My new prefix is `{new_prefix}`"))
+    except discord.Forbidden:
+      await ctx.reply(f"My new prefix is `{new_prefix}`")
 
   @commands.group(name="bot",invoke_without_command=True)
   @commands.has_guild_permissions(manage_channels=True)
@@ -72,17 +68,13 @@ class ServerManage(commands.Cog):
   @commands.is_owner()
   @commands.has_guild_permissions(manage_channels=True)
   async def music_channel(self,ctx,voicechannel:typing.Optional[discord.VoiceChannel]=None):
-    try:
-      async with ctx.typing():
-        mydb = mydb_connect()
-        query(mydb,f"UPDATE servers SET musicChannel=%s WHERE id=%s",voicechannel.id if voicechannel is not None else None,ctx.guild.id)
-    except:
-      raise
+    async with ctx.typing():
+      mydb = mydb_connect()
+      query(mydb,"UPDATE servers SET musicChannel=%s WHERE id=%s",voicechannel.id if voicechannel is not None else None,ctx.guild.id)
+    if voicechannel is None:
+      await ctx.reply(embed=embed(title="All the voice channels are my music channels 😈 (jk)"))
     else:
-      if voicechannel is None:
-        await ctx.reply(embed=embed(title=f"All the voice channels are my music channels 😈 (jk)"))
-      else:
-        await ctx.reply(embed=embed(title=f"`{voicechannel}` is now my music channel"))
+      await ctx.reply(embed=embed(title=f"`{voicechannel}` is now my music channel"))
 
   @commands.command(name="deletecommandsafter",aliases=["deleteafter","delcoms"],description="Set the time in seconds for how long to wait before deleting command messages")
   @commands.has_guild_permissions(manage_channels=True)
@@ -90,24 +82,20 @@ class ServerManage(commands.Cog):
     if time < 0:
       await ctx.reply(embed=embed(title="time has to be above 0"))
       return
-    try:
-      async with ctx.typing():
-        mydb = mydb_connect()
-        query(mydb,f"UPDATE servers SET autoDeleteMSGs=%s WHERE id=%s",time,ctx.guild.id)
-    except:
-      raise
+    async with ctx.typing():
+      mydb = mydb_connect()
+      query(mydb,"UPDATE servers SET autoDeleteMSGs=%s WHERE id=%s",time,ctx.guild.id)
+    if time == 0:
+      await ctx.reply(embed=embed(title="I will no longer delete command messages"))
     else:
-      if time == 0:
-        await ctx.reply(embed=embed(title=f"I will no longer delete command messages"))
-      else:
-        await ctx.reply(embed=embed(title=f"I will now delete commands after `{time}` seconds"))
+      await ctx.reply(embed=embed(title=f"I will now delete commands after `{time}` seconds"))
 
   @commands.command(name="kick")
   @commands.bot_has_guild_permissions(kick_members=True)
   @commands.has_guild_permissions(kick_members=True)
   async def kick(self,ctx,members:commands.Greedy[discord.Member],*,reason:str):
     for member in members:
-      if member == self.bot.user:
+      if self.bot.user in members:
         try:
           await ctx.add_reaction("😢")
         except:
@@ -116,19 +104,15 @@ class ServerManage(commands.Cog):
       if member == ctx.author:
         await ctx.reply(embed=embed(title="Failed to kick yourself",color=MessageColors.ERROR))
         return
-      # try:
-      for member in members:
-        await member.kick(reason=f"{ctx.author}: {reason}")
-      # except discord.Forbidden:
-        # raise commands.BotMissingPermissions(["kick_members"])
-      await ctx.reply(embed=embed(title=f"Kicked `{member}` for reason `{reason}`"))
-  
+      await member.kick(reason=f"{ctx.author}: {reason}")
+    await ctx.reply(embed=embed(title=f"Kicked `{members.join(', ')}` for reason `{reason}`"))
+
   @commands.command(name="ban")
   @commands.bot_has_guild_permissions(ban_members=True)
   @commands.has_guild_permissions(ban_members=True)
-  async def ban(self,ctx,members:commands.Greedy[discord.Member],delete_message_days:typing.Optional[int]=0,*,reason:str):
+  async def ban(self,ctx,members:commands.Greedy[discord.Member],delete_message_days:typing.Optional[int]=0,*,reason:str=None):
     for member in members:
-      if member == self.bot.user:
+      if self.bot.user in members:
         try:
           await ctx.add_reaction("😢")
         except:
@@ -137,22 +121,18 @@ class ServerManage(commands.Cog):
       if member == ctx.author:
         await ctx.reply(embed=embed(title="Failed to ban yourself",color=MessageColors.ERROR))
         return
-      # try:
-      for member in members:
-        await member.ban(delete_message_days=delete_message_days,reason=f"{ctx.author}: {reason}")
-      # except discord.Forbidden:
-        # raise commands.BotMissingPermissions(["ban_members"])
-      await ctx.reply(embed=embed(title=f"Banned `{member}` for reason `{reason}`"))
+      await member.ban(delete_message_days=delete_message_days,reason=f"{ctx.author}: {reason}")
+    await ctx.reply(embed=embed(title=f"Banned `{members.join(', ')}` with `{delete_message_days}` messages deleted, for reason `{reason}`"))
 
   @commands.command(name="rolecall",aliases=["rc"],description="Moves everyone with a specific role to a voicechannel. Objects that can be exluded are voicechannels,roles,and members")
   @commands.guild_only()
   @commands.has_guild_permissions(move_members = True)
   @commands.bot_has_guild_permissions(move_members = True)
   async def rolecall(self,ctx,role:discord.Role,voicechannel:typing.Optional[discord.VoiceChannel],exclusions:commands.Greedy[typing.Union[discord.Member,discord.Role,discord.VoiceChannel]]=None):
-    if ctx.author.permissions_in(voicechannel).view_channel != True:
+    if ctx.author.permissions_in(voicechannel).view_channel is not True:
       await ctx.reply(embed=embed(title="Trying to connect to a channel you can't view 🤔",description="Im going to have to stop you right there",color=MessageColors.ERROR))
       return
-    if ctx.author.permissions_in(voicechannel).connect != True:
+    if ctx.author.permissions_in(voicechannel).connect is not True:
       await ctx.reply(embed=embed(title=f"You don't have permission to connect to `{voicechannel}` so I can't complete this command",color=MessageColors.ERROR))
       return
 
@@ -164,7 +144,7 @@ class ServerManage(commands.Cog):
           moved += 1
         except:
           pass
-    
+
     await ctx.reply(embed=embed(title=f"Moved {moved} members with the role `{role}` to `{voicechannel}`"))
 
   @commands.command(name="massmove",aliases=["move"])

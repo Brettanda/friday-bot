@@ -1,6 +1,11 @@
-import discord,aiohttp,json,random
+# import json
+import random
+
+import aiohttp
+# import discord
 from discord.ext import commands
-from functions import embed,MessageColors
+
+from functions import MessageColors, embed
 
 posted = {}
 
@@ -9,7 +14,8 @@ async def request(url):
     async with session.get(
       url,
       headers={
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.1916.47 Safari/537.36'
+        'User-Agent':
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.1916.47 Safari/537.36'
       }
     ) as r:
       if r.status == 200:
@@ -18,7 +24,7 @@ async def request(url):
 async def get_reddit_post(ctx:commands.Context,sub_reddits:str or list=None):
   if sub_reddits is None:
     raise TypeError("sub_reddits must not be None")
-  
+
   url = "https://www.reddit.com/r/{}.json?sort=top&t=week".format(random.choice(sub_reddits))
 
   body = None

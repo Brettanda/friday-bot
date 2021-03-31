@@ -1,19 +1,22 @@
 import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
-# import io
-from tensorflow import keras
-from keras.layers import Input, LSTM, Dense
-from keras.models import Model
-from keras.models import load_model
-
-import sys,getopt,time
-
 import re
-import random
+import sys
+
+# import io
+# import getopt
+# import random
+import numpy as np
+from keras.layers import LSTM, Dense, Input
+from keras.models import Model, load_model
+
+# import time
+
+# from tensorflow import keras
 
 custom = False
 
-if custom == True:
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+if custom is True:
   data_path = "ml/custom_human_text.txt"
   data_path2 = "ml/custom_robot_text.txt"
 else:
@@ -32,23 +35,23 @@ lines2 = [" ".join(re.findall(r"\w+",line)) for line in lines2]
 pairs = list(zip(lines,lines2))
 #random.shuffle(pairs)
 
-import numpy as np
+
 input_docs = []
 target_docs = []
 input_tokens = set()
 target_tokens = set()
-if custom == False:
+if custom is False:
   pairs = pairs[:500]
 for line in pairs:
   input_doc, target_doc = line[0], line[1]
   # Appending each input sentence to input_docs
   input_docs.append(input_doc)
-  # Splitting words from punctuation  
+  # Splitting words from punctuation
   target_doc = " ".join(re.findall(r"[\w']+|[^\s\w]", target_doc))
   # Redefine target_doc below and append it to target_docs
   target_doc = '<START> ' + target_doc + ' <END>'
   target_docs.append(target_doc)
-  
+
   # Now we split up each sentence into words and add each unique word to our vocabulary set
   for token in re.findall(r"[\w']+|[^\s\w]", input_doc):
     if token not in input_tokens:
@@ -62,35 +65,35 @@ num_encoder_tokens = len(input_tokens)
 num_decoder_tokens = len(target_tokens)
 
 input_features_dict = dict(
-    [(token, i) for i, token in enumerate(input_tokens)])
+  [(token, i) for i, token in enumerate(input_tokens)])
 target_features_dict = dict(
-    [(token, i) for i, token in enumerate(target_tokens)])
+  [(token, i) for i, token in enumerate(target_tokens)])
 reverse_input_features_dict = dict(
-    (i, token) for token, i in input_features_dict.items())
+  (i, token) for token, i in input_features_dict.items())
 reverse_target_features_dict = dict(
-    (i, token) for token, i in target_features_dict.items())
+  (i, token) for token, i in target_features_dict.items())
 
 #Maximum length of sentences in input and target documents
 max_encoder_seq_length = max([len(re.findall(r"[\w']+|[^\s\w]", input_doc)) for input_doc in input_docs])
 max_decoder_seq_length = max([len(re.findall(r"[\w']+|[^\s\w]", target_doc)) for target_doc in target_docs])
 encoder_input_data = np.zeros(
-    (len(input_docs), max_encoder_seq_length, num_encoder_tokens),
-    dtype='float32')
+  (len(input_docs), max_encoder_seq_length, num_encoder_tokens),
+  dtype='float32')
 decoder_input_data = np.zeros(
-    (len(input_docs), max_decoder_seq_length, num_decoder_tokens),
-    dtype='float32')
+  (len(input_docs), max_decoder_seq_length, num_decoder_tokens),
+  dtype='float32')
 decoder_target_data = np.zeros(
-    (len(input_docs), max_decoder_seq_length, num_decoder_tokens),
-    dtype='float32')
+  (len(input_docs), max_decoder_seq_length, num_decoder_tokens),
+  dtype='float32')
 for line, (input_doc, target_doc) in enumerate(zip(input_docs, target_docs)):
-    for timestep, token in enumerate(re.findall(r"[\w']+|[^\s\w]", input_doc)):
-        #Assign 1. for the current line, timestep, & word in encoder_input_data
-        encoder_input_data[line, timestep, input_features_dict[token]] = 1.
-    
-    for timestep, token in enumerate(target_doc.split()):
-        decoder_input_data[line, timestep, target_features_dict[token]] = 1.
-        if timestep > 0:
-            decoder_target_data[line, timestep - 1, target_features_dict[token]] = 1.
+  for timestep, token in enumerate(re.findall(r"[\w']+|[^\s\w]", input_doc)):
+    #Assign 1. for the current line, timestep, & word in encoder_input_data
+    encoder_input_data[line, timestep, input_features_dict[token]] = 1.
+
+  for timestep, token in enumerate(target_doc.split()):
+    decoder_input_data[line, timestep, target_features_dict[token]] = 1.
+    if timestep > 0:
+      decoder_target_data[line, timestep - 1, target_features_dict[token]] = 1.
 
 # print(pairs[:5])
 # print(input_docs[:5])
@@ -109,7 +112,7 @@ decoder_outputs, decoder_state_hidden, decoder_state_cell = decoder_lstm(decoder
 decoder_dense = Dense(num_decoder_tokens, activation='softmax')
 decoder_outputs = decoder_dense(decoder_outputs)
 
-if custom == True:
+if custom is True:
   training_model = load_model('ml/models/custom_gen_model.h5')
 else:
   training_model = load_model('ml/models/gen_model.h5')
@@ -136,7 +139,7 @@ class ChatBot:
   def start_chat(self,message):
     # print("message revieved")
     # user_response = input("Hi, I'm a chatbot trained on random dialogs. Would you like to chat with me?\n")
-    
+
     # if user_response in self.negative_responses:
     #   print("Ok, have a great day!")
     #   return
@@ -147,18 +150,18 @@ class ChatBot:
       reply = (self.generate_response(reply)+"\n")
       print(reply)
       # reply = input(self.generate_response(reply)+"\n")
-    
+
   #Method to convert user input into a matrix
   def string_to_matrix(self, user_input):
     tokens = re.findall(r"[\w']+|[^\s\w]", user_input)
     user_input_matrix = np.zeros(
       (1, max_encoder_seq_length, num_encoder_tokens),
       dtype='float32')
-    for timestep, token in enumerate(tokens):
-      if token in input_features_dict:
-        user_input_matrix[0, timestep, input_features_dict[token]] = 1.
+    for timestp, tok in enumerate(tokens):
+      if tok in input_features_dict:
+        user_input_matrix[0, timestp, input_features_dict[tok]] = 1.
     return user_input_matrix
-  
+
   #Method that will create a response using seq2seq model we built
   def generate_response(self, user_input):
     input_matrix = self.string_to_matrix(user_input)
@@ -176,7 +179,7 @@ class ChatBot:
         print("Ok, have a great day!")
         return True
     return False
-  
+
   def decode_response(self,test_input):
     #Getting the output states to pass into the decoder
     states_value = encoder_model.predict(test_input)
@@ -184,10 +187,10 @@ class ChatBot:
     target_seq = np.zeros((1, 1, num_decoder_tokens))
     #Setting the first token of target sequence with the start token
     target_seq[0, 0, target_features_dict['<START>']] = 1.
-    
+
     #A variable to store our response word by word
     decoded_sentence = ''
-    
+
     stop_condition = False
     while not stop_condition:
       #Predicting output tokens with probabilities and states
@@ -207,55 +210,55 @@ class ChatBot:
     return decoded_sentence
 
 # (argv)
-def main():
-  usage = "usage: queryModel.py --query 'some text'"
-  # print(sys.stdin)
-  # try:
-  while True:
-    message = sys.stdin.readline()
-    # length = len(message)
-    # print(len(message))
-    message = message.split('\n')[0]
-    if message:
-      print(ChatBot().generate_response(message) + "\n")
-      # print(generate_response(message)+"\n", flush=True)
-    # else:
-      # sys.stdout.write("something went wrong\n")
-    # for line in sys.stdin:
-    #   print(len(sys.stdin.readlines()))
-    #   print(generate_response(line), flush=True)
-      # return
+# def main():
+#   # usage = "usage: queryModel.py --query 'some text'"
+#   # print(sys.stdin)
+#   # try:
+#   while True:
+#     msg = sys.stdin.readline()
+#     # length = len(msg)
+#     # print(len(msg))
+#     msg = msg.split('\n')[0]
+#     if msg:
+#       print(ChatBot().generate_response(msg) + "\n")
+#       # print(generate_response(msg)+"\n", flush=True)
+#     # else:
+#       # sys.stdout.write("something went wrong\n")
+#     # for line in sys.stdin:
+#     #   print(len(sys.stdin.readlines()))
+#     #   print(generate_response(line), flush=True)
+#       # return
 
-      # if(len(sys.stdin.readlines()) > 0):
-        # print(generate_response(sys.stdin.readlines()[0]))
-      # else:
-      #   print("fuck")
-    #   resp = generate_response(line)
-    #   sys.stdout = resp
-    #   print(resp)
-    #   # return resp
-    #   main()
-  # except:
-  #   print(usage)
-  # try:
-  #   opts,args = getopt.getopt(argv,"hf:",["query="])
-  # except getopt.GetoptError:
-  #   print(usage)
-  #   sys.exit(2)
-  # for opt,arg in opts:
-  #   if opt == '--query':
-  #     resp = generate_response(arg)
-  #     print(resp)
-  #     return resp
-      
+#       # if(len(sys.stdin.readlines()) > 0):
+#         # print(generate_response(sys.stdin.readlines()[0]))
+#       # else:
+#       #   print("fuck")
+#     #   resp = generate_response(line)
+#     #   sys.stdout = resp
+#     #   print(resp)
+#     #   # return resp
+#     #   main()
+#   # except:
+#   #   print(usage)
+#   # try:
+#   #   opts,args = getopt.getopt(argv,"hf:",["query="])
+#   # except getopt.GetoptError:
+#   #   print(usage)
+#   #   sys.exit(2)
+#   # for opt,arg in opts:
+#   #   if opt == '--query':
+#   #     resp = generate_response(arg)
+#   #     print(resp)
+#   #     return resp
+
 
 if __name__ == "__main__":
   # main()
   while True:
-    message = sys.stdin.readline()
-    # length = len(message)
-    # print(len(message))
-    message = message.split('\n')[0]
-    if message:
-      ChatBot().start_chat(message)
+    msg = sys.stdin.readline()
+    # length = len(msg)
+    # print(len(msg))
+    msg = msg.split('\n')[0]
+    if msg:
+      ChatBot().start_chat(msg)
   # main(sys.argv[1:])

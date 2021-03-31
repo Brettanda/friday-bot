@@ -1,13 +1,13 @@
-import discord,asyncio
-from discord.ext import commands
-from discord_slash import cog_ext,SlashContext
+import asyncio
 
-from functions import embed,relay_info
+from discord.ext import commands
+from discord_slash import cog_ext
+
 from cogs.cleanup import get_delete_time
+from functions import embed, relay_info
+
 
 class Issue(commands.Cog):
-  """description goes here"""
-
   def __init__(self,bot):
     self.bot = bot
 
@@ -36,7 +36,6 @@ class Issue(commands.Cog):
         await confirm.clear_reaction("✅")
       except:
         await confirm.remove_reaction("✅",self.bot.user)
-        pass
 
   @commands.command(name="support",description="Get an invite link to my support server")
   async def norm_support(self,ctx):

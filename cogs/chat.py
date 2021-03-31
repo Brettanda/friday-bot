@@ -1,14 +1,16 @@
-import discord,validators,logging
+import logging
+
+# import discord
+import validators
 from discord.ext import commands
 
-# from chat import queryGen
-from chat import queryIntents
-from chat.dynamicchat import dynamicchat
-
-from functions import embed,mydb_connect,query,relay_info
+# from chatml import queryGen
+from chatml import queryIntents
+from chatml.dynamicchat import dynamicchat
+from functions import dev_guilds, embed, mydb_connect, query, relay_info
 from functions.mysql_connection import query_prefix
 
-from functions import dev_guilds
+logger = logging.getLogger(__name__)
 
 class Chat(commands.Cog):
   def __init__(self,bot):
@@ -34,17 +36,17 @@ class Chat(commands.Cog):
       noContext = ["Title of your sex tape", "I dont want to talk to a chat bot", "The meaning of life?", "Birthday", "Memes", "Self Aware", "Soup Time", "No U", "I'm dad", "Bot discrimination"]
       lastmessages = await ctx.channel.history(limit=3).flatten()
       meinlastmessage = False
-      newest = None
+      # newest = None
       for msg in lastmessages:
         if msg.author == self.bot.user:
           meinlastmessage = True
-          newest = msg
+          # newest = msg
 
       result,intent,chance,inbag,incomingContext,outgoingContext,sentiment = await queryIntents.classify_local(ctx.clean_content)
 
       if intent == "Title of your sex tape" and ctx.guild.id not in dev_guilds:
         return await relay_info(f"Not responding with TOYST for: `{ctx.clean_content}`", self.bot,channel=814349008007856168)
-      
+
       # print(incomingContext,outgoingContext,ctx.reference.resolved if ctx.reference is not None else "No reference")
       # if incomingContext is not None and len(incomingContext) > 0 and (newest is not None or ctx.reference is not None):
       #   # await ctx.guild.chunk(cache=False)
@@ -73,7 +75,7 @@ class Chat(commands.Cog):
         print(f"\t| input: {ctx.clean_content}")
         logger.info(f"\t| input: {ctx.clean_content}")
         print(f"\t| found in bag: {inbag}")
-        logger.info(u"\t| found in bag: {}".format(inbag))
+        logger.info(u"\t| found in bag: %s",inbag)
       else:
         print(f"No response found: {ctx.clean_content.encode('unicode_escape')}")
         logger.info(f"No response found: {ctx.clean_content.encode('unicode_escape')}")
@@ -90,9 +92,9 @@ class Chat(commands.Cog):
       # print(f"\t| outgoing Context: {outgoingContext}")
       # logger.info(f"\t| outgoing Context: {outgoingContext}")
       # TODO: add a check for another bot
-      if intent not in noContext and self.bot.user not in ctx.mentions and "friday" not in ctx.clean_content.lower() and meinlastmessage == False and ctx.channel.type != "private":
-        print(f"\tI probably should not respond")
-        logger.info(f"\tI probably should not respond")
+      if intent not in noContext and self.bot.user not in ctx.mentions and "friday" not in ctx.clean_content.lower() and meinlastmessage is not False and ctx.channel.type != "private":
+        print("\tI probably should not respond")
+        logger.info("\tI probably should not respond")
         # if "friday" in ctx.clean_content.lower() or self.bot.user in ctx.mentions:
         #   await relay_info("",self.bot,embed=embed(title="I think i should respond to this",description=f"{ctx.content}"),channel=814349008007856168)
         #   print(f"I think I should respond to this: {ctx.clean_content.lower()}")
@@ -110,6 +112,4 @@ class Chat(commands.Cog):
           await ctx.reply(result)
 
 def setup(bot):
-  global logger
-  logger = logging.getLogger(__name__)
   bot.add_cog(Chat(bot))

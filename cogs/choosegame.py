@@ -1,7 +1,9 @@
-import random,discord,asyncio,os,json
-from discord.ext import tasks,commands
+import json
+import os
+import random
 
-from functions import embed
+import discord
+from discord.ext import commands, tasks
 
 with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'config.json')) as f:
   config = json.load(f)

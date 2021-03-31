@@ -1,10 +1,16 @@
-import re,urllib,json,youtube_dl,ffmpeg,asyncio
+import asyncio
+import json
+import os
+import re
+import sys
+import urllib
 
 import discord
+import ffmpeg
+import youtube_dl
 from discord.ext import commands
 
-import os,sys
-from functions import embed,MessageColors
+from functions import MessageColors, embed
 
 ytdl_format_options = {
   # 'format': 'bestvideo+bestaudio/worstvideo+worstaudio',

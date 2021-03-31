@@ -1,8 +1,8 @@
-import discord
 from discord.ext import commands
-from discord_slash import cog_ext,SlashContext
+from discord_slash import SlashContext, cog_ext
 
-from functions import embed
+from functions import embed  # ,MySlashContext#,profile
+
 
 class Ping(commands.Cog):
   def __init__(self,bot):

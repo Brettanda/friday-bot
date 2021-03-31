@@ -1,10 +1,15 @@
-import discord,logging,asyncio,sys
-from discord.ext import tasks,commands
+import asyncio
+import logging
+import sys
 from datetime import date
 
-from functions import embed
+# import discord
+from discord.ext import commands, tasks
+
+# from functions import embed
 
 original_image = "assets\\friday-logo.png"
+logger = logging.getLogger(__name__)
 
 class DatedEvents(commands.Cog):
   def __init__(self,bot):
@@ -52,6 +57,4 @@ class DatedEvents(commands.Cog):
     self.dated_events.cancel()
 
 def setup(bot):
-  global logger
-  logger = logging.getLogger(__name__)
   bot.add_cog(DatedEvents(bot))

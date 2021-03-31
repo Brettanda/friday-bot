@@ -1,8 +1,20 @@
-import logging,os,json,discord
-from discord.ext import commands
-# from discord_slash import cog_ext,SlashContext
+# import json
+import logging
 
-from functions import embed,relay_info,mydb_connect,query#,choosegame
+import discord
+from discord.ext import commands
+from discord_slash import SlashContext
+
+from functions import embed, mydb_connect, query, relay_info  # ,choosegame
+
+# import os
+
+
+
+logger = logging.getLogger(__name__)
+
+# import discord_slash
+
 
 # with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'config.json')) as f:
 #   config = json.load(f)
@@ -130,8 +142,6 @@ class Log(commands.Cog):
   async def on_slash_command(self,ctx):
     print(f"Slash Command: {ctx.command}")
     logger.info(f"Slash Command: {ctx.command}")
-    
+
 def setup(bot):
-  global logger
-  logger = logging.getLogger(__name__)
   bot.add_cog(Log(bot))

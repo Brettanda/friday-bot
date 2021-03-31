@@ -1,16 +1,16 @@
-import discord
 from discord import Embed
-from discord.utils import get
-from discord.ext.menus import MenuPages, ListPageSource
-from discord.ext.commands import Cog
 from discord.ext import commands
+from discord.ext.commands import Cog
+from discord.ext.menus import ListPageSource, MenuPages
+from discord.utils import get
 
 from cogs.cleanup import get_delete_time
-from functions import embed,MessageColors
+from functions import MessageColors, embed
+
 
 def syntax(command,quotes:bool=True):
   cmd_and_aliases = "|".join([str(command), *command.aliases])
-  
+
   def get_params(com):
     params = []
     for key, value in com.params.items():
@@ -50,7 +50,9 @@ class HelpMenu(ListPageSource):
 
     super().__init__(data, per_page=6)
 
-  async def write_page(self, menu, fields=[]):
+  async def write_page(self, menu, fields=None):
+    if fields is None:
+      fields = []
     offset = (menu.current_page*self.per_page) + 1
     len_data = len(self.entries)
 
@@ -66,7 +68,7 @@ class HelpMenu(ListPageSource):
       embed.add_field(name=name, value=value, inline=False)
 
     return embed
-  
+
   async def format_page(self, menu, entries):
     fields = []
 
@@ -109,7 +111,7 @@ class Help(Cog):
 
     commands = []
     for com in self.bot.commands:
-      if com.hidden != True and com.enabled != False:
+      if com.hidden is not True and com.enabled is not False:
         commands.append(com)
 
     if cmd is None:

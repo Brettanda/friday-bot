@@ -1,18 +1,18 @@
-import discord,asyncio,typing,random,json,numpy
-from discord.ext import commands
-from discord_slash import cog_ext,SlashContext
-from discord_slash.utils.manage_commands import create_option,create_choice
+import json
+import random
+import typing
 
-import os,sys
+from discord.ext import commands
+from discord_slash import cog_ext
+from discord_slash.utils.manage_commands import create_choice, create_option
+
 # sys.path.insert(1, os.path.join(sys.path[0], '..'))
-from functions import embed,MessageColors,exceptions
+from functions import MessageColors, embed
 
 with open('./config.json') as f:
   config = json.load(f)
 
 class Fun(commands.Cog):
-  """description goes here"""
-
   def __init__(self,bot):
     self.bot = bot
     self.rpsoptions = ["rock","paper","scissors"]
@@ -67,15 +67,15 @@ class Fun(commands.Cog):
         required=True,
         choices=[
           create_choice(
-            "rock", 
+            "rock",
             "Rock"
           ),
           create_choice(
-            "paper", 
+            "paper",
             "Paper"
           ),
           create_choice(
-            "scissors", 
+            "scissors",
             "Scissors"
           )
         ]
@@ -133,7 +133,7 @@ class Fun(commands.Cog):
     7:"7️⃣",
     8:"8️⃣"
   }
-  
+
   @commands.command(name="minesweeper",aliases=["ms"])
   async def norm_minesweeper(self,ctx,size:typing.Optional[int]=5,bomb_count:typing.Optional[int]=6):
     async with ctx.typing():
@@ -166,7 +166,7 @@ class Fun(commands.Cog):
     def get_xy():
       return numpy.random.randint(0,size-1),numpy.random.randint(0,size-1)
 
-    for num in range(bomb_count):
+    for _ in range(bomb_count):
       x,y = get_xy()
       while arr[y][x] == 'X':
         x,y = get_xy()
@@ -187,7 +187,7 @@ class Fun(commands.Cog):
       if (x >= 0 and x <= size-2) and (y >= 1 and y <= size-1):
         if arr[y-1][x+1] != 'X':
           arr[y-1][x+1] += 1 # top right
-      
+
       if (x >= 0 and x <= size-1) and (y >= 1 and y <= size-1):
         if arr[y-1][x] != 'X':
           arr[y-1][x] += 1 # top center

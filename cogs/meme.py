@@ -1,8 +1,7 @@
 from discord.ext import commands
+from discord_slash import SlashContext, cog_ext
 
-import os,sys
-sys.path.insert(1, os.path.join(sys.path[0], '..'))
-from functions import embed,MessageColors,get_reddit_post
+from functions import get_reddit_post
 
 class Meme(commands.Cog):
   def __init__(self,bot):

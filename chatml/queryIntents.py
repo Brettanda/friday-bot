@@ -1,6 +1,20 @@
+import json
+# import logging
 import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
-import nltk,logging
+import random
+
+import nltk
+import numpy as np
+import pandas as pd
+from flair.data import Sentence
+from flair.models import MultiTagger  # , SequenceTagger
+# from keras.layers import Dropout, Activation, Dense
+from keras.models import load_model  # , Sequential
+# from keras.optimizers import SGD
+from nltk.sentiment import SentimentIntensityAnalyzer
+from nltk.stem.lancaster import LancasterStemmer
+
+sia = SentimentIntensityAnalyzer()
 try:
   nltk.data.find('tokenizers/punkt.zip')
 except LookupError:
@@ -9,17 +23,10 @@ try:
   nltk.data.find('vader_lexicon')
 except LookupError:
   nltk.download('vader_lexicon')
-from nltk.sentiment import SentimentIntensityAnalyzer
-sia = SentimentIntensityAnalyzer()
-from nltk.stem.lancaster import LancasterStemmer
 stemmer = LancasterStemmer()
-# things we need for Tensorflow
-import numpy as np
-from keras.models import Sequential, load_model
-from keras.layers import Dense, Activation, Dropout
-from keras.optimizers import SGD
-import pandas as pd
-import random
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+
+tagger = MultiTagger.load(["pos","ner"])
 
 words = []
 classes = []
@@ -30,7 +37,7 @@ context = []
 
 model = load_model("ml/models/intent_model.h5")
 
-import json
+
 with open("ml/intents.json",encoding="utf8") as f:
   intents = json.load(f)
 
@@ -67,15 +74,15 @@ def clean_up_sentence(sentence):
   return sentence_words
 
 # return bag of words array: 0 or 1 for each word in the bag that exists in the sentence
-def bow(sentence, words, show_details=True):
+def bow(sentence, wrds, show_details=True):
   # tokenize the pattern
   sentence_words = clean_up_sentence(sentence)
   # bag of words - matrix of N words, vocabulary matrix
-  bag = [0]*len(words)  
+  bag = [0]*len(wrds)
   inbag = ""
   for s in sentence_words:
-    for i,w in enumerate(words):
-      if w == s: 
+    for i,w in enumerate(wrds):
+      if w == s:
         # assign 1 if current word is in the vocabulary position
         bag[i] = 1
         if show_details:
@@ -87,7 +94,7 @@ def bow(sentence, words, show_details=True):
 
 async def classify_local(sentence):
   ERROR_THRESHOLD = 0.7
-  
+
   # generate probabilities from the model
   bows,inbag = bow(sentence, words)
   input_data = pd.DataFrame([bows], dtype=float, index=['input'])
@@ -107,8 +114,15 @@ async def classify_local(sentence):
   # for r in guesses:
   #   guess_list.append((r[0],classes[r[0]], str(r[1])))
 
+  text = Sentence(sentence)
+  tagger.predict(text)
+  for entity in text.get_spans('pos'):
+    print(entity)
+  for entity in text.get_spans('ner'):
+    print(entity)
+
   if len(return_list) > 0:
-    index,name,chance = return_list[0]
+    name,chance = return_list[0][1:]
     tag = [index for index,value in enumerate(intents) if value["tag"] == name]
     intent = intents[tag[0]]
     # guess_index,guess_name,guess_chance = guess_list[0]

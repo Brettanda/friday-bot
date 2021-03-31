@@ -1,11 +1,20 @@
-import discord,logging,subprocess,asyncio,typing,shutil
-from discord.ext import commands
-
-from index import restartPending,songqueue
-
+import asyncio
+import logging
 import os
-from functions import embed,MessageColors
-from cogs.help import cmd_help,syntax
+import shutil
+import subprocess
+# import typing
+
+import discord
+from discord.ext import commands
+from discord_slash import SlashContext#, cog_ext
+# from discord_slash.utils.manage_commands import create_option, create_choice
+
+from cogs.help import cmd_help, syntax
+from functions import MessageColors, embed
+from index import songqueue
+
+logger = logging.getLogger(__name__)
 
 class Dev(commands.Cog,command_attrs=dict(hidden=True)):
   """Commands used by and for the developer"""
@@ -14,9 +23,8 @@ class Dev(commands.Cog,command_attrs=dict(hidden=True)):
     self.bot = bot
     self.loop = bot.loop
 
-  async def cog_check(self,ctx):
-    is_owner = await self.bot.is_owner(ctx.author)
-    if is_owner:
+  def cog_check(self,ctx):
+    if ctx.bot.owner_id == ctx.author.id:
       return True
     raise commands.NotOwner("You do not own this bot")
 
@@ -67,20 +75,20 @@ class Dev(commands.Cog,command_attrs=dict(hidden=True)):
 
   @dev.command(name="restart")
   async def restart(self,ctx,force:bool=False):
-    global restartPending,songqueue
-    if restartPending == True and force == False:
+    # global restartPending,songqueue
+    if self.bot.restartPending is True and force is False:
       await ctx.reply(embed=embed(title="A restart is already pending"))
       return
-    
-    restartPending = True
+
+    self.bot.restartPending = True
     stat = await ctx.reply(embed=embed(title="Pending"))
-    if len(songqueue) > 0 and force == False:
+    if len(songqueue) > 0 and force is False:
       await stat.edit(embed=embed(title=f"{len(songqueue)} guilds are playing music"))
       while len(songqueue) > 0:
         await stat.edit(embed=embed(title=f"{len(songqueue)} guilds are playing music"))
         await asyncio.sleep(1)
       await stat.edit(embed=embed(title=f"{len(songqueue)} guilds are playing music"))
-    # if len(songqueue) == 0 or force == True:
+    # if len(songqueue) is 0 or force is True:
     thispath = os.getcwd()
     if "\\" in thispath:
       seperator = "\\\\"
@@ -99,39 +107,25 @@ class Dev(commands.Cog,command_attrs=dict(hidden=True)):
 
   @dev.command(name="reload")
   async def reload(self,ctx,command:str):
-    try:
-      async with ctx.typing():
-        com = self.bot.get_command(command)
-        if com is not None:
-          command = com.cog_name
-        else:
-          command = command
-        self.bot.reload_extension(f"cogs.{command.lower()}")
-    except:
-      raise
-    else:
-      await ctx.reply(embed=embed(title=f"Cog *{command}* has been reloaded"))
+    async with ctx.typing():
+      com = self.bot.get_command(command)
+      if com is not None:
+        command = com.cog_name
+      self.bot.reload_extension(f"cogs.{command.lower()}")
+    await ctx.reply(embed=embed(title=f"Cog *{command}* has been reloaded"))
 
 
   @dev.command(name="load")
   async def load(self,ctx,command:str):
-    try:
-      async with ctx.typing():
-        self.bot.load_extension(f"cogs.{command.lower()}")
-    except:
-      raise
-    else:
-      await ctx.reply(embed=embed(title=f"Cog *{command}* has been loaded"))
+    async with ctx.typing():
+      self.bot.load_extension(f"cogs.{command.lower()}")
+    await ctx.reply(embed=embed(title=f"Cog *{command}* has been loaded"))
 
-  @dev.command(name="unload")
+  @norm_dev.command(name="unload")
   async def unload(self,ctx,command:str):
-    try:
-      async with ctx.typing():
-        self.bot.unload_extension(f"cogs.{command.lower()}")
-    except:
-      raise
-    else:
-      await ctx.reply(embed=embed(title=f"Cog *{command}* has been unloaded"))
+    async with ctx.typing():
+      self.bot.unload_extension(f"cogs.{command.lower()}")
+    await ctx.reply(embed=embed(title=f"Cog *{command}* has been unloaded"))
 
   @reload.error
   @load.error
@@ -149,12 +143,8 @@ class Dev(commands.Cog,command_attrs=dict(hidden=True)):
       seperator = "\\\\"
     else:
       seperator = "/"
-    try:
-      subprocess.Popen([f"{thispath}{seperator}update.sh"], stdin=subprocess.PIPE)
-    except:
-      raise
-    else:
-      await message.edit(embed=embed(title="Update complete!"))
+    subprocess.Popen([f"{thispath}{seperator}update.sh"], stdin=subprocess.PIPE)
+    await message.edit(embed=embed(title="Update complete!"))
 
   @dev.command(name="cogs")
   async def cogs(self,ctx):
@@ -170,26 +160,26 @@ class Dev(commands.Cog,command_attrs=dict(hidden=True)):
       seperator = "/"
     shutil.copy(f"{thispath}{seperator}logging.log",f"{thispath}{seperator}logging-send.log")
     await ctx.reply(file=discord.File(fp=f"{thispath}{seperator}logging-send.log",filename="logging.log"))
-  
+
   @dev.command(name="markdown",aliases=["md"])
   async def markdown(self,ctx):
     commands = self.bot.commands
     cogs = []
     for command in commands:
-      if command.hidden == False and command.enabled == True and command.cog_name not in cogs:
+      if command.hidden is False and command.enabled is True and command.cog_name not in cogs:
         cogs.append(command.cog_name)
     with open("commands.md","w") as f:
       f.write("# Commands\n\n")
       for cog in cogs:
         f.write(f"## {cog}\n\n")
         for com in commands:
-          if com.hidden == False and com.enabled == True and com.cog_name == cog:
+          if com.hidden is False and com.enabled is True and com.cog_name == cog:
             # f.write(f"""### {ctx.prefix}{com.name}\n{(f'Aliases: `{ctx.prefix}'+f", {ctx.prefix}".join(com.aliases)+'`') if len(com.aliases) > 0 else ''}\n{f'Description: {com.description}' if com.description != '' else ''}\n""")
             f.write(f"### `{ctx.prefix}{com.name}`\n\n")
             usage = '\n  '.join(syntax(com,quotes=False).split('\n'))
             usage = discord.utils.escape_markdown(usage).replace("<","\<")
             f.write(f"Usage:\n\n  {usage}\n\n")
-            f.write(f"Aliases: ```"+(f'{ctx.prefix}'+f",{ctx.prefix}".join(com.aliases) if len(com.aliases) > 0 else 'None')+"```\n\n")
+            f.write("Aliases: ```"+(f'{ctx.prefix}'+f",{ctx.prefix}".join(com.aliases) if len(com.aliases) > 0 else 'None')+"```\n\n")
             f.write(f"Description: ```{com.description or 'None'}```\n\n")
       f.close()
     thispath = os.getcwd()
@@ -210,6 +200,4 @@ class Dev(commands.Cog,command_attrs=dict(hidden=True)):
       return
 
 def setup(bot):
-  global logger
-  logger = logging.getLogger(__name__)
   bot.add_cog(Dev(bot))

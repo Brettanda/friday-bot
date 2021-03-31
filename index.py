@@ -60,7 +60,8 @@ class MyContext(commands.Context):
 class Friday(commands.AutoShardedBot):
   def __init__(self,*args,**kwargs):
     super().__init__(*args,**kwargs)
-    
+
+    self.restartPending = restartPending
     self.slash = SlashCommand(self,sync_on_cog_reload=True,sync_commands=True,override_type=True)
 
     for com in os.listdir("./cogs"):
@@ -130,20 +131,18 @@ class Friday(commands.AutoShardedBot):
           await ctx.reply(f"{error}",delete_after=delete)
         except discord.Forbidden:
           logging.warning("well guess i just can't respond then")
-          pass
     else:
       try:
         await ctx.reply(embed=embed(title=f"{error}",color=MessageColors.ERROR),delete_after=delete)
       except discord.Forbidden:
-        try: 
+        try:
           await ctx.reply(f"{error}",delete_after=delete)
         except discord.Forbidden:
           print("well guess i just can't respond then")
           logging.warning("well guess i just can't respond then")
-          pass
       raise error
 
-  async def on_error(self,event, *args, **kwargs):
+  async def on_error(self):
     # await self.get_guild(707441352367013899).chunk(cache=False)
     appinfo = await self.application_info()
     owner = self.get_user(appinfo.team.owner.id)
@@ -178,7 +177,7 @@ class Friday(commands.AutoShardedBot):
 
 if __name__ == "__main__":
   print(f"Python version: {sys.version}")
-  bot = Friday(command_prefix=query_prefix or "!",case_insensitive=True,intents=intents)
+  bot = Friday(command_prefix=query_prefix or "!",case_insensitive=True,intents=intents,owner_id=215227961048170496)
   if len(sys.argv) > 1:
     if sys.argv[1] == "--prod" or sys.argv[1] == "--production":
       TOKEN = os.getenv("TOKEN")
