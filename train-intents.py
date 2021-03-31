@@ -1,4 +1,17 @@
+import json
 import os
+# import pickle
+import random
+
+import nltk
+import numpy as np
+# import pandas as pd
+from keras.layers import Dense, Dropout#, Activation
+from keras.models import Sequential
+from keras.optimizers import SGD
+from nltk.stem.lancaster import LancasterStemmer
+
+stemmer = LancasterStemmer()
 os.add_dll_directory("C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v11.0\\bin")
 os.add_dll_directory("C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v11.0\\libnvvp")
 os.add_dll_directory("C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v11.0")
@@ -8,25 +21,12 @@ os.add_dll_directory("C:\\tools\\cuda\\bin")
 os.add_dll_directory("C:\\tools\\cuda")
 os.add_dll_directory("C:\\Program Files\\NVIDIA Corporation\\Nsight Compute 2019.4.0")
 
-import nltk
-from nltk.stem.lancaster import LancasterStemmer
-stemmer = LancasterStemmer()
-# things we need for Tensorflow
-import numpy as np
-from keras.models import Sequential
-from keras.layers import Dense, Activation, Dropout
-from keras.optimizers import SGD
-import pandas as pd
-import pickle
-import random
-
 words = []
 classes = []
 documents = []
 ignore_words = ['?']
 # loop through each sentence in our intents patterns
 
-import json
 with open("ml/intents.json",encoding="utf8") as f:
   intents = json.load(f)
 
@@ -76,11 +76,11 @@ for doc in documents:
   # create our bag of words array with 1, if word match found in current pattern
   for w in words:
     bag.append(1) if w in pattern_words else bag.append(0)
-  
+
   # output is a '0' for each tag and '1' for current tag (for each pattern)
   output_row = list(output_empty)
   output_row[classes.index(doc[1])] = 1
-  
+
   training.append([bag, output_row])
 # shuffle our features and turn into np.array
 random.shuffle(training)

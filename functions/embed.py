@@ -40,12 +40,12 @@ def embed(title:str="Text",description:str="",color=None,author_name:str=None,au
     r.set_author(name=author_name)
   elif author_name is None and (author_url is not None or author_icon is not None):
     raise TypeError("author_name needs to be set")
-  
+
   if url is not None:
     r.url = url
 
   if footer is not None:
-    if(footer_icon):
+    if footer_icon:
       r.set_footer(text=footer,icon_url=footer_icon)
     else:
       r.set_footer(text=footer)

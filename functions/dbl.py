@@ -1,6 +1,10 @@
-import dbl,logging,os
+import logging
+import os
 
-from discord.ext import commands,tasks
+import dbl
+from discord.ext import commands, tasks
+
+logger = logging.getLogger('dbl')
 
 class TopGG(commands.Cog):
   """Handles interactions with the top.gg API"""
@@ -22,7 +26,7 @@ class TopGG(commands.Cog):
       await self.dblpy.post_guild_count(guild_count=len(self.bot.guilds),shard_count=self.bot.shard_count,shard_id=self.bot.shard_id)
       logger.info("Server count posted successfully")
     except Exception as e:
-      logger.exception('Failed to post server count\n{}: {}'.format(type(e).__name__, e))
+      logger.exception('Failed to post server count\n%s: %s',type(e).__name__, e)
 
 
   @commands.Cog.listener()
@@ -31,6 +35,4 @@ class TopGG(commands.Cog):
     logger.info(data)
 
 def setup(bot):
-  global logger
-  logger = logging.getLogger('dbl')
   bot.add_cog(TopGG(bot))

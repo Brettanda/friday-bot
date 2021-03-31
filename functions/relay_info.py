@@ -1,4 +1,8 @@
-import os,discord,logging
+import logging
+import os
+
+import discord
+
 
 async def relay_info(msg:str,bot,embed:discord.Embed=None,file=None,short:str=None,channel:int=808594696904769546,logger=logging.getLogger(__name__)):
   log_info = bot.get_channel(channel)

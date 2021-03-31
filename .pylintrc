@@ -5,6 +5,8 @@ notes=XXX
 [MASTER]
 indent-string='  '
 disable=
+    broad-except,
+    too-many-branches,
     redefined-outer-name,
     bare-except,
     line-too-long,

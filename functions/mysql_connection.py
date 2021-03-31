@@ -1,9 +1,8 @@
-import mysql.connector,os,sys
-from discord.ext import commands
+import os
+import sys
 
-# class MySQL():
-#   def __init__(self):
-#     True
+import mysql.connector
+from discord.ext import commands
 
 def mydb_connect():
   # https://www.mysqltutorial.org/python-connecting-mysql-databases/
@@ -36,29 +35,26 @@ def query(mydb,query:str,*params):
     return result
 
 def query_prefix(bot,ctx,client:bool=False):
+  if str(ctx.channel.type) == "private":
+    return commands.when_mentioned_or("!")(bot,ctx)
+  mydb = mydb_connect()
+  mycursor = mydb.cursor()
+  mycursor.execute(f"SELECT prefix FROM servers WHERE id='{ctx.guild.id}'")
+
+  result = mycursor.fetchall()
   try:
-    if str(ctx.channel.type) == "private":
-      return commands.when_mentioned_or("!")(bot,ctx)
-    mydb = mydb_connect()
-    mycursor = mydb.cursor()
-    mycursor.execute(f"SELECT prefix FROM servers WHERE id='{ctx.guild.id}'")
-
-    result = mycursor.fetchall()
-    try:
-      mydb.commit()
-      mydb.close()
-    except:
-      pass
-
-    if client == True:
-      return result[0][0]
-    else:
-      try:
-        return commands.when_mentioned_or(result[0][0] or "!")(bot,ctx)
-      except:
-        return commands.when_mentioned_or("!")(bot,ctx)
-    # return commands.when_mentioned_or("!")(bot,ctx)
-    # return "!"
+    mydb.commit()
+    mydb.close()
   except:
-    raise
+    pass
+
+  if client is True:
+    return result[0][0]
+  else:
+    try:
+      return commands.when_mentioned_or(result[0][0] or "!")(bot,ctx)
+    except:
+      return commands.when_mentioned_or("!")(bot,ctx)
+  # return commands.when_mentioned_or("!")(bot,ctx)
+  # return "!"
   return "!"

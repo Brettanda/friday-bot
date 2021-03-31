@@ -1,4 +1,5 @@
-import os,json
+import json
+import os
 
 direc = r"C:\Users\brett\downloads\Friday"
 intents = f"{direc}\intents"
@@ -14,9 +15,9 @@ def run():
         main = ""
         pat = ""
         try:
-          main = f"{intents}\{filen}.json"
-          pat = f"{intents}\{filen}_usersays_en.json"
-          
+          main = intents+"\\"+filen+".json"
+          pat = intents+"\\"+filen+"_usersays_en.json"
+
           with open(main,encoding="utf8") as f:
             main = json.load(f)
           with open(pat,encoding="utf8") as f:
@@ -59,7 +60,7 @@ def run():
   with open("ml/intents.json","w") as f:
     f.write(json.dumps(new,indent=2,sort_keys=False))
     f.close()
-    
+
 
 if __name__ == "__main__":
   run()
