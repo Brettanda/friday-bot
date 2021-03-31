@@ -164,7 +164,7 @@ class Fun(commands.Cog):
 
     # async with ctx.channel.typing():
     def get_xy():
-      return numpy.random.randint(0,size-1),numpy.random.randint(0,size-1)
+      return random.randint(0,size-1),random.randint(0,size-1)
 
     for _ in range(bomb_count):
       x,y = get_xy()

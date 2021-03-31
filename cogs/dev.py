@@ -121,7 +121,7 @@ class Dev(commands.Cog,command_attrs=dict(hidden=True)):
       self.bot.load_extension(f"cogs.{command.lower()}")
     await ctx.reply(embed=embed(title=f"Cog *{command}* has been loaded"))
 
-  @norm_dev.command(name="unload")
+  @dev.command(name="unload")
   async def unload(self,ctx,command:str):
     async with ctx.typing():
       self.bot.unload_extension(f"cogs.{command.lower()}")

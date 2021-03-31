@@ -9,8 +9,8 @@ from discord.ext import commands
 from discord_slash import SlashCommand#, SlashContext
 from dotenv import load_dotenv
 
-# from chat import queryGen
-from chat import queryIntents
+# from chatml import queryGen
+# from chatml import queryIntents
 from cogs.cleanup import get_delete_time
 from cogs.help import cmd_help
 from functions import (MessageColors, embed, exceptions,
