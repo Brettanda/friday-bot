@@ -1,7 +1,9 @@
-import discord,asyncio
+import asyncio
+
+# import discord
 from discord.ext import commands
 
-from functions import mydb_connect,query,embed
+from functions import embed, mydb_connect, query
 
 async def get_delete_time(ctx:commands.Context=None,guild_id:int=None):
   if isinstance(ctx,commands.Context) and guild_id is None:
@@ -10,7 +12,7 @@ async def get_delete_time(ctx:commands.Context=None,guild_id:int=None):
     return None
   try:
     mydb = mydb_connect()
-    result = query(mydb,f"SELECT autoDeleteMSGs FROM servers WHERE id=%s",guild_id)
+    result = query(mydb,"SELECT autoDeleteMSGs FROM servers WHERE id=%s",guild_id)
     if result is None or result == 0:
       return None
     return result

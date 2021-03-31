@@ -2,11 +2,11 @@ import asyncio
 import json
 import os
 import re
-import sys
+# import sys
 import urllib
 
 import discord
-import ffmpeg
+# import ffmpeg
 import youtube_dl
 from discord.ext import commands
 
@@ -64,12 +64,7 @@ class redditlink(commands.Cog):
     if len(reg) != 1:
       return
 
-    body = None
-    try:
-      body = self.request(reg[0]+".json")
-    except:
-      raise
-      # pass
+    body = self.request(reg[0]+".json")
 
     data = None
     video = None
@@ -91,7 +86,7 @@ class redditlink(commands.Cog):
     except:
       # raise
       pass
-    
+
     try:
       embeded = data["media"]["oembed"]
     except:
@@ -138,7 +133,7 @@ class redditlink(commands.Cog):
       for react in message.reactions:
         if react.me and react.emoji == self.emoji:
           test = True
-        if test == False:
+        if test is False:
           return
       try:
         await asyncio.gather(
@@ -159,7 +154,7 @@ class redditlink(commands.Cog):
           body = self.request(reg[0]+".json")
         except:
           pass
-          
+
         try:
           try:
             data = body[0]["data"]["children"][0]["data"]["crosspost_parent_list"][0]
@@ -173,7 +168,7 @@ class redditlink(commands.Cog):
         linkdata = None
         video = False
         # try:
-        if data["media"] != None and "reddit_video" in data["media"]:
+        if data["media"] is not None and "reddit_video" in data["media"]:
           link = data["media"]["reddit_video"]["hls_url"]
           loop = asyncio.get_event_loop()
           linkdata = await loop.run_in_executor(None, lambda: ytdl.extract_info(link, download=True))
@@ -194,12 +189,12 @@ class redditlink(commands.Cog):
         #   raise
 
       # TODO: Does not get url for videos atm
-      if (message.channel.nsfw == True and data["over_18"] == True) or (message.channel.nsfw == False and data["over_18"] == False) or (message.channel.nsfw == True and data["over_18"] == False):
+      if (message.channel.nsfw is True and data["over_18"] is True) or (message.channel.nsfw is False and data["over_18"] is False) or (message.channel.nsfw is True and data["over_18"] is False):
         spoiler = False
       else:
         spoiler = True
 
-      if video == True:
+      if video is True:
         thispath = os.getcwd()
         if "\\" in thispath:
           seperator = "\\\\"
@@ -212,19 +207,18 @@ class redditlink(commands.Cog):
           await message.reply(file=discord.File(fp=mp4file,filename=f'{"_".join(name)}.{ext}',spoiler=spoiler))
         except discord.HTTPException:
           await message.reply(embed=embed(title="This file is too powerful to be uploaded",description="You will have to open reddit to view this",color=MessageColors.ERROR))
-          pass
         finally:
           try:
             os.remove(mp4file)
           except PermissionError:
             pass
       else:
-        if spoiler == True:
+        if spoiler is True:
           await message.reply("||"+link+"||")
         else:
           await message.reply(link)
       # elif reaction.message.channel.nsfw == False and data["over_18"] == False:
-          
+
       # print(len(body))
       # if ctx.channel.nsfw and body["data"]["over_18"]:
 

@@ -12,7 +12,7 @@ class ServerInfo(commands.Cog):
   async def server_info(self,ctx):
     async with ctx.typing():
       mydb = mydb_connect()
-      prefix,delete_after,musicchannel,defaultRole = query(mydb,f"SELECT prefix,autoDeleteMSGs,musicChannel,defaultRole FROM servers WHERE id=%s",ctx.guild.id)[0]
+      prefix,delete_after,musicchannel,defaultRole = query(mydb,"SELECT prefix,autoDeleteMSGs,musicChannel,defaultRole FROM servers WHERE id=%s",ctx.guild.id)[0]
     await ctx.reply(
       embed=embed(
         title=ctx.guild.name+" - Info",

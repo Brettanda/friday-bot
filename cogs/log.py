@@ -59,8 +59,6 @@ class Log(commands.Cog):
                   )
                 except discord.Forbidden:
                   pass
-                except:
-                  raise
             else:
               print(f"HELP guild could not be found {guild_id}")
               logger.warning(f"HELP guild could not be found {guild_id}")
@@ -76,7 +74,7 @@ class Log(commands.Cog):
     else:
       for guild_id in database_guilds:
         guild = self.bot.get_guild(guild_id[0])
-        query(mydb,f"UPDATE servers SET name=%s WHERE id=%s",guild.name,guild_id[0])
+        query(mydb,"UPDATE servers SET name=%s WHERE id=%s",guild.name,guild_id[0])
 
   @commands.Cog.listener()
   async def on_shard_ready(self,shard_id):
@@ -101,7 +99,7 @@ class Log(commands.Cog):
     # current_time = now.strftime()
     mydb = mydb_connect()
     owner = guild.owner.id if hasattr(guild,"owner") and hasattr(guild.owner,"id") else 0
-    query(mydb,f"INSERT INTO servers (id,owner,name) VALUES (%s,%s,%s)",guild.id,owner,guild.name)
+    query(mydb,"INSERT INTO servers (id,owner,name) VALUES (%s,%s,%s)",guild.id,owner,guild.name)
     if guild.system_channel is not None:
       prefix = "!"
       try:
@@ -110,8 +108,6 @@ class Log(commands.Cog):
         )
       except discord.Forbidden:
         pass
-      except:
-        raise
 
   @commands.Cog.listener()
   async def on_guild_remove(self,guild):
@@ -129,7 +125,7 @@ class Log(commands.Cog):
       role = member.guild.get_role(role_id)
       if role is None:
         # await member.guild.owner.send(f"The default role that was chosen for me to add to members when they join yours server \"{member.guild.name}\" could not be found, please update the default role at https://friday-self.bot.com")
-        query(mydb,f"UPDATE servers SET defaultRole=NULL WHERE id=%s",member.guild.id)
+        query(mydb,"UPDATE servers SET defaultRole=NULL WHERE id=%s",member.guild.id)
       else:
         await member.add_roles(role,reason="Default Role")
 

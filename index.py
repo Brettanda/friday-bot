@@ -6,15 +6,15 @@ import traceback
 
 import discord
 from discord.ext import commands
-from discord_slash import SlashCommand, SlashContext
+from discord_slash import SlashCommand#, SlashContext
 from dotenv import load_dotenv
 
 # from chat import queryGen
 from chat import queryIntents
 from cogs.cleanup import get_delete_time
 from cogs.help import cmd_help
-from functions import (MessageColors, dev_guilds, embed, exceptions,
-                       mydb_connect, query, relay_info)
+from functions import (MessageColors, embed, exceptions,
+                       relay_info)
 from functions.mysql_connection import query_prefix
 
 logging.basicConfig(
@@ -40,13 +40,13 @@ songqueue = {}
 restartPending = False
 
 
-
 class MyContext(commands.Context):
   async def reply(self,content=None,**kwargs):
-    if not hasattr(kwargs,"delete_after") and self.command.name not in ["help","meme","issue","reactionrole","minesweeper"]:
+    ignore_coms = ["log","help","meme","issue","reactionrole","minesweeper"]
+    if not hasattr(kwargs,"delete_after") and self.command.name not in ignore_coms:
       delete = await get_delete_time(self)
       delete = delete if delete is not None and delete != 0 else None
-      if delete != None:
+      if delete is not None:
         kwargs.update({"delete_after":delete})
         await self.message.delete(delay=delete)
     try:
@@ -87,9 +87,9 @@ class Friday(commands.AutoShardedBot):
     if hasattr(ctx.command, 'on_error'):
       return
 
-    if ctx.cog:
-      if ctx.cog._get_overridden_method(ctx.cog.cog_command_error) is not None:
-        return
+    # if ctx.cog:
+      # if ctx.cog._get_overridden_method(ctx.cog.cog_command_error) is not None:
+        # return
 
     delete = await get_delete_time(ctx)
     if isinstance(error,commands.NotOwner):

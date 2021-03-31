@@ -35,7 +35,7 @@ class DatedEvents(commands.Cog):
         await asyncio.gather(
           guild.edit(icon=f),
           user.edit(avatar=f)
-        ) 
+        )
       await asyncio.sleep(43200.0)
     elif int(month) == 4 and int(day) == 2:
       print("post-april fools")
@@ -45,7 +45,7 @@ class DatedEvents(commands.Cog):
         await asyncio.gather(
           guild.edit(icon=f),
           user.edit(avatar=f)
-        ) 
+        )
       await asyncio.sleep(43200.0)
 
 

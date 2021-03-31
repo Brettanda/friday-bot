@@ -1,14 +1,14 @@
-custom = True
-
 import os
-import random
+# import random
 import re
 
 import numpy as np
-from keras.callbacks import ModelCheckpoint
-from keras.layers import LSTM, Dense, Input, Reshape
-from keras.models import Model, load_model
-from tensorflow import keras
+# from keras.callbacks import ModelCheckpoint
+from keras.layers import LSTM, Dense, Input#, Reshape
+from keras.models import Model#, load_model
+# from tensorflow import keras
+
+custom = True
 
 os.add_dll_directory("C:\Program Files\\NVIDIA GPU Computing Toolkit\CUDA\\v11.0\\bin")
 os.add_dll_directory("C:\Program Files\\NVIDIA GPU Computing Toolkit\CUDA\\v11.0\\libnvvp")
@@ -39,21 +39,18 @@ lines2 = [" ".join(re.findall(r"\w+",line)) for line in lines2]
 pairs = list(zip(lines,lines2))
 # random.shuffle(pairs)
 
-
-
-
 def start(pairss):
-  input_docs = []
+  inp_docs = []
   target_docs = []
-  input_tokens = set()
+  inp_tokens = set()
   target_tokens = set()
-  if custom == False:
+  if custom is False:
     pairss = pairss[:800]
   for line in pairss:
   # for line in pairs[:1500]:
-    input_doc, target_doc = line[0], line[1]
-    # Appending each input sentence to input_docs
-    input_docs.append(input_doc)
+    inp_doc, target_doc = line[0], line[1]
+    # Appending each inp sentence to inp_docs
+    inp_docs.append(inp_doc)
     # Splitting words from punctuation
     target_doc = " ".join(re.findall(r"[\w']+|[^\s\w]", target_doc))
     # Redefine target_doc below and append it to target_docs
@@ -61,80 +58,80 @@ def start(pairss):
     target_docs.append(target_doc)
 
     # Now we split up each sentence into words and add each unique word to our vocabulary set
-    for token in re.findall(r"[\w']+|[^\s\w]", input_doc):
-      if token not in input_tokens:
-        input_tokens.add(token)
+    for token in re.findall(r"[\w']+|[^\s\w]", inp_doc):
+      if token not in inp_tokens:
+        inp_tokens.add(token)
     for token in target_doc.split():
       if token not in target_tokens:
         target_tokens.add(token)
-  input_tokens = sorted(list(input_tokens))
+  inp_tokens = sorted(list(inp_tokens))
   target_tokens = sorted(list(target_tokens))
-  num_encoder_tokens = len(input_tokens)
-  num_decoder_tokens = len(target_tokens)
+  num_enc_tokens = len(inp_tokens)
+  num_dec_tokens = len(target_tokens)
 
-  input_features_dict = dict(
-    [(token, i) for i, token in enumerate(input_tokens)])
+  inp_features_dict = dict(
+    [(token, i) for i, token in enumerate(inp_tokens)])
   target_features_dict = dict(
     [(token, i) for i, token in enumerate(target_tokens)])
-  reverse_input_features_dict = dict(
-    (i, token) for token, i in input_features_dict.items())
-  reverse_target_features_dict = dict(
-    (i, token) for token, i in target_features_dict.items())
+  # reverse_inp_features_dict = dict(
+  #   (i, token) for token, i in inp_features_dict.items())
+  # reverse_target_features_dict = dict(
+  #   (i, token) for token, i in target_features_dict.items())
 
 
-  #Maximum length of sentences in input and target documents
-  max_encoder_seq_length = max(
-    [len(re.findall(r"[\w']+|[^\s\w]", input_doc)) for input_doc in input_docs])
-  max_decoder_seq_length = max(
+  #Maximum length of sentences in inp and target documents
+  max_enc_seq_length = max(
+    [len(re.findall(r"[\w']+|[^\s\w]", inp_doc)) for inp_doc in inp_docs])
+  max_dec_seq_length = max(
     [len(re.findall(r"[\w']+|[^\s\w]", target_doc)) for target_doc in target_docs])
-  encoder_input_data = np.zeros(
-    (len(input_docs), max_encoder_seq_length, num_encoder_tokens),
+  enc_inp_data = np.zeros(
+    (len(inp_docs), max_enc_seq_length, num_enc_tokens),
     dtype='float32')
-  decoder_input_data = np.zeros(
-    (len(input_docs), max_decoder_seq_length, num_decoder_tokens),
+  dec_inp_data = np.zeros(
+    (len(inp_docs), max_dec_seq_length, num_dec_tokens),
     dtype='float32')
-  decoder_target_data = np.zeros(
-    (len(input_docs), max_decoder_seq_length, num_decoder_tokens),
+  dec_target_data = np.zeros(
+    (len(inp_docs), max_dec_seq_length, num_dec_tokens),
     dtype='float32')
-  for line, (input_doc, target_doc) in enumerate(zip(input_docs, target_docs)):
-    for timestep, token in enumerate(re.findall(r"[\w']+|[^\s\w]", input_doc)):
-      #Assign 1. for the current line, timestep, & word in encoder_input_data
-      encoder_input_data[line, timestep, input_features_dict[token]] = 1.
-    
+  for line, (inp_doc, target_doc) in enumerate(zip(inp_docs, target_docs)):
+    for timestep, token in enumerate(re.findall(r"[\w']+|[^\s\w]", inp_doc)):
+      #Assign 1. for the current line, timestep, & word in enc_inp_data
+      enc_inp_data[line, timestep, inp_features_dict[token]] = 1.
+
     for timestep, token in enumerate(target_doc.split()):
-      decoder_input_data[line, timestep, target_features_dict[token]] = 1.
+      dec_inp_data[line, timestep, target_features_dict[token]] = 1.
       if timestep > 0:
-        decoder_target_data[line, timestep - 1, target_features_dict[token]] = 1.
+        dec_target_data[line, timestep - 1, target_features_dict[token]] = 1.
   #Dimensionality
   dimensionality = 256
   #The batch size and number of epochs
   batch_size = 3
   epochs = 20
-  #Encoder
-  encoder_inputs = Input(shape=(None, num_encoder_tokens))
-  # encoder_inputs = Input(shape=(None, len(pairs)))
-  encoder_lstm = LSTM(dimensionality, return_state=True)
-  encoder_outputs, state_hidden, state_cell = encoder_lstm(encoder_inputs)
-  encoder_states = [state_hidden, state_cell]
-  #Decoder
-  decoder_inputs = Input(shape=(None, num_decoder_tokens))
-  # decoder_inputs = Input(shape=(None, len(pairs)))
-  decoder_lstm = LSTM(dimensionality, return_sequences=True, return_state=True)
-  decoder_outputs, decoder_state_hidden, decoder_state_cell = decoder_lstm(
-    decoder_inputs, initial_state=encoder_states)
-  decoder_dense = Dense(num_decoder_tokens, activation='softmax')
-  decoder_outputs = decoder_dense(decoder_outputs)
+  #enc
+  enc_inps = Input(shape=(None, num_enc_tokens))
+  # enc_inps = Input(shape=(None, len(pairs)))
+  enc_lstm = LSTM(dimensionality, return_state=True)
+  # enc_outs,
+  state_hidden, state_cell = enc_lstm(enc_inps)[1:]
+  enc_states = [state_hidden, state_cell]
+  #dec
+  dec_inps = Input(shape=(None, num_dec_tokens))
+  # dec_inps = Input(shape=(None, len(pairs)))
+  dec_lstm = LSTM(dimensionality, return_sequences=True, return_state=True)
+  dec_outs = dec_lstm(dec_inps, initial_state=enc_states)[0]
+  dec_dense = Dense(num_dec_tokens, activation='softmax')
+  dec_outs = dec_dense(dec_outs)
 
   del pairss
   return (
-    encoder_input_data,
-    decoder_input_data,
-    decoder_target_data,
-    encoder_inputs,
-    decoder_inputs,
-    decoder_outputs,
-    num_encoder_tokens,
-    num_decoder_tokens,
+    enc_inp_data,
+    dec_inp_data,
+    dec_target_data,
+    enc_inps,
+    dec_inps,
+    dec_outs,
+    num_enc_tokens,
+    num_dec_tokens,
     epochs,
     batch_size
   )
@@ -144,47 +141,38 @@ def start(pairss):
 # i = 0
 # while i < len(chunks):
   # print(chunks[i])
-# encoder_input_data,decoder_input_data,decoder_target_data,encoder_inputs,decoder_inputs,decoder_outputs,epochs,batch_size = start(pairs[slice(chunks[i][0],chunks[i][1])])
-encoder_input_data,
-decoder_input_data,
-decoder_target_data,
-encoder_inputs,
-decoder_inputs,
-decoder_outputs,
-num_encoder_tokens,
-num_decoder_tokens,
-epochs,
-batch_size = start(pairs)
+# enc_inp_data,dec_inp_data,dec_target_data,enc_inps,dec_inps,dec_outs,epochs,batch_size = start(pairs[slice(chunks[i][0],chunks[i][1])])
+enc_inp_data,dec_inp_data,dec_target_data,enc_inps,dec_inps,dec_outs,num_enc_tokens,num_dec_tokens,epochs,batch_size = start(pairs)
 # if i > 0:
 #   training_model = load_model("full_training_model_0.h5")
-#   training_model.layers[0] = Reshape(encoder_input_data.shape)
+#   training_model.layers[0] = Reshape(enc_inp_data.shape)
 # else:
-training_model = Model([encoder_inputs, decoder_inputs], decoder_outputs)
-# print(training_model.layers[0].input.reshape(encoder_input_data.shape))
-# print(encoder_input_data.shape)
+training_model = Model([enc_inps, dec_inps], dec_outs)
+# print(training_model.layers[0].inp.reshape(enc_inp_data.shape))
+# print(enc_inp_data.shape)
 #Compiling
 training_model.compile(optimizer='rmsprop', loss='categorical_crossentropy', metrics=['accuracy'], sample_weight_mode='temporal')
-# print(encoder_input_data,decoder_input_data,decoder_target_data)
+# print(enc_inp_data,dec_inp_data,dec_target_data)
 #Training
 training_model.fit(
-  [encoder_input_data, decoder_input_data],
-  decoder_target_data,
+  [enc_inp_data, dec_inp_data],
+  dec_target_data,
   batch_size = batch_size,
   epochs = epochs,
   workers=8,
   shuffle=True,
   use_multiprocessing = True) #verbose=2,   validation_split = 0.2
-# training_model.build(encoder_input_data.shape)
+# training_model.build(enc_inp_data.shape)
 training_model.summary()
-scores = training_model.evaluate([encoder_input_data, decoder_input_data], decoder_target_data, verbose=0)
+scores = training_model.evaluate([enc_inp_data, dec_inp_data], dec_target_data, verbose=0)
 print("Accuracy: %.2f%%" % (scores[1]*100))
 # training_model.save('full_training_model_0.h5')
-# del encoder_input_data,decoder_input_data,decoder_target_data,encoder_inputs,decoder_inputs,decoder_outputs,epochs,batch_size
+# del enc_inp_data,dec_inp_data,dec_target_data,enc_inps,dec_inps,dec_outs,epochs,batch_size
 # i += 1
-  
+
 
 #Model
-# # scores = training_model.evaluate([encoder_input_data[:500], decoder_input_data[:500]], decoder_target_data[:500], verbose=0)
+# # scores = training_model.evaluate([enc_inp_data[:500], dec_inp_data[:500]], dec_target_data[:500], verbose=0)
 # # print("Baseline Error: &.2f%%" % (100-scores[1]*100))
 
 # training_model.save("partly_trained.h5")
@@ -193,9 +181,9 @@ print("Accuracy: %.2f%%" % (scores[1]*100))
 # training_model = load_model("partly_trained.h5")
 
 # training_model.fit(
-# [encoder_input_data[500:1000],
-# decoder_input_data[500:1000]],
-# decoder_target_data[500:1000],
+# [enc_inp_data[500:1000],
+# dec_inp_data[500:1000]],
+# dec_target_data[500:1000],
 # batch_size = batch_size,
 # epochs = epochs,
 # validation_split = 0.2,
@@ -206,109 +194,109 @@ print("Accuracy: %.2f%%" % (scores[1]*100))
 # checkpoint = ModelCheckpoint(filepath, monitor='accuracy', verbose=1, save_best_only=True, mode='min')
 # callbacks_list = [checkpoint]
 # training_model.fit(
-# [encoder_input_data, decoder_input_data],
-# decoder_target_data,
+# [enc_inp_data, dec_inp_data],
+# dec_target_data,
 # batch_size = batch_size, epochs = epochs,
 # callbacks=callbacks_list,
 # validation_split = 0.2,
 # shuffle=True,
 # use_multiprocessing = True)
 
-# print(encoder_inputs)
-# print(encoder_input_data)
+# print(enc_inps)
+# print(enc_inp_data)
 
 # class MY_Generator(keras.utils.Sequence):
-#     def __init__(self,encoder_input_data,decoder_input_data,decoder_target_data,batch_size):
-#         self.encoder_input_data, self.decoder_input_data, self.decoder_target_data = encoder_input_data,decoder_input_data,decoder_target_data
+#     def __init__(self,enc_inp_data,dec_inp_data,dec_target_data,batch_size):
+#         self.enc_inp_data, self.dec_inp_data, self.dec_target_data = enc_inp_data,dec_inp_data,dec_target_data
 #         self.batch_size = batch_size
 #     def __len__(self):
-#         return np.ceil(num_encoder_tokens / int(self.batch_size)).astype(np.int)
+#         return np.ceil(num_enc_tokens / int(self.batch_size)).astype(np.int)
 #     def __getitem__(self,idx):
-#         batch_x = self.encoder_input_data[idx * self.batch_size:(idx + 1) * self.batch_size]
-#         batch_y = self.decoder_input_data[idx * self.batch_size:(idx + 1) * self.batch_size]
-#         batch_z = self.decoder_target_data[idx * self.batch_size:(idx + 1) * self.batch_size]
+#         batch_x = self.enc_inp_data[idx * self.batch_size:(idx + 1) * self.batch_size]
+#         batch_y = self.dec_inp_data[idx * self.batch_size:(idx + 1) * self.batch_size]
+#         batch_z = self.dec_target_data[idx * self.batch_size:(idx + 1) * self.batch_size]
 
 #         # return np.array([batch_x, batch_y], batch_z)
 #         print(np.array(batch_x),np.array(batch_y),np.array(batch_z))
 #         return np.array(batch_x),np.array(batch_y),np.array(batch_z)
 # class MY_Generator_two(keras.utils.Sequence):
-#     def __init__(self,input_data,target_data,batch_size):
-#         self.input_data,self.target_data = input_data,target_data
+#     def __init__(self,inp_data,target_data,batch_size):
+#         self.inp_data,self.target_data = inp_data,target_data
 #         self.batch_size = batch_size
 #     def __len__(self):
-#         return np.ceil(num_encoder_tokens / int(self.batch_size)).astype(np.int)
+#         return np.ceil(num_enc_tokens / int(self.batch_size)).astype(np.int)
 #     def __getitem__(self,idx):
-#         batch_x = self.input_data[idx * self.batch_size:(idx + 1) * self.batch_size]
+#         batch_x = self.inp_data[idx * self.batch_size:(idx + 1) * self.batch_size]
 #         batch_y = self.target_data[idx * self.batch_size:(idx + 1) * self.batch_size]
 
 #         # return np.array([batch_x, batch_y], batch_z)
 #         return np.array(batch_x),np.array(batch_y)
-        
+
 # class MY_Generator(keras.utils.Sequence):
-#     def __init__(self,input_data,batch_size):
-#         self.input_data = input_data
+#     def __init__(self,inp_data,batch_size):
+#         self.inp_data = inp_data
 #         self.batch_size = batch_size
 #     def __len__(self):
-#         return np.ceil(num_encoder_tokens / int(self.batch_size)).astype(np.int)
+#         return np.ceil(num_enc_tokens / int(self.batch_size)).astype(np.int)
 #     def __getitem__(self,idx):
-#         batch_x = self.input_data[idx * self.batch_size:(idx + 1) * self.batch_size]
+#         batch_x = self.inp_data[idx * self.batch_size:(idx + 1) * self.batch_size]
 
 #         # return np.array([batch_x, batch_y], batch_z)
 #         return np.array(batch_x)
 
-# my_training_batch_generator_encoder_input_data = MY_Generator_two(encoder_input_data,decoder_input_data,batch_size)
-# my_training_batch_generator_decoder_target_data = MY_Generator(decoder_target_data,batch_size)
+# my_training_batch_generator_enc_inp_data = MY_Generator_two(enc_inp_data,dec_inp_data,batch_size)
+# my_training_batch_generator_dec_target_data = MY_Generator(dec_target_data,batch_size)
 
 # # print(my_training_batch_generator)
 # training_model.summary()
-# training_model.fit(my_training_batch_generator_encoder_input_data,my_training_batch_generator_decoder_target_data, verbose = 1, epochs = epochs, shuffle=True, use_multiprocessing = True, max_queue_size=32)
-if custom == True:
+# training_model.fit(my_training_batch_generator_enc_inp_data,my_training_batch_generator_dec_target_data, verbose = 1, epochs = epochs, shuffle=True, use_multiprocessing = True, max_queue_size=32)
+if custom is True:
   training_model.save('ml/models/custom_gen_model.h5')
 else:
   training_model.save('ml/models/gen_model.h5')
 
 
 # training_model = load_model('custom_training_model_quick.h5')
-# encoder_inputs = training_model.input[0]
-# encoder_outputs, state_h_enc, state_c_enc = training_model.layers[2].output
-# encoder_states = [state_h_enc, state_c_enc]
-# encoder_model = Model(encoder_inputs, encoder_states)
+# enc_inps = training_model.inp[0]
+# enc_outs, state_h_enc, state_c_enc = training_model.layers[2].out
+# enc_states = [state_h_enc, state_c_enc]
+# enc_model = Model(enc_inps, enc_states)
 
 # latent_dim = 256
-# decoder_state_input_hidden = Input(shape=(latent_dim,))
-# decoder_state_input_cell = Input(shape=(latent_dim,))
-# decoder_states_inputs = [decoder_state_input_hidden, decoder_state_input_cell]
+# dec_state_inp_hidden = Input(shape=(latent_dim,))
+# dec_state_inp_cell = Input(shape=(latent_dim,))
+# dec_states_inps = [dec_state_inp_hidden, dec_state_inp_cell]
 
-# decoder_outputs, state_hidden, state_cell = decoder_lstm(decoder_inputs, initial_state=decoder_states_inputs)
-# decoder_states = [state_hidden, state_cell]
-# decoder_outputs = decoder_dense(decoder_outputs)
+# dec_outs, state_hidden, state_cell = dec_lstm(dec_inps, initial_state=dec_states_inps)
+# dec_states = [state_hidden, state_cell]
+# dec_outs = dec_dense(dec_outs)
 
-# decoder_model = Model([decoder_inputs] + decoder_states_inputs, [decoder_outputs] + decoder_states)
+# dec_model = Model([dec_inps] + dec_states_inps, [dec_outs] + dec_states)
 
-# def decode_response(test_input):
-#   #Getting the output states to pass into the decoder
-#   states_value = encoder_model.predict(test_input)
+# def decode_response(test_inp):
+#   #Getting the out states to pass into the dec
+#   states_value = enc_model.predict(test_inp)
 #   #Generating empty target sequence of length 1
-#   target_seq = np.zeros((1, 1, num_decoder_tokens))
+#   target_seq = np.zeros((1, 1, num_dec_tokens))
 #   #Setting the first token of target sequence with the start token
 #   target_seq[0, 0, target_features_dict['<START>']] = 1.
-  
+
 #   #A variable to store our response word by word
 #   decoded_sentence = ''
-  
+
 #   stop_condition = False
 #   while not stop_condition:
-#     #Predicting output tokens with probabilities and states
-#     output_tokens, hidden_state, cell_state = decoder_model.predict([target_seq] + states_value)
+#     #Predicting out tokens with probabilities and states
+#     out_tokens, hidden_state, cell_state = dec_model.predict([target_seq] + states_value)
 #     #Choosing the one with highest probability
-#     sampled_token_index = np.argmax(output_tokens[0, -1, :])
+#     sampled_token_index = np.argmax(out_tokens[0, -1, :])
 #     sampled_token = reverse_target_features_dict[sampled_token_index]
 #     decoded_sentence += " " + sampled_token
 #     #Stop if hit max length or found the stop token
-#     if (sampled_token == '<END>' or len(decoded_sentence) > max_decoder_seq_length):
+#     if (sampled_token == '<END>' or len(decoded_sentence) > max_dec_seq_length):
 #       stop_condition = True
 #       #Update the target sequence
-#     target_seq = np.zeros((1, 1, num_decoder_tokens))
+#     target_seq = np.zeros((1, 1, num_dec_tokens))
 #     target_seq[0, 0, sampled_token_index] = 1.
 #     #Update states
 #     states_value = [hidden_state, cell_state]
@@ -320,8 +308,8 @@ else:
 #   exit_commands = ("quit", "pause", "exit", "goodbye", "bye", "later", "stop")
 # #Method to start the conversation
 #   def start_chat(self):
-#     user_response = input("Hi, I'm a chatbot trained on random dialogs. Would you like to chat with me?\n")
-    
+#     user_response = inp("Hi, I'm a chatbot trained on random dialogs. Would you like to chat with me?\n")
+
 #     if user_response in self.negative_responses:
 #       print("Ok, have a great day!")
 #       return
@@ -329,23 +317,23 @@ else:
 # #Method to handle the conversation
 #   def chat(self, reply):
 #     while not self.make_exit(reply):
-#       reply = input(self.generate_response(reply)+"\n")
-    
-#   #Method to convert user input into a matrix
-#   def string_to_matrix(self, user_input):
-#     tokens = re.findall(r"[\w']+|[^\s\w]", user_input)
-#     user_input_matrix = np.zeros(
-#       (1, max_encoder_seq_length, num_encoder_tokens),
+#       reply = inp(self.generate_response(reply)+"\n")
+
+#   #Method to convert user inp into a matrix
+#   def string_to_matrix(self, user_inp):
+#     tokens = re.findall(r"[\w']+|[^\s\w]", user_inp)
+#     user_inp_matrix = np.zeros(
+#       (1, max_enc_seq_length, num_enc_tokens),
 #       dtype='float32')
 #     for timestep, token in enumerate(tokens):
-#       if token in input_features_dict:
-#         user_input_matrix[0, timestep, input_features_dict[token]] = 1.
-#     return user_input_matrix
-  
+#       if token in inp_features_dict:
+#         user_inp_matrix[0, timestep, inp_features_dict[token]] = 1.
+#     return user_inp_matrix
+
 #   #Method that will create a response using seq2seq model we built
-#   def generate_response(self, user_input):
-#     input_matrix = self.string_to_matrix(user_input)
-#     chatbot_response = decode_response(input_matrix)
+#   def generate_response(self, user_inp):
+#     inp_matrix = self.string_to_matrix(user_inp)
+#     chatbot_response = decode_response(inp_matrix)
 #     #Remove <START> and <END> tokens from chatbot_response
 #     chatbot_response = chatbot_response.replace("<START>",'')
 #     chatbot_response = chatbot_response.replace("<END>",'')
