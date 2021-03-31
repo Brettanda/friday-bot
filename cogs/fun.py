@@ -232,5 +232,18 @@ class Fun(commands.Cog):
       image=random.choice(config['soups'])
     ))
 
+  @commands.command(name="coinflip",aliases=["coin"],description="Flip a coin")
+  async def norm_coin(self,ctx):
+    await ctx.reply(embed=embed(title="Results for the flip: "+random.choice(["Heads","Tails"])))
+
+  @cog_ext.cog_slash(
+    name="coinflip",
+    description="Flip a coin",
+    options=[create_option("hidden", "Hide the response", 5, False)]
+  )
+  async def slash_coin(self,ctx,hidden:bool=False):
+    await ctx.defer(hidden)
+    await ctx.send(hidden=hidden,content="Results for the flip: "+random.choice(["Heads","Tails"]))
+
 def setup(bot):
   bot.add_cog(Fun(bot))
