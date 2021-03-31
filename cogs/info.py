@@ -10,14 +10,12 @@ class Info(commands.Cog):
 
   @commands.group(name="info",description="Displays some information about myself :)")
   async def norm_info(self,ctx):
-    post = await self.info(ctx)
-    await ctx.reply(**post)
+    await ctx.reply(**await self.info(ctx))
 
   @cog_ext.cog_slash(name="info",description="Displays some information about myself :)")
   async def slash_info(self,ctx):
-    await ctx.respond()
-    post = await self.info(ctx)
-    await ctx.send(**post)
+    await ctx.defer()
+    await ctx.send(**await self.info(ctx))
 
   async def info(self,ctx):
     activity = ctx.guild.me.activity.name if ctx.guild is not None and ctx.guild.me.activity is not None else self.bot.activity.name if self.bot.activity is not None else None

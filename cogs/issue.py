@@ -43,8 +43,8 @@ class Issue(commands.Cog):
 
   @cog_ext.cog_slash(name="support",description="Support server link")
   async def slash_support(self,ctx):
-    await ctx.respond(True)
-    await ctx.send_hidden("https://discord.gg/NTRuFjU")
+    await ctx.defer(True)
+    await ctx.send("https://discord.gg/NTRuFjU",hidden=True)
 
 def setup(bot):
   bot.add_cog(Issue(bot))

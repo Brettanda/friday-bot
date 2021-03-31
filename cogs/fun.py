@@ -83,7 +83,7 @@ class Fun(commands.Cog):
     ]
   )
   async def slash_rock_paper_scissors(self,ctx,choice:str):
-    await ctx.respond()
+    await ctx.defer()
     post = await self.rock_paper_scissors(ctx, choice)
     await ctx.send(**post)
 
@@ -136,29 +136,33 @@ class Fun(commands.Cog):
 
   @commands.command(name="minesweeper",aliases=["ms"])
   async def norm_minesweeper(self,ctx,size:typing.Optional[int]=5,bomb_count:typing.Optional[int]=6):
-    async with ctx.typing():
-      post = await self.mine_sweeper(ctx,size,bomb_count)
-    await ctx.reply(**post)
+    await ctx.reply(**await self.mine_sweeper(size,bomb_count))
 
   @cog_ext.cog_slash(
     name="minesweeper",
     description="Minesweeper",
     options=[
       create_option("size", "SizeXSize", 4, required=False),
-      create_option("bomb_count", "Amount of bombs", 4, required=False)
-    ]
+      create_option("bomb_count", "Amount of bombs", 4, required=False),
+      create_option("hidden", "To hide the command, or not to hide the command", 5, required=False)
+    ],guild_ids=[243159711237537802,805579185879121940]
   )
-  async def slash_minesweeper(self,ctx,size:int=5,bomb_count:int=6):
-    await ctx.respond()
-    post = await self.mine_sweeper(ctx,size,bomb_count)
-    await ctx.send(**post)
+  async def slash_minesweeper(self,ctx,size:int=5,bomb_count:int=6,hidden:bool=False):
+    await ctx.defer(hidden)
+    post = await self.mine_sweeper(size,bomb_count,hidden)
+    if hidden:
+      await ctx.send(hidden=True,**post)
+    else:
+      await ctx.send(**post)
 
-  async def mine_sweeper(self,ctx,size,bomb_count):
+  async def mine_sweeper(self,size,bomb_count,hidden=False):
     """Source for this command: https://medium.com/swlh/this-is-how-to-create-a-simple-minesweeper-game-in-python-af02077a8de"""
     if size > 9:
-      raise commands.BadArgument("Size cannot be larger than 9 due to the message character limit of Discord")
-    if bomb_count >= size*size:
-      raise commands.BadArgument("Bomb_count cannot be larger than the game board")
+      return dict(content="Size cannot be larger than 9 due to the message character limit of Discord")
+      # raise exceptions.ArgumentTooLarge("Size cannot be larger than 9 due to the message character limit of Discord")
+    if bomb_count > size*size:
+      return dict(content="Bomb_count cannot be larger than the game board")
+      # raise exceptions.ArgumentTooLarge("Bomb_count cannot be larger than the game board")
 
     arr = [[0 for row in range(size)] for column in range(size)]
 
@@ -204,21 +208,21 @@ class Fun(commands.Cog):
         if arr[y+1][x] != 'X':
           arr[y+1][x] += 1 # bottom center
 
-    return dict(embed=embed(title=f"{size}x{size} with {bomb_count} bombs",author_name="Minesweeper",description="||"+"||\n||".join("||||".join(self.EMOTES[cell] for cell in row) for row in arr)+"||"),delete_after=None)
+    if hidden:
+      return dict(content=f"{size}x{size} with {bomb_count} bombs\n"+"||"+"||\n||".join("||||".join(self.EMOTES[cell] for cell in row) for row in arr)+"||")
+    else:
+      return dict(embed=embed(title=f"{size}x{size} with {bomb_count} bombs",author_name="Minesweeper",description="||"+"||\n||".join("||||".join(self.EMOTES[cell] for cell in row) for row in arr)+"||"),delete_after=None)
 
   @commands.command(name='souptime',help='Soup Time')
   @commands.cooldown(1,7, commands.BucketType.user)
   async def norm_souptime(self,ctx):
-    async with ctx.typing():
-      post = self.souptime()
-    await ctx.reply(**post)
+    await ctx.reply(**self.souptime())
 
   @cog_ext.cog_slash(name='souptime')
   # @commands.cooldown(1,7, commands.BucketType.user)
   async def slash_souptime(self,ctx):
-    await ctx.respond()
-    post = self.souptime()
-    await ctx.send(**post)
+    await ctx.defer()
+    await ctx.send(**self.souptime())
 
   def souptime(self):
     return dict(embed=embed(

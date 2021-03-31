@@ -10,20 +10,17 @@ class Ping(commands.Cog):
 
   @commands.command(name="ping",description="Pong!")
   async def norm_ping(self,ctx):
-    post = await self.ping(ctx)
-    await ctx.reply(**post)
+    await ctx.reply(**await self.ping(ctx))
 
   @cog_ext.cog_slash(name="ping",description="Ping!")
   async def slash_ping(self,ctx:SlashContext):
-    await ctx.respond(True)
-    post = await self.ping(ctx)
-    await ctx.send_hidden(**post)
+    await ctx.defer(True)
+    await ctx.send(hidden=True,**await self.ping(ctx))
 
   async def ping(self,ctx):
     if isinstance(ctx, SlashContext):
       return dict(content="Pong!")
-    else:
-      return dict(embed=embed(title="Pong!"))
+    return dict(embed=embed(title="Pong!"))
 
 def setup(bot):
   bot.add_cog(Ping(bot))

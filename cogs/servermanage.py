@@ -33,6 +33,20 @@ class ServerManage(commands.Cog):
     except discord.Forbidden:
       await ctx.reply(f"The new default role for new members is `{role}`")
 
+  # @commands.command(name="mute")
+  # @commands.is_owner()
+  # @commands.has_guild_permissions(manage_roles=True)
+  # async def mute(self,ctx,members:commands.Greedy[discord.Member]=None):
+  #   if self.bot.user in members:
+  #     mydb = mydb_connect()
+  #     muted = query(mydb,"SELECT muted FROM servers WHERE id=%s",ctx.guild.id)
+  #     if muted == 0:
+  #       query(mydb,"UPDATE servers SET muted=%s WHERE id=%s",1,ctx.guild.id)
+  #       await ctx.reply(embed=embed(title="I will now only respond to commands"))
+  #     else:
+  #       query(mydb,"UPDATE servers SET muted=%s WHERE id=%s",0,ctx.guild.id)
+  #       await ctx.reply(embed=embed(title="I will now respond to chat message as well as commands"))
+
   @commands.command(name="prefix")
   @commands.has_guild_permissions(administrator=True)
   async def _prefix(self,ctx,new_prefix:typing.Optional[str]="!"):
@@ -89,6 +103,15 @@ class ServerManage(commands.Cog):
       await ctx.reply(embed=embed(title="I will no longer delete command messages"))
     else:
       await ctx.reply(embed=embed(title=f"I will now delete commands after `{time}` seconds"))
+
+  # @commands.command(name="clear",description="Deletes my messages and commands (not including the meme command)")
+  # @commands.has_permissions(manage_messages = True)
+  # @commands.bot_has_permissions(manage_messages = True)
+  # async def clear(self,ctx,count:int):
+  #   # await ctx.channel.purge(limit=count)
+  #   async for message in ctx.channel.history():
+  #     if message.author == self.bot.user:
+  #       print("")
 
   @commands.command(name="kick")
   @commands.bot_has_guild_permissions(kick_members=True)
@@ -151,55 +174,116 @@ class ServerManage(commands.Cog):
   @commands.guild_only()
   @commands.has_guild_permissions(move_members = True)
   @commands.bot_has_guild_permissions(move_members = True)
-  async def mass_move(self,ctx,fromChannel:typing.Optional[discord.VoiceChannel],toChannel:discord.VoiceChannel=None):
+  async def norm_mass_move(self,ctx,fromChannel:typing.Optional[typing.Union[discord.VoiceChannel,discord.TextChannel,discord.StoreChannel,discord.CategoryChannel]],toChannel:typing.Optional[typing.Union[discord.VoiceChannel,discord.TextChannel,discord.StoreChannel,discord.CategoryChannel]]=None):
+    post = await self.mass_move(ctx, fromChannel,toChannel)
+    await ctx.reply(**post)
+
+  @cog_ext.cog_slash(
+    name="move",
+    description="Move users from one voice channel to another",
+    options=[
+      create_option(
+        "fromchannel",
+        "The voice channel to move from",
+        7,
+        required=True
+      ),
+      create_option(
+        "tochannel",
+        "The voice channel to move to",
+        7,
+        required=False
+      )
+    ],
+    guild_ids=[243159711237537802,805579185879121940]
+  )
+  @commands.guild_only()
+  # @commands.has_guild_permissions(move_members = True)
+  # @commands.bot_has_guild_permissions(move_members = True)
+  async def slash_mass_move(self,ctx,fromChannel,toChannel=None):
+    await ctx.defer(True)
+    post = await self.mass_move(ctx, fromChannel,toChannel)
+    await ctx.send(hidden=True,**post)
+
+  async def mass_move(self,ctx,fromChannel,toChannel=None):
     # await ctx.guild.chunk(cache=False)
     if toChannel is None:
       toChannel = fromChannel
       fromChannel = None
 
-    if ctx.author.permissions_in(toChannel).view_channel != True:
-      await ctx.reply(embed=embed(title="Trying to connect to a channel you can't view 🤔",description="Im going to have to stop you right there",color=MessageColors.ERROR))
-      return
-    if ctx.author.permissions_in(toChannel).connect != True:
-      await ctx.reply(embed=embed(title=f"You don't have permission to connect to `{toChannel}` so I can't complete this command",color=MessageColors.ERROR))
-      return
+    if (fromChannel is not None and not isinstance(fromChannel, discord.VoiceChannel)) or (toChannel is not None and not isinstance(toChannel, discord.VoiceChannel)):
+      if isinstance(ctx, SlashContext):
+        return dict(content="Please only select voice channels for moving")
+      return dict(embed=embed(title="Please only select voice channels for moving"))
+
+    if ctx.author.permissions_in(toChannel).view_channel is not True:
+      if isinstance(ctx, SlashContext):
+        return dict(content="Trying to connect to a channel you can't view 🤔\nIm going to have to stop you right there")
+      return dict(embed=embed(title="Trying to connect to a channel you can't view 🤔",description="Im going to have to stop you right there",color=MessageColors.ERROR))
+    if ctx.author.permissions_in(toChannel).connect is not True:
+      if isinstance(ctx, SlashContext):
+        return dict(content=f"You don't have permission to connect to `{toChannel}` so I can't complete this command")
+      return dict(embed=embed(title=f"You don't have permission to connect to `{toChannel}` so I can't complete this command",color=MessageColors.ERROR))
 
     try:
       if fromChannel is None:
         fromChannel = ctx.author.voice.channel
     except:
-      await ctx.reply(embed=embed(title="To move users from one channel to another, you need to be connected to one or specify the channel to send from.",color=MessageColors.ERROR))
-      return
+      if isinstance(ctx, SlashContext):
+        return dict(content="To move users from one channel to another, you need to be connected to one or specify the channel to send from.")
+      return dict(embed=embed(title="To move users from one channel to another, you need to be connected to one or specify the channel to send from.",color=MessageColors.ERROR))
 
     memberCount = len(fromChannel.members)
 
-    try:
-      tomove = []
-      for member in fromChannel.members:
-        tomove.append(member.move_to(toChannel,reason=f"{ctx.author} called the move command"))
-      await asyncio.gather(*tomove)
-    except:
-      raise
-    else:
-      await ctx.reply(embed=embed(title=f"Successfully moved {memberCount} members"))
+    tomove = []
+    for member in fromChannel.members:
+      tomove.append(member.move_to(toChannel,reason=f"{ctx.author} called the move command"))
+    await asyncio.gather(*tomove)
+    if isinstance(ctx, SlashContext):
+      return dict(content=f"Successfully moved {memberCount} member(s)")
+    return dict(embed=embed(title=f"Successfully moved {memberCount} member(s)"))
 
   @commands.command(name="lock",description="Sets your voice channels user limit to the current number of occupants",hidden=True)
   @commands.guild_only()
   # @commands.is_owner()
   @commands.has_guild_permissions(manage_channels=True)
   @commands.bot_has_guild_permissions(manage_channels=True)
-  async def lock(self,ctx,*,voicechannel:typing.Optional[discord.VoiceChannel]=None):
+  async def norm_lock(self,ctx,*,voicechannel:typing.Optional[discord.VoiceChannel]=None):
+    await self.lock(ctx,voicechannel)
+
+  @cog_ext.cog_slash(
+    name="lock",
+    description="Sets your voice channels user limit to the current number of occupants",
+    options=[
+      create_option("voicechannel", "The voice channel you wish to lock", 7, required=False)
+    ],
+    guild_ids=[243159711237537802,805579185879121940]
+  )
+  @commands.has_guild_permissions(manage_channels=True)
+  @commands.bot_has_guild_permissions(manage_channels=True)
+  async def slash_lock(self,ctx,*,voicechannel=None):
+    await ctx.defer(True)
+    post = await self.lock(ctx,voicechannel)
+    await ctx.send(hidden=True,**post)
+
+  async def lock(self,ctx,voicechannel:typing.Optional[discord.VoiceChannel]=None):
     # await ctx.guild.chunk(cache=False)
     if voicechannel is None:
       if ctx.author.voice is None:
-        return await ctx.reply(embed=embed(title="You either need to specify a voicechannel or be connected to one",color=MessageColors.ERROR))
+        if isinstance(ctx, SlashContext):
+          return dict(content="You either need to specify a voicechannel or be connected to one")
+        return dict(embed=embed(title="You either need to specify a voicechannel or be connected to one",color=MessageColors.ERROR))
       voicechannel = ctx.author.voice.channel
     if voicechannel.user_limit > 0:
       await voicechannel.edit(user_limit=0)
-      await ctx.reply(embed=embed(title=f"Unlocked `{voicechannel}`"))
+      if isinstance(ctx, SlashContext):
+        return dict(content=f"Unlocked `{voicechannel}`")
+      return dict(embed=embed(title=f"Unlocked `{voicechannel}`"))
     else:
       await voicechannel.edit(user_limit=len(voicechannel.members))
-      await ctx.reply(embed=embed(title=f"Locked `{voicechannel}`"))
+      if isinstance(ctx, SlashContext):
+        return dict(content=f"Locked `{voicechannel}`")
+      return dict(embed=embed(title=f"Locked `{voicechannel}`"))
 
 def setup(bot):
   bot.add_cog(ServerManage(bot))
