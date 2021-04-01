@@ -8,8 +8,8 @@ jobs:
     name: Syntax and launch check os ${{ matrix.os }}, Python ${{ matrix.python-version }}
     strategy:
       matrix:
-        os: [ubuntu-20.04, ubuntu-latest]
-        python-version: [3.8,3.9]
+        os: [ubuntu-20.04]
+        python-version: [3.9]
 
     steps:
     - uses: actions/checkout@v2
