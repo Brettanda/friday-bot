@@ -21,8 +21,8 @@ class DatedEvents(commands.Cog):
 
   @tasks.loop(seconds=3600.0)
   async def dated_events(self):
-    if "test" in self.bot.user.name.lower():
-      return
+    # if "test" in self.bot.user.name.lower():
+    #   return
     today = date.today()
     month = today.strftime("%m")
     day = today.strftime("%d")
@@ -36,22 +36,18 @@ class DatedEvents(commands.Cog):
     if int(month) == 4 and int(day) == 1:
       print("april fools")
       logger.info("april fools")
-      with open(f"{thispath}assets{seperator}friday_april_fools.png","rb") as image:
+      with open(f"{thispath}{seperator}assets{seperator}friday_april_fools.png","rb") as image:
         f = image.read()
-        await asyncio.gather(
-          guild.edit(icon=f),
-          user.edit(avatar=f)
-        )
+        await user.edit(avatar=f)
+        await guild.edit(icon=f)
       await asyncio.sleep(43200.0)
     elif int(month) == 4 and int(day) == 2:
       print("post-april fools")
       logger.info("post-april fools")
-      with open(f"{thispath}assets{seperator}friday-logo.png","rb") as image:
+      with open(f"{thispath}{seperator}assets{seperator}friday-logo.png","rb") as image:
         f = image.read()
-        await asyncio.gather(
-          guild.edit(icon=f),
-          user.edit(avatar=f)
-        )
+        await guild.edit(icon=f)
+        await user.edit(avatar=f)
       await asyncio.sleep(43200.0)
 
 
