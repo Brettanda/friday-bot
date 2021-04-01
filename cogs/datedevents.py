@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os
 import sys
 from datetime import date
 
@@ -27,10 +28,15 @@ class DatedEvents(commands.Cog):
     day = today.strftime("%d")
     guild = self.bot.get_guild(707441352367013899)
     user = self.bot.user
+    thispath = os.getcwd()
+    if "\\" in thispath:
+      seperator = "\\\\"
+    else:
+      seperator = "/"
     if int(month) == 4 and int(day) == 1:
       print("april fools")
       logger.info("april fools")
-      with open("assets\\friday_april_fools.png","rb") as image:
+      with open(f"{thispath}assets{seperator}friday_april_fools.png","rb") as image:
         f = image.read()
         await asyncio.gather(
           guild.edit(icon=f),
@@ -40,7 +46,7 @@ class DatedEvents(commands.Cog):
     elif int(month) == 4 and int(day) == 2:
       print("post-april fools")
       logger.info("post-april fools")
-      with open(original_image,"rb") as image:
+      with open(f"{thispath}assets{seperator}friday-logo.png","rb") as image:
         f = image.read()
         await asyncio.gather(
           guild.edit(icon=f),
