@@ -6,8 +6,8 @@ import random
 import nltk
 import numpy as np
 import pandas as pd
-from flair.data import Sentence
-from flair.models import MultiTagger  # , SequenceTagger
+# from flair.data import Sentence
+# from flair.models import MultiTagger  # , SequenceTagger
 # from keras.layers import Dropout, Activation, Dense
 from keras.models import load_model  # , Sequential
 # from keras.optimizers import SGD
@@ -26,7 +26,7 @@ except LookupError:
 stemmer = LancasterStemmer()
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
-tagger = MultiTagger.load(["pos","ner"])
+# tagger = MultiTagger.load(["pos","ner"])
 
 words = []
 classes = []
@@ -114,12 +114,12 @@ async def classify_local(sentence):
   # for r in guesses:
   #   guess_list.append((r[0],classes[r[0]], str(r[1])))
 
-  text = Sentence(sentence)
-  tagger.predict(text)
-  for entity in text.get_spans('pos'):
-    print(entity)
-  for entity in text.get_spans('ner'):
-    print(entity)
+  # text = Sentence(sentence)
+  # tagger.predict(text)
+  # for entity in text.get_spans('pos'):
+  #   print(entity)
+  # for entity in text.get_spans('ner'):
+  #   print(entity)
 
   if len(return_list) > 0:
     name,chance = return_list[0][1:]
