@@ -26,7 +26,7 @@ logging.basicConfig(
 )
 
 load_dotenv()
-TOKEN = os.getenv('TOKENTEST')
+TOKEN = os.environ.get('TOKENTEST')
 
 intents = discord.Intents.default()
 # Members intent required for giving roles appon a member
@@ -189,7 +189,7 @@ if __name__ == "__main__":
   bot = Friday(command_prefix=query_prefix or "!",case_insensitive=True,intents=intents,owner_id=215227961048170496)
   if len(sys.argv) > 1:
     if sys.argv[1] == "--prod" or sys.argv[1] == "--production":
-      TOKEN = os.getenv("TOKEN")
+      TOKEN = os.environ.get("TOKEN")
       bot.load_extension("functions.dbl")
   loop = asyncio.get_event_loop()
   try:

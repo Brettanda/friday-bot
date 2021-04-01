@@ -10,7 +10,7 @@ from functions.mysql_connection import query_prefix
 from index import Friday
 
 load_dotenv()
-TOKEN = os.getenv('TOKENTEST')
+TOKEN = os.environ.get('TOKENTEST')
 
 intents = discord.Intents.default()
 
