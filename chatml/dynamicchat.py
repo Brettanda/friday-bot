@@ -62,7 +62,8 @@ async def dynamicchat(ctx, bot, intent, response=None):
       await ctx.reply(**await get_reddit_post(ctx,["memes","dankmemes"]))
 
     elif intent == "Title of your sex tape":
-      await ctx.reply(f"*{ctx.clean_content}*, title of your sex-tape")
+      if random.random() < 0.1:
+        await ctx.reply(f"*{ctx.clean_content}*, title of your sex-tape")
 
     elif intent == "show me something cute":
       await ctx.reply(content=response,**await get_reddit_post(ctx,["mademesmile","aww"]))
