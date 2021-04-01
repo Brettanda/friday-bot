@@ -21,8 +21,8 @@ class DatedEvents(commands.Cog):
 
   @tasks.loop(seconds=3600.0)
   async def dated_events(self):
-    # if "test" in self.bot.user.name.lower():
-    #   return
+    if "test" in self.bot.user.name.lower():
+      return
     today = date.today()
     month = today.strftime("%m")
     day = today.strftime("%d")
