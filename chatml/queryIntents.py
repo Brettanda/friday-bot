@@ -19,10 +19,10 @@ try:
   nltk.data.find('tokenizers/punkt.zip')
 except LookupError:
   nltk.download('punkt')
-try:
-  nltk.data.find('vader_lexicon')
-except LookupError:
-  nltk.download('vader_lexicon')
+# try:
+#   nltk.data.find('vader_lexicon')
+# except LookupError:
+#   nltk.download('vader_lexicon')
 stemmer = LancasterStemmer()
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
