@@ -142,7 +142,7 @@ class Friday(commands.AutoShardedBot):
           logging.warning("well guess i just can't respond then")
       raise error
 
-  async def on_error(self):
+  async def on_error(self,*args,**kwargs):
     # await self.get_guild(707441352367013899).chunk(cache=False)
     appinfo = await self.application_info()
     owner = self.get_user(appinfo.team.owner.id)
