@@ -14,15 +14,15 @@ from keras.models import load_model  # , Sequential
 from nltk.sentiment import SentimentIntensityAnalyzer
 from nltk.stem.lancaster import LancasterStemmer
 
-sia = SentimentIntensityAnalyzer()
 try:
   nltk.data.find('tokenizers/punkt.zip')
 except LookupError:
   nltk.download('punkt')
-# try:
-#   nltk.data.find('vader_lexicon')
-# except LookupError:
-#   nltk.download('vader_lexicon')
+try:
+  nltk.data.find('vader_lexicon')
+except LookupError:
+  nltk.download('vader_lexicon')
+sia = SentimentIntensityAnalyzer()
 stemmer = LancasterStemmer()
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
