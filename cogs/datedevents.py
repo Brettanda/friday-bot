@@ -15,13 +15,13 @@ class DatedEvents(commands.Cog):
   def __init__(self,bot):
     self.bot = bot
     self.loop = bot.loop
-    if len(sys.argv) > 1:
-      if sys.argv[1] == "--prod" or sys.argv[1] == "--production":
-        self.dated_events.start()
+    self.dated_events.start()
     # self.events = bot.loop.create_task(self.dated_events(),name="Dated events")
 
   @tasks.loop(seconds=3600.0)
   async def dated_events(self):
+    if "test" in self.bot.user.name.lower():
+      return
     today = date.today()
     month = today.strftime("%m")
     day = today.strftime("%d")
