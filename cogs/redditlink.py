@@ -13,41 +13,42 @@ from discord.ext import commands
 from functions import MessageColors, embed
 
 ytdl_format_options = {
-  # 'format': 'bestvideo+bestaudio/worstvideo+worstaudio',
-  'format': 'worstvideo+worstaudio/worstvideo',
-  # 'audioformat': 'mp3',
-  'merge_output_format': 'mp4',
-  'outtmpl': '%(extractor)s-%(id)s-%(title)s.%(ext)s',
-  # 'max_filesize': '8M',
-  'postprocessors': [{
-      'key': 'FFmpegVideoConvertor',
-      'preferedformat': 'webm'
-  }],
-  'restrictfilenames': True,
-  'noplaylist': True,
-  'nocheckcertificate': True,
-  'ignoreerrors': False,
-  'logtostderr': False,
-  'quiet': True,
-  # 'no_warnings': True,
-  'default_search': 'auto',
-  'source_address': '0.0.0.0' # bind to ipv4 since ipv6 addresses cause issues sometimes
+    # 'format': 'bestvideo+bestaudio/worstvideo+worstaudio',
+    'format': 'worstvideo+worstaudio/worstvideo',
+    # 'audioformat': 'mp3',
+    'merge_output_format': 'mp4',
+    'outtmpl': '%(extractor)s-%(id)s-%(title)s.%(ext)s',
+    # 'max_filesize': '8M',
+    'postprocessors': [{
+        'key': 'FFmpegVideoConvertor',
+        'preferedformat': 'webm'
+    }],
+    'restrictfilenames': True,
+    'noplaylist': True,
+    'nocheckcertificate': True,
+    'ignoreerrors': False,
+    'logtostderr': False,
+    'quiet': True,
+    # 'no_warnings': True,
+    'default_search': 'auto',
+    'source_address': '0.0.0.0'  # bind to ipv4 since ipv6 addresses cause issues sometimes
 }
 ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
 
+
 class redditlink(commands.Cog):
-  def __init__(self,bot):
+  def __init__(self, bot):
     self.bot = bot
     self.emoji = "🔗"
     self.pattern = r"https://www.reddit.com/r/[a-zA-Z0-9-_]+/comments/[a-zA-Z0-9]+/[a-zA-Z0-9_-]+"
     self.patternspoiler = r"||https://www.reddit.com/r/[a-zA-Z0-9-_]+/comments/[a-zA-Z0-9]+/[a-zA-Z0-9_-]+||"
 
-  def request(self,url):
+  def request(self, url):
     req = urllib.request.Request(
-      url,
-      headers={
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.1916.47 Safari/537.36'
-      }
+        url,
+        headers={
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.1916.47 Safari/537.36'
+        }
     )
 
     response = urllib.request.urlopen(req)
@@ -55,7 +56,7 @@ class redditlink(commands.Cog):
     return json.loads(response.read())
 
   @commands.Cog.listener()
-  async def on_message(self,ctx):
+  async def on_message(self, ctx):
     if ctx.author.bot:
       return
     # required_perms = [("add_reactions",True)]
@@ -67,13 +68,13 @@ class redditlink(commands.Cog):
     # if missing:
     #   return
 
-    reg = re.findall(self.pattern,ctx.content)
+    reg = re.findall(self.pattern, ctx.content)
     # spoiler = re.findall(self.patternspoiler,ctx.content)
 
     if len(reg) != 1:
       return
 
-    body = self.request(reg[0]+".json")
+    body = self.request(reg[0] + ".json")
 
     data = None
     video = None
@@ -81,7 +82,7 @@ class redditlink(commands.Cog):
     image = None
     try:
       data = body[0]["data"]["children"][0]["data"]["crosspost_parent_list"][0]
-    except:
+    except BaseException:
       data = body[0]["data"]["children"][0]["data"]
       # try:
       # except:
@@ -92,13 +93,13 @@ class redditlink(commands.Cog):
         video = data["media"]["reddit_video"]["hls_url"]
       # elif len(data["crosspost_parent_list"]) > 0:
       #   video = data["crosspost_parent_list"][0]["media"]["reddit_video"]["hls_url"]
-    except:
+    except BaseException:
       # raise
       pass
 
     try:
       embeded = data["media"]["oembed"]
-    except:
+    except BaseException:
       pass
     if "i.redd.it" in data["url"]:
       image = data["url"]
@@ -118,7 +119,7 @@ class redditlink(commands.Cog):
       pass
 
   @commands.Cog.listener()
-  async def on_raw_reaction_add(self,payload):
+  async def on_raw_reaction_add(self, payload):
     guild = self.bot.get_guild(payload.guild_id)
     if guild is None:
       return
@@ -128,7 +129,7 @@ class redditlink(commands.Cog):
     message = None
     try:
       message = await channel.fetch_message(payload.message_id)
-    except:
+    except BaseException:
       return
     if message is None:
       return
@@ -138,7 +139,7 @@ class redditlink(commands.Cog):
     if payload.member != message.author:
       return
     if payload.emoji.name == self.emoji:
-      test:bool = False
+      test: bool = False
       for react in message.reactions:
         if react.me and react.emoji == self.emoji:
           test = True
@@ -146,31 +147,31 @@ class redditlink(commands.Cog):
           return
       try:
         await asyncio.gather(
-          message.remove_reaction(self.emoji,self.bot.user),
-          message.remove_reaction(self.emoji,payload.member)
+            message.remove_reaction(self.emoji, self.bot.user),
+            message.remove_reaction(self.emoji, payload.member)
         )
-      except:
+      except BaseException:
         pass
       async with message.channel.typing():
 
-        reg = re.findall(self.pattern,message.content)
+        reg = re.findall(self.pattern, message.content)
 
         if len(reg) != 1:
           return
 
         body = None
         try:
-          body = self.request(reg[0]+".json")
-        except:
+          body = self.request(reg[0] + ".json")
+        except BaseException:
           pass
 
         try:
           try:
             data = body[0]["data"]["children"][0]["data"]["crosspost_parent_list"][0]
-          except:
+          except BaseException:
             data = body[0]["data"]["children"][0]["data"]
         except KeyError:
-          await message.reply(embed=embed(title="There was a problem connecting to reddit",color=MessageColors.ERROR))
+          await message.reply(embed=embed(title="There was a problem connecting to reddit", color=MessageColors.ERROR))
           return
 
         link = None
@@ -181,7 +182,7 @@ class redditlink(commands.Cog):
           link = data["media"]["reddit_video"]["hls_url"]
           loop = asyncio.get_event_loop()
           linkdata = await loop.run_in_executor(None, lambda: ytdl.extract_info(link, download=True))
-          ext = "webm" #linkdata['ext']
+          ext = "webm"  # linkdata['ext']
           video = True
           # linkdata = await ytdl.extract_info(link, download=True)
 
@@ -213,9 +214,9 @@ class redditlink(commands.Cog):
         try:
           # name = f'{linkdata["extractor"]}-{linkdata["id"]}-{linkdata["title"]}.{linkdata["ext"]}'
           name = data["title"].split()
-          await message.reply(file=discord.File(fp=mp4file,filename=f'{"_".join(name)}.{ext}',spoiler=spoiler))
+          await message.reply(file=discord.File(fp=mp4file, filename=f'{"_".join(name)}.{ext}', spoiler=spoiler))
         except discord.HTTPException:
-          await message.reply(embed=embed(title="This file is too powerful to be uploaded",description="You will have to open reddit to view this",color=MessageColors.ERROR))
+          await message.reply(embed=embed(title="This file is too powerful to be uploaded", description="You will have to open reddit to view this", color=MessageColors.ERROR))
         finally:
           try:
             os.remove(mp4file)
@@ -223,7 +224,7 @@ class redditlink(commands.Cog):
             pass
       else:
         if spoiler is True:
-          await message.reply("||"+link+"||")
+          await message.reply("||" + link + "||")
         else:
           await message.reply(link)
       # elif reaction.message.channel.nsfw == False and data["over_18"] == False:
@@ -231,10 +232,10 @@ class redditlink(commands.Cog):
       # print(len(body))
       # if ctx.channel.nsfw and body["data"]["over_18"]:
 
-
       # await ctx.reply(embed=embed(title="Meme"))
       # return embed(title="Meme")
       # if self.bot.user == reaction.message.reactions
+
 
 def setup(bot):
   bot.add_cog(redditlink(bot))

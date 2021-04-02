@@ -6,7 +6,7 @@ import random
 import nltk
 import numpy as np
 # import pandas as pd
-from keras.layers import Dense, Dropout#, Activation
+from keras.layers import Dense, Dropout  # , Activation
 from keras.models import Sequential
 from keras.optimizers import SGD
 from nltk.stem.lancaster import LancasterStemmer
@@ -27,7 +27,7 @@ documents = []
 ignore_words = ['?']
 # loop through each sentence in our intents patterns
 
-with open("ml/intents.json",encoding="utf8") as f:
+with open("ml/intents.json", encoding="utf8") as f:
   intents = json.load(f)
 
 new = []
@@ -86,8 +86,8 @@ for doc in documents:
 random.shuffle(training)
 training = np.array(training)
 # create train and test lists. X - patterns, Y - intents
-train_x = list(training[:,0])
-train_y = list(training[:,1])
+train_x = list(training[:, 0])
+train_y = list(training[:, 1])
 
 # Create model - 3 layers. First layer 128 neurons, second layer 64 neurons and 3rd output layer contains number of neurons
 # equal to number of intents to predict output intent with softmax
@@ -107,7 +107,7 @@ model.compile(loss='categorical_crossentropy', optimizer=sgd, metrics=['accuracy
 # model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
 
 # Fit the model
-model.fit(np.array(train_x), np.array(train_y), epochs=200, batch_size=5, verbose=1,shuffle=True)
+model.fit(np.array(train_x), np.array(train_y), epochs=200, batch_size=5, verbose=1, shuffle=True)
 model.summary()
 
 model.save('ml/models/intent_model.h5')

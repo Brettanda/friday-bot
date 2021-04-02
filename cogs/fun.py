@@ -1,6 +1,7 @@
 import json
 import random
 import typing
+import numpy as np
 
 from discord.ext import commands
 from discord_slash import cog_ext
@@ -12,10 +13,11 @@ from functions import MessageColors, embed
 with open('./config.json') as f:
   config = json.load(f)
 
+
 class Fun(commands.Cog):
-  def __init__(self,bot):
+  def __init__(self, bot):
     self.bot = bot
-    self.rpsoptions = ["rock","paper","scissors"]
+    self.rpsoptions = ["rock", "paper", "scissors"]
     # self.timeouter = None
     # self.timeoutCh = None
 
@@ -51,43 +53,44 @@ class Fun(commands.Cog):
   # @commands.bot_has_permissions(send_messages = True, read_messages = True, embed_links = True)
   # @commands.has_guild_permissions(move_members = True)
 
-  @commands.command(name="rockpaperscissors",description="Play Rock Paper Scissors with Friday",aliases=["rps"],usage="<rock, paper or scissors>")
-  async def norm_rock_paper_scissors(self,ctx,args:str):
+  @commands.command(name="rockpaperscissors", description="Play Rock Paper Scissors with Friday",
+                    aliases=["rps"], usage="<rock, paper or scissors>")
+  async def norm_rock_paper_scissors(self, ctx, args: str):
     async with ctx.typing():
       post = await self.rock_paper_scissors(ctx, args)
     await ctx.reply(**post)
 
   @cog_ext.cog_slash(
-    name="rockpaperscissors",
-    options=[
-      create_option(
-        "choice",
-        description="Rock Paper or Scissors",
-        option_type=3,
-        required=True,
-        choices=[
-          create_choice(
-            "rock",
-            "Rock"
-          ),
-          create_choice(
-            "paper",
-            "Paper"
-          ),
-          create_choice(
-            "scissors",
-            "Scissors"
+      name="rockpaperscissors",
+      options=[
+          create_option(
+              "choice",
+              description="Rock Paper or Scissors",
+              option_type=3,
+              required=True,
+              choices=[
+                  create_choice(
+                      "rock",
+                      "Rock"
+                  ),
+                  create_choice(
+                      "paper",
+                      "Paper"
+                  ),
+                  create_choice(
+                      "scissors",
+                      "Scissors"
+                  )
+              ]
           )
-        ]
-      )
-    ]
+      ]
   )
-  async def slash_rock_paper_scissors(self,ctx,choice:str):
+  async def slash_rock_paper_scissors(self, ctx, choice: str):
     await ctx.defer()
     post = await self.rock_paper_scissors(ctx, choice)
     await ctx.send(**post)
 
-  async def rock_paper_scissors(self,ctx,args:str):
+  async def rock_paper_scissors(self, ctx, args: str):
     # args = args.split(" ")
     # arg = args[0].lower()
     arg = args.lower()
@@ -96,10 +99,10 @@ class Fun(commands.Cog):
     #   return
 
     if arg not in self.rpsoptions:
-      await ctx.reply(embed=embed(title=f"`{arg}` is not Rock, Paper, Scissors. Please choose one of those three.",color=MessageColors.ERROR))
+      await ctx.reply(embed=embed(title=f"`{arg}` is not Rock, Paper, Scissors. Please choose one of those three.", color=MessageColors.ERROR))
       return
 
-    num = random.randint(0,len(self.rpsoptions)-1)
+    num = random.randint(0, len(self.rpsoptions) - 1)
 
     mychoice = self.rpsoptions[num]
 
@@ -118,49 +121,52 @@ class Fun(commands.Cog):
     elif mychoice == "scissors" and arg == "paper":
       conclusion = self.bot.user
 
-    return dict(embed=embed(title=f"Your move: {arg} VS My move: {mychoice}",color=MessageColors.RPS,description=f"The winner of this round is: **{conclusion}**"))
-
+    return dict(
+        embed=embed(
+            title=f"Your move: {arg} VS My move: {mychoice}",
+            color=MessageColors.RPS,
+            description=f"The winner of this round is: **{conclusion}**"))
 
   EMOTES = {
-    "X":"💥",
-    0:"0️⃣",
-    1:"1️⃣",
-    2:"2️⃣",
-    3:"3️⃣",
-    4:"4️⃣",
-    5:"5️⃣",
-    6:"6️⃣",
-    7:"7️⃣",
-    8:"8️⃣"
+      "X": "💥",
+      0: "0️⃣",
+      1: "1️⃣",
+      2: "2️⃣",
+      3: "3️⃣",
+      4: "4️⃣",
+      5: "5️⃣",
+      6: "6️⃣",
+      7: "7️⃣",
+      8: "8️⃣"
   }
 
-  @commands.command(name="minesweeper",aliases=["ms"])
-  async def norm_minesweeper(self,ctx,size:typing.Optional[int]=5,bomb_count:typing.Optional[int]=6):
-    await ctx.reply(**await self.mine_sweeper(size,bomb_count))
+  @commands.command(name="minesweeper", aliases=["ms"])
+  async def norm_minesweeper(self, ctx, size: typing.Optional[int] = 5, bomb_count: typing.Optional[int] = 6):
+    await ctx.reply(**await self.mine_sweeper(size, bomb_count))
 
   @cog_ext.cog_slash(
-    name="minesweeper",
-    description="Minesweeper",
-    options=[
-      create_option("size", "SizeXSize", 4, required=False),
-      create_option("bomb_count", "Amount of bombs", 4, required=False),
-      create_option("hidden", "To hide the command, or not to hide the command", 5, required=False)
-    ],guild_ids=[243159711237537802,805579185879121940]
+      name="minesweeper",
+      description="Minesweeper",
+      options=[
+          create_option("size", "SizeXSize", 4, required=False),
+          create_option("bomb_count", "Amount of bombs", 4, required=False),
+          create_option("hidden", "To hide the command, or not to hide the command", 5, required=False)
+      ]
   )
-  async def slash_minesweeper(self,ctx,size:int=5,bomb_count:int=6,hidden:bool=False):
+  async def slash_minesweeper(self, ctx, size: int = 5, bomb_count: int = 6, hidden: bool = False):
     await ctx.defer(hidden)
-    post = await self.mine_sweeper(size,bomb_count,hidden)
+    post = await self.mine_sweeper(size, bomb_count, hidden)
     if hidden:
-      await ctx.send(hidden=True,**post)
+      await ctx.send(hidden=True, **post)
     else:
       await ctx.send(**post)
 
-  async def mine_sweeper(self,size,bomb_count,hidden=False):
+  async def mine_sweeper(self, size, bomb_count, hidden=False):
     """Source for this command: https://medium.com/swlh/this-is-how-to-create-a-simple-minesweeper-game-in-python-af02077a8de"""
     if size > 9:
       return dict(content="Size cannot be larger than 9 due to the message character limit of Discord")
       # raise exceptions.ArgumentTooLarge("Size cannot be larger than 9 due to the message character limit of Discord")
-    if bomb_count > size*size:
+    if bomb_count > size * size:
       return dict(content="Bomb_count cannot be larger than the game board")
       # raise exceptions.ArgumentTooLarge("Bomb_count cannot be larger than the game board")
 
@@ -168,82 +174,89 @@ class Fun(commands.Cog):
 
     # async with ctx.channel.typing():
     def get_xy():
-      return random.randint(0,size-1),random.randint(0,size-1)
+      return np.random.randint(0, size - 1), np.random.randint(0, size - 1)
 
     for _ in range(bomb_count):
-      x,y = get_xy()
+      x, y = get_xy()
       while arr[y][x] == 'X':
-        x,y = get_xy()
+        x, y = get_xy()
       arr[y][x] = 'X'
 
-      if (x >=0 and x <= size-2) and (y >= 0 and y <= size-1):
-        if arr[y][x+1] != 'X':
-          arr[y][x+1] += 1 # center right
+      if (x >= 0 and x <= size - 2) and (y >= 0 and y <= size - 1):
+        if arr[y][x + 1] != 'X':
+          arr[y][x + 1] += 1  # center right
 
-      if (x >=1 and x <= size-1) and (y >= 0 and y <= size-1):
-        if arr[y][x-1] != 'X':
-          arr[y][x-1] += 1 # center left
+      if (x >= 1 and x <= size - 1) and (y >= 0 and y <= size - 1):
+        if arr[y][x - 1] != 'X':
+          arr[y][x - 1] += 1  # center left
 
-      if (x >= 1 and x <= size-1) and (y >= 1 and y <= size-1):
-        if arr[y-1][x-1] != 'X':
-          arr[y-1][x-1] += 1 # top left
+      if (x >= 1 and x <= size - 1) and (y >= 1 and y <= size - 1):
+        if arr[y - 1][x - 1] != 'X':
+          arr[y - 1][x - 1] += 1  # top left
 
-      if (x >= 0 and x <= size-2) and (y >= 1 and y <= size-1):
-        if arr[y-1][x+1] != 'X':
-          arr[y-1][x+1] += 1 # top right
+      if (x >= 0 and x <= size - 2) and (y >= 1 and y <= size - 1):
+        if arr[y - 1][x + 1] != 'X':
+          arr[y - 1][x + 1] += 1  # top right
 
-      if (x >= 0 and x <= size-1) and (y >= 1 and y <= size-1):
-        if arr[y-1][x] != 'X':
-          arr[y-1][x] += 1 # top center
+      if (x >= 0 and x <= size - 1) and (y >= 1 and y <= size - 1):
+        if arr[y - 1][x] != 'X':
+          arr[y - 1][x] += 1  # top center
 
-      if (x >=0 and x <= size-2) and (y >= 0 and y <= size-2):
-        if arr[y+1][x+1] != 'X':
-          arr[y+1][x+1] += 1 # bottom right
+      if (x >= 0 and x <= size - 2) and (y >= 0 and y <= size - 2):
+        if arr[y + 1][x + 1] != 'X':
+          arr[y + 1][x + 1] += 1  # bottom right
 
-      if (x >= 1 and x <= size-1) and (y >= 0 and y <= size-2):
-        if arr[y+1][x-1] != 'X':
-          arr[y+1][x-1] += 1 # bottom left
+      if (x >= 1 and x <= size - 1) and (y >= 0 and y <= size - 2):
+        if arr[y + 1][x - 1] != 'X':
+          arr[y + 1][x - 1] += 1  # bottom left
 
-      if (x >= 0 and x <= size-1) and (y >= 0 and y <= size-2):
-        if arr[y+1][x] != 'X':
-          arr[y+1][x] += 1 # bottom center
+      if (x >= 0 and x <= size - 1) and (y >= 0 and y <= size - 2):
+        if arr[y + 1][x] != 'X':
+          arr[y + 1][x] += 1  # bottom center
 
     if hidden:
-      return dict(content=f"{size}x{size} with {bomb_count} bombs\n"+"||"+"||\n||".join("||||".join(self.EMOTES[cell] for cell in row) for row in arr)+"||")
+      return dict(
+          content=f"{size}x{size} with {bomb_count} bombs\n||" + "||\n||".join("||||".join(self.EMOTES[cell] for cell in row) for row in arr) + "||")
     else:
-      return dict(embed=embed(title=f"{size}x{size} with {bomb_count} bombs",author_name="Minesweeper",description="||"+"||\n||".join("||||".join(self.EMOTES[cell] for cell in row) for row in arr)+"||"),delete_after=None)
+      return dict(
+          embed=embed(
+              title=f"{size}x{size} with {bomb_count} bombs",
+              author_name="Minesweeper",
+              description="||" + "||\n||".join("||||".join(self.EMOTES[cell] for cell in row) for row in arr) + "||"),
+          delete_after=None)
 
-  @commands.command(name='souptime',help='Soup Time')
-  @commands.cooldown(1,7, commands.BucketType.user)
-  async def norm_souptime(self,ctx):
+  @commands.command(name='souptime', help='Soup Time')
+  @commands.cooldown(1, 7, commands.BucketType.user)
+  async def norm_souptime(self, ctx):
     await ctx.reply(**self.souptime())
 
   @cog_ext.cog_slash(name='souptime')
   # @commands.cooldown(1,7, commands.BucketType.user)
-  async def slash_souptime(self,ctx):
+  async def slash_souptime(self, ctx):
     await ctx.defer()
     await ctx.send(**self.souptime())
 
   def souptime(self):
     return dict(embed=embed(
-      title="Here is sum soup, just for you",
-      color=MessageColors.SOUPTIME,
-      description="I hope you enjoy!",
-      image=random.choice(config['soups'])
+        title="Here is sum soup, just for you",
+        color=MessageColors.SOUPTIME,
+        description="I hope you enjoy!",
+        image=random.choice(config['soups'])
     ))
 
-  @commands.command(name="coinflip",aliases=["coin"],description="Flip a coin")
-  async def norm_coin(self,ctx):
-    await ctx.reply(embed=embed(title="Results for the flip: "+random.choice(["Heads","Tails"])))
+  @commands.command(name="coinflip", aliases=["coin"], description="Flip a coin")
+  async def norm_coin(self, ctx):
+    await ctx.reply(embed=embed(title="Results for the flip: " + random.choice(["Heads", "Tails"])))
 
   @cog_ext.cog_slash(
-    name="coinflip",
-    description="Flip a coin",
-    options=[create_option("hidden", "Hide the response", 5, False)]
+      name="coinflip",
+      description="Flip a coin",
+      options=[create_option("hidden", "Hide the response", 5, False)]
   )
-  async def slash_coin(self,ctx,hidden:bool=False):
+  async def slash_coin(self, ctx, hidden: bool = False):
     await ctx.defer(hidden)
-    await ctx.send(hidden=hidden,content="Results for the flip: "+random.choice(["Heads","Tails"]))
+    await ctx.send(hidden=hidden, content="Results for the flip: " + random.choice(["Heads", "Tails"]))
+
 
 def setup(bot):
   bot.add_cog(Fun(bot))

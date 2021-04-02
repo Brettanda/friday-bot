@@ -7,7 +7,7 @@ import random
 
 # import discord
 
-from functions import embed, get_reddit_post,MessageColors
+from functions import embed, get_reddit_post, MessageColors
 
 with open('./config.json') as f:
   config = json.load(f)
@@ -53,23 +53,23 @@ async def dynamicchat(ctx, bot, intent, response=None):
 
     elif intent == "No U":
       await ctx.channel.send(
-        embed=embed(
-          title="No u!",
-          image=config["unoCards"][random.randint(0,len(config["unoCards"]))],
-          color=MessageColors.NOU))
+          embed=embed(
+              title="No u!",
+              image=config["unoCards"][random.randint(0, len(config["unoCards"]))],
+              color=MessageColors.NOU))
 
-    elif intent in ("Memes","Memes - Another"):
-      await ctx.reply(**await get_reddit_post(ctx,["memes","dankmemes"]))
+    elif intent in ("Memes", "Memes - Another"):
+      await ctx.reply(**await get_reddit_post(ctx, ["memes", "dankmemes"]))
 
     elif intent == "Title of your sex tape":
       if random.random() < 0.1:
         await ctx.reply(f"*{ctx.clean_content}*, title of your sex-tape")
 
     elif intent == "show me something cute":
-      await ctx.reply(content=response,**await get_reddit_post(ctx,["mademesmile","aww"]))
+      await ctx.reply(content=response, **await get_reddit_post(ctx, ["mademesmile", "aww"]))
 
     elif intent == "Something cool":
-      await ctx.reply(**await get_reddit_post(ctx,["nextfuckinglevel","interestingasfuck"]))
+      await ctx.reply(**await get_reddit_post(ctx, ["nextfuckinglevel", "interestingasfuck"]))
 
     elif intent in ("Compliments", "Thanks", "are you a bot?", "I love you"):
       hearts = ["❤️", "💯", "💕"]
@@ -104,12 +104,12 @@ async def dynamicchat(ctx, bot, intent, response=None):
       await ctx.reply(f"Well I don't know your real name but your username is {ctx.author.name}")
 
     elif intent == "doggo":
-      await ctx.add_reaction(random.choice(["🐶","🐕","🐩","🐕‍🦺"]))
+      await ctx.add_reaction(random.choice(["🐶", "🐕", "🐩", "🐕‍🦺"]))
 
     else:
       print(f"I dont have a response for this: {ctx.content}")
       logging.warning("I dont have a response for this: %s", ctx.clean_content)
-  except:
+  except BaseException:
     await ctx.reply("Something in my code failed to run, I'll ask my boss to fix this :)")
     raise
     # print(e)

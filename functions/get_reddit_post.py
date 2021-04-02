@@ -9,19 +9,21 @@ from functions import MessageColors, embed
 
 posted = {}
 
+
 async def request(url):
   async with aiohttp.ClientSession() as session:
     async with session.get(
-      url,
-      headers={
-        'User-Agent':
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.1916.47 Safari/537.36'
-      }
+        url,
+        headers={
+            'User-Agent':
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.1916.47 Safari/537.36'
+        }
     ) as r:
       if r.status == 200:
         return await r.json()
 
-async def get_reddit_post(ctx:commands.Context,sub_reddits:str or list=None):#,hidden:bool=False):
+
+async def get_reddit_post(ctx: commands.Context, sub_reddits: str or list = None):  # ,hidden:bool=False):
   if sub_reddits is None:
     raise TypeError("sub_reddits must not be None")
 
@@ -32,11 +34,11 @@ async def get_reddit_post(ctx:commands.Context,sub_reddits:str or list=None):#,h
   # async with ctx.channel.typing():
   try:
     body = await request(url)
-  except:
+  except BaseException:
     # if hidden:
       # return dict(content="Something went wrong, please try again.")
     # else:
-    return dict(embed=embed(title="Something went wrong, please try again.",color=MessageColors.ERROR))
+    return dict(embed=embed(title="Something went wrong, please try again.", color=MessageColors.ERROR))
 
   if str(ctx.channel.type) == "private":
     thisposted = ctx.channel.id
@@ -66,7 +68,7 @@ async def get_reddit_post(ctx:commands.Context,sub_reddits:str or list=None):#,h
     x += 1
 
   def pickPost():
-    randNum = random.randint(1,len(allowed)) - 1
+    randNum = random.randint(1, len(allowed)) - 1
     postinquestion = allowed[randNum]
 
     try:
@@ -92,12 +94,11 @@ async def get_reddit_post(ctx:commands.Context,sub_reddits:str or list=None):#,h
   #   )
   # else:
   return dict(
-    embed=embed(
-      title=data.get("title"),
-      url="https://reddit.com"+data["permalink"],
-      # author_name="u/"+data.get("author"),
-      image=data["url"],
-      color=MessageColors.MEME
-    )
+      embed=embed(
+          title=data.get("title"),
+          url="https://reddit.com" + data["permalink"],
+          # author_name="u/"+data.get("author"),
+          image=data["url"],
+          color=MessageColors.MEME
+      )
   )
-  

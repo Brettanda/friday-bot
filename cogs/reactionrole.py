@@ -8,11 +8,11 @@ from functions import embed
 
 
 class ReactionRole(commands.Cog):
-  def __init__(self,bot):
+  def __init__(self, bot):
     self.bot = bot
     self.msgs = {}
 
-  def cog_check(self,ctx):
+  def cog_check(self, ctx):
     if ctx.guild is None:
       raise commands.NoPrivateMessage("This command can only be used within a guild")
     return True
@@ -81,11 +81,11 @@ class ReactionRole(commands.Cog):
   #     msg.edit(embed=embed(description=description))
   #   )
 
-  @commands.command(name="reactionrole",aliases=["rr"],hidden=True)
+  @commands.command(name="reactionrole", aliases=["rr"], hidden=True)
   @commands.is_owner()
   @commands.has_guild_permissions(manage_roles=True)
   @commands.bot_has_guild_permissions(manage_roles=True)
-  async def reaction_role(self,ctx,message:discord.Message,*,reaction_roles:str):
+  async def reaction_role(self, ctx, message: discord.Message, *, reaction_roles: str):
     # reaction_roles = list(reaction_roles)
     # print(reaction_roles)
     reaction_roles = reaction_roles.split(" ")
@@ -96,10 +96,10 @@ class ReactionRole(commands.Cog):
       item[1] = "".join(item[1].split("<@&"))
       item[1] = "".join(item[1].split(">"))
       # print(item)
-      role = await commands.RoleConverter().convert(ctx,item[1])
+      role = await commands.RoleConverter().convert(ctx, item[1])
       # print(role)
       # item[1] = role.id
-      roles.update({item[0]:role.id})
+      roles.update({item[0]: role.id})
       # reaction_roles[x] = [item[0],ctx.guild.get_role(int(item[1]))]
       x = x + 1
     reaction_roles = roles
@@ -114,14 +114,16 @@ class ReactionRole(commands.Cog):
     await ctx.reply(embed=embed(title=f"{message.jump_url} is a new reaction role message"))
 
     await asyncio.gather(
-      ctx.message.delete(delay=await get_delete_time(ctx)),
-      msg.delete(delay=await get_delete_time(ctx))
+        ctx.message.delete(delay=await get_delete_time(ctx)),
+        msg.delete(delay=await get_delete_time(ctx))
     )
 
-    print({f"{message.jump_url}":{**reaction_roles}})
+    print({f"{message.jump_url}": {**reaction_roles}})
 
   # {message_id:{"🔗":role_id,"😈":role_id}}
 
   # Vote message
+
+
 def setup(bot):
   bot.add_cog(ReactionRole(bot))

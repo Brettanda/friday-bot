@@ -7,7 +7,7 @@ import subprocess
 
 import discord
 from discord.ext import commands
-from discord_slash import SlashContext#, cog_ext
+from discord_slash import SlashContext  # , cog_ext
 # from discord_slash.utils.manage_commands import create_option, create_choice
 
 from cogs.help import cmd_help, syntax
@@ -16,23 +16,24 @@ from index import songqueue
 
 logger = logging.getLogger(__name__)
 
-class Dev(commands.Cog,command_attrs=dict(hidden=True)):
+
+class Dev(commands.Cog, command_attrs=dict(hidden=True)):
   """Commands used by and for the developer"""
 
-  def __init__(self,bot):
+  def __init__(self, bot):
     self.bot = bot
     self.loop = bot.loop
 
-  def cog_check(self,ctx):
+  def cog_check(self, ctx):
     if ctx.bot.owner_id == ctx.author.id:
       return True
     if isinstance(ctx, SlashContext):
       return commands.NotOwner("You do not own this bot and cannot use this command")
     raise commands.NotOwner("You do not own this bot and cannot use this command")
 
-  @commands.group(name="dev",invoke_without_command=True)
-  async def norm_dev(self,ctx):
-    await cmd_help(ctx,ctx.command)
+  @commands.group(name="dev", invoke_without_command=True)
+  async def norm_dev(self, ctx):
+    await cmd_help(ctx, ctx.command)
 
   # @cog_ext.cog_slash(name="dev",guild_ids=[243159711237537802,805579185879121940])
   # async def slash_dev(self,ctx):
@@ -40,10 +41,10 @@ class Dev(commands.Cog,command_attrs=dict(hidden=True)):
   #   await ctx.send("help")
 
   @norm_dev.command(name="say")
-  async def say(self,ctx,*,say:str):
+  async def say(self, ctx, *, say: str):
     try:
       await ctx.message.delete()
-    except:
+    except BaseException:
       pass
     await ctx.channel.send(f"{say}")
 
@@ -56,10 +57,10 @@ class Dev(commands.Cog,command_attrs=dict(hidden=True)):
   #   await ctx.send(str(message))
 
   @norm_dev.command(name="edit")
-  async def edit(self,ctx,message:discord.Message,*,edit:str):
+  async def edit(self, ctx, message: discord.Message, *, edit: str):
     try:
       await ctx.message.delete()
-    except:
+    except BaseException:
       pass
     await message.edit(content=edit)
 
@@ -84,15 +85,15 @@ class Dev(commands.Cog,command_attrs=dict(hidden=True)):
   #   )
 
   @norm_dev.command(name="react")
-  async def react(self,ctx,message:discord.Message,*,reactions:str):
+  async def react(self, ctx, message: discord.Message, *, reactions: str):
     try:
       await ctx.message.delete()
-    except:
+    except BaseException:
       pass
     new_reactions = []
     reactions = reactions.encode('unicode_escape')
-    reactions = reactions.replace(b"\\",bytes(b" \\"))
-    reactions = reactions.replace(b"<",bytes(b" <"))
+    reactions = reactions.replace(b"\\", bytes(b" \\"))
+    reactions = reactions.replace(b"<", bytes(b" <"))
     reactions = reactions.decode('unicode_escape')
     for react in reactions.split(" "):
       if react != "":
@@ -100,7 +101,7 @@ class Dev(commands.Cog,command_attrs=dict(hidden=True)):
     for reaction in new_reactions:
       try:
         await message.add_reaction(reaction)
-      except:
+      except BaseException:
         pass
 
   @norm_dev.command(name="status")
@@ -109,7 +110,7 @@ class Dev(commands.Cog,command_attrs=dict(hidden=True)):
     print("")
 
   @norm_dev.command(name="restart")
-  async def restart(self,ctx,force:bool=False):
+  async def restart(self, ctx, force: bool = False):
     # global restartPending,songqueue
     if self.bot.restartPending is True and force is False:
       await ctx.reply(embed=embed(title="A restart is already pending"))
@@ -137,13 +138,13 @@ class Dev(commands.Cog,command_attrs=dict(hidden=True)):
         wait = wait - 1
     finally:
       await asyncio.gather(
-        ctx.message.delete(),
-        stat.delete()
+          ctx.message.delete(),
+          stat.delete()
       )
       subprocess.Popen([f"{thispath}{seperator}restart.sh"], stdin=subprocess.PIPE)
 
   @norm_dev.command(name="reload")
-  async def reload(self,ctx,command:str):
+  async def reload(self, ctx, command: str):
     async with ctx.typing():
       com = self.bot.get_command(command)
       if com is not None:
@@ -151,15 +152,14 @@ class Dev(commands.Cog,command_attrs=dict(hidden=True)):
       self.bot.reload_extension(f"cogs.{command.lower()}")
     await ctx.reply(embed=embed(title=f"Cog *{command}* has been reloaded"))
 
-
   @norm_dev.command(name="load")
-  async def load(self,ctx,command:str):
+  async def load(self, ctx, command: str):
     async with ctx.typing():
       self.bot.load_extension(f"cogs.{command.lower()}")
     await ctx.reply(embed=embed(title=f"Cog *{command}* has been loaded"))
 
   @norm_dev.command(name="unload")
-  async def unload(self,ctx,command:str):
+  async def unload(self, ctx, command: str):
     async with ctx.typing():
       self.bot.unload_extension(f"cogs.{command.lower()}")
     await ctx.reply(embed=embed(title=f"Cog *{command}* has been unloaded"))
@@ -167,13 +167,13 @@ class Dev(commands.Cog,command_attrs=dict(hidden=True)):
   @reload.error
   @load.error
   @unload.error
-  async def reload_error(self,ctx,error):
-    await ctx.reply(embed=embed(title=f"Failed to reload *{str(''.join(ctx.message.content.split(ctx.prefix+ctx.command.name+' ')))}*",color=MessageColors.ERROR))
+  async def reload_error(self, ctx, error):
+    await ctx.reply(embed=embed(title=f"Failed to reload *{str(''.join(ctx.message.content.split(ctx.prefix+ctx.command.name+' ')))}*", color=MessageColors.ERROR))
     print(error)
     logger.error(error)
 
   @norm_dev.command(name="update")
-  async def update(self,ctx):
+  async def update(self, ctx):
     message = await ctx.reply(embed=embed(title="Updating..."))
     thispath = os.getcwd()
     if "\\" in thispath:
@@ -184,28 +184,28 @@ class Dev(commands.Cog,command_attrs=dict(hidden=True)):
     await message.edit(embed=embed(title="Update complete!"))
 
   @norm_dev.command(name="cogs")
-  async def cogs(self,ctx):
+  async def cogs(self, ctx):
     cogs = ", ".join(self.bot.cogs)
-    await ctx.reply(embed=embed(title=f"{len(self.bot.cogs)} total cogs",description=f"{cogs}"))
+    await ctx.reply(embed=embed(title=f"{len(self.bot.cogs)} total cogs", description=f"{cogs}"))
 
   @norm_dev.command(name="log")
-  async def log(self,ctx):
+  async def log(self, ctx):
     thispath = os.getcwd()
     if "\\" in thispath:
       seperator = "\\\\"
     else:
       seperator = "/"
-    shutil.copy(f"{thispath}{seperator}logging.log",f"{thispath}{seperator}logging-send.log")
-    await ctx.reply(file=discord.File(fp=f"{thispath}{seperator}logging-send.log",filename="logging.log"))
+    shutil.copy(f"{thispath}{seperator}logging.log", f"{thispath}{seperator}logging-send.log")
+    await ctx.reply(file=discord.File(fp=f"{thispath}{seperator}logging-send.log", filename="logging.log"))
 
-  @norm_dev.command(name="markdown",aliases=["md"])
-  async def markdown(self,ctx):
+  @norm_dev.command(name="markdown", aliases=["md"])
+  async def markdown(self, ctx):
     commands = self.bot.commands
     cogs = []
     for command in commands:
       if command.hidden is False and command.enabled is True and command.cog_name not in cogs:
         cogs.append(command.cog_name)
-    with open("commands.md","w") as f:
+    with open("commands.md", "w") as f:
       f.write("# Commands\n\n")
       for cog in cogs:
         f.write(f"## {cog}\n\n")
@@ -213,10 +213,10 @@ class Dev(commands.Cog,command_attrs=dict(hidden=True)):
           if com.hidden is False and com.enabled is True and com.cog_name == cog:
             # f.write(f"""### {ctx.prefix}{com.name}\n{(f'Aliases: `{ctx.prefix}'+f", {ctx.prefix}".join(com.aliases)+'`') if len(com.aliases) > 0 else ''}\n{f'Description: {com.description}' if com.description != '' else ''}\n""")
             f.write(f"### `{ctx.prefix}{com.name}`\n\n")
-            usage = '\n  '.join(syntax(com,quotes=False).split('\n'))
-            usage = discord.utils.escape_markdown(usage).replace("<","\<")
+            usage = '\n  '.join(syntax(com, quotes=False).split('\n'))
+            usage = discord.utils.escape_markdown(usage).replace("<", "\\<")
             f.write(f"Usage:\n\n  {usage}\n\n")
-            f.write("Aliases: ```"+(f'{ctx.prefix}'+f",{ctx.prefix}".join(com.aliases) if len(com.aliases) > 0 else 'None')+"```\n\n")
+            f.write("Aliases: ```" + (f'{ctx.prefix}' + f",{ctx.prefix}".join(com.aliases) if len(com.aliases) > 0 else 'None') + "```\n\n")
             f.write(f"Description: ```{com.description or 'None'}```\n\n")
       f.close()
     thispath = os.getcwd()
@@ -224,16 +224,17 @@ class Dev(commands.Cog,command_attrs=dict(hidden=True)):
       seperator = "\\\\"
     else:
       seperator = "/"
-    await ctx.reply(file=discord.File(fp=f"{thispath}{seperator}commands.md",filename="commands.md"))
+    await ctx.reply(file=discord.File(fp=f"{thispath}{seperator}commands.md", filename="commands.md"))
 
   @commands.Cog.listener()
-  async def on_message(self,ctx):
+  async def on_message(self, ctx):
     # Reacts to any message in the updates channel in the development server
     if ctx.channel.id == 744652167142441020:
       await ctx.add_reaction("♥")
 
     if r"process.exit()" in ctx.clean_content:
       return await ctx.add_reaction("😡")
+
 
 def setup(bot):
   bot.add_cog(Dev(bot))

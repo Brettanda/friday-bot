@@ -5,30 +5,32 @@ from discord.ext import commands
 
 from functions import embed, mydb_connect, query
 
-async def get_delete_time(ctx:commands.Context=None,guild_id:int=None):
-  if isinstance(ctx,commands.Context) and guild_id is None:
+
+async def get_delete_time(ctx: commands.Context = None, guild_id: int = None):
+  if isinstance(ctx, commands.Context) and guild_id is None:
     guild_id = ctx.guild.id
   if ctx is None and guild_id is None:
     return None
   try:
     mydb = mydb_connect()
-    result = query(mydb,"SELECT autoDeleteMSGs FROM servers WHERE id=%s",guild_id)
+    result = query(mydb, "SELECT autoDeleteMSGs FROM servers WHERE id=%s", guild_id)
     if result is None or result == 0:
       return None
     return result
-  except:
+  except BaseException:
     return
 
+
 class CleanUp(commands.Cog):
-  def __init__(self,bot):
+  def __init__(self, bot):
     self.bot = bot
     # self.exlusions = ["meme","issue","reactionrole"]
 
-  @commands.command(name="clear",description="Deletes the bots commands ignoring anything that is not a command")
+  @commands.command(name="clear", description="Deletes the bots commands ignoring anything that is not a command")
   @commands.is_owner()
   @commands.has_permissions(manage_channels=True)
   @commands.bot_has_permissions(manage_channels=True)
-  async def clear(self,ctx):
+  async def clear(self, ctx):
     def _check(m):
       try:
         coms = []
@@ -50,10 +52,9 @@ class CleanUp(commands.Cog):
     deleted = await ctx.channel.purge(check=_check)
     # deleted = deleted + await ctx.channel.purge(check=_command_check)
     await asyncio.gather(
-      ctx.message.delete(),
-      ctx.reply(embed=embed(title=f"Deleted `{len(deleted)}` message(s)"),delete_after=10.0)
+        ctx.message.delete(),
+        ctx.reply(embed=embed(title=f"Deleted `{len(deleted)}` message(s)"), delete_after=10.0)
     )
-
 
   # @commands.Cog.listener()
   # async def on_command(self,ctx):
@@ -62,7 +63,6 @@ class CleanUp(commands.Cog):
   #   delete = 10 #seconds
   #   if delete > 0:
   #     await ctx.message.delete(delay=delete)
-
 
   # @commands.Cog.listener()
   # async def on_command_error(self,ctx,error):
@@ -100,6 +100,7 @@ class CleanUp(commands.Cog):
   #         )
   #       except:
   #         pass
+
 
 def setup(bot):
   bot.add_cog(CleanUp(bot))

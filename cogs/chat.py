@@ -12,26 +12,27 @@ from functions.mysql_connection import query_prefix
 
 logger = logging.getLogger(__name__)
 
+
 class Chat(commands.Cog):
-  def __init__(self,bot):
+  def __init__(self, bot):
     self.bot = bot
 
   @commands.Cog.listener()
-  async def on_message(self,ctx:commands.Context):
+  async def on_message(self, ctx: commands.Context):
     if ctx.author.bot or ctx.activity is not None or len(ctx.clean_content) > 256:
       return
 
     valid = validators.url(ctx.content)
-    if valid or str(ctx.channel.type).lower() in ["store","voice","category","news"]:
+    if valid or str(ctx.channel.type).lower() in ["store", "voice", "category", "news"]:
       return
 
     if ctx.guild is not None:
       mydb = mydb_connect()
-      muted = query(mydb,"SELECT muted FROM servers WHERE id=%s",ctx.guild.id)
+      muted = query(mydb, "SELECT muted FROM servers WHERE id=%s", ctx.guild.id)
       if muted == 1:
         return
 
-    prefix = str(query_prefix(self.bot,ctx,True))
+    prefix = str(query_prefix(self.bot, ctx, True))
     if not ctx.content.startswith(prefix):
       noContext = ["Title of your sex tape", "I dont want to talk to a chat bot", "The meaning of life?", "Birthday", "Memes", "Self Aware", "Soup Time", "No U", "I'm dad", "Bot discrimination"]
       lastmessages = await ctx.channel.history(limit=3).flatten()
@@ -42,10 +43,10 @@ class Chat(commands.Cog):
           meinlastmessage = True
           # newest = msg
 
-      result,intent,chance,inbag,incomingContext,outgoingContext,sentiment = await queryIntents.classify_local(ctx.clean_content)
+      result, intent, chance, inbag, incomingContext, outgoingContext, sentiment = await queryIntents.classify_local(ctx.clean_content)
 
       if intent == "Title of your sex tape" and ctx.guild.id not in dev_guilds:
-        return await relay_info(f"Not responding with TOYST for: `{ctx.clean_content}`", self.bot,channel=814349008007856168)
+        return await relay_info(f"Not responding with TOYST for: `{ctx.clean_content}`", self.bot, channel=814349008007856168)
 
       # print(incomingContext,outgoingContext,ctx.reference.resolved if ctx.reference is not None else "No reference")
       # if incomingContext is not None and len(incomingContext) > 0 and (newest is not None or ctx.reference is not None):
@@ -75,12 +76,12 @@ class Chat(commands.Cog):
         print(f"\t| input: {ctx.clean_content}")
         logger.info(f"\t| input: {ctx.clean_content}")
         print(f"\t| found in bag: {inbag}")
-        logger.info(u"\t| found in bag: %s",inbag)
+        logger.info(u"\t| found in bag: %s", inbag)
       else:
         print(f"No response found: {ctx.clean_content.encode('unicode_escape')}")
         logger.info(f"No response found: {ctx.clean_content.encode('unicode_escape')}")
         if "friday" in ctx.clean_content.lower() or self.bot.user in ctx.mentions:
-          await relay_info("",self.bot,embed=embed(title="I think i should respond to this",description=f"{ctx.content}"),channel=814349008007856168)
+          await relay_info("", self.bot, embed=embed(title="I think i should respond to this", description=f"{ctx.content}"), channel=814349008007856168)
           print(f"I think I should respond to this: {ctx.clean_content.lower()}")
           logger.info(f"I think I should respond to this: {ctx.clean_content.lower()}")
       # # print(f"Intent: {intent}\t{chance}")
@@ -105,11 +106,12 @@ class Chat(commands.Cog):
         if "dynamic" in result:
           print(f"\t\\ response: {result}")
           logger.info(f"\t\\ response: {result}")
-          await dynamicchat(ctx,self.bot,intent,result)
+          await dynamicchat(ctx, self.bot, intent, result)
         else:
           print(f"\t\\ response: {result}")
           logger.info(f"\t\\ response: {result}")
           await ctx.reply(result)
+
 
 def setup(bot):
   bot.add_cog(Chat(bot))

@@ -4,6 +4,7 @@ import sys
 import mysql.connector
 from discord.ext import commands
 
+
 def mydb_connect():
   # https://www.mysqltutorial.org/python-connecting-mysql-databases/
   if len(sys.argv) > 1 and (sys.argv[1] == "--prod" or sys.argv[1] == "--production"):
@@ -11,19 +12,20 @@ def mydb_connect():
   else:
     DATABASE = os.getenv("DATABASETEST")
   mydb = mysql.connector.connect(
-    host=os.getenv("DBHOST"),
-    user=os.getenv("DBUSER"),
-    password=os.getenv("DBPASS"),
-    database=DATABASE
+      host=os.getenv("DBHOST"),
+      user=os.getenv("DBUSER"),
+      password=os.getenv("DBPASS"),
+      database=DATABASE
   )
 
   return mydb
 
-def query(mydb,query:str,*params):
+
+def query(mydb, query: str, *params):
   # print(params)
   mydb = mydb_connect()
   mycursor = mydb.cursor(prepared=True)
-  mycursor.execute(query,params)
+  mycursor.execute(query, params)
   if "select" in query.lower():
     if "where" in query.lower() and "," not in query.lower():
       result = mycursor.fetchone()[0]
@@ -34,9 +36,10 @@ def query(mydb,query:str,*params):
   if "select" in query.lower():
     return result
 
-def query_prefix(bot,ctx,client:bool=False):
+
+def query_prefix(bot, ctx, client: bool = False):
   if str(ctx.channel.type) == "private":
-    return commands.when_mentioned_or("!")(bot,ctx)
+    return commands.when_mentioned_or("!")(bot, ctx)
   mydb = mydb_connect()
   mycursor = mydb.cursor()
   mycursor.execute(f"SELECT prefix FROM servers WHERE id='{ctx.guild.id}'")
@@ -45,16 +48,16 @@ def query_prefix(bot,ctx,client:bool=False):
   try:
     mydb.commit()
     mydb.close()
-  except:
+  except BaseException:
     pass
 
   if client is True:
     return result[0][0]
   else:
     try:
-      return commands.when_mentioned_or(result[0][0] or "!")(bot,ctx)
-    except:
-      return commands.when_mentioned_or("!")(bot,ctx)
+      return commands.when_mentioned_or(result[0][0] or "!")(bot, ctx)
+    except BaseException:
+      return commands.when_mentioned_or("!")(bot, ctx)
   # return commands.when_mentioned_or("!")(bot,ctx)
   # return "!"
   return "!"

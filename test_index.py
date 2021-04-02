@@ -14,9 +14,10 @@ TOKEN = os.environ.get('TOKENTEST')
 
 intents = discord.Intents.default()
 
+
 class Friday_testing(Friday):
-  def __init__(self,*args,**kwargs):
-    super().__init__(*args,**kwargs)
+  def __init__(self, *args, **kwargs):
+    super().__init__(*args, **kwargs)
 
     self.test_stop.start()
 
@@ -26,11 +27,12 @@ class Friday_testing(Friday):
     await asyncio.sleep(3)
     assert await self.close()
 
+
 def test_will_it_blend():
-  bot = Friday_testing(command_prefix=query_prefix or "!",case_insensitive=True,intents=intents,owner_id=215227961048170496)
+  bot = Friday_testing(command_prefix=query_prefix or "!", case_insensitive=True, intents=intents, owner_id=215227961048170496)
   loop = asyncio.get_event_loop()
   try:
-    loop.run_until_complete(bot.start(TOKEN,bot=True))
+    loop.run_until_complete(bot.start(TOKEN, bot=True))
   except KeyboardInterrupt:
     # mydb.close()
     logging.info("STOPED")
