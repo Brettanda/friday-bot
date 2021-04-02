@@ -20,7 +20,7 @@ class DatedEvents(commands.Cog):
     self.dated_events.start()
     # self.events = bot.loop.create_task(self.dated_events(),name="Dated events")
 
-  @tasks.loop(seconds=3600.0)
+  @tasks.loop(hours=1.0)
   async def dated_events(self):
     if "test" in self.bot.user.name.lower():
       return
@@ -40,7 +40,7 @@ class DatedEvents(commands.Cog):
       with open(f"{thispath}{seperator}assets{seperator}friday_april_fools.png", "rb") as image:
         f = image.read()
         await user.edit(avatar=f)
-        await guild.edit(icon=f)
+        await guild.edit(icon=f, reason="April Fools")
       await asyncio.sleep(43200.0)
     elif int(month) == 4 and int(day) == 2:
       print("post-april fools")
@@ -48,7 +48,7 @@ class DatedEvents(commands.Cog):
       with open(f"{thispath}{seperator}assets{seperator}friday-logo.png", "rb") as image:
         f = image.read()
         await guild.edit(icon=f)
-        await user.edit(avatar=f)
+        await user.edit(avatar=f, reason="Post-april fools")
       await asyncio.sleep(43200.0)
 
   @dated_events.before_loop
