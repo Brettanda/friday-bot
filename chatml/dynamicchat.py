@@ -2,7 +2,8 @@
 import json
 import logging
 # import os
-import random
+# import random
+import numpy as np
 # import sys
 
 # import discord
@@ -55,14 +56,14 @@ async def dynamicchat(ctx, bot, intent, response=None):
       await ctx.channel.send(
           embed=embed(
               title="No u!",
-              image=config["unoCards"][random.randint(0, len(config["unoCards"]))],
+              image=np.random.choice(config["unoCards"]),
               color=MessageColors.NOU))
 
     elif intent in ("Memes", "Memes - Another"):
       await ctx.reply(**await get_reddit_post(ctx, ["memes", "dankmemes"]))
 
     elif intent == "Title of your sex tape":
-      if random.random() < 0.1:
+      if np.random.random() < 0.1:
         await ctx.reply(f"*{ctx.clean_content}*, title of your sex-tape")
 
     elif intent == "show me something cute":
@@ -73,11 +74,11 @@ async def dynamicchat(ctx, bot, intent, response=None):
 
     elif intent in ("Compliments", "Thanks", "are you a bot?", "I love you"):
       hearts = ["❤️", "💯", "💕"]
-      await ctx.add_reaction(hearts[random.randint(0, len(hearts) - 1)])
+      await ctx.add_reaction(np.random.choice(hearts))
 
     elif intent == "give me 5 minutes":
       clocks = ["⏰", "⌚", "🕰", "⏱"]
-      await ctx.add_reaction(clocks[random.randint(0, len(clocks) - 1)])
+      await ctx.add_reaction(np.random.choice(clocks))
 
     # TODO: Make the inspiration command
     elif intent == "inspiration":
@@ -104,7 +105,7 @@ async def dynamicchat(ctx, bot, intent, response=None):
       await ctx.reply(f"Well I don't know your real name but your username is {ctx.author.name}")
 
     elif intent == "doggo":
-      await ctx.add_reaction(random.choice(["🐶", "🐕", "🐩", "🐕‍🦺"]))
+      await ctx.add_reaction(np.random.choice(["🐶", "🐕", "🐩", "🐕‍🦺"]))
 
     else:
       print(f"I dont have a response for this: {ctx.content}")
