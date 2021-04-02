@@ -41,7 +41,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
   #   await ctx.send("help")
 
   @norm_dev.command(name="say")
-  async def say(self, ctx, say: str, channel: typing.Optional[discord.TextChannel]=None):
+  async def say(self, ctx, say: str, channel: typing.Optional[discord.TextChannel] = None):
     channel == ctx.channel if channel is None else channel
     try:
       await ctx.message.delete()

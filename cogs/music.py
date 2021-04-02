@@ -437,6 +437,6 @@ class Music(Cog):
     except AttributeError:
       pass
 
- 
+
 def setup(bot):
   bot.add_cog(Music(bot))
