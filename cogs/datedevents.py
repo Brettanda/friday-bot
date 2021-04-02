@@ -47,8 +47,8 @@ class DatedEvents(commands.Cog):
       logger.info("post-april fools")
       with open(f"{thispath}{seperator}assets{seperator}friday-logo.png", "rb") as image:
         f = image.read()
-        await guild.edit(icon=f)
-        await user.edit(avatar=f, reason="Post-april fools")
+        await guild.edit(icon=f, reason="Post-april fools")
+        await user.edit(avatar=f)
       await asyncio.sleep(43200.0)
 
   @dated_events.before_loop
