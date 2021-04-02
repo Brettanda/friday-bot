@@ -1,5 +1,5 @@
 from discord_slash import SlashContext
-from discord.ext.commands import Context
+# from discord.ext.commands import Context
 
 
 class MySlashContext(SlashContext):

@@ -1,6 +1,6 @@
 from discord.ext.commands import Cog, command  # , bot_has_permissions
 
-from PIL import Image, ImageDraw
+# from PIL import Image, ImageDraw
 # https://pillow.readthedocs.io/en/stable/reference/ImageDraw.html
 
 # import os,sys

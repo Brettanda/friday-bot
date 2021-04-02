@@ -1,5 +1,5 @@
 from flair.models.text_classification_model import TARSClassifier
-from flair.trainers import ModelTrainer
+# from flair.trainers import ModelTrainer
 from flair.datasets import SentenceDataset
 from flair.data import Corpus, Sentence, Span
 import os
