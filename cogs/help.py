@@ -92,7 +92,6 @@ async def cmd_help(ctx, command, message: str = None):
 
 
 class Help(Cog):
-  # class Help(commands.HelpCommand):
   def __init__(self, bot):
     self.bot = bot
     self.bot.remove_command("help")
