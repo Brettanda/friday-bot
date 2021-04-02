@@ -18,7 +18,7 @@ class Chat(commands.Cog):
 
   @commands.Cog.listener()
   async def on_message(self,ctx:commands.Context):
-    if ctx.author.bot or ctx.activity is not None or len(ctx.clean_content) > 256:
+    if (ctx.author.bot and ctx.channel.id != 827645155099148348) or ctx.activity is not None or len(ctx.clean_content) > 256:
       return
 
     valid = validators.url(ctx.content)
