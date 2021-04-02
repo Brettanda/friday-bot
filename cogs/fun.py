@@ -246,7 +246,7 @@ class Fun(commands.Cog):
 
   @commands.command(name="coinflip", aliases=["coin"], description="Flip a coin")
   async def norm_coin(self, ctx):
-    await ctx.reply(embed=embed(title="Results for the flip: " + random.choice(["Heads", "Tails"])))
+    await ctx.reply(embed=embed(title="The coin landed on: " + random.choice(["Heads", "Tails"])))
 
   @cog_ext.cog_slash(
       name="coinflip",
@@ -255,7 +255,13 @@ class Fun(commands.Cog):
   )
   async def slash_coin(self, ctx, hidden: bool = False):
     await ctx.defer(hidden)
-    await ctx.send(hidden=hidden, content="Results for the flip: " + random.choice(["Heads", "Tails"]))
+    await ctx.send(hidden=hidden, content="The coin landed on: " + random.choice(["Heads", "Tails"]))
+
+  # @commands.command(name="mostroles", description="Show the server members with the most roles")
+  # async def norm_mostroles(self, ctx):
+  #   # Requires members intent
+  #   for member in ctx.guild.members:
+  #     print(member)
 
 
 def setup(bot):
