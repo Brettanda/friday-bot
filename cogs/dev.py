@@ -3,7 +3,7 @@ import logging
 import os
 import shutil
 import subprocess
-# import typing
+import typing
 
 import discord
 from discord.ext import commands
@@ -41,12 +41,13 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
   #   await ctx.send("help")
 
   @norm_dev.command(name="say")
-  async def say(self, ctx, *, say: str):
+  async def say(self, ctx, say: str, channel: typing.Optional[discord.TextChannel]=None):
+    channel == ctx.channel if channel is None else channel
     try:
       await ctx.message.delete()
     except BaseException:
       pass
-    await ctx.channel.send(f"{say}")
+    await channel.send(f"{say}")
 
   # @cog_ext.cog_subcommand(base="dev",name="say",description="Make me say something",guild_ids=[243159711237537802,805579185879121940])
   # async def slash_say(self,ctx,*,message:str):
