@@ -56,12 +56,18 @@ class MyContext(commands.Context):
       return await self.message.reply(content, **kwargs)
     except discord.Forbidden as e:
       if "Cannot reply without permission" in str(e):
-        return await self.message.channel.send(content, **kwargs)
+        try:
+          return await self.message.channel.send(content, **kwargs)
+        except Exception:
+          pass
       else:
         raise e
     except discord.HTTPException as e:
       if "Unknown message" in str(e):
-        return await self.message.channel.send(content, **kwargs)
+        try:
+          return await self.message.channel.send(content, **kwargs)
+        except Exception:
+          pass
       else:
         raise e
 
