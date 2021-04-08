@@ -71,9 +71,9 @@ class Chat(commands.Cog):
       #     print(f"Requires context, not responding: {ctx.reference.resolved.clean_content if ctx.reference is not None else newest.clean_content}")
       #     return
       # TODO: add a check for another bot
-      if intent not in noContext and self.bot.user not in ctx.mentions and "friday" not in ctx.clean_content.lower() and meinlastmessage is not False and ctx.channel.type != "private":
-        print("\tI probably should not respond")
-        logger.info("\tI probably should not respond")
+      if (intent not in noContext) and (self.bot.user not in ctx.mentions) and ("friday" not in ctx.clean_content.lower()) and (meinlastmessage is not True) and (ctx.channel.type != "private"):
+        print("I probably should not respond")
+        logger.info("I probably should not respond")
         # if "friday" in ctx.clean_content.lower() or self.bot.user in ctx.mentions:
         #   await relay_info("",self.bot,embed=embed(title="I think i should respond to this",description=f"{ctx.content}"),channel=814349008007856168)
         #   print(f"I think I should respond to this: {ctx.clean_content.lower()}")
