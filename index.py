@@ -78,6 +78,7 @@ class Friday(commands.AutoShardedBot):
 
     self.restartPending = restartPending
     self.slash = SlashCommand(self, sync_on_cog_reload=True, sync_commands=True, override_type=True)
+    self.prod = True if len(sys.argv) > 1 and (sys.argv[1] == "--prod" or sys.argv[1] == "--production") else False
 
     for com in os.listdir("./cogs"):
       if com.endswith(".py"):
@@ -199,7 +200,6 @@ if __name__ == "__main__":
   if len(sys.argv) > 1:
     if sys.argv[1] == "--prod" or sys.argv[1] == "--production":
       TOKEN = os.environ.get("TOKEN")
-      bot.load_extension("functions.dbl")
   loop = asyncio.get_event_loop()
   try:
     loop.run_until_complete(bot.start(TOKEN, bot=True, reconnect=True))

@@ -14,7 +14,8 @@ class TopGG(commands.Cog):
     self.bot = bot
     self.token = os.getenv("TOKENDBL")
     self.dblpy = dbl.DBLClient(self.bot, self.token, autopost=False)
-    self.update_stats.start()
+    if self.bot.prod:
+      self.update_stats.start()
 
   def cog_unload(self):
     self.update_stats.cancel()
