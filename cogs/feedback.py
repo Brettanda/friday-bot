@@ -11,11 +11,11 @@ class Issue(commands.Cog):
   def __init__(self, bot):
     self.bot = bot
 
-  @commands.command(name="issue", aliases=["problem"], description="If you have an issue or noticed a bug with Friday, this will send a message to the developer.", usage="<Description of issue and steps to recreate the issue>")
+  @commands.command(name="feedback", aliases=["issue", "problem"], description="If you have an issue or noticed a bug with Friday, this will send a message to the developer.", usage="<Description of issue and steps to recreate the issue>")
   @commands.cooldown(1, 30, commands.BucketType.channel)
-  async def issue(self, ctx, *, issue: str):
+  async def feedback(self, ctx, *, issue: str):
     timeout = 20
-    confirm = await ctx.reply(f"Please confirm your issue by reacting with ✅. This will cancel after {timeout} seconds", embed=embed(title="Are you sure you would like to submit this issue?", description=f"{issue}"))
+    confirm = await ctx.reply(f"Please confirm your feedback by reacting with ✅. This will cancel after {timeout} seconds", embed=embed(title="Are you sure you would like to submit this issue?", description=f"{issue}"))
     delay = await get_delete_time(ctx)
     await ctx.message.delete(delay=delay)
     await confirm.add_reaction("✅")
