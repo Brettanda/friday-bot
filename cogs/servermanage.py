@@ -93,7 +93,8 @@ class ServerManage(commands.Cog):
   @commands.command(name="kick")
   @commands.bot_has_guild_permissions(kick_members=True)
   @commands.has_guild_permissions(kick_members=True)
-  async def kick(self,ctx,members:commands.Greedy[discord.Member],*,reason:str):
+  async def kick(self, ctx, members: commands.Greedy[discord.Member], *, reason: str = None):
+    tokick = []
     for member in members:
       if self.bot.user in members:
         try:
@@ -104,13 +105,15 @@ class ServerManage(commands.Cog):
       if member == ctx.author:
         await ctx.reply(embed=embed(title="Failed to kick yourself",color=MessageColors.ERROR))
         return
+      tokick.append(member.name)
       await member.kick(reason=f"{ctx.author}: {reason}")
-    await ctx.reply(embed=embed(title=f"Kicked `{members.join(', ')}` for reason `{reason}`"))
+    await ctx.reply(embed=embed(title=f"Kicked `{', '.join(tokick)}` for reason `{reason}`"))
 
   @commands.command(name="ban")
   @commands.bot_has_guild_permissions(ban_members=True)
   @commands.has_guild_permissions(ban_members=True)
-  async def ban(self,ctx,members:commands.Greedy[discord.Member],delete_message_days:typing.Optional[int]=0,*,reason:str=None):
+  async def ban(self, ctx, members: commands.Greedy[discord.Member], delete_message_days: typing.Optional[int] = 0, *, reason: str = None):
+    toban = []
     for member in members:
       if self.bot.user in members:
         try:
@@ -121,8 +124,9 @@ class ServerManage(commands.Cog):
       if member == ctx.author:
         await ctx.reply(embed=embed(title="Failed to ban yourself",color=MessageColors.ERROR))
         return
-      await member.ban(delete_message_days=delete_message_days,reason=f"{ctx.author}: {reason}")
-    await ctx.reply(embed=embed(title=f"Banned `{members.join(', ')}` with `{delete_message_days}` messages deleted, for reason `{reason}`"))
+      toban.append(member.name)
+      await member.ban(delete_message_days=delete_message_days, reason=f"{ctx.author}: {reason}")
+    await ctx.reply(embed=embed(title=f"Banned `{', '.join(toban)}` with `{delete_message_days}` messages deleted, for reason `{reason}`"))
 
   @commands.command(name="rolecall",aliases=["rc"],description="Moves everyone with a specific role to a voicechannel. Objects that can be exluded are voicechannels,roles,and members")
   @commands.guild_only()
