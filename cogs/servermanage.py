@@ -116,7 +116,10 @@ class ServerManage(commands.Cog):
   @commands.command(name="kick")
   @commands.bot_has_guild_permissions(kick_members=True)
   @commands.has_guild_permissions(kick_members=True)
-  async def kick(self, ctx, members: commands.Greedy[discord.Member], *, reason: str):
+  async def kick(self, ctx, members: commands.Greedy[discord.Member], *, reason: str = None):
+    if len(members) == 0:
+      cmd_help(ctx,ctx.command)
+    tokick = []
     for member in members:
       if self.bot.user in members:
         try:
@@ -134,6 +137,9 @@ class ServerManage(commands.Cog):
   @commands.bot_has_guild_permissions(ban_members=True)
   @commands.has_guild_permissions(ban_members=True)
   async def ban(self, ctx, members: commands.Greedy[discord.Member], delete_message_days: typing.Optional[int] = 0, *, reason: str = None):
+    if len(members) == 0:
+      cmd_help(ctx,ctx.command)
+    toban = []
     for member in members:
       if self.bot.user in members:
         try:
