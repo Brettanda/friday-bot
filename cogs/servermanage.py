@@ -130,8 +130,9 @@ class ServerManage(commands.Cog):
       if member == ctx.author:
         await ctx.reply(embed=embed(title="Failed to kick yourself", color=MessageColors.ERROR))
         return
+      tokick.append(member.name)
       await member.kick(reason=f"{ctx.author}: {reason}")
-    await ctx.reply(embed=embed(title=f"Kicked `{members.join(', ')}` for reason `{reason}`"))
+    await ctx.reply(embed=embed(title=f"Kicked `{', '.join(tokick)}` for reason `{reason}`"))
 
   @commands.command(name="ban")
   @commands.bot_has_guild_permissions(ban_members=True)
@@ -150,8 +151,9 @@ class ServerManage(commands.Cog):
       if member == ctx.author:
         await ctx.reply(embed=embed(title="Failed to ban yourself", color=MessageColors.ERROR))
         return
+      toban.append(member.name)
       await member.ban(delete_message_days=delete_message_days, reason=f"{ctx.author}: {reason}")
-    await ctx.reply(embed=embed(title=f"Banned `{members.join(', ')}` with `{delete_message_days}` messages deleted, for reason `{reason}`"))
+    await ctx.reply(embed=embed(title=f"Banned `{', '.join(toban)}` with `{delete_message_days}` messages deleted, for reason `{reason}`"))
 
   @commands.command(name="rolecall", aliases=["rc"], description="Moves everyone with a specific role to a voicechannel. Objects that can be exluded are voicechannels,roles,and members")
   @commands.guild_only()
