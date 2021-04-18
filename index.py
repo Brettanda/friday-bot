@@ -60,6 +60,8 @@ class MyContext(commands.Context):
           return await self.message.channel.send(content, **kwargs)
         except Exception:
           pass
+      elif "Missing Permissions" in str(e):
+        pass
       else:
         raise e
     except discord.HTTPException as e:
@@ -122,18 +124,19 @@ class Friday(commands.AutoShardedBot):
       await ctx.reply(embed=embed(title=f"This command is on a cooldown, please wait {error.retry_after:,.2f} sec(s)", color=MessageColors.ERROR), delete_after=30)
       await ctx.delete(delay=30)
     elif isinstance(error, commands.NoPrivateMessage):
-      await ctx.reply(embed=embed(title="This command does not work in non-server text channels", color=MessageColors.ERROR))
+      await ctx.reply(embed=embed(title="This command does not work in non-server text channels", color=MessageColors.ERROR), delete_after=delete)
     elif isinstance(error, commands.ChannelNotFound):
-      await ctx.reply(embed=embed(title=str(error), color=MessageColors.ERROR))
+      await ctx.reply(embed=embed(title=str(error), color=MessageColors.ERROR), delete_after=delete)
       # await ctx.reply(embed=embed(title="Could not find that channel",description="Make sure it is the right channel type",color=MessageColors.ERROR))
     elif isinstance(error, commands.DisabledCommand):
-      await ctx.reply(embed=embed(title="This command has been disabled", color=MessageColors.ERROR))
+      await ctx.reply(embed=embed(title=str(error) or "This command has been disabled", color=MessageColors.ERROR), delete_after=delete)
     elif isinstance(error, commands.TooManyArguments):
-      await cmd_help(ctx, ctx.command, "Too many arguments were passed for this command, here is how the command should look")
+      await cmd_help(ctx, ctx.command, str(error) or "Too many arguments were passed for this command, here is how the command should look", delete_after=delete)
     # elif isinstance(error,commands.CommandError) or isinstance(error,commands.CommandInvokeError):
     #   await ctx.reply(embed=embed(title=f"{error}",color=MessageColors.ERROR))
-    elif (
-            isinstance(error, (
+    elif (isinstance(error, (
+                discord.Forbidden,
+                discord.NotFound,
                 commands.MissingPermissions,
                 commands.BotMissingPermissions,
                 commands.MaxConcurrencyReached,
@@ -141,7 +144,7 @@ class Friday(commands.AutoShardedBot):
                 exceptions.NoCustomSoundsFound,
                 exceptions.CantSeeNewVoiceChannelType,
                 exceptions.ArgumentTooLarge)
-            )):
+    )):
       try:
         await ctx.reply(embed=embed(title=f"{error}", color=MessageColors.ERROR), delete_after=delete)
       except discord.Forbidden:
@@ -161,31 +164,36 @@ class Friday(commands.AutoShardedBot):
       raise error
 
   async def on_error(self, *args, **kwargs):
-    # await self.get_guild(707441352367013899).chunk(cache=False)
     appinfo = await self.application_info()
     owner = self.get_user(appinfo.team.owner.id)
 
     trace = traceback.format_exc()
-    try:
-      await relay_info(
-          f"{owner.mention if self.intents.members is True else ''}\n```bash\n{trace}```",
-          self,
-          short="Error sent",
-          channel=713270561840824361
-      )
-    except discord.HTTPException:
-      with open("err.log", "w") as f:
-        f.write(f"{trace}")
-        f.close()
+    if "Missing Access" in str(trace):
+      return
+    if self.prod:
+      try:
         await relay_info(
-            f"{owner.mention if self.intents.members is True else ''}",
+            f"{owner.mention if self.intents.members is True else ''}\n```bash\n{trace}```",
             self,
-            file="err.log",
+            short="Error sent",
             channel=713270561840824361
         )
+      except discord.HTTPException:
+        with open("err.log", "w") as f:
+          f.write(f"{trace}")
+          f.close()
+          await relay_info(
+              f"{owner.mention if self.intents.members is True else ''}",
+              self,
+              file="err.log",
+              channel=713270561840824361
+          )
 
     print(trace)
     logging.error(trace)
+
+  # async def on_slash_command_error(self, ctx, *args, **kwargs):
+  #   print("somethign")
 
   async def on_message(self, ctx):
     if ctx.author.bot:

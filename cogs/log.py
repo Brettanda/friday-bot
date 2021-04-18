@@ -5,7 +5,7 @@ import discord
 from discord.ext import commands
 from discord_slash import SlashContext
 
-from functions import embed, mydb_connect, query, relay_info  # ,choosegame
+from functions import embed, mydb_connect, query, relay_info, exceptions  # ,choosegame
 
 # import os
 
@@ -135,15 +135,25 @@ class Log(commands.Cog):
 
   @commands.Cog.listener()
   async def on_slash_command(self, ctx):
-    print(f"Slash Command: {ctx.command}")
-    logger.info(f"Slash Command: {ctx.command}")
+    print(f"Slash Command: {ctx.command} {ctx.kwargs}")
+    logger.info(f"Slash Command: {ctx.command} {ctx.kwargs}")
 
   @commands.Cog.listener()
   async def on_slash_command_error(self, ctx: SlashContext, ex):
-    print(ex)
-    logging.error(ex)
     await ctx.send(hidden=True, content=str(ex))
-    raise ex
+    if not isinstance(ex, (
+        discord.NotFound,
+        commands.MissingPermissions,
+        commands.BotMissingPermissions,
+        commands.MaxConcurrencyReached,
+        exceptions.UserNotInVoiceChannel,
+        exceptions.NoCustomSoundsFound,
+        exceptions.CantSeeNewVoiceChannelType,
+        exceptions.ArgumentTooLarge)
+    ):
+      print(ex)
+      logging.error(ex)
+      # raise ex
 
 
 def setup(bot):
