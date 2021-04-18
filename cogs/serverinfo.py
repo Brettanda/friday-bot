@@ -1,5 +1,7 @@
 from discord.ext import commands
 
+from discord_slash import cog_ext
+
 from functions import embed, mydb_connect, query
 
 
@@ -9,11 +11,22 @@ class ServerInfo(commands.Cog):
 
   @commands.command(name="serverinfo")
   @commands.guild_only()
+  async def norm_server_info(self, ctx):
+    post = await self.server_info(ctx)
+    await ctx.reply(**post)
+
+  @cog_ext.cog_slash(name="serverinfo", description="Info about a server",guild_ids=[243159711237537802])
+  @commands.guild_only()
+  async def slash_server_info(self, ctx):
+    print("shit")
+    post = await self.server_info(ctx)
+    await ctx.send(**post)
+
   async def server_info(self, ctx):
-    async with ctx.typing():
-      mydb = mydb_connect()
-      prefix, delete_after, musicchannel, defaultRole = query(mydb, "SELECT prefix,autoDeleteMSGs,musicChannel,defaultRole FROM servers WHERE id=%s", ctx.guild.id)[0]
-    await ctx.reply(
+    # async with ctx.typing() if ctx.typing is not None else ctx.defer():
+    mydb = mydb_connect()
+    prefix, delete_after, musicchannel, defaultRole = query(mydb, "SELECT prefix,autoDeleteMSGs,musicChannel,defaultRole FROM servers WHERE id=%s", ctx.guild.id)[0]
+    return dict(
         embed=embed(
             title=ctx.guild.name + " - Info",
             thumbnail=ctx.guild.icon_url,

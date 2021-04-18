@@ -3,12 +3,13 @@ import random
 import typing
 import numpy as np
 
+import discord
 from discord.ext import commands
 from discord_slash import cog_ext
-from discord_slash.utils.manage_commands import create_choice, create_option
+from discord_slash.utils.manage_commands import create_choice, create_option, SlashCommandOptionType
 
 # sys.path.insert(1, os.path.join(sys.path[0], '..'))
-from functions import MessageColors, embed
+from functions import MessageColors, embed, exceptions
 
 with open('./config.json') as f:
   config = json.load(f)
@@ -148,27 +149,20 @@ class Fun(commands.Cog):
       name="minesweeper",
       description="Minesweeper",
       options=[
-          create_option("size", "SizeXSize", 4, required=False),
-          create_option("bomb_count", "Amount of bombs", 4, required=False),
-          create_option("hidden", "To hide the command, or not to hide the command", 5, required=False)
+          create_option("size", "SizeXSize", SlashCommandOptionType.INTEGER, False),
+          create_option("bomb_count", "Amount of bombs", SlashCommandOptionType.INTEGER, False)
       ]
   )
-  async def slash_minesweeper(self, ctx, size: int = 5, bomb_count: int = 6, hidden: bool = False):
-    await ctx.defer(hidden)
-    post = await self.mine_sweeper(size, bomb_count, hidden)
-    if hidden:
-      await ctx.send(hidden=True, **post)
-    else:
-      await ctx.send(**post)
+  async def slash_minesweeper(self, ctx, size: int = 5, bomb_count: int = 3):
+    await ctx.send(**await self.mine_sweeper(size, bomb_count))
 
-  async def mine_sweeper(self, size, bomb_count, hidden=False):
+  async def mine_sweeper(self, size, bomb_count):
     """Source for this command: https://medium.com/swlh/this-is-how-to-create-a-simple-minesweeper-game-in-python-af02077a8de"""
+    
     if size > 9:
-      return dict(content="Size cannot be larger than 9 due to the message character limit of Discord")
-      # raise exceptions.ArgumentTooLarge("Size cannot be larger than 9 due to the message character limit of Discord")
+      raise exceptions.ArgumentTooLarge("Size cannot be larger than 9 due to the message character limit of Discord")
     if bomb_count > size * size:
-      return dict(content="Bomb_count cannot be larger than the game board")
-      # raise exceptions.ArgumentTooLarge("Bomb_count cannot be larger than the game board")
+      raise exceptions.ArgumentTooLarge("Bomb_count cannot be larger than the game board")
 
     arr = [[0 for row in range(size)] for column in range(size)]
 
@@ -214,16 +208,12 @@ class Fun(commands.Cog):
         if arr[y + 1][x] != 'X':
           arr[y + 1][x] += 1  # bottom center
 
-    if hidden:
-      return dict(
-          content=f"{size}x{size} with {bomb_count} bombs\n||" + "||\n||".join("||||".join(self.EMOTES[cell] for cell in row) for row in arr) + "||")
-    else:
-      return dict(
-          embed=embed(
-              title=f"{size}x{size} with {bomb_count} bombs",
-              author_name="Minesweeper",
-              description="||" + "||\n||".join("||||".join(self.EMOTES[cell] for cell in row) for row in arr) + "||"),
-          delete_after=None)
+    return dict(
+        embed=embed(
+            title=f"{size}x{size} with {bomb_count} bombs",
+            author_name="Minesweeper",
+            description="||" + "||\n||".join("||||".join(self.EMOTES[cell] for cell in row) for row in arr) + "||"),
+        delete_after=None)
 
   @commands.command(name='souptime', help='Soup Time')
   @commands.cooldown(1, 7, commands.BucketType.user)
@@ -233,7 +223,6 @@ class Fun(commands.Cog):
   @cog_ext.cog_slash(name='souptime')
   # @commands.cooldown(1,7, commands.BucketType.user)
   async def slash_souptime(self, ctx):
-    await ctx.defer()
     await ctx.send(**self.souptime())
 
   def souptime(self):
@@ -250,18 +239,24 @@ class Fun(commands.Cog):
 
   @cog_ext.cog_slash(
       name="coinflip",
-      description="Flip a coin",
-      options=[create_option("hidden", "Hide the response", 5, False)]
+      description="Flip a coin"
   )
-  async def slash_coin(self, ctx, hidden: bool = False):
-    await ctx.defer(hidden)
-    await ctx.send(hidden=hidden, content="The coin landed on: " + random.choice(["Heads", "Tails"]))
+  async def slash_coin(self, ctx):
+    await ctx.send(embed=embed(title="The coin landed on: " + random.choice(["Heads", "Tails"])))
 
   # @commands.command(name="mostroles", description="Show the server members with the most roles")
   # async def norm_mostroles(self, ctx):
   #   # Requires members intent
   #   for member in ctx.guild.members:
   #     print(member)
+
+  # @commands.command(name="secretsanta", aliases=["ss"], description="Secret Santa", hidden=True)
+  # async def norm_secret_santa(self, ctx, members: commands.Greedy[discord.Member]):
+  #   print("something")
+
+  # @cog_ext.cog_slash(name="secretsanta", description="Secret Santa", options=[create_option("members", "The members of the secret santa", 6, True)], guild_ids=[243159711237537802, 707441352367013899])
+  # async def slash_secret_santa(self, ctx, members):
+  #   print("something")
 
 
 def setup(bot):

@@ -14,12 +14,9 @@ class Ping(commands.Cog):
 
   @cog_ext.cog_slash(name="ping", description="Ping!")
   async def slash_ping(self, ctx: SlashContext):
-    await ctx.defer(True)
-    await ctx.send(hidden=True, **await self.ping(ctx))
+    await ctx.send(**await self.ping(ctx))
 
   async def ping(self, ctx):
-    if isinstance(ctx, SlashContext):
-      return dict(content="Pong!")
     return dict(embed=embed(title="Pong!"))
 
 
