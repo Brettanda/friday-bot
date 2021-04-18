@@ -7,7 +7,7 @@ from discord_slash import SlashContext, cog_ext
 from discord_slash.utils.manage_commands import create_option  # ,create_choice
 
 from cogs.help import cmd_help
-from functions import MessageColors, embed, mydb_connect, query
+from functions import MessageColors, embed, mydb_connect, query, relay_info
 
 
 class ServerManage(commands.Cog):
@@ -292,6 +292,32 @@ class ServerManage(commands.Cog):
       if isinstance(ctx, SlashContext):
         return dict(content=f"Locked `{voicechannel}`")
       return dict(embed=embed(title=f"Locked `{voicechannel}`"))
+
+  @commands.command(name="begone", description="Delete unwanted message that I send")
+  async def begone(self, ctx, message: typing.Optional[discord.Message] = None):
+    if message is not None and ctx.message.reference is not None:
+      raise commands.TooManyArguments("Please only either reply to the problemed message or add it to the end of this message not both")
+
+    message = message if message is not None else ctx.message.reference.resolved if ctx.message.reference is not None else None
+    if message is None:
+      raise commands.MessageNotFound("Please either reply to the message with this command or add the message to the end of this command")
+
+    if message.author != ctx.guild.me:
+      raise commands.CommandError("I will not delete messages that I didn't author with this command")
+    reference = await ctx.channel.fetch_message(message.reference.message_id)
+    if reference.author != ctx.author:
+      raise commands.CommandError("You are not the author of that message, I will only 'begone' messages that referenced a message authored by you")
+
+    await asyncio.gather(
+        relay_info(
+            f"**Begone**\nUSER: {reference.clean_content}\nME: {message.clean_content}```{message}```",
+            self.bot,
+            channel=814349008007856168
+        ),
+        message.delete(),
+        ctx.reply(embed=embed(title="Message has been removed"), delete_after=20),
+        ctx.message.delete(delay=20)
+    )
 
 
 def setup(bot):
