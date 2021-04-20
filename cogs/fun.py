@@ -128,7 +128,7 @@ class Fun(commands.Cog):
             color=MessageColors.RPS,
             description=f"The winner of this round is: **{conclusion}**"))
 
-  EMOTES = {
+  MINEEMOTES = {
       "X": "💥",
       0: "0️⃣",
       1: "1️⃣",
@@ -158,7 +158,7 @@ class Fun(commands.Cog):
 
   async def mine_sweeper(self, size, bomb_count):
     """Source for this command: https://medium.com/swlh/this-is-how-to-create-a-simple-minesweeper-game-in-python-af02077a8de"""
-    
+
     if size > 9:
       raise exceptions.ArgumentTooLarge("Size cannot be larger than 9 due to the message character limit of Discord")
     if bomb_count > size * size:
@@ -212,7 +212,7 @@ class Fun(commands.Cog):
         embed=embed(
             title=f"{size}x{size} with {bomb_count} bombs",
             author_name="Minesweeper",
-            description="||" + "||\n||".join("||||".join(self.EMOTES[cell] for cell in row) for row in arr) + "||"),
+            description="||" + "||\n||".join("||||".join(self.MINEEMOTES[cell] for cell in row) for row in arr) + "||"),
         delete_after=None)
 
   @commands.command(name='souptime', help='Soup Time')
@@ -257,6 +257,157 @@ class Fun(commands.Cog):
   # @cog_ext.cog_slash(name="secretsanta", description="Secret Santa", options=[create_option("members", "The members of the secret santa", 6, True)], guild_ids=[243159711237537802, 707441352367013899])
   # async def slash_secret_santa(self, ctx, members):
   #   print("something")
+
+  POLEEMOTES = {
+      0: "1️⃣",
+      1: "2️⃣",
+      2: "3️⃣",
+      3: "4️⃣",
+      4: "5️⃣",
+      5: "6️⃣",
+      6: "7️⃣",
+      7: "8️⃣",
+      8: "9️⃣",
+      9: "🔟"
+  }
+
+  @commands.command(name="pole", description="Make a pole. Seperate the options with `;;`")
+  @commands.guild_only()
+  async def norm_pole(self, ctx, title, *, options: str = None):
+    options = options.split(";;")
+
+    if len(options) < 2:
+      return await ctx.reply(embed=embed(title="Please choose 2 or more options for this pole", color=MessageColors.ERROR))
+
+    await self.pole(ctx, title, options)
+
+  @cog_ext.cog_slash(
+      name="pole",
+      description="Make a pole",
+      options=[
+          create_option("title", "The title of the pole", SlashCommandOptionType.STRING, True),
+          create_option("option1", "Option for the pole", SlashCommandOptionType.STRING, True),
+          create_option("option2", "Option for the pole", SlashCommandOptionType.STRING, True),
+          create_option("option3", "Option for the pole", SlashCommandOptionType.STRING, False),
+          create_option("option4", "Option for the pole", SlashCommandOptionType.STRING, False),
+          create_option("option5", "Option for the pole", SlashCommandOptionType.STRING, False),
+          create_option("option6", "Option for the pole", SlashCommandOptionType.STRING, False),
+          create_option("option7", "Option for the pole", SlashCommandOptionType.STRING, False),
+          create_option("option8", "Option for the pole", SlashCommandOptionType.STRING, False),
+          create_option("option9", "Option for the pole", SlashCommandOptionType.STRING, False),
+          create_option("option10", "Option for the pole", SlashCommandOptionType.STRING, False),
+      ], guild_ids=[243159711237537802]
+  )
+  @commands.guild_only()
+  @commands.bot_has_permissions(read_messages=True)
+  async def slash_pole(self, ctx, title, option1, option2, option3=None, option4=None, option5=None, option6=None, option7=None, option8=None, option9=None, option10=None):
+    options = []
+    for item in [option1, option2, option3, option4, option5, option6, option7, option8, option9, option10]:
+      if item is not None:
+        options.append(item)
+    await self.pole(ctx, title, options, True)
+
+  def bar(self, iteration, total, length=25, decimals=1, fill="█"):
+    percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
+    filledLength = int(length * iteration // total)
+    bar = fill * filledLength + '░' * (length - filledLength)
+    return f"\r |{bar}| {percent}%"
+
+  async def pole(self, ctx, title, options=None, slash=False):
+    x = 0
+    titles = []
+    vals = []
+    ins = []
+    for opt in options:
+      titles.append(f"{self.POLEEMOTES[x]}\t{opt}")
+      vals.append(f"{self.bar(0,1)}")
+      ins.append(False)
+      x += 1
+    if slash:
+      message = await ctx.send(embed=embed(title=f"Pole: {title}", fieldstitle=titles, fieldsval=vals, fieldsin=ins))
+    else:
+      message = await ctx.reply(embed=embed(title=f"Pole: {title}", fieldstitle=titles, fieldsval=vals))
+
+    x = 0
+    for _ in options:
+      await message.add_reaction(self.POLEEMOTES[x])
+      x += 1
+
+  @commands.Cog.listener("on_raw_reaction_add")
+  @commands.Cog.listener("on_raw_reaction_remove")
+  async def on_raw_reaction(self, payload):
+    if payload.member == self.bot.user:
+      return
+    message = await (self.bot.get_channel(payload.channel_id)).fetch_message(payload.message_id)
+    if message.author != self.bot.user:
+      return
+    if not message.embeds[0].title.startswith("Pole: "):
+      return
+    for react in message.reactions:
+      if react.me and react.emoji in self.POLEEMOTES.values():
+        test = True
+      if not test:
+        return
+
+    available_reactions = []
+    x = 0
+    for _ in message.embeds[0].fields:
+      available_reactions.append(self.POLEEMOTES[x])
+      x += 1
+
+    react_count = 0
+    x = 0
+    for item in available_reactions:
+      me = [me for me in (await message.reactions[x].users().flatten()) if me == self.bot.user] if len(message.reactions) == len(available_reactions) else []
+      if len(me) == 0:
+        await message.add_reaction(item)
+        message = await (self.bot.get_channel(payload.channel_id)).fetch_message(payload.message_id)
+      react_count += message.reactions[x].count
+      x += 1
+    react_count = react_count - len(message.embeds[0].fields)
+    react_count = react_count if react_count > 0 else 1
+
+    x = 0
+    titles = []
+    vals = []
+    ins = []
+    for field in message.embeds[0].fields:
+      titles.append(field.name)
+      ins.append(False)
+      vals.append(self.bar(message.reactions[x].count - 1, react_count))
+      x += 1
+
+    await message.edit(embed=embed(title=message.embeds[0].title, fieldstitle=titles, fieldsval=vals, fieldsin=ins))
+
+  @commands.command(name="confirm", description="Ping a role that is attached to a game and see who wants to play")
+  @commands.guild_only()
+  async def norm_confirm(self, ctx, role: discord.Role, *, message: str = None):
+    await self.confirm(ctx, role, message)
+
+  @cog_ext.cog_slash(
+      name="confirm",
+      description="Ping a role that attached to a game and see who wants to play",
+      options=[
+          create_option("role", "Which role to mention", SlashCommandOptionType.ROLE, True),
+          create_option("message", "Add a message to follow the mention", SlashCommandOptionType.STRING, False)
+      ], guild_ids=[243159711237537802]
+  )
+  async def slash_confirm(self, ctx, role, message=None):
+    await self.confirm(ctx, role, message, True)
+
+  async def confirm(self, ctx, role, message=None, slash=False):
+    if role not in ctx.author.roles:
+      if slash:
+        return await ctx.send(embed=embed(title="Since this command is ment for game roles and you don't have that role, I will not go through with is command", color=MessageColors.ERROR))
+      return await ctx.reply(embed=embed(title="Since this command is ment for game roles and you don't have that role, I will not go through with is command", color=MessageColors.ERROR))
+    if slash:
+      message = await ctx.send(content=f"{role.mention} {message if message is not None else ''}", allowed_mentions=discord.AllowedMentions(roles=True, everyone=False))
+    else:
+      await ctx.delete()
+      message = await ctx.reply(content=f"{role.mention} {message if message is not None else ''}", allowed_mentions=discord.AllowedMentions(roles=True, everyone=False))
+
+    await message.add_reaction("👍")
+    await message.add_reaction("👎")
 
 
 def setup(bot):
