@@ -141,7 +141,7 @@ class Log(commands.Cog):
   @commands.Cog.listener()
   async def on_slash_command_error(self, ctx: SlashContext, ex):
     if not ctx.responded:
-      if ctx._deffered_hidden:
+      if ctx._deffered_hidden or not ctx.deferred:
         await ctx.send(hidden=True, content=str(ex))
       else:
         await ctx.send(embed=embed(title=str(ex)))
@@ -153,11 +153,12 @@ class Log(commands.Cog):
         exceptions.UserNotInVoiceChannel,
         exceptions.NoCustomSoundsFound,
         exceptions.CantSeeNewVoiceChannelType,
+        exceptions.OnlySlashCommands,
         exceptions.ArgumentTooLarge)
     ):
-      print(ex)
-      logging.error(ex)
-      # raise ex
+      # print(ex)
+      # logging.error(ex)
+      raise ex
 
 
 def setup(bot):

@@ -76,6 +76,9 @@ class Music(Cog):
     connect_perms = ["connect", "speak"]
     missing = []
 
+    if not hasattr(ctx.author, "voice"):
+      raise exceptions.OnlySlashCommands()
+
     if ctx.author.voice is None:
       raise exceptions.UserNotInVoiceChannel("You must be in a voice channel to play music.")
 
