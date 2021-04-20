@@ -51,10 +51,32 @@
     ]
   },
   {
+    "tag": "Activities - just hanging out",
+    "sentiment": 0,
+    "priority": 500000,
+    "patterns": [
+      "not much atm, just chilling",
+      "Nothing right now, im just waiting for something to happen",
+      "I am not currently playing anything. I'm just hanging out"
+    ],
+    "responses": [
+      "Nice, do you have any plans for later?",
+      "Do you have any plans for later?",
+      "Awesome, there is nothing wrong with that! Is there anything you would like to talk about?",
+      "Cool, Is there anything you want to talk about?"
+    ],
+    "incomingContext": [
+      "Activities-followup"
+    ],
+    "outgoingContext": []
+  },
+  {
     "tag": "Activities",
     "sentiment": 0,
     "priority": 500000,
     "patterns": [
+      "I'm good, what are you up to?",
+      "What you up to bestie Friday",
       "hey friday what are you doing today?",
       "what are you doing?",
       "What game is that?",
@@ -190,6 +212,20 @@
     "outgoingContext": []
   },
   {
+    "tag": "ask what are you up to?",
+    "sentiment": 0,
+    "priority": 500000,
+    "patterns": [
+      "That is great news",
+      "Good Day!"
+    ],
+    "responses": [
+      "What are you up to today?"
+    ],
+    "incomingContext": [],
+    "outgoingContext": []
+  },
+  {
     "tag": "asking who is a badword",
     "sentiment": 0,
     "priority": -1,
@@ -298,10 +334,22 @@
     "outgoingContext": []
   },
   {
+    "tag": "can you summon your owner?",
+    "sentiment": 0,
+    "priority": -1,
+    "patterns": [
+      "Friday can you make @Pop pop join the call"
+    ],
+    "responses": "",
+    "incomingContext": [],
+    "outgoingContext": []
+  },
+  {
     "tag": "Commands so don't respond",
     "sentiment": 0,
     "priority": 500000,
     "patterns": [
+      "dev say 827656054728818718 hey friday",
       "pet!train pieter footjob",
       "pet!train scottadams racism",
       "pls boobs",
@@ -367,6 +415,10 @@
     "sentiment": 0,
     "priority": 500000,
     "patterns": [
+      "gg  friday",
+      "friday you are sexy",
+      "friday is intelligent",
+      "friday is beautiful",
       "amazing",
       "news guys: friday is good",
       "thanks i feel inspired now",
@@ -668,6 +720,25 @@
     "outgoingContext": []
   },
   {
+    "tag": "Default Welcome Intent (Greetings) - Possitive - new topic",
+    "sentiment": 0,
+    "priority": 500000,
+    "patterns": [
+      "I am awesome, thanks for taking an interest!",
+      "im doing great!",
+      "I'm doing awesome as always! Thanks for asking!"
+    ],
+    "responses": [
+      "What are you up to today?",
+      "What you doing right now?",
+      "What's the plan for today?"
+    ],
+    "incomingContext": [
+      "DefaultWelcomeIntentGreetings-Possitive-followup"
+    ],
+    "outgoingContext": []
+  },
+  {
     "tag": "Default Welcome Intent (Greetings) - Possitive",
     "sentiment": 0,
     "priority": 500000,
@@ -689,18 +760,28 @@
     ],
     "responses": [
       "I'm doing awesome as always! Thanks for asking!",
-      "I'm doing great!"
+      "I'm doing great!",
+      "I'm good, what are you up to?",
+      "Amazing, what is a person like yourself up to?"
     ],
     "incomingContext": [
       "DefaultWelcomeIntentGreetings-followup"
     ],
-    "outgoingContext": []
+    "outgoingContext": [
+      {
+        "name": "DefaultWelcomeIntentGreetings-Possitive-followup",
+        "lifespan": 2
+      }
+    ]
   },
   {
     "tag": "Default Welcome Intent (Greetings)",
     "sentiment": 0,
     "priority": 500000,
     "patterns": [
+      "Greetings!",
+      "Good Day!",
+      "hi",
       "good evening friday",
       "good afternoon friday",
       "good morning friday",
@@ -732,7 +813,7 @@
       "Hello, how are you?",
       "Hi",
       "Sup",
-      "Greetings!",
+      "Greetings! What are you up to?",
       "Good Day!"
     ],
     "incomingContext": [],
@@ -770,6 +851,18 @@
       "Why though.",
       "Pass."
     ],
+    "incomingContext": [],
+    "outgoingContext": []
+  },
+  {
+    "tag": "do you like chips",
+    "sentiment": 0,
+    "priority": -1,
+    "patterns": [
+      "What kind of chips does Friday like?",
+      "Friday do you like chips?"
+    ],
+    "responses": "",
     "incomingContext": [],
     "outgoingContext": []
   },
@@ -1093,6 +1186,23 @@
     "outgoingContext": []
   },
   {
+    "tag": "free time",
+    "sentiment": 0,
+    "priority": 500000,
+    "patterns": [
+      "What do you do when you get some time to yourself",
+      "How do you like to spend your free time?",
+      "Is there anything else that you like to do in your free time?",
+      "What else do you like to do?",
+      "I'm doing just fine. What do you like to do in your free time?"
+    ],
+    "responses": [
+      "Currently my hobbies include playing games and talking with people!"
+    ],
+    "incomingContext": [],
+    "outgoingContext": []
+  },
+  {
     "tag": "Friday has a game",
     "sentiment": 0,
     "priority": 500000,
@@ -1106,10 +1216,11 @@
     "outgoingContext": []
   },
   {
-    "tag": "give me 5 minutes",
+    "tag": "give me 5 minutes,hours,time",
     "sentiment": 0,
     "priority": 500000,
     "patterns": [
+      "Worst case I'll be a couple hours late",
       "Be on in a few minutes",
       "things will load better if we wait like 20min",
       "We waiting for 2:30",
@@ -1179,6 +1290,7 @@
     "sentiment": -1,
     "priority": 500000,
     "patterns": [
+      "My life is the greatest shitpost of all, ha ha ha",
       "Not so good",
       "Pretty bad actually",
       "Terrible",
@@ -1252,6 +1364,30 @@
     "incomingContext": [
       "Howareyou-followup"
     ],
+    "outgoingContext": [
+      {
+        "name": "Howareyou-Possitive-followup",
+        "lifespan": 2
+      }
+    ]
+  },
+  {
+    "tag": "How are you? new topic",
+    "sentiment": 0,
+    "priority": 500000,
+    "patterns": [
+      "I'm doing just fine, thanks. How about you?",
+      "I am alright thanks, what about you?",
+      "I'm good, how are you?",
+      "I'm doing great, Thanks for asking. What about you, how are you?"
+    ],
+    "responses": [
+      "I'm doing just fine. What do you like to do in your free time?",
+      "I am doing quite alright, thanks. What is your favorite color?",
+      "I am as happy as ever. If you could teleport anywhere in the world, where would you go?",
+      "I'm good, what do you have planned for today?"
+    ],
+    "incomingContext": [],
     "outgoingContext": []
   },
   {
@@ -1259,6 +1395,9 @@
     "sentiment": 0,
     "priority": 500000,
     "patterns": [
+      "Greetings! How are you doing on this fine day?",
+      "Hey, how are you?",
+      "Hello, how are you?",
       "sup friday",
       "hello friday how are you?",
       "friday and jarvis how are you?",
@@ -1517,6 +1656,18 @@
     "outgoingContext": []
   },
   {
+    "tag": "I want to play a game with friday",
+    "sentiment": 0,
+    "priority": 500000,
+    "patterns": [
+      "I want to play a game with you friday",
+      "feels like pure shit just wanna play siege w friday"
+    ],
+    "responses": "",
+    "incomingContext": [],
+    "outgoingContext": []
+  },
+  {
     "tag": "Ignored Greetings",
     "sentiment": 0,
     "priority": 500000,
@@ -1547,6 +1698,23 @@
     "responses": [
       "I would like to see you try",
       "Ill fight it and win"
+    ],
+    "incomingContext": [],
+    "outgoingContext": []
+  },
+  {
+    "tag": "im playing a game/how is that game?",
+    "sentiment": 0,
+    "priority": 500000,
+    "patterns": [
+      "I am playing D&D (solo)",
+      "right now i am playing minecraft",
+      "atm i am playing GTAV",
+      "I am playing Cyberpunk 2077"
+    ],
+    "responses": [
+      "How is that game?",
+      "How is it?"
     ],
     "incomingContext": [],
     "outgoingContext": []
@@ -1824,6 +1992,7 @@
     "sentiment": 0,
     "priority": 500000,
     "patterns": [
+      "Friday if i had 2 fish and sold them for $100 each how much money would i have",
       "friday whats 11 + 58",
       "can you do the roll for 5d50+2",
       "friday do you know what 1d20 + 3 is?",
@@ -2132,6 +2301,21 @@
     ],
     "responses": [
       "Thank you my children. You may rise"
+    ],
+    "incomingContext": [],
+    "outgoingContext": []
+  },
+  {
+    "tag": "Planned activities",
+    "sentiment": 0,
+    "priority": 500000,
+    "patterns": [
+      "Do you have any plans for today?",
+      "What are you up to today?"
+    ],
+    "responses": [
+      "I would like to have some more conversations with people and maybe play some games",
+      "Maybe play some games and talk to people"
     ],
     "incomingContext": [],
     "outgoingContext": []
@@ -2563,6 +2747,24 @@
     "outgoingContext": []
   },
   {
+    "tag": "the day friday",
+    "sentiment": 0,
+    "priority": 500000,
+    "patterns": [
+      "I'm getting a new phone Friday, might get the iPhone SE cs its the same price as my old phone",
+      "I think Jeff has it out for DnD, he is taking every single possible step to ruin Fridays for me",
+      "I won't be home till Friday evening, if anything else goes wrong ill have to cancel DnD.",
+      "If everything goes well, and if I can finish stuff for Friday, and if the weather is nice. We will have DnD outside Friday.",
+      "Glad it's better. I'm thinking of jumping on SoT tonight or Friday night. I'll ping you to see if you're up for it. The sea is calling to me!",
+      "I have a plan for if DnD is cancelled this Friday",
+      "d&d on friday?",
+      "I play friday night cockin' with my left hand."
+    ],
+    "responses": "",
+    "incomingContext": [],
+    "outgoingContext": []
+  },
+  {
     "tag": "The meaning of life?",
     "sentiment": 0,
     "priority": 500000,
@@ -2673,6 +2875,20 @@
     "sentiment": 0,
     "priority": 250000,
     "patterns": [
+      "pay for my surgery to get a pair of nuts attached 2 me and u can speedbag them all u want",
+      "ONLY CUM INSIDE ANIME GIRLS",
+      "WELCOME TO THE CUM ZONE",
+      "you are making this harder than it has to be",
+      "slide down your gullet more easily",
+      "you already did me",
+      "does the skin look red, swollen",
+      "why did you get it so big",
+      "This is huge",
+      "there's about a 10.3% chance I'll need it",
+      "98-year-old cougars",
+      "filing a lawsuit on a dolphin for sexual harassment",
+      "Brett your bot has it out for me, it just cums all over my face anytime I say anything.",
+      "you're just too much of a cum monster",
       "I'll always show up for cum memes",
       "Cum monster",
       "I yearn for another taste of your meat",
@@ -2784,6 +3000,24 @@
       "ya'll finna see my cock"
     ],
     "responses": "",
+    "incomingContext": [],
+    "outgoingContext": []
+  },
+  {
+    "tag": "What are you doing later?",
+    "sentiment": 0,
+    "priority": 500000,
+    "patterns": [
+      "Are you doing anything tomorrow?",
+      "What do you have planed for today?",
+      "What are you doing later?",
+      "Do you have any plans for later?"
+    ],
+    "responses": [
+      "Not currently, Ill just figure it out as I go",
+      "I don't have anything planed right now, but having conversations is a great pass time!",
+      "I was thinking of talking with people for the rest of the day :)"
+    ],
     "incomingContext": [],
     "outgoingContext": []
   },
@@ -2965,6 +3199,39 @@
     "responses": [
       "Nope, (right now at least) I only speak english",
       "At the moment I only speak English. Maybe sometime in the future I will be able to speak other languages"
+    ],
+    "incomingContext": [],
+    "outgoingContext": []
+  },
+  {
+    "tag": "what should i do today",
+    "sentiment": 0,
+    "priority": 500000,
+    "patterns": [
+      "what is in store for me today?",
+      "Friday what do you think i should do today?",
+      "Friday what should i do today?"
+    ],
+    "responses": [
+      "The day a head of you is up to you",
+      "That is your decision not mine"
+    ],
+    "incomingContext": [],
+    "outgoingContext": []
+  },
+  {
+    "tag": "what time is it?",
+    "sentiment": 0,
+    "priority": 500000,
+    "patterns": [
+      "Do you know the time Friday?",
+      "what time is it here Friday?",
+      "What is the time friday?",
+      "What time is it Friday?",
+      "Friday what's the time?"
+    ],
+    "responses": [
+      "With the current way that Discord is setup, I am unable to get your location to get the correct timezone you are in, therefor I am unable to now the time for you."
     ],
     "incomingContext": [],
     "outgoingContext": []
