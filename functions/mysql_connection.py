@@ -2,7 +2,6 @@ import os
 import sys
 
 import mysql.connector
-from discord.ext import commands
 
 
 def mydb_connect():

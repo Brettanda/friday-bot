@@ -1,7 +1,7 @@
 import asyncio
 
 from discord.ext import commands
-from discord_slash import cog_ext, SlashContext
+from discord_slash import cog_ext
 
 from cogs.cleanup import get_delete_time
 from functions import embed, relay_info

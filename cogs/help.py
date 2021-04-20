@@ -7,7 +7,7 @@ from discord.utils import get
 from discord_slash import cog_ext, SlashContext
 
 from cogs.cleanup import get_delete_time
-from functions import MessageColors, embed, checks
+from functions import MessageColors, embed
 
 
 def syntax(command, quotes: bool = True):

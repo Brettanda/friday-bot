@@ -4,7 +4,7 @@ import typing
 import discord
 from discord.ext import commands
 from discord_slash import SlashContext, cog_ext, SlashCommandOptionType
-from discord_slash.utils.manage_commands import create_option, create_choice
+from discord_slash.utils.manage_commands import create_option
 
 from cogs.help import cmd_help
 from functions import MessageColors, embed, mydb_connect, query, checks, relay_info

@@ -5,7 +5,7 @@ import discord
 from discord.ext.commands import Cog
 from discord.ext import commands
 
-from discord_slash import cog_ext, SlashCommandOptionType, SlashContext
+from discord_slash import cog_ext, SlashContext
 
 import logging
 import youtube_dl
@@ -15,7 +15,7 @@ import datetime
 import time
 from cogs.cleanup import get_delete_time
 
-from functions import embed, MessageColors, exceptions, checks  # , relay_info
+from functions import embed, MessageColors, exceptions  # , relay_info
 
 logger = logging.getLogger(__name__)
 
