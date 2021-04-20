@@ -6,7 +6,7 @@ import traceback
 
 import discord
 from discord.ext import commands
-from discord_slash import SlashCommand  # , SlashContext
+from discord_slash import SlashCommand, SlashContext
 from dotenv import load_dotenv
 
 # from chatml import queryGen
@@ -43,7 +43,7 @@ restartPending = False
 
 class MyContext(commands.Context):
   async def reply(self, content=None, **kwargs):
-    ignore_coms = ["log", "help", "meme", "issue", "reactionrole", "minesweeper"]
+    ignore_coms = ["log", "help", "meme", "issue", "reactionrole", "minesweeper", "pole", "confirm"]
     if not hasattr(kwargs, "delete_after") and self.command.name not in ignore_coms:
       delete = await get_delete_time(self)
       delete = delete if delete is not None and delete != 0 else None
@@ -102,6 +102,7 @@ class Friday(commands.AutoShardedBot):
     raise commands.BotMissingPermissions(missing)
 
   async def on_command_error(self, ctx, error):
+    slash = True if isinstance(ctx, SlashContext) else False
     if hasattr(ctx.command, 'on_error'):
       return
 
@@ -121,15 +122,27 @@ class Friday(commands.AutoShardedBot):
     # elif isinstance(error,commands.RoleNotFound):
     #   await ctx.reply(embed=embed(title=f"{error}",color=MessageColors.ERROR))
     elif isinstance(error, commands.CommandOnCooldown):
-      await ctx.reply(embed=embed(title=f"This command is on a cooldown, please wait {error.retry_after:,.2f} sec(s)", color=MessageColors.ERROR), delete_after=30)
+      if slash:
+        await ctx.send(embed=embed(title=f"This command is on a cooldown, please wait {error.retry_after:,.2f} sec(s)", color=MessageColors.ERROR), delete_after=30)
+      else:
+        await ctx.reply(embed=embed(title=f"This command is on a cooldown, please wait {error.retry_after:,.2f} sec(s)", color=MessageColors.ERROR), delete_after=30)
       await ctx.delete(delay=30)
     elif isinstance(error, commands.NoPrivateMessage):
-      await ctx.reply(embed=embed(title="This command does not work in non-server text channels", color=MessageColors.ERROR), delete_after=delete)
+      if slash:
+        await ctx.send(embed=embed(title="This command does not work in non-server text channels", color=MessageColors.ERROR), delete_after=delete)
+      else:
+        await ctx.reply(embed=embed(title="This command does not work in non-server text channels", color=MessageColors.ERROR), delete_after=delete)
     elif isinstance(error, commands.ChannelNotFound):
-      await ctx.reply(embed=embed(title=str(error), color=MessageColors.ERROR), delete_after=delete)
+      if slash:
+        await ctx.send(embed=embed(title=str(error), color=MessageColors.ERROR), delete_after=delete)
+      else:
+        await ctx.reply(embed=embed(title=str(error), color=MessageColors.ERROR), delete_after=delete)
       # await ctx.reply(embed=embed(title="Could not find that channel",description="Make sure it is the right channel type",color=MessageColors.ERROR))
     elif isinstance(error, commands.DisabledCommand):
-      await ctx.reply(embed=embed(title=str(error) or "This command has been disabled", color=MessageColors.ERROR), delete_after=delete)
+      if slash:
+        await ctx.send(embed=embed(title=str(error) or "This command has been disabled", color=MessageColors.ERROR), delete_after=delete)
+      else:
+        await ctx.reply(embed=embed(title=str(error) or "This command has been disabled", color=MessageColors.ERROR), delete_after=delete)
     elif isinstance(error, commands.TooManyArguments):
       await cmd_help(ctx, ctx.command, str(error) or "Too many arguments were passed for this command, here is how the command should look", delete_after=delete)
     # elif isinstance(error,commands.CommandError) or isinstance(error,commands.CommandInvokeError):
@@ -146,18 +159,30 @@ class Friday(commands.AutoShardedBot):
                 exceptions.ArgumentTooLarge)
     )):
       try:
-        await ctx.reply(embed=embed(title=f"{error}", color=MessageColors.ERROR), delete_after=delete)
+        if slash:
+          await ctx.send(embed=embed(title=f"{error}", color=MessageColors.ERROR), delete_after=delete)
+        else:
+          await ctx.reply(embed=embed(title=f"{error}", color=MessageColors.ERROR), delete_after=delete)
       except discord.Forbidden:
         try:
-          await ctx.reply(f"{error}", delete_after=delete)
+          if slash:
+            await ctx.send(f"{error}", delete_after=delete)
+          else:
+            await ctx.reply(f"{error}", delete_after=delete)
         except discord.Forbidden:
           logging.warning("well guess i just can't respond then")
     else:
       try:
-        await ctx.reply(embed=embed(title=f"{error}", color=MessageColors.ERROR), delete_after=delete)
+        if slash:
+          await ctx.send(embed=embed(title=f"{error}", color=MessageColors.ERROR), delete_after=delete)
+        else:
+          await ctx.reply(embed=embed(title=f"{error}", color=MessageColors.ERROR), delete_after=delete)
       except discord.Forbidden:
         try:
-          await ctx.reply(f"{error}", delete_after=delete)
+          if slash:
+            await ctx.send(f"{error}", delete_after=delete)
+          else:
+            await ctx.reply(f"{error}", delete_after=delete)
         except discord.Forbidden:
           print("well guess i just can't respond then")
           logging.warning("well guess i just can't respond then")

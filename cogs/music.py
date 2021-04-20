@@ -5,6 +5,8 @@ import discord
 from discord.ext.commands import Cog
 from discord.ext import commands
 
+from discord_slash import cog_ext, SlashCommandOptionType, SlashContext
+
 import logging
 import youtube_dl
 # import json
@@ -13,7 +15,7 @@ import datetime
 import time
 from cogs.cleanup import get_delete_time
 
-from functions import embed, MessageColors, exceptions  # , relay_info
+from functions import embed, MessageColors, exceptions, checks  # , relay_info
 
 logger = logging.getLogger(__name__)
 
@@ -65,24 +67,33 @@ class Music(Cog):
     # self.songqueue = {}
 
   async def tryagain(self, ctx):
+    if isinstance(ctx, SlashContext):
+      await ctx.send(embed=embed(title="Something went wrong, please try again later", color=MessageColors.ERROR))
     await ctx.reply(embed=embed(title="Something went wrong, please try again later", color=MessageColors.ERROR))
 
   async def can_play(self, ctx):
-    # await ctx.guild.chunk(cache=False)
+    slash = True if isinstance(ctx, SlashContext) else False
     connect_perms = ["connect", "speak"]
     missing = []
-    # voiceChannel = discord.utils.get(ctx.guild.voice_channels,id=ctx.author.voice.channel.id)
-    # print(ctx.author.voice)
-    # print(ctx.author.voice.channel)
-    voiceChannel = None
-    try:
-      voiceChannel = ctx.author.voice.channel
-    except BaseException:
-      return False
+
+    if ctx.author.voice is None:
+      raise exceptions.UserNotInVoiceChannel("You must be in a voice channel to play music.")
+
+    if ctx.author.voice.channel is None:
+      raise exceptions.CantSeeNewVoiceChannelType("I believe you are in a new type of voice channel that I can't join yet")
+
+    if ctx.author.voice.channel.type.name == "stage_voice":
+      if slash:
+        return await ctx.send(embed=embed(title="I cannot play in stage channels yet ;)", color=MessageColors.ERROR))
+      return await ctx.reply(embed=embed(title="I cannot play in stage channels yet ;)", color=MessageColors.ERROR))
+
+    voiceChannel = ctx.author.voice.channel
     for perm, value in voiceChannel.permissions_for(ctx.me):
       if value is False and perm.lower() in connect_perms:
         missing.append(perm)
     if len(missing) > 0:
+      if slash:
+        await ctx.send(embed=embed(title=f"{commands.BotMissingPermissions(missing)}", color=MessageColors.ERROR))
       await ctx.reply(embed=embed(title=f"{commands.BotMissingPermissions(missing)}", color=MessageColors.ERROR))
       return True
     return False
@@ -125,7 +136,7 @@ class Music(Cog):
       return (*dataa,)
       # return cls(discord.FFmpegPCMAudio(filename, **ffmpeg_options), data=data)
 
-  async def start_playing(self, ctx, pop=False):
+  async def start_playing(self, ctx, pop=False, slash=False):
     # global songqueue
     serverQueueId = "{}".format(ctx.guild.id)
 
@@ -149,7 +160,7 @@ class Music(Cog):
 
       # print(songsinqueue)
 
-      if pop is True:
+      if pop is True or slash:
         await ctx.send(
             embed=embed(
                 title='Now playing: **{}**'.format(songqueue[serverQueueId][0].title),
@@ -167,7 +178,7 @@ class Music(Cog):
                 thumbnail=thumbnail,
                 fieldstitle=["Duration", "Total songs in queue"],
                 fieldsval=[duration, songsinqueue]
-            )
+            ), delete_after=await get_delete_time(ctx)
         )
     else:
       async with ctx.typing():
@@ -178,38 +189,43 @@ class Music(Cog):
   @commands.guild_only()
   @commands.cooldown(1, 4, commands.BucketType.channel)
   @commands.bot_has_permissions(send_messages=True, embed_links=True, read_messages=True)
-  async def play(self, ctx, *, url: str):
+  async def norm_play(self, ctx, *, query: str):
+    await self.play(ctx, query)
+
+  @cog_ext.cog_slash(name="play", description="Play some epic music", guild_ids=[243159711237537802])
+  async def slash_play(self, ctx, *, query: str):
+    await self.play(ctx, query, True)
+
+  async def play(self, ctx, query: str, slash=False):
     # await ctx.guild.chunk(cache=False)
     global songqueue
-    if ctx.author.voice is None:
-      raise exceptions.UserNotInVoiceChannel("You must be in a voice channel to play music.")
-
-    if ctx.author.voice.channel is None:
-      raise exceptions.CantSeeNewVoiceChannelType("I believe you are in a new type of voice channel that I can't join yet")
-
     if await self.can_play(ctx) is True:
       return
 
     if "open.spotify.com" in ctx.message.content or "spotify:track:" in ctx.message.content:
-      await ctx.reply(embed=embed(title="At the moment Spotify links are not supported.", color=MessageColors.ERROR))
-      return
+      if slash:
+        return await ctx.send(embed=embed(title="At the moment Spotify links are not supported.", color=MessageColors.ERROR))
+      return await ctx.reply(embed=embed(title="At the moment Spotify links are not supported.", color=MessageColors.ERROR))
 
     voice = discord.utils.get(self.bot.voice_clients, guild=ctx.guild)
-    voiceChannel = discord.utils.get(ctx.guild.voice_channels, id=ctx.author.voice.channel.id)
 
     serverQueueId = "{}".format(ctx.guild.id)
     if voice is not None:  # voice.is_playing() is not None or voice.is_paused() is not None:
       try:
         async with ctx.typing():
-          players = await self.YTDLSource.from_url(url, loop=self.bot.loop, stream=True)
+          players = await self.YTDLSource.from_url(query, loop=self.bot.loop, stream=True)
           print(players)
           for player in players:
             if not hasattr(player, "title"):
               print("nothing")
             songqueue[serverQueueId].append(player)
         if len(players) > 1:
+          if slash:
+            await ctx.send(embed=embed(title=f"Added `{len(players)}` songs to queue", color=MessageColors.MUSIC))
           await ctx.reply(embed=embed(title=f"Added `{len(players)}` songs to queue", color=MessageColors.MUSIC))
         else:
+          if slash:
+            await ctx.send(embed=embed(title=f"Added to queue: **{players[0].title}**", color=MessageColors.MUSIC))
           await ctx.reply(embed=embed(title=f"Added to queue: **{players[0].title}**", color=MessageColors.MUSIC))
         return
       except BaseException as e:
@@ -217,24 +233,31 @@ class Music(Cog):
           e = "".join(f"{e}".split("ERROR: "))
         except BaseException:
           pass
-        await ctx.reply(embed=embed(title=f"{e}", color=MessageColors.ERROR))
-        return
+        if slash:
+          return await ctx.send(embed=embed(title=f"{e}", color=MessageColors.ERROR))
+        return await ctx.reply(embed=embed(title=f"{e}", color=MessageColors.ERROR))
     async with ctx.typing():
       try:
-        players = await self.YTDLSource.from_url(url, loop=self.bot.loop, stream=True)
+        players = await self.YTDLSource.from_url(query, loop=self.bot.loop, stream=True)
         print(players)
         songqueue[serverQueueId] = []
         for player in players:
           songqueue[serverQueueId].append(player)
-        await voiceChannel.connect(reconnect=False)
-        await ctx.guild.change_voice_state(channel=voiceChannel, self_mute=False, self_deaf=True)
+        vc = await ctx.author.voice.channel.connect(reconnect=False)
+        if vc.channel.type.name == "stage_voice" and vc.channel.topic is None:
+          vc.pause()
+        if vc.channel.type.name == "stage_voice":
+          await vc.channel.edit(topic=player.title)
+          await ctx.guild.me.request_to_speak()
+        await ctx.guild.change_voice_state(channel=vc.channel, self_mute=False, self_deaf=True)
       except BaseException as e:
         try:
           e = "".join(f"{e}".split("ERROR: "))
         except BaseException:
           pass
-        await ctx.reply(embed=embed(title=f"{e}", color=MessageColors.ERROR))
-        return
+        if slash:
+          return await ctx.send(embed=embed(title=f"{e}", color=MessageColors.ERROR))
+        return await ctx.reply(embed=embed(title=f"{e}", color=MessageColors.ERROR))
     # try:
     await self.start_playing(ctx)
     # except:
@@ -242,8 +265,16 @@ class Music(Cog):
 
   @commands.command(name="stop")
   @commands.guild_only()
-  @commands.bot_has_permissions(send_messages=True, embed_links=True, read_messages=True)
+  async def norm_stop(self, ctx):
+    await self.stop(ctx)
+
+  @cog_ext.cog_slash(name="stop", description="Stops the music")
+  @commands.guild_only()
+  async def slash_stop(self, ctx):
+    await self.stop(ctx)
+
   async def stop(self, ctx):
+    slash = True if isinstance(ctx, SlashContext) else False
     # await ctx.guild.chunk(cache=False)
     global songqueue
     if await self.can_play(ctx) is True:
@@ -261,8 +292,12 @@ class Music(Cog):
           pass
         finally:
           await voice.disconnect()
+          if slash:
+            await ctx.send(embed=embed(title="Finished"))
           await ctx.reply(embed=embed(title="Finished"))
       else:
+        if slash:
+          await ctx.send(embed=embed(title="I am not connected to a voice channel"))
         await ctx.reply(embed=embed(title="I am not connected to a voice channel"))
     except BaseException:
       await self.tryagain(ctx)
@@ -270,7 +305,15 @@ class Music(Cog):
   @commands.command(name="skip")
   @commands.guild_only()
   @commands.bot_has_permissions(send_messages=True, embed_links=True, read_messages=True)
+  async def norm_skip(self, ctx):
+    await self.skip(ctx)
+
+  @cog_ext.cog_slash(name="skip", description="Skips the current song")
+  async def slash_skip(self, ctx):
+    await self.skip(ctx)
+
   async def skip(self, ctx):
+    slash = True if isinstance(ctx, SlashContext) else False
     # await ctx.guild.chunk(cache=False)
     global songqueue
     if await self.can_play(ctx) is True:
@@ -285,8 +328,12 @@ class Music(Cog):
         if voice is not None:
           async with ctx.typing():
             await voice.disconnect()
+          if slash:
+            await ctx.send(embed=embed(title="Finished", color=MessageColors.MUSIC))
           await ctx.reply(embed=embed(title="Finished", color=MessageColors.MUSIC))
         else:
+          if slash:
+            await ctx.send(embed=embed(title="I am not connected to a voice channel", color=MessageColors.MUSIC))
           await ctx.reply(embed=embed(title="I am not connected to a voice channel", color=MessageColors.MUSIC))
     except BaseException:
       await self.tryagain(ctx)
@@ -299,8 +346,16 @@ class Music(Cog):
   # TODO: Check for queue length so discord message is less than max message character count
   @commands.command(name="queue")
   @commands.guild_only()
-  @commands.bot_has_permissions(send_messages=True, embed_links=True, read_messages=True)
+  async def norm_queue(self, ctx):
+    await self.queue(ctx)
+
+  @cog_ext.cog_slash(name="queue", description="Shows the current queue of music")
+  @commands.guild_only()
+  async def slash_queue(self, ctx):
+    await self.queue(ctx)
+
   async def queue(self, ctx):
+    slash = True if isinstance(ctx, SlashContext) else False
     # await ctx.guild.chunk(cache=False)
     global songqueue
     if await self.can_play(ctx) is True:
@@ -316,17 +371,28 @@ class Music(Cog):
           if x == 1:
             queueList = "Up Next: \n"
           queueList = queueList + "\t{}: {}\n".format(x, i.title)
-
+        if slash:
+          await ctx.send(embed=embed(title=title, description=queueList, color=MessageColors.MUSIC))
         await ctx.reply(embed=embed(title=title, description=queueList, color=MessageColors.MUSIC))
       else:
+        if slash:
+          await ctx.send(embed=embed(title="Nothing is playing right now"))
         await ctx.reply(embed=embed(title="Nothing is playing right now"))
     except BaseException:
       await self.tryagain(ctx)
 
   @commands.command(name="pause")
   @commands.guild_only()
-  @commands.bot_has_permissions(send_messages=True, embed_links=True, read_messages=True)
+  async def norm_pause(self, ctx):
+    await self.pause(ctx)
+
+  @cog_ext.cog_slash(name="pause", description="Pause the current track")
+  @commands.guild_only()
+  async def slash_pause(self, ctx):
+    await self.pause(ctx)
+
   async def pause(self, ctx):
+    slash = True if isinstance(ctx, SlashContext) else False
     # await ctx.guild.chunk(cache=False)
     if await self.can_play(ctx) is True:
       return
@@ -334,17 +400,29 @@ class Music(Cog):
       voice = discord.utils.get(self.bot.voice_clients, guild=ctx.guild)
       if voice is not None:
         if voice.is_paused():
+          if slash:
+            await ctx.send(embed=embed(title="I have already been paused", color=MessageColors.MUSIC))
           await ctx.reply(embed=embed(title="I have already been paused", color=MessageColors.MUSIC))
         elif voice.is_playing():
           voice.pause()
+          if slash:
+            await ctx.send(embed=embed(title="Paused", color=MessageColors.MUSIC))
           await ctx.reply(embed=embed(title="Paused", color=MessageColors.MUSIC))
     except BaseException:
       await self.tryagain(ctx)
 
   @commands.command(name="resume")
   @commands.guild_only()
-  @commands.bot_has_permissions(send_messages=True, embed_links=True, read_messages=True)
+  async def norm_resume(self, ctx):
+    await self.resume(ctx)
+
+  @cog_ext.cog_slash(name="resume", description="Resume the current track")
+  @commands.guild_only()
+  async def slash_resume(self, ctx):
+    await self.resume(ctx)
+
   async def resume(self, ctx):
+    slash = True if isinstance(ctx, SlashContext) else False
     # await ctx.guild.chunk(cache=False)
     if await self.can_play(ctx) is True:
       return
@@ -353,67 +431,73 @@ class Music(Cog):
       if voice is not None:
         if voice.is_paused():
           voice.resume()
+          if slash:
+            await ctx.send(embed=embed(title="Resumed", color=MessageColors.MUSIC))
           await ctx.reply(embed=embed(title="Resumed", color=MessageColors.MUSIC))
         elif voice.is_playing():
+          if slash:
+            await ctx.send(embed=embed(title="I was never paused", color=MessageColors.MUSIC))
           await ctx.reply(embed=embed(title="I was never paused", color=MessageColors.MUSIC))
       else:
+        if slash:
+          await ctx.send(embed=embed(title="Failed to resume", color=MessageColors.ERROR))
         await ctx.reply(embed=embed(title="Failed to resume", color=MessageColors.ERROR))
     except BaseException:
       await self.tryagain(ctx)
 
-  @commands.command(name="listen", hidden=True)
-  @commands.is_owner()
-  @commands.guild_only()
-  @commands.bot_has_permissions(send_messages=True, embed_links=True, read_messages=True)
-  async def listen(self, ctx):
-    # TODO: the title from spotify doesn't always play the correct song
-    # TODO: won't keep up if the user skips the current song
-    # await ctx.guild.chunk(cache=False)
-    if await self.can_play(ctx) is True:
-      return
-    toplay = ctx.author.activities or None
-    if toplay is not None:
-      for act in toplay:
-        if isinstance(act, discord.Spotify):
-          toplay = act or None
-    else:
-      return
-    # voice = discord.utils.get(self.bot.voice_clients, guild=ctx.guild)
-    try:
-      await ctx.author.voice.channel.connect(reconnect=False)
-      await ctx.guild.change_voice_state(channel=ctx.author.voice.channel, self_mute=False, self_deaf=True)
-    except BaseException:
-      pass
+  # @commands.command(name="listen", hidden=True)
+  # @commands.is_owner()
+  # @commands.guild_only()
+  # @commands.bot_has_permissions(send_messages=True, embed_links=True, read_messages=True)
+  # async def listen(self, ctx):
+  #   # TODO: the title from spotify doesn't always play the correct song
+  #   # TODO: won't keep up if the user skips the current song
+  #   # await ctx.guild.chunk(cache=False)
+  #   if await self.can_play(ctx) is True:
+  #     return
+  #   toplay = ctx.author.activities or None
+  #   if toplay is not None:
+  #     for act in toplay:
+  #       if isinstance(act, discord.Spotify):
+  #         toplay = act or None
+  #   else:
+  #     return
+  #   # voice = discord.utils.get(self.bot.voice_clients, guild=ctx.guild)
+  #   try:
+  #     await ctx.author.voice.channel.connect(reconnect=False)
+  #     await ctx.guild.change_voice_state(channel=ctx.author.voice.channel, self_mute=False, self_deaf=True)
+  #   except BaseException:
+  #     pass
 
-    try:
-      now = datetime.datetime.now(datetime.timezone.utc)
-      start = toplay.start
-      now = now.replace(tzinfo=None)
-      currentplay = (now - start)
-      secs = currentplay.seconds
-      player = await self.YTDLSource.from_url(f"{toplay.title} {toplay.artist}", loop=self.bot.loop, stream=True, start=secs)
-      # player = await self.YTDLSource.from_url(f"spotify:track:{toplay.track_id}", loop=self.bot.loop, stream=True,start=secs)
-      # ctx.voice_client.play(player)
-      ctx.voice_client.play(player, after=lambda e: asyncio.run_coroutine_threadsafe(self.listen(ctx), self.bot.loop))
-      duration = toplay.duration - datetime.timedelta(microseconds=toplay.duration.microseconds)
-      await ctx.reply(
-          embed=embed(
-              title=f'Now playing: **{player.title}**',
-              color=MessageColors.MUSIC,
-              thumbnail=player.data['thumbnails'][0]['url'],
-              # fieldstitle=["Started at","Duration"],
-              # fieldsval=[secs,duration]
-              fieldstitle=["Duration"],
-              fieldsval=[duration]
-          )
-      )
-    except BaseException as e:
-      print(e)
-      if "Already playing audio." in str(e):
-        await ctx.reply(embed=embed(title="I'm unable to listen along with you because I am already listening along with someone else", color=MessageColors.ERROR))
-    # else:
-    #   while voice.is_playing():
-    #     print()
+  #   try:
+  #     now = datetime.datetime.now(datetime.timezone.utc)
+  #     start = toplay.start
+  #     now = now.replace(tzinfo=None)
+  #     currentplay = (now - start)
+  #     secs = currentplay.seconds
+  #     player = await self.YTDLSource.from_url(f"{toplay.title} {toplay.artist}", loop=self.bot.loop, stream=True, start=secs)
+  #     # player = await self.YTDLSource.from_url(f"spotify:track:{toplay.track_id}", loop=self.bot.loop, stream=True,start=secs)
+  #     # ctx.voice_client.play(player)
+  #     ctx.voice_client.play(player, after=lambda e: asyncio.run_coroutine_threadsafe(self.listen(ctx), self.bot.loop))
+  #     duration = toplay.duration - datetime.timedelta(microseconds=toplay.duration.microseconds)
+  #     await ctx.reply(
+  #         embed=embed(
+  #             title=f'Now playing: **{player.title}**',
+  #             color=MessageColors.MUSIC,
+  #             thumbnail=player.data['thumbnails'][0]['url'],
+  #             # fieldstitle=["Started at","Duration"],
+  #             # fieldsval=[secs,duration]
+  #             fieldstitle=["Duration"],
+  #             fieldsval=[duration]
+  #         )
+  #     )
+  #   except BaseException as e:
+  #     print(e)
+  #     if "Already playing audio." in str(e):
+  #       await ctx.reply(embed=embed(title="I'm unable to listen along with you because I am already listening along with someone else", color=MessageColors.ERROR))
+  #   # else:
+  #   #   while voice.is_playing():
+  #   #     print()
 
   @Cog.listener()
   async def on_voice_state_update(self, member, before, after):

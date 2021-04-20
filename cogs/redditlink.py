@@ -9,6 +9,7 @@ import discord
 # import ffmpeg
 import youtube_dl
 from discord.ext import commands
+from discord_slash import cog_ext
 
 from functions import MessageColors, embed
 
@@ -120,121 +121,144 @@ class redditlink(commands.Cog):
 
   @commands.Cog.listener()
   async def on_raw_reaction_add(self, payload):
+    if payload.member == self.bot.user:
+      return
+    # channel = self.bot.get_guild(payload.guild_id).get_channel(payload.channel_id)
+    # async with channel.typing():
+    message = await (self.bot.get_channel(payload.channel_id)).fetch_message(payload.message_id)
     guild = self.bot.get_guild(payload.guild_id)
-    if guild is None:
-      return
-    channel = guild.get_channel(payload.channel_id)
-    if channel is None:
-      return
-    message = None
-    try:
-      message = await channel.fetch_message(payload.message_id)
-    except BaseException:
-      return
-    if message is None:
-      return
-    # TODO: check the max file size of the server and change the quality of the video to match
+    channel = self.bot.get_channel(payload.channel_id)
+    message = await channel.fetch_message(payload.message_id)
     if self.bot.user == payload.member or self.bot.user == payload.member.bot:
       return
     if payload.member != message.author:
       return
-    if payload.emoji.name == self.emoji:
-      test: bool = False
-      for react in message.reactions:
-        if react.me and react.emoji == self.emoji:
-          test = True
-        if test is False:
-          return
+    if payload.emoji.name != self.emoji:
+      return
+    for react in message.reactions:
+      if react.me and react.emoji == self.emoji:
+        test = True
+      if test is False:
+        return
+    try:
+      await asyncio.gather(
+          message.remove_reaction(self.emoji, self.bot.user),
+          message.remove_reaction(self.emoji, payload.member)
+      )
+    except BaseException:
+      pass
+    async with channel.typing():
+      post = await self.extract(message.content, payload, guild=guild, channel=channel, message=message)
+    await message.reply(**post)
+
+  @cog_ext.cog_slash(name="redditextract", description="Extracts the file from the reddit post", guild_ids=[243159711237537802])
+  async def slash_extract(self, ctx, link: str):
+    await ctx.defer()
+    post = await self.extract(query=link, ctx=ctx, guild=ctx.guild, channel=ctx.channel)
+    await ctx.send(**post)
+
+  async def extract(self, query, payload=None, ctx=None, guild=None, channel=None, message=None):
+    slash = True if ctx is not None and payload is None else False
+    if guild is None:
+      raise commands.ArgumentParsingError()
+    if channel is None:
+      raise commands.ArgumentParsingError()
+    if message is None and not slash:
+      raise commands.ArgumentParsingError()
+    # TODO: check the max file size of the server and change the quality of the video to match
+    reg = re.findall(self.pattern, query)
+
+    if len(reg) != 1:
+      if slash:
+        return dict(embed=embed(title="That is not a reddit post url", color=MessageColors.ERROR))
+      return
+
+    body = None
+    try:
+      body = self.request(reg[0] + ".json")
+    except BaseException:
+      pass
+
+    try:
       try:
-        await asyncio.gather(
-            message.remove_reaction(self.emoji, self.bot.user),
-            message.remove_reaction(self.emoji, payload.member)
-        )
+        data = body[0]["data"]["children"][0]["data"]["crosspost_parent_list"][0]
       except BaseException:
-        pass
-      async with message.channel.typing():
+        data = body[0]["data"]["children"][0]["data"]
+    except KeyError:
+      if slash:
+        return dict(embed=embed(title="There was a problem connecting to reddit", color=MessageColors.ERROR))
+      return dict(embed=embed(title="There was a problem connecting to reddit", color=MessageColors.ERROR), mention_author=False)
 
-        reg = re.findall(self.pattern, message.content)
+    link = None
+    linkdata = None
+    video = False
+    # try:
+    if data["media"] is not None and "reddit_video" in data["media"]:
+      link = data["media"]["reddit_video"]["hls_url"]
+      loop = asyncio.get_event_loop()
+      linkdata = await loop.run_in_executor(None, lambda: ytdl.extract_info(link, download=True))
+      ext = "webm"  # linkdata['ext']
+      video = True
+      # linkdata = await ytdl.extract_info(link, download=True)
 
-        if len(reg) != 1:
-          return
+      if 'entries' in linkdata:
+        # take first item from a playlist
+        linkdata = linkdata['entries'][0]
+      # link = linkdata["url"]
+      # pprint.pprint(linkdata)
+      # print(f'{linkdata["extractor"]}-{linkdata["id"]}-{linkdata["title"]}.{linkdata["ext"]}')
+      # link = data["media"]["reddit_video"]["fallback_url"]
+    else:
+      link = data["url"]
+    # except:
+    #   raise
 
-        body = None
+    # TODO: Does not get url for videos atm
+    channel = message.channel if payload is not None else ctx.channel
+    if (channel.nsfw is True and data["over_18"] is True) or (channel.nsfw is False and data["over_18"] is False) or (channel.nsfw is True and data["over_18"] is False):
+      spoiler = False
+    else:
+      spoiler = True
+
+    if video is True:
+      thispath = os.getcwd()
+      if "\\" in thispath:
+        seperator = "\\\\"
+      else:
+        seperator = "/"
+      mp4file = f'{thispath}{seperator}{linkdata["extractor"]}-{linkdata["id"]}-{linkdata["title"]}.{ext}'
+      try:
+        # name = f'{linkdata["extractor"]}-{linkdata["id"]}-{linkdata["title"]}.{linkdata["ext"]}'
+        name = data["title"].split()
+        if slash:
+          return dict(file=discord.File(fp=mp4file, filename=f'{"_".join(name)}.{ext}', spoiler=spoiler))
+        return dict(file=discord.File(fp=mp4file, filename=f'{"_".join(name)}.{ext}', spoiler=spoiler), mention_author=False)
+      except discord.HTTPException:
+        if slash:
+          return dict(embed=embed(title="This file is too powerful to be uploaded", description="You will have to open reddit to view this", color=MessageColors.ERROR))
+        return dict(embed=embed(title="This file is too powerful to be uploaded", description="You will have to open reddit to view this", color=MessageColors.ERROR), mention_author=False)
+      finally:
         try:
-          body = self.request(reg[0] + ".json")
-        except BaseException:
+          os.remove(mp4file)
+        except PermissionError:
           pass
-
-        try:
-          try:
-            data = body[0]["data"]["children"][0]["data"]["crosspost_parent_list"][0]
-          except BaseException:
-            data = body[0]["data"]["children"][0]["data"]
-        except KeyError:
-          await message.reply(embed=embed(title="There was a problem connecting to reddit", color=MessageColors.ERROR))
-          return
-
-        link = None
-        linkdata = None
-        video = False
-        # try:
-        if data["media"] is not None and "reddit_video" in data["media"]:
-          link = data["media"]["reddit_video"]["hls_url"]
-          loop = asyncio.get_event_loop()
-          linkdata = await loop.run_in_executor(None, lambda: ytdl.extract_info(link, download=True))
-          ext = "webm"  # linkdata['ext']
-          video = True
-          # linkdata = await ytdl.extract_info(link, download=True)
-
-          if 'entries' in linkdata:
-            # take first item from a playlist
-            linkdata = linkdata['entries'][0]
-          # link = linkdata["url"]
-          # pprint.pprint(linkdata)
-          # print(f'{linkdata["extractor"]}-{linkdata["id"]}-{linkdata["title"]}.{linkdata["ext"]}')
-          # link = data["media"]["reddit_video"]["fallback_url"]
-        else:
-          link = data["url"]
-        # except:
-        #   raise
-
-      # TODO: Does not get url for videos atm
-      if (message.channel.nsfw is True and data["over_18"] is True) or (message.channel.nsfw is False and data["over_18"] is False) or (message.channel.nsfw is True and data["over_18"] is False):
-        spoiler = False
+    else:
+      if spoiler is True:
+        if slash:
+          return dict(content="||" + link + "||")
+        return dict(content="||" + link + "||", mention_author=False)
       else:
-        spoiler = True
+        if slash:
+          return dict(content=link)
+        return dict(content=link, mention_author=False)
+    # elif reaction.message.channel.nsfw == False and data["over_18"] == False:
 
-      if video is True:
-        thispath = os.getcwd()
-        if "\\" in thispath:
-          seperator = "\\\\"
-        else:
-          seperator = "/"
-        mp4file = f'{thispath}{seperator}{linkdata["extractor"]}-{linkdata["id"]}-{linkdata["title"]}.{ext}'
-        try:
-          # name = f'{linkdata["extractor"]}-{linkdata["id"]}-{linkdata["title"]}.{linkdata["ext"]}'
-          name = data["title"].split()
-          await message.reply(file=discord.File(fp=mp4file, filename=f'{"_".join(name)}.{ext}', spoiler=spoiler))
-        except discord.HTTPException:
-          await message.reply(embed=embed(title="This file is too powerful to be uploaded", description="You will have to open reddit to view this", color=MessageColors.ERROR))
-        finally:
-          try:
-            os.remove(mp4file)
-          except PermissionError:
-            pass
-      else:
-        if spoiler is True:
-          await message.reply("||" + link + "||")
-        else:
-          await message.reply(link)
-      # elif reaction.message.channel.nsfw == False and data["over_18"] == False:
+    # print(len(body))
+    # if ctx.channel.nsfw and body["data"]["over_18"]:
 
-      # print(len(body))
-      # if ctx.channel.nsfw and body["data"]["over_18"]:
-
-      # await ctx.reply(embed=embed(title="Meme"))
-      # return embed(title="Meme")
-      # if self.bot.user == reaction.message.reactions
+    # await ctx.reply(embed=embed(title="Meme"))
+    # return embed(title="Meme")
+    # if self.bot.user == reaction.message.reactions
 
 
 def setup(bot):

@@ -8,7 +8,7 @@ from functions import embed, mydb_connect, query
 
 async def get_delete_time(ctx: commands.Context = None, guild_id: int = None):
   if isinstance(ctx, commands.Context) and guild_id is None:
-    guild_id = ctx.guild.id
+    guild_id = ctx.guild.id if ctx.guild is not None else None
   if ctx is None and guild_id is None:
     return None
   try:

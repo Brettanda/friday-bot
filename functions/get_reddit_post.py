@@ -5,6 +5,8 @@ import aiohttp
 # import discord
 from discord.ext import commands
 
+from discord_slash import SlashContext
+
 from functions import MessageColors, embed
 
 posted = {}
@@ -23,7 +25,7 @@ async def request(url):
         return await r.json()
 
 
-async def get_reddit_post(ctx: commands.Context, sub_reddits: str or list = None):  # ,hidden:bool=False):
+async def get_reddit_post(ctx: commands.Context or SlashContext, sub_reddits: str or list = None):  # ,hidden:bool=False):
   if sub_reddits is None:
     raise TypeError("sub_reddits must not be None")
 

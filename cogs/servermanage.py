@@ -247,25 +247,24 @@ class ServerManage(commands.Cog):
       name="rolecall",
       description="Moves everyone with a specific role to a voicechannel.",
       options=[
-          create_option(
-              "role",
-              "The role to rolecall",
-              SlashCommandOptionType.ROLE,
-              True
-          ),
-          create_option(
-              "voicechannel",
-              "The voice channel to move members to",
-              SlashCommandOptionType.CHANNEL,
-              True
-          )
+          create_option("role", "The role to rolecall", SlashCommandOptionType.ROLE, True),
+          create_option("voicechannel", "The voice channel to move members to", SlashCommandOptionType.CHANNEL, True),
+          create_option("exclusion1", "A member that you don't want moved", SlashCommandOptionType.USER, False),
+          create_option("exclusion2", "A member that you don't want moved", SlashCommandOptionType.USER, False),
+          create_option("exclusion3", "A member that you don't want moved", SlashCommandOptionType.USER, False),
+          create_option("exclusion4", "A member that you don't want moved", SlashCommandOptionType.USER, False),
+          create_option("exclusion5", "A member that you don't want moved", SlashCommandOptionType.USER, False)
       ]
   )
   @commands.guild_only()
   @checks.bot_has_guild_permissions(move_members=True)
   @commands.has_guild_permissions(move_members=True)
-  async def slash_rolecall(self, ctx, role, voicechannel):
-    post = await self.rolecall(ctx, role, voicechannel)
+  async def slash_rolecall(self, ctx, role, voicechannel, exclusion1=None, exclusion2=None, exclusion3=None, exclusion4=None, exclusion5=None):
+    exclusions = []
+    for item in [exclusion1, exclusion2, exclusion3, exclusion4, exclusion5]:
+      if item is not None:
+        exclusions.append(item)
+    post = await self.rolecall(ctx, role, voicechannel, exclusions)
     await ctx.send(**post)
 
   async def rolecall(self, ctx, role, voicechannel, exclusions=None):
