@@ -7,6 +7,7 @@
 <a href="https://top.gg/bot/476303446547365891/vote"><img src="https://img.shields.io/badge/Vote-Friday-blue" alt="Vote"/></a>
 <a href="https://discord.com/api/oauth2/authorize?client_id=476303446547365891&permissions=2469521478&scope=bot%20applications.commands"><img src="https://img.shields.io/badge/Add%20Friday-to%20your%20server-orange" alt="Add Friday to your server"/></a>
 <a href="https://www.patreon.com/fridaybot"><img src="https://img.shields.io/badge/-Become%20a%20Patron!-rgb(232%2C%2091%2C%2070)" alt="Become a Patron!"/></a>
+<a href="https://github.com/Brettanda/friday-discord-python/actions/workflows/push.yml"><img src="https://github.com/Brettanda/friday-discord-python/actions/workflows/push.yml/badge.svg"></a>
 </div>
 
 
