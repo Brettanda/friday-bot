@@ -192,8 +192,8 @@ class Music(Cog):
   async def norm_play(self, ctx, *, query: str):
     await self.play(ctx, query)
 
-  @cog_ext.cog_slash(name="play", description="Play some epic music", guild_ids=[243159711237537802])
-  async def slash_play(self, ctx, *, query: str):
+  @cog_ext.cog_slash(name="play", description="Play some epic music")
+  async def slash_play(self, ctx, query: str):
     await self.play(ctx, query, True)
 
   async def play(self, ctx, query: str, slash=False):

@@ -108,7 +108,7 @@ class Help(Cog):
   async def norm_show_help(self, ctx, group: str = None, cmd: str = None):
     await self.show_help(ctx, group, cmd)
 
-  @cog_ext.cog_slash(name="help", guild_ids=[243159711237537802])
+  @cog_ext.cog_slash(name="help")
   async def slash_show_help(self, ctx, group: str = None, cmd: str = None):
     await ctx.defer()
     await self.show_help(ctx, group, cmd)

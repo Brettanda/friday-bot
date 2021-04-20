@@ -296,7 +296,7 @@ class Fun(commands.Cog):
           create_option("option8", "Option for the pole", SlashCommandOptionType.STRING, False),
           create_option("option9", "Option for the pole", SlashCommandOptionType.STRING, False),
           create_option("option10", "Option for the pole", SlashCommandOptionType.STRING, False),
-      ], guild_ids=[243159711237537802]
+      ]
   )
   @commands.guild_only()
   @commands.bot_has_permissions(read_messages=True)
@@ -379,23 +379,23 @@ class Fun(commands.Cog):
 
     await message.edit(embed=embed(title=message.embeds[0].title, fieldstitle=titles, fieldsval=vals, fieldsin=ins))
 
-  @commands.command(name="confirm", description="Ping a role that is attached to a game and see who wants to play")
+  @commands.command(name="gametime", description="Ping a role that is attached to a game and see who wants to play")
   @commands.guild_only()
-  async def norm_confirm(self, ctx, role: discord.Role, *, message: str = None):
-    await self.confirm(ctx, role, message)
+  async def norm_game_time(self, ctx, role: discord.Role, *, message: str = None):
+    await self.game_time(ctx, role, message)
 
   @cog_ext.cog_slash(
-      name="confirm",
+      name="gametime",
       description="Ping a role that's attached to a game and see who wants to play",
       options=[
           create_option("role", "Which role to mention", SlashCommandOptionType.ROLE, True),
           create_option("message", "Add a message to follow the mention", SlashCommandOptionType.STRING, False)
-      ], guild_ids=[243159711237537802]
+      ], guild_ids=[243159711237537802, 215346091321720832, 707441352367013899]
   )
-  async def slash_confirm(self, ctx, role, message=None):
-    await self.confirm(ctx, role, message, True)
+  async def slash_game_time(self, ctx, role, message=None):
+    await self.game_time(ctx, role, message, True)
 
-  async def confirm(self, ctx, role, message=None, slash=False):
+  async def game_time(self, ctx, role, message=None, slash=False):
     if role not in ctx.author.roles:
       if slash:
         return await ctx.send(embed=embed(title="Since this command is ment for game roles and you don't have that role, I will not go through with this command", color=MessageColors.ERROR))

@@ -16,7 +16,7 @@ class Issue(commands.Cog):
   async def norm_feedback(self, ctx, *, issue: str):
     await self.feedback(ctx, issue)
 
-  @cog_ext.cog_slash(name="issue", description="If you have an issue or noticed a bug with Friday, this will send a message to the developer.", guild_ids=[243159711237537802])
+  @cog_ext.cog_slash(name="issue", description="If you have an issue or noticed a bug with Friday, this will send a message to the developer.")
   @commands.cooldown(1, 30, commands.BucketType.channel)
   async def slash_feedback(self, ctx, *, issue: str):
     await self.feedback(ctx, issue, True)

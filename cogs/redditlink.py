@@ -151,7 +151,7 @@ class redditlink(commands.Cog):
       post = await self.extract(message.content, payload, guild=guild, channel=channel, message=message)
     await message.reply(**post)
 
-  @cog_ext.cog_slash(name="redditextract", description="Extracts the file from the reddit post", guild_ids=[243159711237537802])
+  @cog_ext.cog_slash(name="redditextract", description="Extracts the file from the reddit post")
   async def slash_extract(self, ctx, link: str):
     await ctx.defer()
     post = await self.extract(query=link, ctx=ctx, guild=ctx.guild, channel=ctx.channel)

@@ -66,7 +66,7 @@ class ServerManage(commands.Cog):
   async def settings_bot(self, ctx):
     await cmd_help(ctx, ctx.command)
 
-  @cog_ext.cog_slash(name="bot", description="Bot settings", guild_ids=[243159711237537802])
+  @cog_ext.cog_slash(name="bot", description="Bot settings")
   @commands.has_guild_permissions(manage_channels=True)
   async def slash_settings_bot(self, ctx):
     print("askjdhla")
@@ -77,7 +77,7 @@ class ServerManage(commands.Cog):
     post = await self.settings_bot_mute(ctx)
     await ctx.reply(**post)
 
-  @cog_ext.cog_subcommand(base="bot", base_description="Bot settings", name="mute", description="Stop me from responding to non-command messages or not", guild_ids=[243159711237537802])
+  @cog_ext.cog_subcommand(base="bot", base_description="Bot settings", name="mute", description="Stop me from responding to non-command messages or not")
   @commands.has_guild_permissions(manage_channels=True)
   async def slash_settings_bot_mute(self, ctx):
     post = await self.settings_bot_mute(ctx)
