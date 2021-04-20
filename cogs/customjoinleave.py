@@ -10,8 +10,6 @@ from functions import embed, mydb_connect, query
 
 
 class CustomJoinLeave(commands.Cog):
-  """description goes here"""
-
   def __init__(self, bot):
     self.bot = bot
 

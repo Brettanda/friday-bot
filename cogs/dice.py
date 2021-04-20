@@ -3,7 +3,7 @@ import d20
 from discord.ext import commands
 from discord_slash import cog_ext
 
-from functions import embed
+from functions import embed, MessageColors
 
 
 class Dice(commands.Cog):
@@ -18,7 +18,6 @@ class Dice(commands.Cog):
 
   @cog_ext.cog_slash(name="dice", description="D&D dice rolling")
   async def slash_dice(self, ctx, *, roll: str):
-    await ctx.defer()
     post = await self.dice(roll)
     await ctx.send(**post)
 
@@ -28,8 +27,13 @@ class Dice(commands.Cog):
     if "bump" in roll:
       return
 
-    result = d20.roll(roll)
-    return dict(embed=embed(title=f"Your total: {str(result.total)}", description=f"Query: {str(result.ast)}\nResult: {str(result)}"))
+    result = None
+    try:
+      result = d20.roll(roll)
+    except Exception as e:
+      return dict(embed=embed(title=f"{e}", color=MessageColors.ERROR))
+    else:
+      return dict(embed=embed(title=f"Your total: {str(result.total)}", description=f"Query: {str(result.ast)}\nResult: {str(result)}"))
 
 
 def setup(bot):

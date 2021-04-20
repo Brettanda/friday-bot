@@ -42,7 +42,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
 
   @norm_dev.command(name="say")
   async def say(self, ctx, channel: typing.Optional[discord.TextChannel] = None, *, say: str):
-    channel == ctx.channel if channel is None else channel
+    channel = ctx.channel if channel is None else channel
     try:
       await ctx.message.delete()
     except BaseException:

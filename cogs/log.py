@@ -103,7 +103,7 @@ class Log(commands.Cog):
       prefix = "!"
       try:
         await guild.system_channel.send(
-            f"Thank you for inviting me to your server. My name is Friday, and I like to party. I will respond to some chats directed towards me and commands. To get started with commands type `{prefix}help`.\nAn example of something I will respond to is `Hello Friday` or `{self.bot.user.name} hello`. At my current stage of development I am very chaotic, so if I do something I shouldn't have please use send a message Issues channel in Friday's Development server. If something goes terribly wrong and you want it to stop, talk to my creator https://discord.gg/NTRuFjU"
+            f"Thank you for inviting me to your server. My name is Friday, and I like to party. I will respond to some chats directed towards me and commands. To get started with commands type `{prefix}help`.\nAn example of something I will respond to is `Hello Friday` or `{self.bot.user.name} hello`. At my current stage of development I am very chaotic, so if I do something I shouldn't have please use send a message Issues channel in Friday's Development server. If something goes terribly wrong and you want it to stop, talk to my creator https://discord.gg/NTRuFjU\n\t- To change my prefix use the `!prefix` command.\n\t- If I start bothering people with message use the `!bot mute` command."
         )
       except discord.Forbidden:
         pass
@@ -140,7 +140,11 @@ class Log(commands.Cog):
 
   @commands.Cog.listener()
   async def on_slash_command_error(self, ctx: SlashContext, ex):
-    await ctx.send(hidden=True, content=str(ex))
+    if not ctx.responded:
+      if ctx._deffered_hidden:
+        await ctx.send(hidden=True, content=str(ex))
+      else:
+        await ctx.send(embed=embed(title=str(ex)))
     if not isinstance(ex, (
         discord.NotFound,
         commands.MissingPermissions,

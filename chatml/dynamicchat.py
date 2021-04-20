@@ -94,7 +94,7 @@ async def dynamicchat(ctx, bot, intent, response=None):
       print("joke")
       # await require("../functions/reddit")(msg, bot, ["Jokes"], "text");
 
-    elif intent == "Shit":
+    elif intent == "Shit" and ("shit" in ctx.clean_content.lower() or "crap" in ctx.clean_content.lower()):
       await ctx.add_reaction("💩")
 
     elif intent == "How do commands":

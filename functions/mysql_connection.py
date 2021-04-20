@@ -39,7 +39,7 @@ def query(mydb, query: str, *params):
 
 def query_prefix(bot, ctx, client: bool = False):
   if str(ctx.channel.type) == "private":
-    return commands.when_mentioned_or("!")(bot, ctx)
+    return "!"
   mydb = mydb_connect()
   mycursor = mydb.cursor()
   mycursor.execute(f"SELECT prefix FROM servers WHERE id='{ctx.guild.id}'")
@@ -55,9 +55,8 @@ def query_prefix(bot, ctx, client: bool = False):
     return result[0][0]
   else:
     try:
-      return commands.when_mentioned_or(result[0][0] or "!")(bot, ctx)
+      return result[0][0] or "!"
     except BaseException:
-      return commands.when_mentioned_or("!")(bot, ctx)
-  # return commands.when_mentioned_or("!")(bot,ctx)
-  # return "!"
+      return "!"
+
   return "!"
