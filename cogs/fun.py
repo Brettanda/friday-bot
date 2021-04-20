@@ -401,10 +401,10 @@ class Fun(commands.Cog):
         return await ctx.send(embed=embed(title="Since this command is ment for game roles and you don't have that role, I will not go through with this command", color=MessageColors.ERROR))
       return await ctx.reply(embed=embed(title="Since this command is ment for game roles and you don't have that role, I will not go through with this command", color=MessageColors.ERROR))
     if slash:
-      message = await ctx.send(content=f"{role.mention} {message if message is not None else ''}\n React with 👍 if you would like to join and 👎 if not.", allowed_mentions=discord.AllowedMentions(roles=True, everyone=False))
+      message = await ctx.send(content=f"{role.mention} {message if message is not None else ''}", allowed_mentions=discord.AllowedMentions(roles=True, everyone=False))
     else:
       await ctx.delete()
-      message = await ctx.reply(content=f"{role.mention} {message if message is not None else ''}\n React with 👍 if you would like to join and 👎 if not.", allowed_mentions=discord.AllowedMentions(roles=True, everyone=False))
+      message = await ctx.reply(content=f"{role.mention} {message if message is not None else ''}", allowed_mentions=discord.AllowedMentions(roles=True, everyone=False))
 
     await message.add_reaction("👍")
     await message.add_reaction("👎")
