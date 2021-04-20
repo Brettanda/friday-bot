@@ -386,7 +386,7 @@ class Fun(commands.Cog):
 
   @cog_ext.cog_slash(
       name="confirm",
-      description="Ping a role that attached to a game and see who wants to play",
+      description="Ping a role that's attached to a game and see who wants to play",
       options=[
           create_option("role", "Which role to mention", SlashCommandOptionType.ROLE, True),
           create_option("message", "Add a message to follow the mention", SlashCommandOptionType.STRING, False)
