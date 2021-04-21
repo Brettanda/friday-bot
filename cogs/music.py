@@ -73,7 +73,6 @@ class Music(Cog):
     return dict(embed=embed(title="Something went wrong, please try again later", color=MessageColors.ERROR))
 
   async def can_play(self, ctx):
-    # slash = True if isinstance(ctx, SlashContext) else False
     connect_perms = ["connect", "speak"]
     missing = []
 
@@ -283,8 +282,6 @@ class Music(Cog):
     await ctx.send(**post)
 
   async def stop(self, ctx):
-    slash = True if isinstance(ctx, SlashContext) else False
-    # await ctx.guild.chunk(cache=False)
     global songqueue
     can_play = await self.can_play(ctx)
     if can_play is not True:
@@ -322,8 +319,6 @@ class Music(Cog):
     await ctx.send(**post)
 
   async def skip(self, ctx):
-    slash = True if isinstance(ctx, SlashContext) else False
-    # await ctx.guild.chunk(cache=False)
     global songqueue
     can_play = await self.can_play(ctx)
     if can_play is not True:
@@ -383,8 +378,6 @@ class Music(Cog):
     await ctx.send(**post)
 
   async def queue(self, ctx):
-    slash = True if isinstance(ctx, SlashContext) else False
-    # await ctx.guild.chunk(cache=False)
     global songqueue
     can_play = await self.can_play(ctx)
     if can_play is not True:
