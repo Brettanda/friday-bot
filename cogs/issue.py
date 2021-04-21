@@ -4,7 +4,7 @@ from discord.ext import commands
 from discord_slash import cog_ext
 
 from cogs.cleanup import get_delete_time
-from functions import embed, relay_info
+from functions import embed, relay_info, checks
 
 
 class Issue(commands.Cog):
@@ -18,6 +18,7 @@ class Issue(commands.Cog):
 
   @cog_ext.cog_slash(name="issue", description="If you have an issue or noticed a bug with Friday, this will send a message to the developer.")
   @commands.cooldown(1, 30, commands.BucketType.channel)
+  @checks.slash(user=True, private=False)
   async def slash_feedback(self, ctx, *, issue: str):
     await self.feedback(ctx, issue, True)
 

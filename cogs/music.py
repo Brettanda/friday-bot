@@ -15,7 +15,7 @@ import datetime
 import time
 from cogs.cleanup import get_delete_time
 
-from functions import embed, MessageColors, exceptions  # , relay_info
+from functions import embed, MessageColors, exceptions, checks  # , relay_info
 
 logger = logging.getLogger(__name__)
 
@@ -202,6 +202,7 @@ class Music(Cog):
     await ctx.reply(**post)
 
   @cog_ext.cog_slash(name="play", description="Play some epic music")
+  @checks.slash(user=True, private=False)
   async def slash_play(self, ctx, query: str):
     await ctx.defer()
     post = await self.play(ctx, query, True)
@@ -276,7 +277,7 @@ class Music(Cog):
     await ctx.reply(**post)
 
   @cog_ext.cog_slash(name="stop", description="Stops the music")
-  @commands.guild_only()
+  @checks.slash(user=True, private=False)
   async def slash_stop(self, ctx):
     post = await self.stop(ctx)
     await ctx.send(**post)
@@ -312,7 +313,8 @@ class Music(Cog):
     post = await self.skip(ctx)
     await ctx.reply(**post)
 
-  @cog_ext.cog_slash(name="skip", description="Skips the current song", guild_ids=[243159711237537802])
+  @cog_ext.cog_slash(name="skip", description="Skips the current song")
+  @checks.slash(user=True, private=False)
   async def slash_skip(self, ctx):
     post = await self.skip(ctx)
     await ctx.send(**post)
@@ -371,7 +373,7 @@ class Music(Cog):
     await ctx.reply(**post)
 
   @cog_ext.cog_slash(name="queue", description="Shows the current queue of music")
-  @commands.guild_only()
+  @checks.slash(user=True, private=False)
   async def slash_queue(self, ctx):
     post = await self.queue(ctx)
     await ctx.send(**post)
@@ -406,7 +408,7 @@ class Music(Cog):
     await self.pause(ctx)
 
   @cog_ext.cog_slash(name="pause", description="Pause the current track")
-  @commands.guild_only()
+  @checks.slash(user=True, private=False)
   async def slash_pause(self, ctx):
     await self.pause(ctx)
 
@@ -437,7 +439,7 @@ class Music(Cog):
     await self.resume(ctx)
 
   @cog_ext.cog_slash(name="resume", description="Resume the current track")
-  @commands.guild_only()
+  @checks.slash(user=True, private=False)
   async def slash_resume(self, ctx):
     await self.resume(ctx)
 

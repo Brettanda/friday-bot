@@ -3,7 +3,7 @@ import d20
 from discord.ext import commands
 from discord_slash import cog_ext
 
-from functions import embed, MessageColors
+from functions import embed, MessageColors, checks
 
 
 class Dice(commands.Cog):
@@ -17,6 +17,7 @@ class Dice(commands.Cog):
     await ctx.reply(**post)
 
   @cog_ext.cog_slash(name="dice", description="D&D dice rolling")
+  @checks.slash(user=False, private=True)
   async def slash_dice(self, ctx, *, roll: str):
     post = await self.dice(roll)
     await ctx.send(**post)

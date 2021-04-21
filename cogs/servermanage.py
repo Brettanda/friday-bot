@@ -62,16 +62,19 @@ class ServerManage(commands.Cog):
       await ctx.reply(f"My new prefix is `{new_prefix}`")
 
   @commands.group(name="bot", invoke_without_command=True)
+  @commands.guild_only()
   @commands.has_guild_permissions(manage_channels=True)
   async def settings_bot(self, ctx):
     await cmd_help(ctx, ctx.command)
 
   @cog_ext.cog_slash(name="bot", description="Bot settings")
   @commands.has_guild_permissions(manage_channels=True)
+  @checks.slash(user=True, private=False)
   async def slash_settings_bot(self, ctx):
     print("askjdhla")
 
   @settings_bot.command(name="mute")
+  @commands.guild_only()
   @commands.has_guild_permissions(manage_channels=True)
   async def norm_settings_bot_mute(self, ctx):
     post = await self.settings_bot_mute(ctx)
@@ -79,6 +82,7 @@ class ServerManage(commands.Cog):
 
   @cog_ext.cog_subcommand(base="bot", base_description="Bot settings", name="mute", description="Stop me from responding to non-command messages or not")
   @commands.has_guild_permissions(manage_channels=True)
+  @checks.slash(user=True, private=False)
   async def slash_settings_bot_mute(self, ctx):
     post = await self.settings_bot_mute(ctx)
     await ctx.send(**post)
@@ -106,6 +110,7 @@ class ServerManage(commands.Cog):
       await ctx.reply(embed=embed(title=f"`{voicechannel}` is now my music channel"))
 
   @commands.command(name="deletecommandsafter", aliases=["deleteafter", "delcoms"], description="Set the time in seconds for how long to wait before deleting command messages")
+  @commands.guild_only()
   @commands.has_guild_permissions(manage_channels=True)
   async def delete_commands_after(self, ctx, time: typing.Optional[int] = 0):
     if time < 0:
@@ -155,6 +160,7 @@ class ServerManage(commands.Cog):
   )
   @checks.bot_has_guild_permissions(kick_members=True)
   @commands.has_guild_permissions(kick_members=True)
+  @checks.slash(user=True, private=False)
   async def slash_kick(self, ctx, members: commands.Greedy[discord.Member], reason=None):
     post = await self.kick(ctx, [members], reason, True)
     await ctx.send(**post)
@@ -238,6 +244,7 @@ class ServerManage(commands.Cog):
   )
   @checks.bot_has_guild_permissions(ban_members=True)
   @commands.has_guild_permissions(ban_members=True)
+  @checks.slash(user=True, private=False)
   async def slash_ban(self, ctx, member, reason=None, delete_message_days=0):
     post = await self.ban(ctx, member, reason, delete_message_days, True)
     await ctx.send(**post)
@@ -312,9 +319,9 @@ class ServerManage(commands.Cog):
           create_option("exclusion5", "A member that you don't want moved", SlashCommandOptionType.USER, False)
       ]
   )
-  @commands.guild_only()
   @checks.bot_has_guild_permissions(move_members=True)
   @commands.has_guild_permissions(move_members=True)
+  @checks.slash(user=False, private=False)
   async def slash_rolecall(self, ctx, role, voicechannel, exclusion1=None, exclusion2=None, exclusion3=None, exclusion4=None, exclusion5=None):
     exclusions = []
     for item in [exclusion1, exclusion2, exclusion3, exclusion4, exclusion5]:
@@ -366,9 +373,9 @@ class ServerManage(commands.Cog):
           )
       ],
   )
-  @commands.guild_only()
   @checks.bot_has_guild_permissions(move_members=True)
   @commands.has_guild_permissions(move_members=True)
+  @checks.slash(user=True, private=False)
   async def slash_mass_move(self, ctx, toChannel, fromChannel=None):
     post = await self.mass_move(ctx, toChannel, fromChannel)
     await ctx.send(**post)
@@ -430,6 +437,7 @@ class ServerManage(commands.Cog):
   )
   @checks.bot_has_guild_permissions(manage_channels=True)
   @commands.has_guild_permissions(manage_channels=True)
+  @checks.slash(user=True, private=False)
   async def slash_lock(self, ctx, *, voicechannel=None):
     post = await self.lock(ctx, voicechannel)
     await ctx.send(hidden=True, **post)

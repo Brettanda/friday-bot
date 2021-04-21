@@ -142,9 +142,9 @@ class Log(commands.Cog):
   async def on_slash_command_error(self, ctx: SlashContext, ex):
     if not ctx.responded:
       if ctx._deffered_hidden or not ctx.deferred:
-        await ctx.send(hidden=True, content=str(ex))
+        await ctx.send(hidden=True, content=str(ex) or "An error has occured, try again later.")
       else:
-        await ctx.send(embed=embed(title=str(ex)))
+        await ctx.send(embed=embed(title=str(ex) or "An error has occured, try again later."))
     if not isinstance(ex, (
         discord.NotFound,
         commands.MissingPermissions,
