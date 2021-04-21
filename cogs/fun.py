@@ -9,7 +9,7 @@ from discord_slash import cog_ext
 from discord_slash.utils.manage_commands import create_choice, create_option, SlashCommandOptionType
 
 # sys.path.insert(1, os.path.join(sys.path[0], '..'))
-from functions import MessageColors, embed, exceptions
+from functions import MessageColors, embed, exceptions, checks
 
 with open('./config.json') as f:
   config = json.load(f)
@@ -298,8 +298,7 @@ class Fun(commands.Cog):
           create_option("option10", "Option for the pole", SlashCommandOptionType.STRING, False),
       ]
   )
-  @commands.guild_only()
-  @commands.bot_has_permissions(read_messages=True)
+  @checks.slash(user=True, private=False)
   async def slash_pole(self, ctx, title, option1, option2, option3=None, option4=None, option5=None, option6=None, option7=None, option8=None, option9=None, option10=None):
     options = []
     for item in [option1, option2, option3, option4, option5, option6, option7, option8, option9, option10]:
@@ -392,6 +391,7 @@ class Fun(commands.Cog):
           create_option("message", "Add a message to follow the mention", SlashCommandOptionType.STRING, False)
       ], guild_ids=[243159711237537802, 215346091321720832, 707441352367013899]
   )
+  @checks.slash(user=True, private=False)
   async def slash_game_time(self, ctx, role, message=None):
     await self.game_time(ctx, role, message, True)
 
