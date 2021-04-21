@@ -1,6 +1,6 @@
 import json
 import os
-import random
+from numpy import random
 
 import discord
 from discord.ext import commands, tasks
@@ -18,7 +18,7 @@ class ChooseGame(commands.Cog):
     self.loop = bot.loop
     self.choose_game.start()
 
-  @tasks.loop(minutes=30.0)
+  @tasks.loop(minutes=float(random.randint(15, 45)))
   async def choose_game(self):
     for shard_id in self.bot.shards:
       gm = random.choice(config["games"])
