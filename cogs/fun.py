@@ -393,7 +393,7 @@ class Fun(commands.Cog):
       options=[
           create_option("role", "Which role to mention", SlashCommandOptionType.ROLE, True),
           create_option("message", "Add a message to follow the mention", SlashCommandOptionType.STRING, False)
-      ], guild_ids=[243159711237537802, 215346091321720832, 707441352367013899]
+      ]
   )
   @checks.slash(user=True, private=False)
   async def slash_game_time(self, ctx, role, message=None):
@@ -402,8 +402,15 @@ class Fun(commands.Cog):
   async def game_time(self, ctx, role, message=None, slash=False):
     if role not in ctx.author.roles:
       if slash:
-        return await ctx.send(embed=embed(title="Since this command is ment for game roles and you don't have that role, I will not go through with this command", color=MessageColors.ERROR))
+        return await ctx.send(hidden=True, content="Since this command is ment for game roles and you don't have that role, I will not go through with this command")
       return await ctx.reply(embed=embed(title="Since this command is ment for game roles and you don't have that role, I will not go through with this command", color=MessageColors.ERROR))
+
+    mention_perm = ctx.author.permissions_in(ctx.channel).mention_everyone
+    if not role.mentionable and not mention_perm:
+      if slash:
+        return await ctx.send(hidden=True, content="You don't have permission to mention that role")
+      return await ctx.reply(embed=embed(title="You don't have permission to mention that role", color=MessageColors.ERROR))
+
     if slash:
       message = await ctx.send(content=f"{role.mention} {message if message is not None else ''}", allowed_mentions=discord.AllowedMentions(roles=True, everyone=False))
     else:
