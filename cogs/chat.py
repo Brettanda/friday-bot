@@ -19,7 +19,16 @@ class Chat(commands.Cog):
 
   @commands.Cog.listener()
   async def on_message(self, ctx: commands.Context):
-    if (ctx.author.bot and ctx.channel.id != 827645155099148348) or ctx.author == self.bot.user or ctx.activity is not None or len(ctx.clean_content) > 256:
+    if ctx.author.bot and ctx.channel.id != 827656054728818718:
+      return
+    if ctx.author == self.bot.user and ctx.channel.id != 827656054728818718:
+      return
+    if ctx.activity is not None:
+      return
+    if len(ctx.clean_content) > 256:
+      return
+
+    if ctx.clean_content.startswith("/"):
       return
 
     valid = validators.url(ctx.content)
@@ -31,6 +40,9 @@ class Chat(commands.Cog):
       muted = query(mydb, "SELECT muted FROM servers WHERE id=%s", ctx.guild.id)
       if muted == 1:
         return
+
+    if ctx.type.name != "default":
+      return
 
     prefix = str(query_prefix(self.bot, ctx, True))
     if not ctx.content.startswith(prefix):
@@ -73,7 +85,6 @@ class Chat(commands.Cog):
       # TODO: add a check for another bot
       if (intent not in noContext) and (self.bot.user not in ctx.mentions) and ("friday" not in ctx.clean_content.lower()) and (meinlastmessage is not True) and (ctx.channel.type != "private"):
         print("I probably should not respond")
-        logger.info("I probably should not respond")
         # if "friday" in ctx.clean_content.lower() or self.bot.user in ctx.mentions:
         #   await relay_info("",self.bot,embed=embed(title="I think i should respond to this",description=f"{ctx.content}"),channel=814349008007856168)
         #   print(f"I think I should respond to this: {ctx.clean_content.lower()}")
@@ -110,7 +121,7 @@ class Chat(commands.Cog):
         else:
           print(f"\t\\ response: {result}")
           logger.info(f"\t\\ response: {result}")
-          await ctx.reply(result)
+          await ctx.reply(result, mention_author=False)
 
 
 def setup(bot):

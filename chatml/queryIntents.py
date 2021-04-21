@@ -14,7 +14,6 @@ from keras.models import load_model  # , Sequential
 from nltk.sentiment import SentimentIntensityAnalyzer
 from nltk.stem.lancaster import LancasterStemmer
 
-sia = SentimentIntensityAnalyzer()
 try:
   nltk.data.find('tokenizers/punkt.zip')
 except LookupError:
@@ -23,6 +22,7 @@ try:
   nltk.data.find('vader_lexicon')
 except LookupError:
   nltk.download('vader_lexicon')
+sia = SentimentIntensityAnalyzer()
 stemmer = LancasterStemmer()
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
@@ -38,7 +38,7 @@ context = []
 model = load_model("ml/models/intent_model.h5")
 
 
-with open("ml/intents.json",encoding="utf8") as f:
+with open("ml/intents.json", encoding="utf8") as f:
   intents = json.load(f)
 
 new = []
@@ -66,6 +66,7 @@ words = sorted(list(set(words)))
 # classes = list(set(classes))
 classes = sorted(list(set(classes)))
 
+
 def clean_up_sentence(sentence):
   # tokenize the pattern - split words into array
   sentence_words = nltk.word_tokenize(sentence)
@@ -74,14 +75,16 @@ def clean_up_sentence(sentence):
   return sentence_words
 
 # return bag of words array: 0 or 1 for each word in the bag that exists in the sentence
+
+
 def bow(sentence, wrds, show_details=True):
   # tokenize the pattern
   sentence_words = clean_up_sentence(sentence)
   # bag of words - matrix of N words, vocabulary matrix
-  bag = [0]*len(wrds)
+  bag = [0] * len(wrds)
   inbag = ""
   for s in sentence_words:
-    for i,w in enumerate(wrds):
+    for i, w in enumerate(wrds):
       if w == s:
         # assign 1 if current word is in the vocabulary position
         bag[i] = 1
@@ -90,25 +93,26 @@ def bow(sentence, wrds, show_details=True):
           # print ("found in bag: %s" % w)
   # print(f"found in bag: {inbag}")
   # logging.info(f"found in bag: {inbag}")
-  return(np.array(bag),inbag)
+  return(np.array(bag), inbag)
+
 
 async def classify_local(sentence):
   ERROR_THRESHOLD = 0.7
 
   # generate probabilities from the model
-  bows,inbag = bow(sentence, words)
+  bows, inbag = bow(sentence, words)
   input_data = pd.DataFrame([bows], dtype=float, index=['input'])
   # print(inbag)
   results = model.predict([input_data])[0]
   # filter out predictions below a threshold, and provide intent index
   # guesses = [[i,r] for i,r in enumerate(results) if r>ERROR_THRESHOLD/2]
-  results = [[i,r] for i,r in enumerate(results) if r>ERROR_THRESHOLD]
+  results = [[i, r] for i, r in enumerate(results) if r > ERROR_THRESHOLD]
   # sort by strength of probability
   results.sort(key=lambda x: x[1], reverse=True)
   # guesses.sort(key=lambda x: x[1], reverse=True)
   return_list = []
   for r in results:
-    return_list.append((r[0],classes[r[0]], str(r[1])))
+    return_list.append((r[0], classes[r[0]], str(r[1])))
   # return tuple of intent and probability
   # guess_list = []
   # for r in guesses:
@@ -122,8 +126,8 @@ async def classify_local(sentence):
   #   print(entity)
 
   if len(return_list) > 0:
-    name,chance = return_list[0][1:]
-    tag = [index for index,value in enumerate(intents) if value["tag"] == name]
+    name, chance = return_list[0][1:]
+    tag = [index for index, value in enumerate(intents) if value["tag"] == name]
     intent = intents[tag[0]]
     # guess_index,guess_name,guess_chance = guess_list[0]
     # guess_tag = [guess_index for index,value in enumerate(intents) if value["tag"] == name]
@@ -132,14 +136,14 @@ async def classify_local(sentence):
     # print(chance)
     # logging.info(chance)
 
-    if isinstance(intent["responses"],list) and len(intent["responses"]) > 0:
-      indresp = random.randint(0,len(intent["responses"]) - 1)
+    if isinstance(intent["responses"], list) and len(intent["responses"]) > 0:
+      indresp = random.randint(0, len(intent["responses"]) - 1)
 
       response = intent["responses"][indresp]
       # print(intent["incomingContext"],intent["outgoingContext"])
       # print(len(intent["incomingContext"]),len(intent["outgoingContext"]))
-      return response,intent["tag"],chance,inbag,intent["incomingContext"],intent["outgoingContext"],sia.polarity_scores(sentence)
+      return response, intent["tag"], chance, inbag, intent["incomingContext"], intent["outgoingContext"], sia.polarity_scores(sentence)
     else:
-      return None,None,None,None,None,None,None
+      return None, None, None, None, None, None, None
   else:
-    return None,None,None,None,None,None,None
+    return None, None, None, None, None, None, None

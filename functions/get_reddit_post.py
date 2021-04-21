@@ -5,23 +5,27 @@ import aiohttp
 # import discord
 from discord.ext import commands
 
+from discord_slash import SlashContext
+
 from functions import MessageColors, embed
 
 posted = {}
 
+
 async def request(url):
   async with aiohttp.ClientSession() as session:
     async with session.get(
-      url,
-      headers={
-        'User-Agent':
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.1916.47 Safari/537.36'
-      }
+        url,
+        headers={
+            'User-Agent':
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.1916.47 Safari/537.36'
+        }
     ) as r:
       if r.status == 200:
         return await r.json()
 
-async def get_reddit_post(ctx:commands.Context,sub_reddits:str or list=None):
+
+async def get_reddit_post(ctx: commands.Context or SlashContext, sub_reddits: str or list = None):  # ,hidden:bool=False):
   if sub_reddits is None:
     raise TypeError("sub_reddits must not be None")
 
@@ -29,69 +33,74 @@ async def get_reddit_post(ctx:commands.Context,sub_reddits:str or list=None):
 
   body = None
 
-  async with ctx.channel.typing():
-    try:
-      body = await request(url)
-    except:
-      await ctx.reply(embed=embed(title="Something went wrong, please try again.",color=MessageColors.ERROR))
-      return
+  # async with ctx.channel.typing():
+  try:
+    body = await request(url)
+  except BaseException:
+    # if hidden:
+      # return dict(content="Something went wrong, please try again.")
+    # else:
+    return dict(embed=embed(title="Something went wrong, please try again.", color=MessageColors.ERROR))
 
-    if str(ctx.channel.type) == "private":
-      thisposted = ctx.channel.id
+  if str(ctx.channel.type) == "private":
+    thisposted = ctx.channel.id
+  else:
+    thisposted = ctx.guild.id
+
+  if str(ctx.channel.type) == "private" or ctx.channel.nsfw:
+    allowed = body["data"]["children"]
+  else:
+    allowed = []
+    for post in body["data"]["children"]:
+      if not post["data"]["over_18"] and post["data"]["link_flair_text"] != "MODPOST" and post["data"]["link_flair_text"] != "Long":
+        allowed.append(post)
+
+  x = 0
+  for post in allowed:
+    if "https://i.redd.it/" not in post["data"]["url"]:
+      del allowed[x]
     else:
-      thisposted = ctx.guild.id
-
-    if str(ctx.channel.type) == "private" or ctx.channel.nsfw:
-      allowed = body["data"]["children"]
-    else:
-      allowed = []
-      for post in body["data"]["children"]:
-        if not post["data"]["over_18"] and post["data"]["link_flair_text"] != "MODPOST" and post["data"]["link_flair_text"] != "Long":
-          allowed.append(post)
-
-    x = 0
-    for post in allowed:
-      if "https://i.redd.it/" not in post["data"]["url"]:
-        del allowed[x]
-      else:
-        try:
-          if len(posted[thisposted]) > 0 and post["data"].get("permalink") in posted[thisposted]:
-            del allowed[x]
-        except KeyError:
-          posted[thisposted] = []
-          if len(posted[thisposted]) > 0 and post["data"].get("permalink") in posted[thisposted]:
-            del allowed[x]
-        except:
-          raise
-      x += 1
-
-    def pickPost():
-      randNum = random.randint(1,len(allowed)) - 1
-      postinquestion = allowed[randNum]
-
       try:
-        if postinquestion["data"].get("permalink") in posted[thisposted]:
-          pickPost()
+        if len(posted[thisposted]) > 0 and post["data"].get("permalink") in posted[thisposted]:
+          del allowed[x]
       except KeyError:
-        pass
+        posted[thisposted] = []
+        if len(posted[thisposted]) > 0 and post["data"].get("permalink") in posted[thisposted]:
+          del allowed[x]
+    x += 1
 
-      return postinquestion
+  def pickPost():
+    randNum = random.randint(1, len(allowed)) - 1
+    postinquestion = allowed[randNum]
 
-    topost = pickPost()
     try:
-      posted[thisposted].append(topost["data"].get("permalink"))
+      if postinquestion["data"].get("permalink") in posted[thisposted]:
+        pickPost()
     except KeyError:
-      posted[thisposted] = [topost["data"].get("permalink")]
+      pass
+
+    return postinquestion
+
+  topost = pickPost()
+  try:
+    posted[thisposted].append(topost["data"].get("permalink"))
+  except KeyError:
+    posted[thisposted] = [topost["data"].get("permalink")]
 
   data = topost["data"]
   # print(data["url"])
+  # if hidden:
+  #   return dict(
+  #     content=f"{data['url']}"
+  #     # content=f"{data.get('title')}\n<https://reddit.com{data['permalink']}>\n{data['url']}"
+  #   )
+  # else:
   return dict(
-    embed=embed(
-      title=data.get("title"),
-      url="https://reddit.com"+data["permalink"],
-      # author_name="u/"+data.get("author"),
-      image=data["url"],
-      color=MessageColors.MEME
-    )
+      embed=embed(
+          title=data.get("title"),
+          url="https://reddit.com" + data["permalink"],
+          # author_name="u/"+data.get("author"),
+          image=data["url"],
+          color=MessageColors.MEME
+      )
   )
-  

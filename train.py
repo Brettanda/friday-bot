@@ -4,21 +4,21 @@ import re
 
 import numpy as np
 # from keras.callbacks import ModelCheckpoint
-from keras.layers import LSTM, Dense, Input#, Reshape
-from keras.models import Model#, load_model
+from keras.layers import LSTM, Dense, Input  # , Reshape
+from keras.models import Model  # , load_model
 # from tensorflow import keras
 
 custom = True
 
-os.add_dll_directory("C:\Program Files\\NVIDIA GPU Computing Toolkit\CUDA\\v11.0\\bin")
-os.add_dll_directory("C:\Program Files\\NVIDIA GPU Computing Toolkit\CUDA\\v11.0\\libnvvp")
-os.add_dll_directory("C:\Program Files\\NVIDIA GPU Computing Toolkit\CUDA\\v11.0")
+os.add_dll_directory("C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v11.0\\bin")
+os.add_dll_directory("C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v11.0\\libnvvp")
+os.add_dll_directory("C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v11.0")
 os.add_dll_directory(
-  "C:\Program Files\\NVIDIA GPU Computing Toolkit\CUDA\\v11.0\\extras\\CUPTI\\lib64")
-os.add_dll_directory("C:\Program Files\\NVIDIA GPU Computing Toolkit\CUDA\\v11.0\\include")
+    "C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v11.0\\extras\\CUPTI\\lib64")
+os.add_dll_directory("C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v11.0\\include")
 os.add_dll_directory("C:\\tools\\cuda\\bin")
 os.add_dll_directory("C:\\tools\\cuda")
-os.add_dll_directory("C:\Program Files\\NVIDIA Corporation\\Nsight Compute 2019.4.0")
+os.add_dll_directory("C:\\Program Files\\NVIDIA Corporation\\Nsight Compute 2019.4.0")
 
 if custom is True:
   data_path = "ml/custom_human_text.txt"
@@ -31,13 +31,14 @@ with open(data_path, 'r', encoding='utf-8') as f:
   lines = f.read().split('\n')
 with open(data_path2, 'r', encoding='utf-8') as f:
   lines2 = f.read().split('\n')
-lines = [re.sub(r"\[\w+\]",'hi',line) for line in lines]
-lines = [" ".join(re.findall(r"\w+",line)) for line in lines]
-lines2 = [re.sub(r"\[\w+\]",'',line) for line in lines2]
-lines2 = [" ".join(re.findall(r"\w+",line)) for line in lines2]
+lines = [re.sub(r"\[\w+\]", 'hi', line) for line in lines]
+lines = [" ".join(re.findall(r"\w+", line)) for line in lines]
+lines2 = [re.sub(r"\[\w+\]", '', line) for line in lines2]
+lines2 = [" ".join(re.findall(r"\w+", line)) for line in lines2]
 # grouping lines by response pair
-pairs = list(zip(lines,lines2))
+pairs = list(zip(lines, lines2))
 # random.shuffle(pairs)
+
 
 def start(pairss):
   inp_docs = []
@@ -47,7 +48,7 @@ def start(pairss):
   if custom is False:
     pairss = pairss[:800]
   for line in pairss:
-  # for line in pairs[:1500]:
+    # for line in pairs[:1500]:
     inp_doc, target_doc = line[0], line[1]
     # Appending each inp sentence to inp_docs
     inp_docs.append(inp_doc)
@@ -70,51 +71,50 @@ def start(pairss):
   num_dec_tokens = len(target_tokens)
 
   inp_features_dict = dict(
-    [(token, i) for i, token in enumerate(inp_tokens)])
+      [(token, i) for i, token in enumerate(inp_tokens)])
   target_features_dict = dict(
-    [(token, i) for i, token in enumerate(target_tokens)])
+      [(token, i) for i, token in enumerate(target_tokens)])
   # reverse_inp_features_dict = dict(
   #   (i, token) for token, i in inp_features_dict.items())
   # reverse_target_features_dict = dict(
   #   (i, token) for token, i in target_features_dict.items())
 
-
-  #Maximum length of sentences in inp and target documents
+  # Maximum length of sentences in inp and target documents
   max_enc_seq_length = max(
-    [len(re.findall(r"[\w']+|[^\s\w]", inp_doc)) for inp_doc in inp_docs])
+      [len(re.findall(r"[\w']+|[^\s\w]", inp_doc)) for inp_doc in inp_docs])
   max_dec_seq_length = max(
-    [len(re.findall(r"[\w']+|[^\s\w]", target_doc)) for target_doc in target_docs])
+      [len(re.findall(r"[\w']+|[^\s\w]", target_doc)) for target_doc in target_docs])
   enc_inp_data = np.zeros(
-    (len(inp_docs), max_enc_seq_length, num_enc_tokens),
-    dtype='float32')
+      (len(inp_docs), max_enc_seq_length, num_enc_tokens),
+      dtype='float32')
   dec_inp_data = np.zeros(
-    (len(inp_docs), max_dec_seq_length, num_dec_tokens),
-    dtype='float32')
+      (len(inp_docs), max_dec_seq_length, num_dec_tokens),
+      dtype='float32')
   dec_target_data = np.zeros(
-    (len(inp_docs), max_dec_seq_length, num_dec_tokens),
-    dtype='float32')
+      (len(inp_docs), max_dec_seq_length, num_dec_tokens),
+      dtype='float32')
   for line, (inp_doc, target_doc) in enumerate(zip(inp_docs, target_docs)):
     for timestep, token in enumerate(re.findall(r"[\w']+|[^\s\w]", inp_doc)):
-      #Assign 1. for the current line, timestep, & word in enc_inp_data
+      # Assign 1. for the current line, timestep, & word in enc_inp_data
       enc_inp_data[line, timestep, inp_features_dict[token]] = 1.
 
     for timestep, token in enumerate(target_doc.split()):
       dec_inp_data[line, timestep, target_features_dict[token]] = 1.
       if timestep > 0:
         dec_target_data[line, timestep - 1, target_features_dict[token]] = 1.
-  #Dimensionality
+  # Dimensionality
   dimensionality = 256
-  #The batch size and number of epochs
+  # The batch size and number of epochs
   batch_size = 3
   epochs = 20
-  #enc
+  # enc
   enc_inps = Input(shape=(None, num_enc_tokens))
   # enc_inps = Input(shape=(None, len(pairs)))
   enc_lstm = LSTM(dimensionality, return_state=True)
   # enc_outs,
   state_hidden, state_cell = enc_lstm(enc_inps)[1:]
   enc_states = [state_hidden, state_cell]
-  #dec
+  # dec
   dec_inps = Input(shape=(None, num_dec_tokens))
   # dec_inps = Input(shape=(None, len(pairs)))
   dec_lstm = LSTM(dimensionality, return_sequences=True, return_state=True)
@@ -124,17 +124,18 @@ def start(pairss):
 
   del pairss
   return (
-    enc_inp_data,
-    dec_inp_data,
-    dec_target_data,
-    enc_inps,
-    dec_inps,
-    dec_outs,
-    num_enc_tokens,
-    num_dec_tokens,
-    epochs,
-    batch_size
+      enc_inp_data,
+      dec_inp_data,
+      dec_target_data,
+      enc_inps,
+      dec_inps,
+      dec_outs,
+      num_enc_tokens,
+      num_dec_tokens,
+      epochs,
+      batch_size
   )
+
 
 # chunks = [":500","500:1000","1000:1500","1500:2000","2000:"]
 # chunks = [[0,500],[500,1000],[1000,1500],[1500,2000],[2000,-1]]
@@ -142,7 +143,7 @@ def start(pairss):
 # while i < len(chunks):
   # print(chunks[i])
 # enc_inp_data,dec_inp_data,dec_target_data,enc_inps,dec_inps,dec_outs,epochs,batch_size = start(pairs[slice(chunks[i][0],chunks[i][1])])
-enc_inp_data,dec_inp_data,dec_target_data,enc_inps,dec_inps,dec_outs,num_enc_tokens,num_dec_tokens,epochs,batch_size = start(pairs)
+enc_inp_data, dec_inp_data, dec_target_data, enc_inps, dec_inps, dec_outs, num_enc_tokens, num_dec_tokens, epochs, batch_size = start(pairs)
 # if i > 0:
 #   training_model = load_model("full_training_model_0.h5")
 #   training_model.layers[0] = Reshape(enc_inp_data.shape)
@@ -150,28 +151,28 @@ enc_inp_data,dec_inp_data,dec_target_data,enc_inps,dec_inps,dec_outs,num_enc_tok
 training_model = Model([enc_inps, dec_inps], dec_outs)
 # print(training_model.layers[0].inp.reshape(enc_inp_data.shape))
 # print(enc_inp_data.shape)
-#Compiling
+# Compiling
 training_model.compile(optimizer='rmsprop', loss='categorical_crossentropy', metrics=['accuracy'], sample_weight_mode='temporal')
 # print(enc_inp_data,dec_inp_data,dec_target_data)
-#Training
+# Training
 training_model.fit(
-  [enc_inp_data, dec_inp_data],
-  dec_target_data,
-  batch_size = batch_size,
-  epochs = epochs,
-  workers=8,
-  shuffle=True,
-  use_multiprocessing = True) #verbose=2,   validation_split = 0.2
+    [enc_inp_data, dec_inp_data],
+    dec_target_data,
+    batch_size=batch_size,
+    epochs=epochs,
+    workers=8,
+    shuffle=True,
+    use_multiprocessing=True)  # verbose=2,   validation_split = 0.2
 # training_model.build(enc_inp_data.shape)
 training_model.summary()
 scores = training_model.evaluate([enc_inp_data, dec_inp_data], dec_target_data, verbose=0)
-print("Accuracy: %.2f%%" % (scores[1]*100))
+print("Accuracy: %.2f%%" % (scores[1] * 100))
 # training_model.save('full_training_model_0.h5')
 # del enc_inp_data,dec_inp_data,dec_target_data,enc_inps,dec_inps,dec_outs,epochs,batch_size
 # i += 1
 
 
-#Model
+# Model
 # # scores = training_model.evaluate([enc_inp_data[:500], dec_inp_data[:500]], dec_target_data[:500], verbose=0)
 # # print("Baseline Error: &.2f%%" % (100-scores[1]*100))
 

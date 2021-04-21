@@ -2,12 +2,13 @@
 import json
 import logging
 # import os
-import random
+# import random
+import numpy as np
 # import sys
 
 # import discord
 
-from functions import embed, get_reddit_post,MessageColors
+from functions import embed, get_reddit_post, MessageColors
 
 with open('./config.json') as f:
   config = json.load(f)
@@ -53,30 +54,31 @@ async def dynamicchat(ctx, bot, intent, response=None):
 
     elif intent == "No U":
       await ctx.channel.send(
-        embed=embed(
-          title="No u!",
-          image=config["unoCards"][random.randint(0,len(config["unoCards"]))],
-          color=MessageColors.NOU))
+          embed=embed(
+              title="No u!",
+              image=np.random.choice(config["unoCards"]),
+              color=MessageColors.NOU))
 
-    elif intent in ("Memes","Memes - Another"):
-      await ctx.reply(**await get_reddit_post(ctx,["memes","dankmemes"]))
+    elif intent in ("Memes", "Memes - Another"):
+      await ctx.reply(**await get_reddit_post(ctx, ["memes", "dankmemes"]))
 
     elif intent == "Title of your sex tape":
-      await ctx.reply(f"*{ctx.clean_content}*, title of your sex-tape")
+      if np.random.random() < 0.1:
+        await ctx.reply(f"*{ctx.clean_content}*, title of your sex-tape")
 
     elif intent == "show me something cute":
-      await ctx.reply(content=response,**await get_reddit_post(ctx,["mademesmile","aww"]))
+      await ctx.reply(content=response, **await get_reddit_post(ctx, ["mademesmile", "aww"]))
 
     elif intent == "Something cool":
-      await ctx.reply(**await get_reddit_post(ctx,["nextfuckinglevel","interestingasfuck"]))
+      await ctx.reply(**await get_reddit_post(ctx, ["nextfuckinglevel", "interestingasfuck"]))
 
     elif intent in ("Compliments", "Thanks", "are you a bot?", "I love you"):
       hearts = ["❤️", "💯", "💕"]
-      await ctx.add_reaction(hearts[random.randint(0, len(hearts) - 1)])
+      await ctx.add_reaction(np.random.choice(hearts))
 
     elif intent == "give me 5 minutes":
       clocks = ["⏰", "⌚", "🕰", "⏱"]
-      await ctx.add_reaction(clocks[random.randint(0, len(clocks) - 1)])
+      await ctx.add_reaction(np.random.choice(clocks))
 
     # TODO: Make the inspiration command
     elif intent == "inspiration":
@@ -92,7 +94,7 @@ async def dynamicchat(ctx, bot, intent, response=None):
       print("joke")
       # await require("../functions/reddit")(msg, bot, ["Jokes"], "text");
 
-    elif intent == "Shit":
+    elif intent == "Shit" and ("shit" in ctx.clean_content.lower() or "crap" in ctx.clean_content.lower()):
       await ctx.add_reaction("💩")
 
     elif intent == "How do commands":
@@ -103,12 +105,12 @@ async def dynamicchat(ctx, bot, intent, response=None):
       await ctx.reply(f"Well I don't know your real name but your username is {ctx.author.name}")
 
     elif intent == "doggo":
-      await ctx.add_reaction(random.choice(["🐶","🐕","🐩","🐕‍🦺"]))
+      await ctx.add_reaction(np.random.choice(["🐶", "🐕", "🐩", "🐕‍🦺"]))
 
     else:
       print(f"I dont have a response for this: {ctx.content}")
       logging.warning("I dont have a response for this: %s", ctx.clean_content)
-  except:
+  except BaseException:
     await ctx.reply("Something in my code failed to run, I'll ask my boss to fix this :)")
     raise
     # print(e)

@@ -1,21 +1,24 @@
 import json
 import random
 import typing
+import numpy as np
 
+import discord
 from discord.ext import commands
 from discord_slash import cog_ext
-from discord_slash.utils.manage_commands import create_choice, create_option
+from discord_slash.utils.manage_commands import create_choice, create_option, SlashCommandOptionType
 
 # sys.path.insert(1, os.path.join(sys.path[0], '..'))
-from functions import MessageColors, embed
+from functions import MessageColors, embed, exceptions, checks
 
 with open('./config.json') as f:
   config = json.load(f)
 
+
 class Fun(commands.Cog):
-  def __init__(self,bot):
+  def __init__(self, bot):
     self.bot = bot
-    self.rpsoptions = ["rock","paper","scissors"]
+    self.rpsoptions = ["rock", "paper", "scissors"]
     # self.timeouter = None
     # self.timeoutCh = None
 
@@ -51,43 +54,44 @@ class Fun(commands.Cog):
   # @commands.bot_has_permissions(send_messages = True, read_messages = True, embed_links = True)
   # @commands.has_guild_permissions(move_members = True)
 
-  @commands.command(name="rockpaperscissors",description="Play Rock Paper Scissors with Friday",aliases=["rps"],usage="<rock, paper or scissors>")
-  async def norm_rock_paper_scissors(self,ctx,args:str):
+  @commands.command(name="rockpaperscissors", description="Play Rock Paper Scissors with Friday",
+                    aliases=["rps"], usage="<rock, paper or scissors>")
+  async def norm_rock_paper_scissors(self, ctx, args: str):
     async with ctx.typing():
       post = await self.rock_paper_scissors(ctx, args)
     await ctx.reply(**post)
 
   @cog_ext.cog_slash(
-    name="rockpaperscissors",
-    options=[
-      create_option(
-        "choice",
-        description="Rock Paper or Scissors",
-        option_type=3,
-        required=True,
-        choices=[
-          create_choice(
-            "rock",
-            "Rock"
-          ),
-          create_choice(
-            "paper",
-            "Paper"
-          ),
-          create_choice(
-            "scissors",
-            "Scissors"
+      name="rockpaperscissors",
+      options=[
+          create_option(
+              "choice",
+              description="Rock Paper or Scissors",
+              option_type=3,
+              required=True,
+              choices=[
+                  create_choice(
+                      "rock",
+                      "Rock"
+                  ),
+                  create_choice(
+                      "paper",
+                      "Paper"
+                  ),
+                  create_choice(
+                      "scissors",
+                      "Scissors"
+                  )
+              ]
           )
-        ]
-      )
-    ]
+      ]
   )
-  async def slash_rock_paper_scissors(self,ctx,choice:str):
-    await ctx.respond()
+  async def slash_rock_paper_scissors(self, ctx, choice: str):
+    await ctx.defer()
     post = await self.rock_paper_scissors(ctx, choice)
     await ctx.send(**post)
 
-  async def rock_paper_scissors(self,ctx,args:str):
+  async def rock_paper_scissors(self, ctx, args: str):
     # args = args.split(" ")
     # arg = args[0].lower()
     arg = args.lower()
@@ -96,10 +100,10 @@ class Fun(commands.Cog):
     #   return
 
     if arg not in self.rpsoptions:
-      await ctx.reply(embed=embed(title=f"`{arg}` is not Rock, Paper, Scissors. Please choose one of those three.",color=MessageColors.ERROR))
+      await ctx.reply(embed=embed(title=f"`{arg}` is not Rock, Paper, Scissors. Please choose one of those three.", color=MessageColors.ERROR))
       return
 
-    num = random.randint(0,len(self.rpsoptions)-1)
+    num = random.randint(0, len(self.rpsoptions) - 1)
 
     mychoice = self.rpsoptions[num]
 
@@ -118,115 +122,293 @@ class Fun(commands.Cog):
     elif mychoice == "scissors" and arg == "paper":
       conclusion = self.bot.user
 
-    return dict(embed=embed(title=f"Your move: {arg} VS My move: {mychoice}",color=MessageColors.RPS,description=f"The winner of this round is: **{conclusion}**"))
+    return dict(
+        embed=embed(
+            title=f"Your move: {arg} VS My move: {mychoice}",
+            color=MessageColors.RPS,
+            description=f"The winner of this round is: **{conclusion}**"))
 
-
-  EMOTES = {
-    "X":"💥",
-    0:"0️⃣",
-    1:"1️⃣",
-    2:"2️⃣",
-    3:"3️⃣",
-    4:"4️⃣",
-    5:"5️⃣",
-    6:"6️⃣",
-    7:"7️⃣",
-    8:"8️⃣"
+  MINEEMOTES = {
+      "X": "💥",
+      0: "0️⃣",
+      1: "1️⃣",
+      2: "2️⃣",
+      3: "3️⃣",
+      4: "4️⃣",
+      5: "5️⃣",
+      6: "6️⃣",
+      7: "7️⃣",
+      8: "8️⃣"
   }
 
-  @commands.command(name="minesweeper",aliases=["ms"])
-  async def norm_minesweeper(self,ctx,size:typing.Optional[int]=5,bomb_count:typing.Optional[int]=6):
-    async with ctx.typing():
-      post = await self.mine_sweeper(ctx,size,bomb_count)
-    await ctx.reply(**post)
+  @commands.command(name="minesweeper", aliases=["ms"])
+  async def norm_minesweeper(self, ctx, size: typing.Optional[int] = 5, bomb_count: typing.Optional[int] = 6):
+    await ctx.reply(**await self.mine_sweeper(size, bomb_count))
 
   @cog_ext.cog_slash(
-    name="minesweeper",
-    description="Minesweeper",
-    options=[
-      create_option("size", "SizeXSize", 4, required=False),
-      create_option("bomb_count", "Amount of bombs", 4, required=False)
-    ]
+      name="minesweeper",
+      description="Minesweeper",
+      options=[
+          create_option("size", "SizeXSize", SlashCommandOptionType.INTEGER, False),
+          create_option("bomb_count", "Amount of bombs", SlashCommandOptionType.INTEGER, False)
+      ]
   )
-  async def slash_minesweeper(self,ctx,size:int=5,bomb_count:int=6):
-    await ctx.respond()
-    post = await self.mine_sweeper(ctx,size,bomb_count)
-    await ctx.send(**post)
+  async def slash_minesweeper(self, ctx, size: int = 5, bomb_count: int = 3):
+    await ctx.send(**await self.mine_sweeper(size, bomb_count))
 
-  async def mine_sweeper(self,ctx,size,bomb_count):
+  async def mine_sweeper(self, size, bomb_count):
     """Source for this command: https://medium.com/swlh/this-is-how-to-create-a-simple-minesweeper-game-in-python-af02077a8de"""
+
     if size > 9:
-      raise commands.BadArgument("Size cannot be larger than 9 due to the message character limit of Discord")
-    if bomb_count >= size*size:
-      raise commands.BadArgument("Bomb_count cannot be larger than the game board")
+      raise exceptions.ArgumentTooLarge("Size cannot be larger than 9 due to the message character limit of Discord")
+    if bomb_count > size * size:
+      raise exceptions.ArgumentTooLarge("Bomb_count cannot be larger than the game board")
 
     arr = [[0 for row in range(size)] for column in range(size)]
 
     # async with ctx.channel.typing():
     def get_xy():
-      return random.randint(0,size-1),random.randint(0,size-1)
+      return np.random.randint(0, size - 1), np.random.randint(0, size - 1)
 
     for _ in range(bomb_count):
-      x,y = get_xy()
+      x, y = get_xy()
       while arr[y][x] == 'X':
-        x,y = get_xy()
+        x, y = get_xy()
       arr[y][x] = 'X'
 
-      if (x >=0 and x <= size-2) and (y >= 0 and y <= size-1):
-        if arr[y][x+1] != 'X':
-          arr[y][x+1] += 1 # center right
+      if (x >= 0 and x <= size - 2) and (y >= 0 and y <= size - 1):
+        if arr[y][x + 1] != 'X':
+          arr[y][x + 1] += 1  # center right
 
-      if (x >=1 and x <= size-1) and (y >= 0 and y <= size-1):
-        if arr[y][x-1] != 'X':
-          arr[y][x-1] += 1 # center left
+      if (x >= 1 and x <= size - 1) and (y >= 0 and y <= size - 1):
+        if arr[y][x - 1] != 'X':
+          arr[y][x - 1] += 1  # center left
 
-      if (x >= 1 and x <= size-1) and (y >= 1 and y <= size-1):
-        if arr[y-1][x-1] != 'X':
-          arr[y-1][x-1] += 1 # top left
+      if (x >= 1 and x <= size - 1) and (y >= 1 and y <= size - 1):
+        if arr[y - 1][x - 1] != 'X':
+          arr[y - 1][x - 1] += 1  # top left
 
-      if (x >= 0 and x <= size-2) and (y >= 1 and y <= size-1):
-        if arr[y-1][x+1] != 'X':
-          arr[y-1][x+1] += 1 # top right
+      if (x >= 0 and x <= size - 2) and (y >= 1 and y <= size - 1):
+        if arr[y - 1][x + 1] != 'X':
+          arr[y - 1][x + 1] += 1  # top right
 
-      if (x >= 0 and x <= size-1) and (y >= 1 and y <= size-1):
-        if arr[y-1][x] != 'X':
-          arr[y-1][x] += 1 # top center
+      if (x >= 0 and x <= size - 1) and (y >= 1 and y <= size - 1):
+        if arr[y - 1][x] != 'X':
+          arr[y - 1][x] += 1  # top center
 
-      if (x >=0 and x <= size-2) and (y >= 0 and y <= size-2):
-        if arr[y+1][x+1] != 'X':
-          arr[y+1][x+1] += 1 # bottom right
+      if (x >= 0 and x <= size - 2) and (y >= 0 and y <= size - 2):
+        if arr[y + 1][x + 1] != 'X':
+          arr[y + 1][x + 1] += 1  # bottom right
 
-      if (x >= 1 and x <= size-1) and (y >= 0 and y <= size-2):
-        if arr[y+1][x-1] != 'X':
-          arr[y+1][x-1] += 1 # bottom left
+      if (x >= 1 and x <= size - 1) and (y >= 0 and y <= size - 2):
+        if arr[y + 1][x - 1] != 'X':
+          arr[y + 1][x - 1] += 1  # bottom left
 
-      if (x >= 0 and x <= size-1) and (y >= 0 and y <= size-2):
-        if arr[y+1][x] != 'X':
-          arr[y+1][x] += 1 # bottom center
+      if (x >= 0 and x <= size - 1) and (y >= 0 and y <= size - 2):
+        if arr[y + 1][x] != 'X':
+          arr[y + 1][x] += 1  # bottom center
 
-    return dict(embed=embed(title=f"{size}x{size} with {bomb_count} bombs",author_name="Minesweeper",description="||"+"||\n||".join("||||".join(self.EMOTES[cell] for cell in row) for row in arr)+"||"),delete_after=None)
+    return dict(
+        embed=embed(
+            title=f"{size}x{size} with {bomb_count} bombs",
+            author_name="Minesweeper",
+            description="||" + "||\n||".join("||||".join(self.MINEEMOTES[cell] for cell in row) for row in arr) + "||"),
+        delete_after=None)
 
-  @commands.command(name='souptime',help='Soup Time')
-  @commands.cooldown(1,7, commands.BucketType.user)
-  async def norm_souptime(self,ctx):
-    async with ctx.typing():
-      post = self.souptime()
-    await ctx.reply(**post)
+  @commands.command(name='souptime', help='Soup Time')
+  @commands.cooldown(1, 7, commands.BucketType.user)
+  async def norm_souptime(self, ctx):
+    await ctx.reply(**self.souptime())
 
   @cog_ext.cog_slash(name='souptime')
   # @commands.cooldown(1,7, commands.BucketType.user)
-  async def slash_souptime(self,ctx):
-    await ctx.respond()
-    post = self.souptime()
-    await ctx.send(**post)
+  async def slash_souptime(self, ctx):
+    await ctx.send(**self.souptime())
 
   def souptime(self):
     return dict(embed=embed(
-      title="Here is sum soup, just for you",
-      color=MessageColors.SOUPTIME,
-      description="I hope you enjoy!",
-      image=random.choice(config['soups'])
+        title="Here is sum soup, just for you",
+        color=MessageColors.SOUPTIME,
+        description="I hope you enjoy!",
+        image=random.choice(config['soups'])
     ))
+
+  @commands.command(name="coinflip", aliases=["coin"], description="Flip a coin")
+  async def norm_coin(self, ctx):
+    await ctx.reply(embed=embed(title="The coin landed on: " + random.choice(["Heads", "Tails"])))
+
+  @cog_ext.cog_slash(
+      name="coinflip",
+      description="Flip a coin"
+  )
+  async def slash_coin(self, ctx):
+    await ctx.send(embed=embed(title="The coin landed on: " + random.choice(["Heads", "Tails"])))
+
+  # @commands.command(name="mostroles", description="Show the server members with the most roles")
+  # async def norm_mostroles(self, ctx):
+  #   # Requires members intent
+  #   for member in ctx.guild.members:
+  #     print(member)
+
+  # @commands.command(name="secretsanta", aliases=["ss"], description="Secret Santa", hidden=True)
+  # async def norm_secret_santa(self, ctx, members: commands.Greedy[discord.Member]):
+  #   print("something")
+
+  # @cog_ext.cog_slash(name="secretsanta", description="Secret Santa", options=[create_option("members", "The members of the secret santa", 6, True)], guild_ids=[243159711237537802, 707441352367013899])
+  # async def slash_secret_santa(self, ctx, members):
+  #   print("something")
+
+  POLEEMOTES = {
+      0: "1️⃣",
+      1: "2️⃣",
+      2: "3️⃣",
+      3: "4️⃣",
+      4: "5️⃣",
+      5: "6️⃣",
+      6: "7️⃣",
+      7: "8️⃣",
+      8: "9️⃣",
+      9: "🔟"
+  }
+
+  @commands.command(name="pole", description="Make a pole. Seperate the options with `;;`")
+  @commands.guild_only()
+  async def norm_pole(self, ctx, title, *, options: str = None):
+    options = options.split(";;")
+
+    if len(options) < 2:
+      return await ctx.reply(embed=embed(title="Please choose 2 or more options for this pole", color=MessageColors.ERROR))
+
+    await self.pole(ctx, title, options)
+
+  @cog_ext.cog_slash(
+      name="pole",
+      description="Make a pole",
+      options=[
+          create_option("title", "The title of the pole", SlashCommandOptionType.STRING, True),
+          create_option("option1", "Option for the pole", SlashCommandOptionType.STRING, True),
+          create_option("option2", "Option for the pole", SlashCommandOptionType.STRING, True),
+          create_option("option3", "Option for the pole", SlashCommandOptionType.STRING, False),
+          create_option("option4", "Option for the pole", SlashCommandOptionType.STRING, False),
+          create_option("option5", "Option for the pole", SlashCommandOptionType.STRING, False),
+          create_option("option6", "Option for the pole", SlashCommandOptionType.STRING, False),
+          create_option("option7", "Option for the pole", SlashCommandOptionType.STRING, False),
+          create_option("option8", "Option for the pole", SlashCommandOptionType.STRING, False),
+          create_option("option9", "Option for the pole", SlashCommandOptionType.STRING, False),
+          create_option("option10", "Option for the pole", SlashCommandOptionType.STRING, False),
+      ]
+  )
+  @checks.slash(user=True, private=False)
+  async def slash_pole(self, ctx, title, option1, option2, option3=None, option4=None, option5=None, option6=None, option7=None, option8=None, option9=None, option10=None):
+    options = []
+    for item in [option1, option2, option3, option4, option5, option6, option7, option8, option9, option10]:
+      if item is not None:
+        options.append(item)
+    await self.pole(ctx, title, options, True)
+
+  def bar(self, iteration, total, length=25, decimals=1, fill="█"):
+    percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
+    filledLength = int(length * iteration // total)
+    bar = fill * filledLength + '░' * (length - filledLength)
+    return f"\r |{bar}| {percent}%"
+
+  async def pole(self, ctx, title, options=None, slash=False):
+    x = 0
+    titles = []
+    vals = []
+    ins = []
+    for opt in options:
+      titles.append(f"{self.POLEEMOTES[x]}\t{opt}")
+      vals.append(f"{self.bar(0,1)}")
+      ins.append(False)
+      x += 1
+    if slash:
+      message = await ctx.send(embed=embed(title=f"Pole: {title}", fieldstitle=titles, fieldsval=vals, fieldsin=ins))
+    else:
+      message = await ctx.reply(embed=embed(title=f"Pole: {title}", fieldstitle=titles, fieldsval=vals))
+
+    x = 0
+    for _ in options:
+      await message.add_reaction(self.POLEEMOTES[x])
+      x += 1
+
+  @commands.Cog.listener("on_raw_reaction_add")
+  @commands.Cog.listener("on_raw_reaction_remove")
+  async def on_raw_reaction(self, payload):
+    if payload.member == self.bot.user:
+      return
+    message = await (self.bot.get_channel(payload.channel_id)).fetch_message(payload.message_id)
+    if message.author != self.bot.user:
+      return
+    if not message.embeds[0].title.startswith("Pole: "):
+      return
+    for react in message.reactions:
+      if react.me and react.emoji in self.POLEEMOTES.values():
+        test = True
+      if not test:
+        return
+
+    available_reactions = []
+    x = 0
+    for _ in message.embeds[0].fields:
+      available_reactions.append(self.POLEEMOTES[x])
+      x += 1
+
+    react_count = 0
+    x = 0
+    for item in available_reactions:
+      me = [me for me in (await message.reactions[x].users().flatten()) if me == self.bot.user] if len(message.reactions) == len(available_reactions) else []
+      if len(me) == 0:
+        await message.add_reaction(item)
+        message = await (self.bot.get_channel(payload.channel_id)).fetch_message(payload.message_id)
+      react_count += message.reactions[x].count
+      x += 1
+    react_count = react_count - len(message.embeds[0].fields)
+    react_count = react_count if react_count > 0 else 1
+
+    x = 0
+    titles = []
+    vals = []
+    ins = []
+    for field in message.embeds[0].fields:
+      titles.append(field.name)
+      ins.append(False)
+      vals.append(self.bar(message.reactions[x].count - 1, react_count))
+      x += 1
+
+    await message.edit(embed=embed(title=message.embeds[0].title, fieldstitle=titles, fieldsval=vals, fieldsin=ins))
+
+  @commands.command(name="gametime", description="Ping a role that is attached to a game and see who wants to play")
+  @commands.guild_only()
+  async def norm_game_time(self, ctx, role: discord.Role, *, message: str = None):
+    await self.game_time(ctx, role, message)
+
+  @cog_ext.cog_slash(
+      name="gametime",
+      description="Ping a role that's attached to a game and see who wants to play",
+      options=[
+          create_option("role", "Which role to mention", SlashCommandOptionType.ROLE, True),
+          create_option("message", "Add a message to follow the mention", SlashCommandOptionType.STRING, False)
+      ], guild_ids=[243159711237537802, 215346091321720832, 707441352367013899]
+  )
+  @checks.slash(user=True, private=False)
+  async def slash_game_time(self, ctx, role, message=None):
+    await self.game_time(ctx, role, message, True)
+
+  async def game_time(self, ctx, role, message=None, slash=False):
+    if role not in ctx.author.roles:
+      if slash:
+        return await ctx.send(embed=embed(title="Since this command is ment for game roles and you don't have that role, I will not go through with this command", color=MessageColors.ERROR))
+      return await ctx.reply(embed=embed(title="Since this command is ment for game roles and you don't have that role, I will not go through with this command", color=MessageColors.ERROR))
+    if slash:
+      message = await ctx.send(content=f"{role.mention} {message if message is not None else ''}", allowed_mentions=discord.AllowedMentions(roles=True, everyone=False))
+    else:
+      await ctx.delete()
+      message = await ctx.reply(content=f"{role.mention} {message if message is not None else ''}", allowed_mentions=discord.AllowedMentions(roles=True, everyone=False))
+
+    await message.add_reaction("👍")
+    await message.add_reaction("👎")
+
 
 def setup(bot):
   bot.add_cog(Fun(bot))

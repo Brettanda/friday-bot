@@ -1,11 +1,12 @@
 import json
 import os
 
-direc = r"C:\Users\brett\downloads\Friday"
-intents = f"{direc}\intents"
-entities = f"{direc}\entities"
+direc = r"E:\Users\Brett\Downloads\Friday"
+intents = f"{direc}\\intents"
+entities = f"{direc}\\entities"
 
 new = []
+
 
 def run():
   for filename in os.listdir(intents):
@@ -15,16 +16,16 @@ def run():
         main = ""
         pat = ""
         try:
-          main = intents+"\\"+filen+".json"
-          pat = intents+"\\"+filen+"_usersays_en.json"
+          main = intents + "\\" + filen + ".json"
+          pat = intents + "\\" + filen + "_usersays_en.json"
 
-          with open(main,encoding="utf8") as f:
+          with open(main, encoding="utf8") as f:
             main = json.load(f)
-          with open(pat,encoding="utf8") as f:
+          with open(pat, encoding="utf8") as f:
             pat = json.load(f)
           try:
             responses = main["responses"][0]["messages"][0]["speech"]
-          except:
+          except BaseException:
             responses = ""
 
           outgoingContext = main["responses"][0]["affectedContexts"] or []
@@ -44,21 +45,21 @@ def run():
             patterns.append(pattern)
 
           new.append({
-            "tag":main["name"],
-            "sentiment":sentiment,
-            "priority":main["priority"],
-            "patterns":patterns,
-            "responses":responses,
-            "incomingContext":main["contexts"],
-            "outgoingContext":outgoingContext
+              "tag": main["name"],
+              "sentiment": sentiment,
+              "priority": main["priority"],
+              "patterns": patterns,
+              "responses": responses,
+              "incomingContext": main["contexts"],
+              "outgoingContext": outgoingContext
           })
-        except:
+        except BaseException:
           pass
 
   print(f"Number of intents added: {len(new)}")
 
-  with open("ml/intents.json","w") as f:
-    f.write(json.dumps(new,indent=2,sort_keys=False))
+  with open("ml/intents.json", "w") as f:
+    f.write(json.dumps(new, indent=2, sort_keys=False))
     f.close()
 
 
