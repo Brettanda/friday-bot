@@ -73,7 +73,7 @@ class Music(Cog):
     return dict(embed=embed(title="Something went wrong, please try again later", color=MessageColors.ERROR))
 
   async def can_play(self, ctx):
-    slash = True if isinstance(ctx, SlashContext) else False
+    # slash = True if isinstance(ctx, SlashContext) else False
     connect_perms = ["connect", "speak"]
     missing = []
 
@@ -215,7 +215,7 @@ class Music(Cog):
     if can_play is not True:
       return can_play
 
-    if "open.spotify.com" in query or "spotify:track:" in query:#) or ("open.spotify.com" in ctx.message.content or "spotify:track:" in ctx.message.content):
+    if "open.spotify.com" in query or "spotify:track:" in query:  # ) or ("open.spotify.com" in ctx.message.content or "spotify:track:" in ctx.message.content):
       return dict(embed=embed(title="At the moment Spotify links are not supported.", color=MessageColors.ERROR))
 
     voice = discord.utils.get(self.bot.voice_clients, guild=ctx.guild)
@@ -316,7 +316,7 @@ class Music(Cog):
     post = await self.skip(ctx)
     await ctx.reply(**post)
 
-  @cog_ext.cog_slash(name="skip", description="Skips the current song",guild_ids=[243159711237537802])
+  @cog_ext.cog_slash(name="skip", description="Skips the current song", guild_ids=[243159711237537802])
   async def slash_skip(self, ctx):
     post = await self.skip(ctx)
     await ctx.send(**post)
@@ -345,14 +345,14 @@ class Music(Cog):
 
         songsinqueue = len(songqueue[serverQueueId]) - 1
         return dict(
-          embed=embed(
-              title='Now playing: **{}**'.format(songqueue[serverQueueId][1].title),
-              color=MessageColors.MUSIC,
-              thumbnail=thumbnail,
-              fieldstitle=["Duration", "Total songs in queue"],
-              fieldsval=[duration, songsinqueue]
-          ), delete_after=await get_delete_time(ctx)
-      )
+            embed=embed(
+                title='Now playing: **{}**'.format(songqueue[serverQueueId][1].title),
+                color=MessageColors.MUSIC,
+                thumbnail=thumbnail,
+                fieldstitle=["Duration", "Total songs in queue"],
+                fieldsval=[duration, songsinqueue]
+            ), delete_after=await get_delete_time(ctx)
+        )
       else:
         voice = discord.utils.get(self.bot.voice_clients, guild=ctx.guild)
         if voice is not None:
