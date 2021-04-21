@@ -297,9 +297,8 @@ class Music(Cog):
           voice.stop()
         except BaseException:
           pass
-        finally:
-          await voice.disconnect()
-          return dict(embed=embed(title="Finished"))
+        await voice.disconnect()
+        return dict(embed=embed(title="Finished"))
       else:
         return dict(embed=embed(title="I am not connected to a voice channel"))
         # await ctx.reply(embed=embed(title="I am not connected to a voice channel"))
