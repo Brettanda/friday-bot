@@ -1,5 +1,5 @@
 from discord.ext.commands import CommandError
-from discord_slash.error import SlashCommandError
+# from discord_slash.error import SlashCommandError
 
 
 class Base(CommandError):
