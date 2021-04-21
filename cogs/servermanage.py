@@ -203,7 +203,7 @@ class ServerManage(commands.Cog):
       tokick.append(member.name)
       await member.kick(reason=f"{ctx.author}: {reason}")
 
-    return dict(embed=embed(title=f"Kicked `{', '.join(tokick)}`{(' for reason ' + reason) if reason is not None else ''}`"))
+    return dict(embed=embed(title=f"Kicked `{', '.join(tokick)}`{(' for reason `' + reason+'`') if reason is not None else ''}"))
 
   @commands.command(name="ban")
   @commands.bot_has_guild_permissions(ban_members=True)
@@ -289,7 +289,7 @@ class ServerManage(commands.Cog):
         return dict(embed=embed(title="Failed to ban yourself", color=MessageColors.ERROR))
       toban.append(member.name)
       await member.ban(delete_message_days=delete_message_days, reason=f"{ctx.author}: {reason}")
-    return dict(embed=embed(title=f"Banned `{', '.join(toban)}`{(' with `'+delete_message_days+'` messages deleted,') if delete_message_days == 0 else ''}{(' for reason `'+reason+'`') if reason is not None else ''}"))
+    return dict(embed=embed(title=f"Banned `{', '.join(toban)}`{(' with `'+str(delete_message_days)+'` messages deleted') if delete_message_days > 0 else ''}{(' for reason `'+reason+'`') if reason is not None else ''}"))
 
   @commands.command(name="rolecall", aliases=["rc"], description="Moves everyone with a specific role to a voicechannel. Objects that can be exluded are voicechannels,roles,and members")
   @commands.guild_only()
