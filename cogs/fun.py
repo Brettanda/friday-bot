@@ -393,7 +393,7 @@ class Fun(commands.Cog):
       options=[
           create_option("role", "Which role to mention", SlashCommandOptionType.ROLE, True),
           create_option("message", "Add a message to follow the mention", SlashCommandOptionType.STRING, False)
-      ], guild_ids=[243159711237537802, 215346091321720832, 707441352367013899]
+      ]
   )
   @checks.slash(user=True, private=False)
   async def slash_game_time(self, ctx, role, message=None):
