@@ -10,7 +10,7 @@ def bot_has_guild_permissions(**perms):
     raise TypeError(f"Invalid permssion(s): {', '.join(invalid)}")
 
   async def predicate(ctx: commands.Context or SlashContext):
-    if not ctx.guild:
+    if not ctx.guild and ctx.guild_id:
       raise commands.NoPrivateMessage()
 
     # guild = ctx.guild if not ctx.guild else (ctx.bot.get_guild(ctx.guild_id))

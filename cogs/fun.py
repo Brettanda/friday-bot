@@ -86,6 +86,7 @@ class Fun(commands.Cog):
           )
       ]
   )
+  @checks.slash(user=False, private=True)
   async def slash_rock_paper_scissors(self, ctx, choice: str):
     await ctx.defer()
     post = await self.rock_paper_scissors(ctx, choice)
@@ -153,6 +154,7 @@ class Fun(commands.Cog):
           create_option("bomb_count", "Amount of bombs", SlashCommandOptionType.INTEGER, False)
       ]
   )
+  @checks.slash(user=False, private=True)
   async def slash_minesweeper(self, ctx, size: int = 5, bomb_count: int = 3):
     await ctx.send(**await self.mine_sweeper(size, bomb_count))
 
@@ -220,8 +222,9 @@ class Fun(commands.Cog):
   async def norm_souptime(self, ctx):
     await ctx.reply(**self.souptime())
 
-  @cog_ext.cog_slash(name='souptime')
   # @commands.cooldown(1,7, commands.BucketType.user)
+  @cog_ext.cog_slash(name='souptime')
+  @checks.slash(user=False, private=True)
   async def slash_souptime(self, ctx):
     await ctx.send(**self.souptime())
 
@@ -241,6 +244,7 @@ class Fun(commands.Cog):
       name="coinflip",
       description="Flip a coin"
   )
+  @checks.slash(user=False, private=True)
   async def slash_coin(self, ctx):
     await ctx.send(embed=embed(title="The coin landed on: " + random.choice(["Heads", "Tails"])))
 

@@ -7,7 +7,7 @@ from discord.utils import get
 from discord_slash import cog_ext, SlashContext
 
 from cogs.cleanup import get_delete_time
-from functions import MessageColors, embed
+from functions import MessageColors, embed, checks
 
 
 def syntax(command, quotes: bool = True):
@@ -109,6 +109,7 @@ class Help(Cog):
     await self.show_help(ctx, group, cmd)
 
   @cog_ext.cog_slash(name="help")
+  @checks.slash(user=True, private=True)
   async def slash_show_help(self, ctx, group: str = None, cmd: str = None):
     await ctx.defer()
     await self.show_help(ctx, group, cmd)

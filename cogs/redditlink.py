@@ -69,6 +69,10 @@ class redditlink(commands.Cog):
     # if missing:
     #   return
 
+    # TODO: remove this check when members intent
+    if not ctx.guild:
+      return
+
     reg = re.findall(self.pattern, ctx.content)
     # spoiler = re.findall(self.patternspoiler,ctx.content)
 
@@ -121,17 +125,23 @@ class redditlink(commands.Cog):
 
   @commands.Cog.listener()
   async def on_raw_reaction_add(self, payload):
-    if payload.member == self.bot.user:
+    if payload.user_id == self.bot.user.id:
       return
     # channel = self.bot.get_guild(payload.guild_id).get_channel(payload.channel_id)
     # async with channel.typing():
-    message = await (self.bot.get_channel(payload.channel_id)).fetch_message(payload.message_id)
+    if payload.guild_id:
+      message = await (self.bot.get_channel(payload.channel_id)).fetch_message(payload.message_id)
+    # TODO: When members intent change for the check below
+    elif not payload.guild_id:
+      return
+    # else:
+    #   message = await (self.bot.get_user(payload.user_id)).dm_channel.fetch_message(payload.message_id)
     guild = self.bot.get_guild(payload.guild_id)
     channel = self.bot.get_channel(payload.channel_id)
-    message = await channel.fetch_message(payload.message_id)
-    if self.bot.user == payload.member or self.bot.user == payload.member.bot:
+    # message = await channel.fetch_message(payload.message_id)
+    if self.bot.user.id == payload.user_id or (payload.member and self.bot.user == payload.member.bot):
       return
-    if payload.member != message.author:
+    if payload.user_id != message.author.id:
       return
     if payload.emoji.name != self.emoji:
       return
@@ -159,9 +169,9 @@ class redditlink(commands.Cog):
 
   async def extract(self, query, payload=None, ctx=None, guild=None, channel=None, message=None):
     slash = True if ctx is not None and payload is None else False
-    if guild is None:
+    if guild is None and not ctx.guild_id:
       raise commands.ArgumentParsingError()
-    if channel is None:
+    if channel is None and not ctx.channel_id:
       raise commands.ArgumentParsingError()
     if message is None and not slash:
       raise commands.ArgumentParsingError()
@@ -215,7 +225,8 @@ class redditlink(commands.Cog):
 
     # TODO: Does not get url for videos atm
     channel = message.channel if payload is not None else ctx.channel
-    if (channel.nsfw is True and data["over_18"] is True) or (channel.nsfw is False and data["over_18"] is False) or (channel.nsfw is True and data["over_18"] is False):
+    nsfw = channel.nsfw if channel is not None else False
+    if (nsfw is True and data["over_18"] is True) or (nsfw is False and data["over_18"] is False) or (nsfw is True and data["over_18"] is False):
       spoiler = False
     else:
       spoiler = True
