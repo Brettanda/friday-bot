@@ -10,9 +10,9 @@ class Meme(commands.Cog):
     self.subs = ["dankmemes", "memes", "wholesomememes"]
     self.posted = {}
 
+  # @commands.max_concurrency(1,commands.BucketType.channel,wait=False)
   @commands.command(name="meme", aliases=["shitpost"], description="Meme time")
   @commands.cooldown(1, 1, commands.BucketType.user)
-  # @commands.max_concurrency(1,commands.BucketType.channel,wait=False)
   async def norm_meme(self, ctx):
     async with ctx.typing():
       post = await get_reddit_post(ctx, self.subs)
