@@ -189,9 +189,8 @@ class Music(Cog):
       #       ), delete_after=await get_delete_time(ctx)
       #   )
     else:
-      async with ctx.typing():
-        await ctx.voice_client.disconnect()
-      return dict(embed=embed(title="Finished the queue", color=MessageColors.MUSIC), delete_after=await get_delete_time(ctx))
+      await ctx.guild.voice_client.disconnect()
+      # return await ctx.send(embed=embed(title="Finished the queue", color=MessageColors.MUSIC), delete_after=await get_delete_time(ctx))
 
   @commands.command(name="play", aliases=['p', 'add'], usage="<url/title>", description="Follow this command with the title of a song to search for it or just paste the Youtube/SoundCloud url if the search gives and undesirable result")
   @commands.guild_only()
