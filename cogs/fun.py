@@ -402,8 +402,15 @@ class Fun(commands.Cog):
   async def game_time(self, ctx, role, message=None, slash=False):
     if role not in ctx.author.roles:
       if slash:
-        return await ctx.send(embed=embed(title="Since this command is ment for game roles and you don't have that role, I will not go through with this command", color=MessageColors.ERROR))
+        return await ctx.send(hidden=True, content="Since this command is ment for game roles and you don't have that role, I will not go through with this command")
       return await ctx.reply(embed=embed(title="Since this command is ment for game roles and you don't have that role, I will not go through with this command", color=MessageColors.ERROR))
+
+    mention_perm = ctx.author.permissions_in(ctx.channel).mention_everyone
+    if not role.mentionable and not mention_perm:
+      if slash:
+        return await ctx.send(hidden=True, content="You don't have permission to mention that role")
+      return await ctx.reply(embed=embed(title="You don't have permission to mention that role", color=MessageColors.ERROR))
+
     if slash:
       message = await ctx.send(content=f"{role.mention} {message if message is not None else ''}", allowed_mentions=discord.AllowedMentions(roles=True, everyone=False))
     else:
