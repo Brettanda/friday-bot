@@ -156,27 +156,54 @@ class ServerManage(commands.Cog):
   @checks.bot_has_guild_permissions(kick_members=True)
   @commands.has_guild_permissions(kick_members=True)
   async def slash_kick(self, ctx, members: commands.Greedy[discord.Member], reason=None):
-    post = await self.kick(ctx, [members], reason)
+    post = await self.kick(ctx, [members], reason, True)
     await ctx.send(**post)
 
-  async def kick(self, ctx, members, reason=None):
-    # if len(members) == 0:
-      # await cmd_help(ctx, ctx.command)
+  async def kick(self, ctx, members, reason=None, slash=False):
+    if isinstance(members, list) and len(members) == 0 and not slash:
+      await cmd_help(ctx, ctx.command)
+
     tokick = []
+
     if not isinstance(members, list):
       members = list(members)
+
+    if self.bot.user in members:
+      if slash:
+        return dict(hidden=True, content="But I don't want to kick myself 😭")
+      return dict(embed=embed(title="But I don't want to kick myself 😭", color=MessageColors.ERROR))
+
+    if ctx.author in members:
+      if slash:
+        return dict(hidden=True, content="Failed to kick yourself")
+      return dict(embed=embed(title="Failed to kick yourself", color=MessageColors.ERROR))
+
     for member in members:
-      if self.bot.user in members:
-        try:
-          await ctx.add_reaction("😢")
-        except BaseException:
-          pass
-        return
-      if member == ctx.author:
-        return dict(embed=embed(title="Failed to kick yourself", color=MessageColors.ERROR))
+      pos = ctx.guild.me.top_role.position
+      uspos = member.top_role.position
+
+      if pos == uspos:
+        if slash:
+          return dict(hidden=True, content="I am not able to kick a member in the same highest role as me.")
+        return dict(embed=embed(title="I am not able to kick a member in the same highest role as me.", color=MessageColors.ERROR))
+
+      if pos < uspos:
+        if slash:
+          return dict(hidden=True, content="I am not able to kick a member with a role higher than my own permissions role(s)")
+        return dict(embed=embed(title="I am not able to kick a member with a role higher than my own permissions role(s)", color=MessageColors.ERROR))
+
+    if self.bot.user in members and not slash:
+      try:
+        await ctx.add_reaction("😢")
+      except BaseException:
+        pass
+      return
+
+    for member in members:
       tokick.append(member.name)
       await member.kick(reason=f"{ctx.author}: {reason}")
-    return dict(embed=embed(title=f"Kicked `{', '.join(tokick)}` for reason `{reason}`"))
+
+    return dict(embed=embed(title=f"Kicked `{', '.join(tokick)}`{(' for reason ' + reason) if reason is not None else ''}`"))
 
   @commands.command(name="ban")
   @commands.bot_has_guild_permissions(ban_members=True)
@@ -212,28 +239,57 @@ class ServerManage(commands.Cog):
   @checks.bot_has_guild_permissions(ban_members=True)
   @commands.has_guild_permissions(ban_members=True)
   async def slash_ban(self, ctx, member, reason=None, delete_message_days=0):
-    post = await self.ban(ctx, member, reason, delete_message_days)
+    post = await self.ban(ctx, member, reason, delete_message_days, True)
     await ctx.send(**post)
 
-  async def ban(self, ctx, members, reason=None, delete_message_days=0):
-    if isinstance(members, list) and len(members) == 0:
+  async def ban(self, ctx, members, reason=None, delete_message_days=0, slash=False):
+    if isinstance(members, list) and len(members) == 0 and not slash:
       await cmd_help(ctx, ctx.command)
+
+    toban = []
 
     if not isinstance(members, list):
       members = [members]
-    toban = []
+
+    if self.bot.user in members and slash:
+      if slash:
+        return dict(hidden=True, content="But I don't want to ban myself 😭")
+      return dict(embed=embed(title="But I don't want to ban myself 😭"))
+
+    if ctx.author in members:
+      if slash:
+        return dict(hidden=True, content="Failed to ban yourself")
+      return dict(embed=embed(title="Failed to ban yourself", color=MessageColors.ERROR))
+
     for member in members:
-      if self.bot.user in members:
-        try:
-          await ctx.add_reaction("😢")
-        except BaseException:
-          pass
-        return
+      pos = ctx.guild.me.top_role.position
+      uspos = member.top_role.position
+
+      if pos == uspos:
+        if slash:
+          return dict(hidden=True, content="I am not able to ban a member in the same highest role as me.")
+        return dict(embed=embed(title="I am not able to ban a member in the same highest role as me.", color=MessageColors.ERROR))
+
+      if pos < uspos:
+        if slash:
+          return dict(hidden=True, content="I am not able to ban a member with a role higher than my own permissions role(s)")
+        return dict(embed=embed(title="I am not able to ban a member with a role higher than my own permissions role(s)", color=MessageColors.ERROR))
+
+    if self.bot.user in members and not slash:
+      try:
+        await ctx.add_reaction("😢")
+      except BaseException:
+        pass
+      return
+
+    for member in members:
       if member == ctx.author:
+        if slash:
+          return dict(hidden=True, content="Failed to ban yourself")
         return dict(embed=embed(title="Failed to ban yourself", color=MessageColors.ERROR))
       toban.append(member.name)
       await member.ban(delete_message_days=delete_message_days, reason=f"{ctx.author}: {reason}")
-    return dict(embed=embed(title=f"Banned `{', '.join(toban)}` with `{delete_message_days}` messages deleted, for reason `{reason}`"))
+    return dict(embed=embed(title=f"Banned `{', '.join(toban)}`{(' with `'+delete_message_days+'` messages deleted,') if delete_message_days == 0 else ''}{(' for reason `'+reason+'`') if reason is not None else ''}"))
 
   @commands.command(name="rolecall", aliases=["rc"], description="Moves everyone with a specific role to a voicechannel. Objects that can be exluded are voicechannels,roles,and members")
   @commands.guild_only()
