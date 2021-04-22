@@ -203,7 +203,6 @@ class Music(Cog):
   @cog_ext.cog_slash(name="play", description="Play some epic music")
   @checks.slash(user=True, private=False)
   async def slash_play(self, ctx, query: str):
-    await ctx.defer()
     post = await self.play(ctx, query, True)
     await ctx.send(**post)
 
@@ -216,6 +215,9 @@ class Music(Cog):
 
     if "open.spotify.com" in query or "spotify:track:" in query:  # ) or ("open.spotify.com" in ctx.message.content or "spotify:track:" in ctx.message.content):
       return dict(embed=embed(title="At the moment Spotify links are not supported.", color=MessageColors.ERROR))
+
+    if slash:
+      await ctx.defer()
 
     voice = discord.utils.get(self.bot.voice_clients, guild=ctx.guild)
 

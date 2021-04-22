@@ -344,6 +344,8 @@ class Fun(commands.Cog):
     message = await (self.bot.get_channel(payload.channel_id)).fetch_message(payload.message_id)
     if message.author != self.bot.user:
       return
+    if len(message.embeds) == 0:
+      return
     if not message.embeds[0].title.startswith("Pole: "):
       return
     for react in message.reactions:
