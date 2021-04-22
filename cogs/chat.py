@@ -20,7 +20,7 @@ class Chat(commands.Cog):
     self.bot = bot
 
   @commands.Cog.listener()
-  async def on_message(self, ctx: commands.Context):
+  async def on_message(self, ctx):
     if ctx.author.bot and ctx.channel.id != 827656054728818718:
       return
     if ctx.author == self.bot.user and ctx.channel.id != 827656054728818718:
@@ -105,8 +105,8 @@ class Chat(commands.Cog):
         logger.info(f"No response found: {ctx.clean_content.encode('unicode_escape')}")
         if "friday" in ctx.clean_content.lower() or self.bot.user in ctx.mentions:
           await relay_info("", self.bot, embed=embed(title="I think i should respond to this", description=f"{ctx.content}"), channel=814349008007856168)
-          print(f"I think I should respond to this: {ctx.clean_content.lower()}")
-          logger.info(f"I think I should respond to this: {ctx.clean_content.lower()}")
+          print(f"I think I should respond to this: {ctx.clean_content.lower()}{(' translated to `'+translation.text+'`') if translation.src != 'en' else ''}")
+          logger.info(f"I think I should respond to this: {ctx.clean_content.lower()}{(' translated to `'+translation.text+'`') if translation.src != 'en' else ''}")
       # # print(f"Intent: {intent}\t{chance}")
       # logger.info(f"Intent: {intent}\t{chance}")
       # print(f"\t| sentiment: {sentiment}")
@@ -116,11 +116,11 @@ class Chat(commands.Cog):
       # print(f"\t| outgoing Context: {outgoingContext}")
       # logger.info(f"\t| outgoing Context: {outgoingContext}")
 
-      if result is not None:
+      if result is not None and result != '':
         if "dynamic" in result:
           print(f"\t| en response: {non_trans_result}\n\t\\ response: {result}")
           logger.info(f"\t| en response: {non_trans_result}\n\t\\ response: {result}")
-          await dynamicchat(ctx, self.bot, intent, result)
+          await dynamicchat(ctx, self.bot, intent, result, translation.src)
         else:
           print(f"\t| en response: {non_trans_result}\n\t\\ response: {result}")
           logger.info(f"\t| en response: {non_trans_result}\n\t\\ response: {result}")
