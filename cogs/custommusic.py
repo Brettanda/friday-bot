@@ -32,7 +32,7 @@ class CustomMusic(commands.Cog):
       await ctx.reply(embed=embed(title=f"Could not find the custom command `{name}`", color=MessageColors.ERROR))
     else:
       if name in sounds:
-        await ctx.invoke(self.bot.get_command("play"), url=sounds[name])
+        await ctx.invoke(self.bot.get_command("play"), query=sounds[name])
       else:
         await ctx.reply(embed=embed(title=f"The sound `{name}` has not been added, please check the `custom list` command", color=MessageColors.ERROR))
 
