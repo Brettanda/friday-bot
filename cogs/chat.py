@@ -3,6 +3,7 @@ import logging
 # import discord
 import validators
 from discord.ext import commands
+from googletrans import Translator
 
 # from chatml import queryGen
 from chatml import queryIntents
@@ -11,6 +12,7 @@ from functions import dev_guilds, embed, mydb_connect, query, relay_info
 from functions.mysql_connection import query_prefix
 
 logger = logging.getLogger(__name__)
+translator = Translator()
 
 
 class Chat(commands.Cog):
@@ -55,7 +57,12 @@ class Chat(commands.Cog):
           meinlastmessage = True
           # newest = msg
 
-      result, intent, chance, inbag, incomingContext, outgoingContext, sentiment = await queryIntents.classify_local(ctx.clean_content)
+      translation = translator.translate(ctx.clean_content)
+
+      result, intent, chance, inbag, incomingContext, outgoingContext, sentiment = await queryIntents.classify_local(translation.text)
+
+      non_trans_result = result
+      result = translator.translate(result, dest=translation.src).text if translation.src != "en" and result != "dynamic" else result
 
       if intent == "Title of your sex tape" and ctx.guild.id not in dev_guilds:
         return await relay_info(f"Not responding with TOYST for: `{ctx.clean_content}`", self.bot, channel=814349008007856168)
@@ -91,12 +98,8 @@ class Chat(commands.Cog):
         #   logger.info(f"I think I should respond to this: {ctx.clean_content.lower()}")
         return
       if result is not None:
-        print(f"Intent: {intent}\t{chance}\n\t| sentiment: {sentiment}\n\t| incoming Context: {incomingContext}\n\t| outgoing Context: {outgoingContext}")
-        logger.info(f"\nIntent: {intent}\t{chance}\n\t| sentiment: {sentiment}\n\t| incoming Context: {incomingContext}\n\t| outgoing Context: {outgoingContext}")
-        print(f"\t| input: {ctx.clean_content}")
-        logger.info(f"\t| input: {ctx.clean_content}")
-        print(f"\t| found in bag: {inbag}")
-        logger.info(u"\t| found in bag: %s", inbag)
+        print(f"Intent: {intent}\t{chance}\n\t| original lang: {translation.src}\n\t| sentiment: {sentiment}\n\t| incoming Context: {incomingContext}\n\t| outgoing Context: {outgoingContext}\n\t| input: {ctx.clean_content}\n\t| translated text: {translation.text}\n\t| found in bag: {inbag}")
+        logger.info(f"\nIntent: {intent}\t{chance}\n\t| original lang: {translation.src}\n\t| sentiment: {sentiment}\n\t| incoming Context: {incomingContext}\n\t| outgoing Context: {outgoingContext}\n\t| input: {ctx.clean_content}\n\t| translated text: {translation}\n\t| found in bag: {inbag}")
       else:
         print(f"No response found: {ctx.clean_content.encode('unicode_escape')}")
         logger.info(f"No response found: {ctx.clean_content.encode('unicode_escape')}")
@@ -115,12 +118,12 @@ class Chat(commands.Cog):
 
       if result is not None:
         if "dynamic" in result:
-          print(f"\t\\ response: {result}")
-          logger.info(f"\t\\ response: {result}")
+          print(f"\t| en response: {non_trans_result}\n\t\\ response: {result}")
+          logger.info(f"\t| en response: {non_trans_result}\n\t\\ response: {result}")
           await dynamicchat(ctx, self.bot, intent, result)
         else:
-          print(f"\t\\ response: {result}")
-          logger.info(f"\t\\ response: {result}")
+          print(f"\t| en response: {non_trans_result}\n\t\\ response: {result}")
+          logger.info(f"\t| en response: {non_trans_result}\n\t\\ response: {result}")
           await ctx.reply(result, mention_author=False)
 
 
