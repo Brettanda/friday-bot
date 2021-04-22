@@ -12,6 +12,9 @@ class Dice(commands.Cog):
 
   @commands.command(name="dice", aliases=["d", "r", "roll"])
   async def norm_dice(self, ctx, *, roll: str):
+    if "bump" in roll:
+      return
+
     async with ctx.typing():
       post = await self.dice(roll)
     await ctx.reply(**post)
@@ -24,9 +27,6 @@ class Dice(commands.Cog):
 
   async def dice(self, roll):
     roll = roll.lower()
-
-    if "bump" in roll:
-      return
 
     result = None
     try:

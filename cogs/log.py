@@ -5,7 +5,7 @@ import discord
 from discord.ext import commands
 from discord_slash import SlashContext
 
-from functions import embed, mydb_connect, query, relay_info, exceptions  # ,choosegame
+from functions import MessageColors, embed, mydb_connect, query, relay_info, exceptions  # ,choosegame
 
 # import os
 
@@ -144,7 +144,7 @@ class Log(commands.Cog):
       if ctx._deffered_hidden or not ctx.deferred:
         await ctx.send(hidden=True, content=str(ex) or "An error has occured, try again later.")
       else:
-        await ctx.send(embed=embed(title=str(ex) or "An error has occured, try again later."))
+        await ctx.send(embed=embed(title=str(ex) or "An error has occured, try again later.", color=MessageColors.ERROR))
     if not isinstance(ex, (
         discord.NotFound,
         commands.MissingPermissions,
