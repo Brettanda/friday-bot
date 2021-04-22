@@ -7,41 +7,15 @@ import numpy as np
 from googletrans import Translator
 # import sys
 
-import discord
 # from discord.ext import commands
 
-from functions import embed, get_reddit_post, MessageColors
+from functions import embed, get_reddit_post, MessageColors, msg_reply
 
 with open('./config.json') as f:
   config = json.load(f)
 
 
 translator = Translator()
-
-
-async def msg_reply(message, content=None, **kwargs):
-  if not hasattr(kwargs, "mention_author"):
-    kwargs.update({"mention_author": False})
-  try:
-    return await message.reply(content, **kwargs)
-  except discord.Forbidden as e:
-    if "Cannot reply without permission" in str(e):
-      try:
-        return await message.channel.send(content, **kwargs)
-      except Exception:
-        pass
-    elif "Missing Permissions" in str(e):
-      pass
-    else:
-      raise e
-  except discord.HTTPException as e:
-    if "Unknown message" in str(e):
-      try:
-        return await message.channel.send(content, **kwargs)
-      except Exception:
-        pass
-    else:
-      raise e
 
 
 async def dynamicchat(ctx, bot, intent, response=None, lang='en'):

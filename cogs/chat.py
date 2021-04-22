@@ -8,7 +8,7 @@ from googletrans import Translator
 # from chatml import queryGen
 from chatml import queryIntents
 from chatml.dynamicchat import dynamicchat
-from functions import dev_guilds, embed, mydb_connect, query, relay_info
+from functions import dev_guilds, embed, mydb_connect, query, relay_info, msg_reply
 from functions.mysql_connection import query_prefix
 
 logger = logging.getLogger(__name__)
@@ -90,7 +90,7 @@ class Chat(commands.Cog):
       #     print(f"Requires context, not responding: {ctx.reference.resolved.clean_content if ctx.reference is not None else newest.clean_content}")
       #     return
       # TODO: add a check for another bot
-      if any(intent != c for c in noContext) and (self.bot.user not in ctx.mentions) and ("friday" not in ctx.clean_content.lower()) and (meinlastmessage is not True) and (ctx.channel.type != "private"):
+      if len([c for c in noContext if intent == c]) == 0 and (self.bot.user not in ctx.mentions) and ("friday" not in ctx.clean_content.lower()) and (meinlastmessage is not True) and (ctx.channel.type != "private"):
         print("I probably should not respond")
         # if "friday" in ctx.clean_content.lower() or self.bot.user in ctx.mentions:
         #   await relay_info("",self.bot,embed=embed(title="I think i should respond to this",description=f"{ctx.content}"),channel=814349008007856168)
@@ -124,7 +124,7 @@ class Chat(commands.Cog):
         else:
           print(f"\t| en response: {non_trans_result}\n\t\\ response: {result}")
           logger.info(f"\t| en response: {non_trans_result}\n\t\\ response: {result}")
-          await ctx.reply(result, mention_author=False)
+          await msg_reply(ctx, result, mention_author=False)
 
 
 def setup(bot):
