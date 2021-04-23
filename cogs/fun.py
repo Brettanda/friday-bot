@@ -350,9 +350,9 @@ class Fun(commands.Cog):
       return
     if not message.embeds[0].title.startswith("Poll: ") and not message.embeds[0].title.startswith("Pole: "):
       return
-    for react in message.reactions:
-      if not react.me and react.emoji not in self.POLLEMOTES.values():
-        return
+    # for react in message.reactions:
+    #   if not react.me and react.emoji not in self.POLLEMOTES.values():
+    #     return
 
     available_reactions = []
     x = 0
