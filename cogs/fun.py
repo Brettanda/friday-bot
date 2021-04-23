@@ -262,7 +262,7 @@ class Fun(commands.Cog):
   # async def slash_secret_santa(self, ctx, members):
   #   print("something")
 
-  POLEEMOTES = {
+  POLLEMOTES = {
       0: "1️⃣",
       1: "2️⃣",
       2: "3️⃣",
@@ -275,40 +275,40 @@ class Fun(commands.Cog):
       9: "🔟"
   }
 
-  @commands.command(name="pole", description="Make a pole. Seperate the options with `;;`")
+  @commands.command(name="poll", description="Make a poll. Seperate the options with `;;`")
   @commands.guild_only()
-  async def norm_pole(self, ctx, title, *, options: str = None):
+  async def norm_poll(self, ctx, title, *, options: str = None):
     options = options.split(";;")
 
     if len(options) < 2:
-      return await ctx.reply(embed=embed(title="Please choose 2 or more options for this pole", color=MessageColors.ERROR))
+      return await ctx.reply(embed=embed(title="Please choose 2 or more options for this poll", color=MessageColors.ERROR))
 
-    await self.pole(ctx, title, options)
+    await self.poll(ctx, title, options)
 
   @cog_ext.cog_slash(
-      name="pole",
-      description="Make a pole",
+      name="poll",
+      description="Make a poll",
       options=[
-          create_option("title", "The title of the pole", SlashCommandOptionType.STRING, True),
-          create_option("option1", "Option for the pole", SlashCommandOptionType.STRING, True),
-          create_option("option2", "Option for the pole", SlashCommandOptionType.STRING, True),
-          create_option("option3", "Option for the pole", SlashCommandOptionType.STRING, False),
-          create_option("option4", "Option for the pole", SlashCommandOptionType.STRING, False),
-          create_option("option5", "Option for the pole", SlashCommandOptionType.STRING, False),
-          create_option("option6", "Option for the pole", SlashCommandOptionType.STRING, False),
-          create_option("option7", "Option for the pole", SlashCommandOptionType.STRING, False),
-          create_option("option8", "Option for the pole", SlashCommandOptionType.STRING, False),
-          create_option("option9", "Option for the pole", SlashCommandOptionType.STRING, False),
-          create_option("option10", "Option for the pole", SlashCommandOptionType.STRING, False),
+          create_option("title", "The title of the poll", SlashCommandOptionType.STRING, True),
+          create_option("option1", "Option for the poll", SlashCommandOptionType.STRING, True),
+          create_option("option2", "Option for the poll", SlashCommandOptionType.STRING, True),
+          create_option("option3", "Option for the poll", SlashCommandOptionType.STRING, False),
+          create_option("option4", "Option for the poll", SlashCommandOptionType.STRING, False),
+          create_option("option5", "Option for the poll", SlashCommandOptionType.STRING, False),
+          create_option("option6", "Option for the poll", SlashCommandOptionType.STRING, False),
+          create_option("option7", "Option for the poll", SlashCommandOptionType.STRING, False),
+          create_option("option8", "Option for the poll", SlashCommandOptionType.STRING, False),
+          create_option("option9", "Option for the poll", SlashCommandOptionType.STRING, False),
+          create_option("option10", "Option for the poll", SlashCommandOptionType.STRING, False),
       ]
   )
   @checks.slash(user=True, private=False)
-  async def slash_pole(self, ctx, title, option1, option2, option3=None, option4=None, option5=None, option6=None, option7=None, option8=None, option9=None, option10=None):
+  async def slash_poll(self, ctx, title, option1, option2, option3=None, option4=None, option5=None, option6=None, option7=None, option8=None, option9=None, option10=None):
     options = []
     for item in [option1, option2, option3, option4, option5, option6, option7, option8, option9, option10]:
       if item is not None:
         options.append(item)
-    await self.pole(ctx, title, options, True)
+    await self.poll(ctx, title, options, True)
 
   def bar(self, iteration, total, length=25, decimals=1, fill="█"):
     percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
@@ -316,24 +316,24 @@ class Fun(commands.Cog):
     bar = fill * filledLength + '░' * (length - filledLength)
     return f"\r |{bar}| {percent}%"
 
-  async def pole(self, ctx, title, options=None, slash=False):
+  async def poll(self, ctx, title, options=None, slash=False):
     x = 0
     titles = []
     vals = []
     ins = []
     for opt in options:
-      titles.append(f"{self.POLEEMOTES[x]}\t{opt}")
+      titles.append(f"{self.POLLEMOTES[x]}\t{opt}")
       vals.append(f"{self.bar(0,1)}")
       ins.append(False)
       x += 1
     if slash:
-      message = await ctx.send(embed=embed(title=f"Pole: {title}", fieldstitle=titles, fieldsval=vals, fieldsin=ins))
+      message = await ctx.send(embed=embed(title=f"Poll: {title}", fieldstitle=titles, fieldsval=vals, fieldsin=ins))
     else:
-      message = await ctx.reply(embed=embed(title=f"Pole: {title}", fieldstitle=titles, fieldsval=vals))
+      message = await ctx.reply(embed=embed(title=f"Poll: {title}", fieldstitle=titles, fieldsval=vals))
 
     x = 0
     for _ in options:
-      await message.add_reaction(self.POLEEMOTES[x])
+      await message.add_reaction(self.POLLEMOTES[x])
       x += 1
 
   @commands.Cog.listener("on_raw_reaction_add")
@@ -341,29 +341,29 @@ class Fun(commands.Cog):
   async def on_raw_reaction(self, payload):
     if payload.member == self.bot.user:
       return
+    if payload.emoji.name not in self.POLLEMOTES.values():
+      return
     message = await (self.bot.get_channel(payload.channel_id)).fetch_message(payload.message_id)
     if message.author != self.bot.user:
       return
     if len(message.embeds) == 0:
       return
-    if not message.embeds[0].title.startswith("Pole: "):
+    if not message.embeds[0].title.startswith("Poll: ") and not message.embeds[0].title.startswith("Pole: "):
       return
     for react in message.reactions:
-      if react.me and react.emoji in self.POLEEMOTES.values():
-        test = True
-      if not test:
+      if not react.me and react.emoji not in self.POLLEMOTES.values():
         return
 
     available_reactions = []
     x = 0
     for _ in message.embeds[0].fields:
-      available_reactions.append(self.POLEEMOTES[x])
+      available_reactions.append(self.POLLEMOTES[x])
       x += 1
 
     react_count = 0
     x = 0
+    me = [me for me in (await message.reactions[x].users().flatten()) if me == self.bot.user] if len(message.reactions) == len(available_reactions) else []
     for item in available_reactions:
-      me = [me for me in (await message.reactions[x].users().flatten()) if me == self.bot.user] if len(message.reactions) == len(available_reactions) else []
       if len(me) == 0:
         await message.add_reaction(item)
         message = await (self.bot.get_channel(payload.channel_id)).fetch_message(payload.message_id)
@@ -382,7 +382,7 @@ class Fun(commands.Cog):
       vals.append(self.bar(message.reactions[x].count - 1, react_count))
       x += 1
 
-    await message.edit(embed=embed(title=message.embeds[0].title, fieldstitle=titles, fieldsval=vals, fieldsin=ins))
+    await message.edit(embed=embed(title=message.embeds[0].title.replace("Pole: ", "Poll: "), fieldstitle=titles, fieldsval=vals, fieldsin=ins))
 
   @commands.command(name="gametime", description="Ping a role that is attached to a game and see who wants to play")
   @commands.guild_only()
