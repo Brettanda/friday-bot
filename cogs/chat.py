@@ -3,14 +3,16 @@ import logging
 # import discord
 import validators
 from discord.ext import commands
+from googletrans import Translator
 
 # from chatml import queryGen
 from chatml import queryIntents
 from chatml.dynamicchat import dynamicchat
-from functions import dev_guilds, embed, mydb_connect, query, relay_info
+from functions import dev_guilds, embed, mydb_connect, query, relay_info, msg_reply
 from functions.mysql_connection import query_prefix
 
 logger = logging.getLogger(__name__)
+translator = Translator()
 
 
 class Chat(commands.Cog):
@@ -18,7 +20,7 @@ class Chat(commands.Cog):
     self.bot = bot
 
   @commands.Cog.listener()
-  async def on_message(self, ctx: commands.Context):
+  async def on_message(self, ctx):
     if ctx.author.bot and ctx.channel.id != 827656054728818718:
       return
     if ctx.author == self.bot.user and ctx.channel.id != 827656054728818718:
@@ -55,7 +57,12 @@ class Chat(commands.Cog):
           meinlastmessage = True
           # newest = msg
 
-      result, intent, chance, inbag, incomingContext, outgoingContext, sentiment = await queryIntents.classify_local(ctx.clean_content)
+      translation = translator.translate(ctx.clean_content)
+
+      result, intent, chance, inbag, incomingContext, outgoingContext, sentiment = await queryIntents.classify_local(translation.text)
+
+      non_trans_result = result
+      result = translator.translate(result, dest=translation.src).text if translation.src != "en" and result != "dynamic" else result
 
       if intent == "Title of your sex tape" and ctx.guild.id not in dev_guilds:
         return await relay_info(f"Not responding with TOYST for: `{ctx.clean_content}`", self.bot, channel=814349008007856168)
@@ -83,45 +90,31 @@ class Chat(commands.Cog):
       #     print(f"Requires context, not responding: {ctx.reference.resolved.clean_content if ctx.reference is not None else newest.clean_content}")
       #     return
       # TODO: add a check for another bot
-      if (intent not in noContext) and (self.bot.user not in ctx.mentions) and ("friday" not in ctx.clean_content.lower()) and (meinlastmessage is not True) and (ctx.channel.type != "private"):
+      if len([c for c in noContext if intent == c]) == 0 and (self.bot.user not in ctx.mentions) and ("friday" not in ctx.clean_content.lower()) and (meinlastmessage is not True) and (ctx.channel.type != "private"):
         print("I probably should not respond")
         # if "friday" in ctx.clean_content.lower() or self.bot.user in ctx.mentions:
         #   await relay_info("",self.bot,embed=embed(title="I think i should respond to this",description=f"{ctx.content}"),channel=814349008007856168)
         #   print(f"I think I should respond to this: {ctx.clean_content.lower()}")
         #   logger.info(f"I think I should respond to this: {ctx.clean_content.lower()}")
         return
-      if result is not None:
-        print(f"Intent: {intent}\t{chance}\n\t| sentiment: {sentiment}\n\t| incoming Context: {incomingContext}\n\t| outgoing Context: {outgoingContext}")
-        logger.info(f"\nIntent: {intent}\t{chance}\n\t| sentiment: {sentiment}\n\t| incoming Context: {incomingContext}\n\t| outgoing Context: {outgoingContext}")
-        print(f"\t| input: {ctx.clean_content}")
-        logger.info(f"\t| input: {ctx.clean_content}")
-        print(f"\t| found in bag: {inbag}")
-        logger.info(u"\t| found in bag: %s", inbag)
+      if result is not None and result != '':
+        if self.bot.prod:
+          await relay_info("", self.bot, embed=embed(title=f"Intent: {intent}\t{chance}", description=f"| original lang: {translation.src}\n| sentiment: {sentiment}\n| incoming Context: {incomingContext}\n| outgoing Context: {outgoingContext}\n| input: {ctx.clean_content}\n| translated text: {translation}\n| found in bag: {inbag}\n\t| en response: {non_trans_result}\n\\ response: {result}"), channel=814349008007856168)
+        print(f"Intent: {intent}\t{chance}\n\t| original lang: {translation.src}\n\t| sentiment: {sentiment}\n\t| incoming Context: {incomingContext}\n\t| outgoing Context: {outgoingContext}\n\t| input: {ctx.clean_content}\n\t| translated text: {translation.text}\n\t| found in bag: {inbag}\n\t| en response: {non_trans_result}\n\t\\ response: {result}")
+        logger.info(f"\nIntent: {intent}\t{chance}\n\t| original lang: {translation.src}\n\t| sentiment: {sentiment}\n\t| incoming Context: {incomingContext}\n\t| outgoing Context: {outgoingContext}\n\t| input: {ctx.clean_content}\n\t| translated text: {translation}\n\t| found in bag: {inbag}\n\t| en response: {non_trans_result}\n\t\\ response: {result}")
       else:
-        print(f"No response found: {ctx.clean_content.encode('unicode_escape')}")
-        logger.info(f"No response found: {ctx.clean_content.encode('unicode_escape')}")
+        print(f"\nIntent: {intent}\t{chance}\n\t| original lang: {translation.src}\n\t| sentiment: {sentiment}\n\t| incoming Context: {incomingContext}\n\t| outgoing Context: {outgoingContext}\n\t| input: {ctx.clean_content}\n\t| translated text: {translation}\n\t| found in bag: {inbag}\n\t| en response: {non_trans_result}\n\t\\No response found: {ctx.clean_content.encode('unicode_escape')}")
+        logger.info(f"\nIntent: {intent}\t{chance}\n\t| original lang: {translation.src}\n\t| sentiment: {sentiment}\n\t| incoming Context: {incomingContext}\n\t| outgoing Context: {outgoingContext}\n\t| input: {ctx.clean_content}\n\t| translated text: {translation}\n\t| found in bag: {inbag}\n\t| en response: {non_trans_result}\n\t\\No response found: {ctx.clean_content.encode('unicode_escape')}")
         if "friday" in ctx.clean_content.lower() or self.bot.user in ctx.mentions:
           await relay_info("", self.bot, embed=embed(title="I think i should respond to this", description=f"{ctx.content}"), channel=814349008007856168)
-          print(f"I think I should respond to this: {ctx.clean_content.lower()}")
-          logger.info(f"I think I should respond to this: {ctx.clean_content.lower()}")
-      # # print(f"Intent: {intent}\t{chance}")
-      # logger.info(f"Intent: {intent}\t{chance}")
-      # print(f"\t| sentiment: {sentiment}")
-      # logger.info(f"\t| sentiment: {sentiment}")
-      # print(f"\t| incoming Context: {incomingContext}")
-      # logger.info(f"\t| incoming Context: {incomingContext}")
-      # print(f"\t| outgoing Context: {outgoingContext}")
-      # logger.info(f"\t| outgoing Context: {outgoingContext}")
+          print(f"I think I should respond to this: {ctx.clean_content.lower()}{(' translated to `'+translation.text+'`') if translation.src != 'en' else ''}")
+          logger.info(f"I think I should respond to this: {ctx.clean_content.lower()}{(' translated to `'+translation.text+'`') if translation.src != 'en' else ''}")
 
-      if result is not None:
+      if result is not None and result != '':
         if "dynamic" in result:
-          print(f"\t\\ response: {result}")
-          logger.info(f"\t\\ response: {result}")
-          await dynamicchat(ctx, self.bot, intent, result)
+          await dynamicchat(ctx, self.bot, intent, result, translation.src)
         else:
-          print(f"\t\\ response: {result}")
-          logger.info(f"\t\\ response: {result}")
-          await ctx.reply(result, mention_author=False)
+          await msg_reply(ctx, result, mention_author=False)
 
 
 def setup(bot):

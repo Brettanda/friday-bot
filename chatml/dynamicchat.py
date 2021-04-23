@@ -4,36 +4,41 @@ import logging
 # import os
 # import random
 import numpy as np
+from googletrans import Translator
 # import sys
 
-# import discord
+# from discord.ext import commands
 
-from functions import embed, get_reddit_post, MessageColors
+from functions import embed, get_reddit_post, MessageColors, msg_reply
 
 with open('./config.json') as f:
   config = json.load(f)
 
 
-async def dynamicchat(ctx, bot, intent, response=None):
+translator = Translator()
+
+
+async def dynamicchat(ctx, bot, intent, response=None, lang='en'):
   response = response.strip("dynamic")
   # print(f"intent: {intent}")
   # logging.info(f"intent: {intent}")
+  reply = None
   try:
     if intent == "Insults":
-      await ctx.add_reaction("😭")
+      return await ctx.add_reaction("😭")
 
     elif intent == "Activities":
       if ctx.guild.me.activity is not None:
-        await ctx.reply(f"I am playing **{ctx.guild.me.activity.name}**")
+        reply = f"I am playing **{ctx.guild.me.activity.name}**"
       else:
-        await ctx.reply("I am not currently playing anything. Im just hanging out")
+        reply = "I am not currently playing anything. Im just hanging out"
 
     elif intent == "Self Aware":
-      await ctx.add_reaction("👀")
+      return await ctx.add_reaction("👀")
 
     elif intent == "Creator":
       appinfo = await bot.application_info()
-      await ctx.reply(f"{appinfo.owner} is my creator :)")
+      reply = f"{appinfo.owner} is my creator :)"
     # elif intent == "Soup Time":
     #   const image = soups[random.randint(0, soups.length)];
     #   console.info(`Soup: ${image}`);
@@ -50,7 +55,7 @@ async def dynamicchat(ctx, bot, intent, response=None):
     # }
 
     elif intent == "Stop":
-      await ctx.add_reaction("😅")
+      return await ctx.add_reaction("😅")
 
     elif intent == "No U":
       await ctx.channel.send(
@@ -60,25 +65,25 @@ async def dynamicchat(ctx, bot, intent, response=None):
               color=MessageColors.NOU))
 
     elif intent in ("Memes", "Memes - Another"):
-      await ctx.reply(**await get_reddit_post(ctx, ["memes", "dankmemes"]))
+      return await msg_reply(ctx, **await get_reddit_post(ctx, ["memes", "dankmemes"]))
 
     elif intent == "Title of your sex tape":
       if np.random.random() < 0.1:
-        await ctx.reply(f"*{ctx.clean_content}*, title of your sex-tape")
+        reply = f"*{ctx.clean_content}*, title of your sex-tape"
 
     elif intent == "show me something cute":
-      await ctx.reply(content=response, **await get_reddit_post(ctx, ["mademesmile", "aww"]))
+      return msg_reply(ctx, content=response, **await get_reddit_post(ctx, ["mademesmile", "aww"]))
 
     elif intent == "Something cool":
-      await ctx.reply(**await get_reddit_post(ctx, ["nextfuckinglevel", "interestingasfuck"]))
+      return msg_reply(ctx, **await get_reddit_post(ctx, ["nextfuckinglevel", "interestingasfuck"]))
 
     elif intent in ("Compliments", "Thanks", "are you a bot?", "I love you"):
       hearts = ["❤️", "💯", "💕"]
-      await ctx.add_reaction(np.random.choice(hearts))
+      return await ctx.add_reaction(np.random.choice(hearts))
 
     elif intent == "give me 5 minutes":
       clocks = ["⏰", "⌚", "🕰", "⏱"]
-      await ctx.add_reaction(np.random.choice(clocks))
+      return await ctx.add_reaction(np.random.choice(clocks))
 
     # TODO: Make the inspiration command
     elif intent == "inspiration":
@@ -95,23 +100,24 @@ async def dynamicchat(ctx, bot, intent, response=None):
       # await require("../functions/reddit")(msg, bot, ["Jokes"], "text");
 
     elif intent == "Shit" and ("shit" in ctx.clean_content.lower() or "crap" in ctx.clean_content.lower()):
-      await ctx.add_reaction("💩")
+      return await ctx.add_reaction("💩")
 
     elif intent == "How do commands":
-      await ctx.reply("To find all of my command please use the help command")
+      reply = "To find all of my command please use the help command"
       # await require("../commands/help")(msg, "", bot);
 
     elif intent == "who am i?":
-      await ctx.reply(f"Well I don't know your real name but your username is {ctx.author.name}")
+      reply = f"Well I don't know your real name but your username is {ctx.author.name}"
 
     elif intent == "doggo":
-      await ctx.add_reaction(np.random.choice(["🐶", "🐕", "🐩", "🐕‍🦺"]))
+      return await ctx.add_reaction(np.random.choice(["🐶", "🐕", "🐩", "🐕‍🦺"]))
 
     else:
       print(f"I dont have a response for this: {ctx.content}")
       logging.warning("I dont have a response for this: %s", ctx.clean_content)
   except BaseException:
-    await ctx.reply("Something in my code failed to run, I'll ask my boss to fix this :)")
+    await msg_reply(ctx, "Something in my code failed to run, I'll ask my boss to fix this :)")
     raise
     # print(e)
     # logging.error(e)
+  await msg_reply(ctx, translator.translate(reply, dest=lang).text if lang != 'en' else reply)
