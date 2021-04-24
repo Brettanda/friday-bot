@@ -10,8 +10,8 @@ from keras.layers import Dense, Dropout  # , Activation
 from keras.models import Sequential
 from keras.optimizers import SGD
 from nltk.stem.lancaster import LancasterStemmer
+from nltk.sentiment import SentimentIntensityAnalyzer
 
-stemmer = LancasterStemmer()
 os.add_dll_directory("C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v10.1\\bin")
 os.add_dll_directory("C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v10.1\\libnvvp")
 os.add_dll_directory("C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v10.1")
@@ -20,6 +20,14 @@ os.add_dll_directory("C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v10
 os.add_dll_directory("C:\\tools\\cuda\\bin")
 os.add_dll_directory("C:\\tools\\cuda")
 os.add_dll_directory("C:\\Program Files\\NVIDIA Corporation\\Nsight Compute 2019.4.0")
+
+try:
+  nltk.data.find('vader_lexicon')
+except LookupError:
+  nltk.download('vader_lexicon')
+
+stemmer = LancasterStemmer()
+sia = SentimentIntensityAnalyzer()
 
 words = []
 classes = []
@@ -73,6 +81,16 @@ for doc in documents:
   pattern_words = doc[0]
   # stem each word - create base word, in attempt to represent related words
   pattern_words = [stemmer.stem(word.lower()) for word in pattern_words]
+
+  sentiment = sia.polarity_scores(" ".join(doc[0]))
+
+  bag.insert(0, sentiment["neg"])
+  bag.insert(0, sentiment["neu"])
+  bag.insert(0, sentiment["pos"])
+  bag.insert(0, 1 if "friday" in [d.lower() for d in doc[0]] else 0)
+  # bag.insert(0, sentiment["compound"])
+  # bag.insert(0, 0)
+
   # create our bag of words array with 1, if word match found in current pattern
   for w in words:
     bag.append(1) if w in pattern_words else bag.append(0)
@@ -83,6 +101,7 @@ for doc in documents:
 
   training.append([bag, output_row])
 # shuffle our features and turn into np.array
+
 random.shuffle(training)
 training = np.array(training)
 # create train and test lists. X - patterns, Y - intents

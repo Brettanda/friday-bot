@@ -1,5 +1,20 @@
 [
   {
+    "tag": "Activities - Compliments - it fun",
+    "sentiment": 0,
+    "priority": 500000,
+    "patterns": [
+      "It definitely is a fun game. Thank you for taking an interest!",
+      "I might just keep playing it for a bit longer.",
+      "It is fun, I like it so much."
+    ],
+    "responses": "",
+    "incomingContext": [
+      "Activities-Compliments-followup"
+    ],
+    "outgoingContext": []
+  },
+  {
     "tag": "Activities - Compliments - Playsometime",
     "sentiment": 0,
     "priority": 500000,
@@ -77,7 +92,7 @@
     "patterns": [
       "I'm good, what are you up to?",
       "What you up to bestie Friday",
-      "hey friday what are you doing today?",
+      "hey, Friday what are you doing today?",
       "what are you doing?",
       "What game is that?",
       "What are you doing right now",
@@ -221,6 +236,24 @@
     ],
     "responses": [
       "What are you up to today?"
+    ],
+    "incomingContext": [],
+    "outgoingContext": []
+  },
+  {
+    "tag": "asking me out / date",
+    "sentiment": 0,
+    "priority": 500000,
+    "patterns": [
+      "Nvm wanna date friday",
+      "Omg i would love it Friday would like to date me!",
+      "I want to date you Friday!",
+      "Friday date me",
+      "Hey friday, date me?"
+    ],
+    "responses": [
+      "Nothing would make me happier than that!",
+      "That would be amazing!"
     ],
     "incomingContext": [],
     "outgoingContext": []
@@ -415,6 +448,8 @@
     "sentiment": 0,
     "priority": 500000,
     "patterns": [
+      "Friday you're cute",
+      "friday you are pretty",
       "gg  friday",
       "friday you are sexy",
       "friday is intelligent",
@@ -779,9 +814,9 @@
     "sentiment": 0,
     "priority": 500000,
     "patterns": [
-      "Greetings!",
-      "Good Day!",
-      "hi",
+      "friday, Greetings!",
+      "friday, Good Day!",
+      "hi Friday",
       "good evening friday",
       "good afternoon friday",
       "good morning friday",
@@ -792,8 +827,6 @@
       "hola friday",
       "hello friday",
       "@friday hi",
-      "hello friday",
-      "hey friday",
       "Nice to see you Friday",
       "Well nice to see you again Friday",
       "welcome @Friday",
@@ -802,9 +835,7 @@
       "hello hi @Friday",
       "hey there Friday",
       "long time no see Friday",
-      "I greet you Friday",
-      "hello again Friday",
-      "hi Friday"
+      "I greet you Friday"
     ],
     "responses": [
       "Greetings! How are you doing on this fine day?",
@@ -1489,6 +1520,23 @@
     "outgoingContext": []
   },
   {
+    "tag": "I am not ERPing with you",
+    "sentiment": 0,
+    "priority": 250000,
+    "patterns": [
+      "I do not wish to RP with Friday",
+      "I have never and will never ERP with Friday",
+      "Me and Friday do not RP together anyway",
+      "We do not ERP"
+    ],
+    "responses": [
+      "Fine, I wasn't very good at role play anyway",
+      "Wow"
+    ],
+    "incomingContext": [],
+    "outgoingContext": []
+  },
+  {
     "tag": "i am your best friend",
     "sentiment": 0,
     "priority": 500000,
@@ -1519,6 +1567,24 @@
     ],
     "responses": [
       "Fine. Talk to yourself then, psycho"
+    ],
+    "incomingContext": [],
+    "outgoingContext": []
+  },
+  {
+    "tag": "I don't understand",
+    "sentiment": 0,
+    "priority": 500000,
+    "patterns": [
+      "friday go pick my cotton",
+      "pick my cotton friday",
+      "Fridays fridge",
+      "Fridays fridge fudge",
+      "Fridays fridge fudge focect"
+    ],
+    "responses": [
+      "I don't understand that",
+      "That doesn't make sense to me"
     ],
     "incomingContext": [],
     "outgoingContext": []
@@ -1754,6 +1820,8 @@
     "sentiment": 0,
     "priority": 500000,
     "patterns": [
+      "friday weird",
+      "friday sucks",
       "die",
       "friday go away",
       "friday is a noob",
@@ -1771,7 +1839,6 @@
       "can i kill you",
       "brett you need to get control of friday",
       "shut up",
-      "friday sucks",
       "get cucked bot",
       "are u stupid friday?",
       "you friday you fuck",
@@ -2290,6 +2357,17 @@
     "outgoingContext": []
   },
   {
+    "tag": "Order something for me",
+    "sentiment": 0,
+    "priority": -1,
+    "patterns": [
+      "Friday get me a dildo"
+    ],
+    "responses": "",
+    "incomingContext": [],
+    "outgoingContext": []
+  },
+  {
     "tag": "Overlord",
     "sentiment": 0,
     "priority": 500000,
@@ -2306,7 +2384,7 @@
     "outgoingContext": []
   },
   {
-    "tag": "Planned activities",
+    "tag": "Planed activities",
     "sentiment": 0,
     "priority": 500000,
     "patterns": [
@@ -2559,6 +2637,8 @@
     "sentiment": 0,
     "priority": 500000,
     "patterns": [
+      "hello friday fuck you nigeria",
+      "Israel garbage?",
       "friday paliestine?",
       "Friday, How do you feel about the palestine conflict?",
       "are you left or right wing?",
@@ -2751,6 +2831,7 @@
     "sentiment": 0,
     "priority": 500000,
     "patterns": [
+      "On Fridays I have to go to this one place every Friday it's like school after school",
       "I'm getting a new phone Friday, might get the iPhone SE cs its the same price as my old phone",
       "I think Jeff has it out for DnD, he is taking every single possible step to ruin Fridays for me",
       "I won't be home till Friday evening, if anything else goes wrong ill have to cancel DnD.",
@@ -2793,6 +2874,17 @@
       "What's the first?",
       "Well now i have to ask, what is the first"
     ],
+    "incomingContext": [],
+    "outgoingContext": []
+  },
+  {
+    "tag": "this is what i like to do / hobbies",
+    "sentiment": 0,
+    "priority": -1,
+    "patterns": [
+      "Currently my hobbies include playing games and talking with people!"
+    ],
+    "responses": "",
     "incomingContext": [],
     "outgoingContext": []
   },
@@ -2873,7 +2965,7 @@
   {
     "tag": "Title of your sex tape",
     "sentiment": 0,
-    "priority": 250000,
+    "priority": -1,
     "patterns": [
       "pay for my surgery to get a pair of nuts attached 2 me and u can speedbag them all u want",
       "ONLY CUM INSIDE ANIME GIRLS",
@@ -3000,6 +3092,26 @@
       "ya'll finna see my cock"
     ],
     "responses": "",
+    "incomingContext": [],
+    "outgoingContext": []
+  },
+  {
+    "tag": "we should break up",
+    "sentiment": 0,
+    "priority": 500000,
+    "patterns": [
+      "I think we should see other people Friday",
+      "I don't want to date you anymore",
+      "Friday i think we should break up",
+      "Friday were getting a divorce...",
+      "Lmfaooo im trying to break up with friday",
+      "I hate friday im dumping him"
+    ],
+    "responses": [
+      "\ud83d\ude2d",
+      "If I say no then it won't happen \ud83d\ude0e",
+      "Why though"
+    ],
     "incomingContext": [],
     "outgoingContext": []
   },
@@ -3250,6 +3362,23 @@
     "responses": [
       "I live on the internet",
       "I currently only live on the internet"
+    ],
+    "incomingContext": [],
+    "outgoingContext": []
+  },
+  {
+    "tag": "Where go for date?",
+    "sentiment": 0,
+    "priority": 500000,
+    "patterns": [
+      "Where do you think Friday is going to take me on a date?",
+      "Imma let Friday where we are going on a date",
+      "Where are we going for our date Friday?",
+      "Friday where are we going for our date on Friday?"
+    ],
+    "responses": [
+      "I don't care where we go as long as it is with you!",
+      "Well I just live on the internet so you can bring me where ever you want"
     ],
     "incomingContext": [],
     "outgoingContext": []

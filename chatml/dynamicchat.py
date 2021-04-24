@@ -70,6 +70,8 @@ async def dynamicchat(ctx, bot, intent, response=None, lang='en'):
     elif intent == "Title of your sex tape":
       if np.random.random() < 0.1:
         reply = f"*{ctx.clean_content}*, title of your sex-tape"
+      else:
+        return
 
     elif intent == "show me something cute":
       return msg_reply(ctx, content=response, **await get_reddit_post(ctx, ["mademesmile", "aww"]))

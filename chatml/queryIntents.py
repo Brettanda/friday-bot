@@ -77,7 +77,7 @@ def clean_up_sentence(sentence):
 # return bag of words array: 0 or 1 for each word in the bag that exists in the sentence
 
 
-def bow(sentence, wrds, show_details=True):
+def bow(sentence, wrds, show_details=True, mentioned=False):
   # tokenize the pattern
   sentence_words = clean_up_sentence(sentence)
   # bag of words - matrix of N words, vocabulary matrix
@@ -87,25 +87,33 @@ def bow(sentence, wrds, show_details=True):
     for i, w in enumerate(wrds):
       if w == s:
         # assign 1 if current word is in the vocabulary position
+
         bag[i] = 1
         if show_details:
           inbag += f"{w} "
           # print ("found in bag: %s" % w)
+  sentiment = sia.polarity_scores(" ".join(sentence))
+  bag.insert(0, sentiment["neg"])
+  bag.insert(0, sentiment["neu"])
+  bag.insert(0, sentiment["pos"])
+  bag.insert(0, 1 if "friday" in sentence else 0)
+  # bag.insert(0, sentiment["compound"])
+  # bag.insert(0, 0)
   # print(f"found in bag: {inbag}")
   # logging.info(f"found in bag: {inbag}")
   return(np.array(bag), inbag)
 
 
-async def classify_local(sentence):
+async def classify_local(sentence, mentioned=False):
   ERROR_THRESHOLD = 0.7
 
   # generate probabilities from the model
-  bows, inbag = bow(sentence, words)
+  bows, inbag = bow(sentence, words, mentioned=mentioned)
   input_data = pd.DataFrame([bows], dtype=float, index=['input'])
   # print(inbag)
   results = model.predict([input_data])[0]
   # filter out predictions below a threshold, and provide intent index
-  # guesses = [[i,r] for i,r in enumerate(results) if r>ERROR_THRESHOLD/2]
+  # guesses = [[i, r] for i, r in enumerate(results) if r > ERROR_THRESHOLD / 2]
   results = [[i, r] for i, r in enumerate(results) if r > ERROR_THRESHOLD]
   # sort by strength of probability
   results.sort(key=lambda x: x[1], reverse=True)
@@ -116,7 +124,7 @@ async def classify_local(sentence):
   # return tuple of intent and probability
   # guess_list = []
   # for r in guesses:
-  #   guess_list.append((r[0],classes[r[0]], str(r[1])))
+  #   guess_list.append((r[0], classes[r[0]], str(r[1])))
 
   # text = Sentence(sentence)
   # tagger.predict(text)
