@@ -28,7 +28,7 @@ class Issue(commands.Cog):
       confirm = await ctx.send(f"Please confirm your feedback by reacting with ✅. This will cancel after {timeout} seconds", embed=embed(title="Are you sure you would like to submit this issue?", description=f"{issue}"))
     else:
       confirm = await ctx.reply(f"Please confirm your feedback by reacting with ✅. This will cancel after {timeout} seconds", embed=embed(title="Are you sure you would like to submit this issue?", description=f"{issue}"))
-    delay = await get_delete_time(ctx)
+    delay = int(self.bot.delete_commands[ctx.guild.id]) if ctx.guild is not None else 0
     if not slash:
       await ctx.message.delete(delay=delay)
     await confirm.add_reaction("✅")

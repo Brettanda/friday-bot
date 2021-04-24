@@ -22,7 +22,7 @@ class DatedEvents(commands.Cog):
 
   @tasks.loop(hours=1.0)
   async def dated_events(self):
-    if "test" in self.bot.user.name.lower():
+    if not self.bot.prod:
       return
     today = date.today()
     month = today.strftime("%m")

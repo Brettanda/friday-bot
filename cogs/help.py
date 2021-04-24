@@ -6,7 +6,7 @@ from discord.utils import get
 
 from discord_slash import cog_ext, SlashContext
 
-from cogs.cleanup import get_delete_time
+# from cogs.cleanup import get_delete_time
 from functions import MessageColors, embed, checks
 
 
@@ -120,7 +120,7 @@ class Help(Cog):
     if cmd is None:
       cmd = group
 
-    delay = await get_delete_time(ctx)
+    delay = int(self.bot.saved_guilds[ctx.guild.id]["autoDeleteMSGs"]) if ctx.guild is not None else 0
     if delay is not None and delay > 0:
       await ctx.message.delete(delay=delay)
     if cmd is not None:
@@ -137,7 +137,7 @@ class Help(Cog):
       menu = Menu(source=HelpMenu(ctx, commands),
                   delete_message_after=True,
                   clear_reactions_after=True,
-                  timeout=delay)
+                  timeout=delay if delay is not None and delay > 0 else None)
       await menu.start(ctx)
 
     else:

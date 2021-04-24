@@ -56,6 +56,7 @@ class ServerManage(commands.Cog):
       return
     mydb = mydb_connect()
     query(mydb, "UPDATE servers SET prefix=%s WHERE id=%s", new_prefix, ctx.guild.id)
+    self.bot.change_guild_prefix(ctx.guild.id, new_prefix)
     try:
       await ctx.reply(embed=embed(title=f"My new prefix is `{new_prefix}`"))
     except discord.Forbidden:
@@ -119,6 +120,7 @@ class ServerManage(commands.Cog):
     async with ctx.typing():
       mydb = mydb_connect()
       query(mydb, "UPDATE servers SET autoDeleteMSGs=%s WHERE id=%s", time, ctx.guild.id)
+      self.bot.change_guild_delete(ctx.guild.id, time)
     if time == 0:
       await ctx.reply(embed=embed(title="I will no longer delete command messages"))
     else:

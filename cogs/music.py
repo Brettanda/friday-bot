@@ -166,7 +166,7 @@ class Music(Cog):
               thumbnail=thumbnail,
               fieldstitle=["Duration", "Total songs in queue"],
               fieldsval=[duration, songsinqueue]
-          ), delete_after=await get_delete_time(ctx)
+          ), delete_after=int(self.bot.delete_commands[ctx.guild.id] if ctx.guild is not None else 0)
       )
       # if pop is True or slash:
       #   await ctx.send(
@@ -348,7 +348,7 @@ class Music(Cog):
                 thumbnail=thumbnail,
                 fieldstitle=["Duration", "Total songs in queue"],
                 fieldsval=[duration, songsinqueue]
-            ), delete_after=await get_delete_time(ctx)
+            ), delete_after=int(self.bot.delete_commands[ctx.guild.id]) if ctx.guild is not None else 0
         )
       else:
         voice = discord.utils.get(self.bot.voice_clients, guild=ctx.guild)

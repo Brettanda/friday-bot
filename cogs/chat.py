@@ -59,10 +59,12 @@ class Chat(commands.Cog):
 
       translation = translator.translate(ctx.clean_content)
 
-      result, intent, chance, inbag, incomingContext, outgoingContext, sentiment = await queryIntents.classify_local(translation.text)
+      mentioned = True if "friday" in translation.text or (ctx.reference is not None and ctx.reference.resolved is not None and ctx.reference.resolved.author == self.bot.user) or (ctx.guild is not None and ctx.guild.me in ctx.mentions) else False
+
+      result, intent, chance, inbag, incomingContext, outgoingContext, sentiment = await queryIntents.classify_local(translation.text, mentioned)
 
       non_trans_result = result
-      result = translator.translate(result, dest=translation.src).text if translation.src != "en" and result != "dynamic" else result
+      result = translator.translate(result, src="en", dest=translation.src).text if translation.src != "en" and result != "dynamic" else result
 
       if intent == "Title of your sex tape" and ctx.guild.id not in dev_guilds:
         return await relay_info(f"Not responding with TOYST for: `{ctx.clean_content}`", self.bot, channel=814349008007856168)

@@ -74,6 +74,7 @@ class Log(commands.Cog):
       for guild_id in database_guilds:
         guild = self.bot.get_guild(guild_id[0])
         query(mydb, "UPDATE servers SET name=%s WHERE id=%s", guild.name, guild_id[0])
+    self.bot.set_all_guilds()
 
   @commands.Cog.listener()
   async def on_shard_ready(self, shard_id):
@@ -94,8 +95,6 @@ class Log(commands.Cog):
   @commands.Cog.listener()
   async def on_guild_join(self, guild):
     await relay_info("", self.bot, short=f"I have joined a new guild, making the total {len(self.bot.guilds)}", embed=embed(title=f"I have joined a new guild, making the total {len(self.bot.guilds)}"), channel=713270475031183390, logger=logger)
-    # now = datetime.now()
-    # current_time = now.strftime()
     mydb = mydb_connect()
     owner = guild.owner.id if hasattr(guild, "owner") and hasattr(guild.owner, "id") else 0
     query(mydb, "INSERT INTO servers (id,owner,name) VALUES (%s,%s,%s)", guild.id, owner, guild.name)
@@ -103,16 +102,18 @@ class Log(commands.Cog):
       prefix = "!"
       try:
         await guild.system_channel.send(
-            f"Thank you for inviting me to your server. My name is Friday, and I like to party. I will respond to some chats directed towards me and commands. To get started with commands type `{prefix}help`.\nAn example of something I will respond to is `Hello Friday` or `{self.bot.user.name} hello`. At my current stage of development I am very chaotic, so if I do something I shouldn't have please use send a message Issues channel in Friday's Development server. If something goes terribly wrong and you want it to stop, talk to my creator https://discord.gg/NTRuFjU\n\t- To change my prefix use the `!prefix` command.\n\t- If I start bothering people with message use the `!bot mute` command."
+            f"Thank you for inviting me to your server. My name is {self.bot.user.name}, and I like to party. I will respond to some chats directed towards me and commands. To get started with commands type `{prefix}help`.\nAn example of something I will respond to is `Hello {self.bot.user.name}` or `{self.bot.user.name} hello`. At my current stage of development I am very chaotic, so if I do something I shouldn't have please use send a message Issues channel in Friday's Development server. If something goes terribly wrong and you want it to stop, talk to my creator https://discord.gg/NTRuFjU\n\t- To change my prefix use the `!prefix` command.\n\t- If I start bothering people with message use the `!bot mute` command."
         )
       except discord.Forbidden:
         pass
+    self.bot.set_guild(guild.id)
 
   @commands.Cog.listener()
   async def on_guild_remove(self, guild):
     await relay_info("", self.bot, short=f"I have been removed from a guild, making the total {len(self.bot.guilds)}", embed=embed(title=f"I have been removed from a guild, making the total {len(self.bot.guilds)}"), channel=713270475031183390, logger=logger)
     mydb = mydb_connect()
     query(mydb, "DELETE FROM servers WHERE id=%s", guild.id)
+    self.bot.remove_guild(guild.id)
 
   @commands.Cog.listener()
   async def on_member_join(self, member):
