@@ -1,9 +1,7 @@
-import json
 import logging
 import os
 import uuid
 
-import requests
 import aiohttp
 import validators
 from discord.ext import commands
