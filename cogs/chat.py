@@ -1,18 +1,46 @@
+import json
 import logging
+import os
+import uuid
 
-# import discord
+import requests
+import aiohttp
 import validators
 from discord.ext import commands
-from googletrans import Translator
+from dotenv import load_dotenv
 
 # from chatml import queryGen
 from chatml import queryIntents
 from chatml.dynamicchat import dynamicchat
-from functions import dev_guilds, embed, mydb_connect, query, relay_info, msg_reply
+from functions import (dev_guilds, embed, msg_reply, mydb_connect, query,
+                       relay_info)
 from functions.mysql_connection import query_prefix
 
 logger = logging.getLogger(__name__)
-translator = Translator()
+
+load_dotenv()
+trans_key = os.environ.get('TRANSLATORKEY')
+trans_endpoint = os.environ.get('TRANSLATORENDPOINT')
+
+
+async def translate_request(text: str, detect=False, params=""):
+  headers = {
+      'Ocp-Apim-Subscription-Key': trans_key,
+      'Content-type': 'application/json',
+      'X-ClientTraceId': str(uuid.uuid4())
+  }
+
+  body = [{
+      'text': text
+  }]
+
+  path = f'/{"detect" if detect is True else "translate"}?api-version=3.0'
+  url = trans_endpoint + path + params
+
+  async with aiohttp.ClientSession() as session:
+    async with session.post(url, headers=headers, json=body) as r:
+      if r.status == 200:
+        return await r.json()
 
 
 class Chat(commands.Cog):
@@ -57,14 +85,31 @@ class Chat(commands.Cog):
           meinlastmessage = True
           # newest = msg
 
-      translation = translator.translate(ctx.clean_content)
+      detect_response = await translate_request(ctx.clean_content, True)
 
-      mentioned = True if "friday" in translation.text or (ctx.reference is not None and ctx.reference.resolved is not None and ctx.reference.resolved.author == self.bot.user) or (ctx.guild is not None and ctx.guild.me in ctx.mentions) else False
+      # detected = json.dumps(response, sort_keys=True, indent=2, ensure_ascii=False, separators=(',', ': '))
+      translation_text = ctx.clean_content
+      if detect_response[0]["language"] != "en" and detect_response[0]["isTranslationSupported"] is True:
+        params = f"&from={detect_response[0]['language']}&to=en"
 
-      result, intent, chance, inbag, incomingContext, outgoingContext, sentiment = await queryIntents.classify_local(translation.text, mentioned)
+        translation = await translate_request(ctx.clean_content, params=params)
+
+        translation_text = translation[0]["translations"][0]["text"]
+      # translation = translator.translate(ctx.clean_content, to_lang="en")
+
+      mentioned = True if "friday" in translation_text or (ctx.reference is not None and ctx.reference.resolved is not None and ctx.reference.resolved.author == self.bot.user) or (ctx.guild is not None and ctx.guild.me in ctx.mentions) else False
+
+      result, intent, chance, inbag, incomingContext, outgoingContext, sentiment = await queryIntents.classify_local(translation_text, mentioned)
 
       non_trans_result = result
-      result = translator.translate(result, src="en", dest=translation.src).text if translation.src != "en" and result != "dynamic" else result
+
+      if detect_response[0]["language"] != "en" and detect_response[0]["isTranslationSupported"] is True:
+        params = f"&from=en&to={detect_response[0]['language']}"
+
+        final_translation = await translate_request(result, params=params)
+        result = final_translation[0]["translations"][0]["text"]
+
+      # result = translator.translate(result, src="en", dest=translation.src).text if translation.src != "en" and result != "dynamic" else result
 
       if intent == "Title of your sex tape" and ctx.guild.id not in dev_guilds:
         return await relay_info(f"Not responding with TOYST for: `{ctx.clean_content}`", self.bot, channel=814349008007856168)
@@ -101,16 +146,16 @@ class Chat(commands.Cog):
         return
       if result is not None and result != '':
         if self.bot.prod:
-          await relay_info("", self.bot, embed=embed(title=f"Intent: {intent}\t{chance}", description=f"| original lang: {translation.src}\n| sentiment: {sentiment}\n| incoming Context: {incomingContext}\n| outgoing Context: {outgoingContext}\n| input: {ctx.clean_content}\n| translated text: {translation}\n| found in bag: {inbag}\n\t| en response: {non_trans_result}\n\\ response: {result}"), channel=814349008007856168)
-        print(f"Intent: {intent}\t{chance}\n\t| original lang: {translation.src}\n\t| sentiment: {sentiment}\n\t| incoming Context: {incomingContext}\n\t| outgoing Context: {outgoingContext}\n\t| input: {ctx.clean_content}\n\t| translated text: {translation.text}\n\t| found in bag: {inbag}\n\t| en response: {non_trans_result}\n\t\\ response: {result}")
-        logger.info(f"\nIntent: {intent}\t{chance}\n\t| original lang: {translation.src}\n\t| sentiment: {sentiment}\n\t| incoming Context: {incomingContext}\n\t| outgoing Context: {outgoingContext}\n\t| input: {ctx.clean_content}\n\t| translated text: {translation}\n\t| found in bag: {inbag}\n\t| en response: {non_trans_result}\n\t\\ response: {result}")
+          await relay_info("", self.bot, embed=embed(title=f"Intent: {intent}\t{chance}", description=f"| original lang: {translation.src}\n| sentiment: {sentiment}\n| incoming Context: {incomingContext}\n| outgoing Context: {outgoingContext}\n| input: {ctx.clean_content}\n| translated text: {translation_text}\n| found in bag: {inbag}\n\t| en response: {non_trans_result}\n\\ response: {result}"), channel=814349008007856168)
+        print(f"Intent: {intent}\t{chance}\n\t| sentiment: {sentiment}\n\t| incoming Context: {incomingContext}\n\t| outgoing Context: {outgoingContext}\n\t| input: {ctx.clean_content}\n\t| translated text: {translation_text}\n\t| found in bag: {inbag}\n\t| en response: {non_trans_result}\n\t\\ response: {result}")
+        logger.info(f"\nIntent: {intent}\t{chance}\n\t| sentiment: {sentiment}\n\t| incoming Context: {incomingContext}\n\t| outgoing Context: {outgoingContext}\n\t| input: {ctx.clean_content}\n\t| translated text: {translation_text}\n\t| found in bag: {inbag}\n\t| en response: {non_trans_result}\n\t\\ response: {result}")
       else:
-        print(f"\nIntent: {intent}\t{chance}\n\t| original lang: {translation.src}\n\t| sentiment: {sentiment}\n\t| incoming Context: {incomingContext}\n\t| outgoing Context: {outgoingContext}\n\t| input: {ctx.clean_content}\n\t| translated text: {translation}\n\t| found in bag: {inbag}\n\t| en response: {non_trans_result}\n\t\\No response found: {ctx.clean_content.encode('unicode_escape')}")
-        logger.info(f"\nIntent: {intent}\t{chance}\n\t| original lang: {translation.src}\n\t| sentiment: {sentiment}\n\t| incoming Context: {incomingContext}\n\t| outgoing Context: {outgoingContext}\n\t| input: {ctx.clean_content}\n\t| translated text: {translation}\n\t| found in bag: {inbag}\n\t| en response: {non_trans_result}\n\t\\No response found: {ctx.clean_content.encode('unicode_escape')}")
+        print(f"\nIntent: {intent}\t{chance}\n\t| sentiment: {sentiment}\n\t| incoming Context: {incomingContext}\n\t| outgoing Context: {outgoingContext}\n\t| input: {ctx.clean_content}\n\t| translated text: {translation_text}\n\t| found in bag: {inbag}\n\t| en response: {non_trans_result}\n\t\\No response found: {ctx.clean_content.encode('unicode_escape')}")
+        logger.info(f"\nIntent: {intent}\t{chance}\n\t| sentiment: {sentiment}\n\t| incoming Context: {incomingContext}\n\t| outgoing Context: {outgoingContext}\n\t| input: {ctx.clean_content}\n\t| translated text: {translation_text}\n\t| found in bag: {inbag}\n\t| en response: {non_trans_result}\n\t\\No response found: {ctx.clean_content.encode('unicode_escape')}")
         if "friday" in ctx.clean_content.lower() or self.bot.user in ctx.mentions:
           await relay_info("", self.bot, embed=embed(title="I think i should respond to this", description=f"{ctx.content}"), channel=814349008007856168)
-          print(f"I think I should respond to this: {ctx.clean_content.lower()}{(' translated to `'+translation.text+'`') if translation.src != 'en' else ''}")
-          logger.info(f"I think I should respond to this: {ctx.clean_content.lower()}{(' translated to `'+translation.text+'`') if translation.src != 'en' else ''}")
+          print(f"I think I should respond to this: {ctx.clean_content.lower()}{(' translated to `'+translation_text+'`') if detect_response[0]['language'] != 'en' else ''}")
+          logger.info(f"I think I should respond to this: {ctx.clean_content.lower()}{(' translated to `'+translation_text+'`') if detect_response[0]['language'] != 'en' else ''}")
 
       if result is not None and result != '':
         if "dynamic" in result:
