@@ -12,11 +12,11 @@ from dotenv import load_dotenv
 
 # from chatml import queryGen
 # from chatml import queryIntents
-from cogs.cleanup import get_delete_time
+# from cogs.cleanup import get_delete_time
 from cogs.help import cmd_help
 from functions import (MessageColors, embed, exceptions,
                        relay_info)
-from functions.mysql_connection import query_prefix, mydb_connect, query
+from functions.mysql_connection import mydb_connect, query
 
 logging.basicConfig(
     level=logging.INFO,
@@ -44,7 +44,7 @@ class MyContext(commands.Context):
   async def reply(self, content=None, **kwargs):
     ignore_coms = ["log", "help", "meme", "issue", "reactionrole", "minesweeper", "poll", "confirm"]
     if not hasattr(kwargs, "delete_after") and self.command.name not in ignore_coms:
-      delete = int(self.bot.saved_guilds[str(self.message.guild.id)]["autoDeleteMSGs"] if self.message.guild is not None else 0)
+      delete = self.bot.get_guild_delete_commands(self.message.guild)
       delete = delete if delete is not None and delete != 0 else None
       if delete is not None:
         kwargs.update({"delete_after": delete})
@@ -130,27 +130,22 @@ class Friday(commands.AutoShardedBot):
 
     raise commands.BotMissingPermissions(missing)
 
-  def get_guild_delete_commands(self, guild_id: int = None):
-    if not guild_id:
+  def get_guild_delete_commands(self, guild: discord.Guild = None):
+    if not guild:
       return None
-    try:
-      return self.delete_commands[guild_id]["autoDeleteMSGs"]
-    except KeyError:
-      return None
+    delete = self.saved_guilds[guild.id]["autoDeleteMSGs"]
+    return delete if delete != 0 else None
 
   def get_guild_prefix(self, bot, message):
     if not message.guild and message.channel:
       return "!"
-    try:
-      return self.saved_guilds[message.guild.id]["prefix"]
-    except KeyError:
-      return "!"
+    return self.saved_guilds[message.guild.id]["prefix"]
 
   def change_guild_prefix(self, guild_id: int, prefix: str = "!"):
     with open("guilds.json", "r") as pre:
       x = json.load(pre)
 
-    x[str(guild_id)]["prefix"] = prefix
+    x[guild_id]["prefix"] = prefix
     self.saved_guilds = x
     x = json.dumps(x)
     with open("guilds.json", "w") as pre:
@@ -178,7 +173,7 @@ class Friday(commands.AutoShardedBot):
   def remove_guild(self, guild_id: int):
     with open("guilds.json", "r") as pre:
       x = json.load(pre)
-      x.pop(str(guild_id), None)
+      x.pop(guild_id, None)
     self.saved_guilds = x
     x = json.dumps(x)
     with open("guilds.json", "w") as pre:
@@ -204,7 +199,7 @@ class Friday(commands.AutoShardedBot):
       # if ctx.cog._get_overridden_method(ctx.cog.cog_command_error) is not None:
       # return
 
-    delete = int(self.saved_guilds[str(ctx.guild.id)]["autoDeleteMSGs"] if ctx.guild is not None else 0)
+    delete = self.get_guild_delete_commands(ctx.guild)
     if isinstance(error, commands.NotOwner):
       print("Someone found a dev command")
       logging.info("Someone found a dev command")
@@ -220,7 +215,7 @@ class Friday(commands.AutoShardedBot):
         await ctx.send(embed=embed(title=f"This command is on a cooldown, please wait {error.retry_after:,.2f} sec(s)", color=MessageColors.ERROR), delete_after=30)
       else:
         await ctx.reply(embed=embed(title=f"This command is on a cooldown, please wait {error.retry_after:,.2f} sec(s)", color=MessageColors.ERROR), delete_after=30)
-      await ctx.delete(delay=30)
+      await ctx.message.delete(delay=30)
     elif isinstance(error, commands.NoPrivateMessage):
       if slash:
         await ctx.send(embed=embed(title="This command does not work in non-server text channels", color=MessageColors.ERROR), delete_after=delete)

@@ -18,7 +18,8 @@ class CustomJoinLeave(commands.Cog):
       raise commands.NoPrivateMessage("This command can only be used within a guild")
     return True
 
-  @commands.command(name="customjoin", aliases=["cjoin"], description="To remove your sound call this command with no arguments")
+  @commands.command(name="customjoin", aliases=["cjoin"], description="To remove your sound call this command with no arguments", hidden=True)
+  @commands.is_owner()
   async def custom_join(self, ctx, url: typing.Optional[str] = None):
     async with ctx.typing():
       mydb = mydb_connect()
@@ -35,7 +36,8 @@ class CustomJoinLeave(commands.Cog):
       query(mydb, "UPDATE servers SET customJoinLeave=%s WHERE id=%s", json.dumps(reactions), ctx.guild.id)
     await ctx.reply(embed=embed(title=f"The new join sound for `{ctx.author}` is now `{url}`"))
 
-  @commands.command(name="customleave", aliases=["cleave"], description="To remove your sound call this command with no arguments")
+  @commands.command(name="customleave", aliases=["cleave"], description="To remove your sound call this command with no arguments", hidden=True)
+  @commands.is_owner()
   async def custom_leave(self, ctx, url: typing.Optional[str] = None):
     async with ctx.typing():
       mydb = mydb_connect()

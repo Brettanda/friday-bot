@@ -120,7 +120,7 @@ class Help(Cog):
     if cmd is None:
       cmd = group
 
-    delay = int(self.bot.saved_guilds[ctx.guild.id]["autoDeleteMSGs"]) if ctx.guild is not None else 0
+    delay = self.bot.get_guild_delete_commands(ctx.guild)
     if delay is not None and delay > 0:
       await ctx.message.delete(delay=delay)
     if cmd is not None:

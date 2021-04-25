@@ -6,7 +6,6 @@ import discord
 from discord.ext import tasks
 from dotenv import load_dotenv
 
-from functions.mysql_connection import query_prefix
 from index import Friday
 
 load_dotenv()
@@ -29,7 +28,7 @@ class Friday_testing(Friday):
 
 
 def test_will_it_blend():
-  bot = Friday_testing(command_prefix=query_prefix or "!", case_insensitive=True, intents=intents, owner_id=215227961048170496)
+  bot = Friday_testing()
   loop = asyncio.get_event_loop()
   try:
     loop.run_until_complete(bot.start(TOKEN, bot=True))

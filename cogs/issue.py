@@ -3,7 +3,6 @@ import asyncio
 from discord.ext import commands
 from discord_slash import cog_ext
 
-from cogs.cleanup import get_delete_time
 from functions import embed, relay_info, checks
 
 
@@ -28,7 +27,7 @@ class Issue(commands.Cog):
       confirm = await ctx.send(f"Please confirm your feedback by reacting with ✅. This will cancel after {timeout} seconds", embed=embed(title="Are you sure you would like to submit this issue?", description=f"{issue}"))
     else:
       confirm = await ctx.reply(f"Please confirm your feedback by reacting with ✅. This will cancel after {timeout} seconds", embed=embed(title="Are you sure you would like to submit this issue?", description=f"{issue}"))
-    delay = int(self.bot.delete_commands[ctx.guild.id]) if ctx.guild is not None else 0
+    delay = self.bot.get_guild_delete_commands(ctx.guild)
     if not slash:
       await ctx.message.delete(delay=delay)
     await confirm.add_reaction("✅")
