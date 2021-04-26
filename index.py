@@ -4,6 +4,8 @@ import os
 import sys
 import traceback
 import json
+import datetime
+import aiohttp
 
 import discord
 from discord.ext import commands
@@ -28,7 +30,7 @@ logging.basicConfig(
 
 load_dotenv()
 TOKEN = os.environ.get('TOKENTEST')
-
+WEBHOOKSPAM = os.environ.get("WEBHOOKSPAM")
 
 # slash = SlashCommand(Friday,sync_on_cog_reload=True,sync_commands=True)
 
@@ -102,7 +104,9 @@ class Friday(commands.AutoShardedBot):
     self.slash = SlashCommand(self, sync_on_cog_reload=True, sync_commands=True, override_type=True)
     self.prod = True if len(sys.argv) > 1 and (sys.argv[1] == "--prod" or sys.argv[1] == "--production") else False
 
-    # self.spam_control = commands.CooldownMapping.from_cooldown(10, 12.0, commands.BucketType.channel)
+    self.spam_control = commands.CooldownMapping.from_cooldown(8, 15.0, commands.BucketType.user)
+
+    self.session = aiohttp.ClientSession(loop=self.loop)
 
     self.saved_guilds = {}
 
@@ -309,11 +313,57 @@ class Friday(commands.AutoShardedBot):
   # async def on_slash_command_error(self, ctx, *args, **kwargs):
   #   print("somethign")
 
+  @discord.utils.cached_property
+  def spam_webhook(self):
+    webhook = discord.Webhook.from_url(WEBHOOKSPAM, adapter=discord.AsyncWebhookAdapter(self.session))
+    return webhook
+
+  async def log_spammer(self, ctx, message, retry_after, *, autoblock=False):
+    guild_name = getattr(ctx.guild, "name", "No Guild/ DM Channel")
+    guild_id = getattr(ctx.guild, "id", None)
+    fmt = 'User %s (ID %s) in guild %r (ID %s) spamming, retry_after: %.2fs'
+    logging.warning(fmt, message.author, message.author.id, guild_name, guild_id, retry_after)
+
+    # if not autoblock:
+    #   return
+
+    # wh = self.spam_webhook
+    # return await wh.send(
+    #     embed=embed(
+    #         title="Auto-blocked Member",
+    #         fieldstitle=["Member", "Guild Info", "Channel Info"],
+    #         fieldsval=[
+    #             f'{message.author} (ID: {message.author.id})',
+    #             f'{guild_name} (ID: {guild_id})',
+    #             f'{message.channel} (ID: {message.channel.id}'],
+    #         fieldsin=[False, False, False]
+    #     )
+    # )
+
   async def on_message(self, ctx):
     if ctx.author.bot:
       return
 
     await self.process_commands(ctx)
+
+  async def process_commands(self, message):
+    ctx = await self.get_context(message)
+
+    if ctx.command is None:
+      return
+
+    bucket = self.spam_control.get_bucket(message)
+    current = message.created_at.replace(tzinfo=datetime.timezone.utc).timestamp()
+    retry_after = bucket.update_rate_limit(current)
+    author_id = message.author.id
+    if retry_after and author_id != self.owner_id:
+      return await self.log_spammer(ctx, message, retry_after)
+
+    await self.invoke(ctx)
+
+  async def close(self):
+    await super().close()
+    await self.session.close()
 
 
 if __name__ == "__main__":
