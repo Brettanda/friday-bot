@@ -42,6 +42,37 @@ def run():
             pattern = ""
             for i in item["data"]:
               pattern += i["text"]
+            lower = pattern.lower()
+            if " you " in lower:
+              patterns.append(lower.replace(" you ", " u "))
+            if "you're" in lower:
+              patterns.append(lower.replace("you're", "you are"))
+            if "don't" in lower:
+              patterns.append(lower.replace("don't", "do not"))
+            if " for " in lower:
+              patterns.append(lower.replace(" for ", " 4 "))
+            if "thank you" in lower:
+              patterns.append(lower.replace(" thank you ", " thanks "))
+            if " im" in lower:
+              patterns.append(lower.replace(" im", " i am"))
+            if lower.startswith("im"):
+              patterns.append(lower.replace("im", "i am", 1))
+            if "i'm" in lower:
+              patterns.append(lower.replace("i'm", "i am"))
+            if " are " in lower:
+              patterns.append(lower.replace(" are ", " r "))
+            if " you " in lower and " are " in lower:
+              patterns.append(lower.replace(" you ", " u ").replace(" are ", " r "))
+            if " wtf " in lower:
+              patterns.append(lower.replace(" wtf ", " what the fuck "))
+            if " idk " in lower:
+              patterns.append(lower.replace(" idk ", " i don't know "))
+            if " idk " in lower:
+              patterns.append(lower.replace(" idk ", " i don't know "))
+            if pattern != lower:
+              patterns.append(lower)
+            if pattern != pattern.capitalize():
+              patterns.append(pattern.capitalize())
             patterns.append(pattern)
 
           new.append({
@@ -56,7 +87,17 @@ def run():
         except BaseException:
           pass
 
-  print(f"Number of intents added: {len(new)}")
+  used_patterns = 0
+  patterns = 0
+  for intent in new:
+    if intent['priority'] > -1:
+      used_patterns += len(intent['patterns'])
+    patterns += len(intent['patterns'])
+
+  print(f"Number of intents: {len(new)}")
+  print(f"Used intents: {len([i for i in new if i['priority'] > -1])}")
+  print(f"Pattern count: {patterns}")
+  print(f"Used pattern count: {used_patterns}")
 
   with open("ml/intents.json", "w") as f:
     f.write(json.dumps(new, indent=2, sort_keys=False))

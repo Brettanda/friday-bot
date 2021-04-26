@@ -105,7 +105,7 @@ def bow(sentence, wrds, show_details=True, mentioned=False):
 
 
 async def classify_local(sentence, mentioned=False):
-  ERROR_THRESHOLD = 0.7
+  ERROR_THRESHOLD = 0.6
 
   # generate probabilities from the model
   bows, inbag = bow(sentence, words, mentioned=mentioned)

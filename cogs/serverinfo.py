@@ -18,7 +18,6 @@ class ServerInfo(commands.Cog):
   @cog_ext.cog_slash(name="serverinfo", description="Info about a server")
   @commands.guild_only()
   async def slash_server_info(self, ctx):
-    print("shit")
     post = await self.server_info(ctx)
     await ctx.send(**post)
 

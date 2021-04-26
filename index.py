@@ -10,7 +10,6 @@ import aiohttp
 import discord
 from discord.ext import commands
 from discord_slash import SlashCommand, SlashContext
-from dotenv import load_dotenv
 
 # from chatml import queryGen
 # from chatml import queryIntents
@@ -78,13 +77,12 @@ class Friday(commands.AutoShardedBot):
         voice_states=True,
         messages=True,
         reactions=True,
+        # Members intent required for giving roles appon a member
+        # joining a guild, and for reaction roles that will come soon
+        # members = True
     )
-    # Members intent required for giving roles appon a member
-    # joining a guild, and for reaction roles that will come soon
-    # intents.members = True
     allowed_mentions = discord.AllowedMentions(roles=True, everyone=False, users=True)
     super().__init__(
-        # command_prefix=query_prefix or "!",
         command_prefix=self.get_guild_prefix or "!",
         strip_after_prefix=True,
         case_insensitive=True,
@@ -221,17 +219,17 @@ class Friday(commands.AutoShardedBot):
         await ctx.send(embed=embed(title="This command does not work in non-server text channels", color=MessageColors.ERROR), delete_after=delete)
       else:
         await ctx.reply(embed=embed(title="This command does not work in non-server text channels", color=MessageColors.ERROR), delete_after=delete)
-    elif isinstance(error, commands.ChannelNotFound):
-      if slash:
-        await ctx.send(embed=embed(title=str(error), color=MessageColors.ERROR), delete_after=delete)
-      else:
-        await ctx.reply(embed=embed(title=str(error), color=MessageColors.ERROR), delete_after=delete)
+    # elif isinstance(error, commands.ChannelNotFound):
+    #   if slash:
+    #     await ctx.send(embed=embed(title=str(error), color=MessageColors.ERROR), delete_after=delete)
+    #   else:
+    #     await ctx.reply(embed=embed(title=str(error), color=MessageColors.ERROR), delete_after=delete)
       # await ctx.reply(embed=embed(title="Could not find that channel",description="Make sure it is the right channel type",color=MessageColors.ERROR))
-    elif isinstance(error, commands.DisabledCommand):
-      if slash:
-        await ctx.send(embed=embed(title=str(error) or "This command has been disabled", color=MessageColors.ERROR), delete_after=delete)
-      else:
-        await ctx.reply(embed=embed(title=str(error) or "This command has been disabled", color=MessageColors.ERROR), delete_after=delete)
+    # elif isinstance(error, commands.DisabledCommand):
+    #   if slash:
+    #     await ctx.send(embed=embed(title=str(error) or "This command has been disabled", color=MessageColors.ERROR), delete_after=delete)
+    #   else:
+    #     await ctx.reply(embed=embed(title=str(error) or "This command has been disabled", color=MessageColors.ERROR), delete_after=delete)
     elif isinstance(error, commands.TooManyArguments):
       await cmd_help(ctx, ctx.command, str(error) or "Too many arguments were passed for this command, here is how the command should look", delete_after=delete)
     # elif isinstance(error,commands.CommandError) or isinstance(error,commands.CommandInvokeError):

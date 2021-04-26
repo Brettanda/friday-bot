@@ -1,22 +1,28 @@
 import logging
 import os
 import uuid
+import json
+from numpy import random
 
-import aiohttp
 import validators
 from discord.ext import commands
-from dotenv import load_dotenv
+# from dotenv import load_dotenv
 
 # from chatml import queryGen
 from chatml import queryIntents
-from chatml.dynamicchat import dynamicchat
+# from chatml.dynamicchat import dynamicchat
 from functions import (dev_guilds, embed, msg_reply, mydb_connect, query,
-                       relay_info)
+                       relay_info, get_reddit_post, MessageColors)
 from functions.mysql_connection import query_prefix
+
+# from functions import embed, , , msg_reply
+
+with open('./config.json') as f:
+  config = json.load(f)
 
 logger = logging.getLogger(__name__)
 
-load_dotenv()
+# load_dotenv()
 trans_key = os.environ.get('TRANSLATORKEY')
 trans_endpoint = os.environ.get('TRANSLATORENDPOINT')
 
@@ -142,7 +148,7 @@ class Chat(commands.Cog):
         return
       if result is not None and result != '':
         if self.bot.prod:
-          await relay_info("", self.bot, embed=embed(title=f"Intent: {intent}\t{chance}", description=f"| original lang: {translation.src}\n| sentiment: {sentiment}\n| incoming Context: {incomingContext}\n| outgoing Context: {outgoingContext}\n| input: {ctx.clean_content}\n| translated text: {translation_text}\n| found in bag: {inbag}\n\t| en response: {non_trans_result}\n\\ response: {result}"), webhook=self.bot.log_chat)
+          await relay_info("", self.bot, embed=embed(title=f"Intent: {intent}\t{chance}", description=f"| original lang: {detect_response[0]['language']}\n| sentiment: {sentiment}\n| incoming Context: {incomingContext}\n| outgoing Context: {outgoingContext}\n| input: {ctx.clean_content}\n| translated text: {translation_text}\n| found in bag: {inbag}\n\t| en response: {non_trans_result}\n\\ response: {result}"), webhook=self.bot.log_chat)
         print(f"Intent: {intent}\t{chance}\n\t| sentiment: {sentiment}\n\t| incoming Context: {incomingContext}\n\t| outgoing Context: {outgoingContext}\n\t| input: {ctx.clean_content}\n\t| translated text: {translation_text}\n\t| found in bag: {inbag}\n\t| en response: {non_trans_result}\n\t\\ response: {result}")
         logger.info(f"\nIntent: {intent}\t{chance}\n\t| sentiment: {sentiment}\n\t| incoming Context: {incomingContext}\n\t| outgoing Context: {outgoingContext}\n\t| input: {ctx.clean_content}\n\t| translated text: {translation_text}\n\t| found in bag: {inbag}\n\t| en response: {non_trans_result}\n\t\\ response: {result}")
       else:
@@ -150,14 +156,121 @@ class Chat(commands.Cog):
         logger.info(f"\nIntent: {intent}\t{chance}\n\t| sentiment: {sentiment}\n\t| incoming Context: {incomingContext}\n\t| outgoing Context: {outgoingContext}\n\t| input: {ctx.clean_content}\n\t| translated text: {translation_text}\n\t| found in bag: {inbag}\n\t| en response: {non_trans_result}\n\t\\No response found: {ctx.clean_content.encode('unicode_escape')}")
         if "friday" in ctx.clean_content.lower() or self.bot.user in ctx.mentions:
           await relay_info("", self.bot, embed=embed(title="I think i should respond to this", description=f"{ctx.content}"), webhook=self.bot.log_chat)
-          print(f"I think I should respond to this: {ctx.clean_content.lower()}{(' translated to `'+translation_text+'`') if detect_response[0]['language'] != 'en' else ''}")
+          print(f"I think I should respond to this: {ctx.clean_content.lower()}{(' translated to `'+detect_response[0]['language']+'`') if detect_response[0]['language'] != 'en' else ''}")
           logger.info(f"I think I should respond to this: {ctx.clean_content.lower()}{(' translated to `'+translation_text+'`') if detect_response[0]['language'] != 'en' else ''}")
 
       if result is not None and result != '':
         if "dynamic" in result:
-          await dynamicchat(ctx, self.bot, intent, result, translation.src)
+          await self.dynamicchat(ctx, intent, result, lang=detect_response[0]['language'])
         else:
           await msg_reply(ctx, result, mention_author=False)
+
+  async def dynamicchat(self, ctx, intent, response=None, lang='en'):
+    response = response.strip("dynamic")
+    # print(f"intent: {intent}")
+    # logging.info(f"intent: {intent}")
+    reply = None
+    try:
+      if intent == "Insults":
+        return await ctx.add_reaction("😭")
+
+      elif intent == "Activities":
+        if ctx.guild.me.activity is not None:
+          reply = f"I am playing **{ctx.guild.me.activity.name}**"
+        else:
+          reply = "I am not currently playing anything. Im just hanging out"
+
+      elif intent == "Self Aware":
+        return await ctx.add_reaction("👀")
+
+      elif intent == "Creator":
+        appinfo = await self.bot.application_info()
+        reply = f"{appinfo.owner} is my creator :)"
+      # elif intent == "Soup Time":
+      #   const image = soups[random.randint(0, soups.length)];
+      #   console.info(`Soup: ${image}`);
+
+      #   await msg.channel.send(
+      #     func.embed({
+      #       title: "It's time for soup, just for you " + msg.author.username,
+      #       color: "#FFD700",
+      #       description: "I hope you enjoy, I made it myself :)",
+      #       author: msg.author,
+      #       image: image,
+      #     }),
+      #   );
+      # }
+
+      elif intent == "Stop":
+        return await ctx.add_reaction("😅")
+
+      elif intent == "No U":
+        await ctx.channel.send(
+            embed=embed(
+                title="No u!",
+                image=random.choice(config["unoCards"]),
+                color=MessageColors.NOU))
+
+      elif intent in ("Memes", "Memes - Another"):
+        return await msg_reply(ctx, **await get_reddit_post(ctx, ["memes", "dankmemes"]))
+
+      elif intent == "Title of your sex tape":
+        if random.random() < 0.1:
+          reply = f"*{ctx.clean_content}*, title of your sex-tape"
+        else:
+          return
+
+      elif intent == "show me something cute":
+        return msg_reply(ctx, content=response, **await get_reddit_post(ctx, ["mademesmile", "aww"]))
+
+      elif intent == "Something cool":
+        return msg_reply(ctx, **await get_reddit_post(ctx, ["nextfuckinglevel", "interestingasfuck"]))
+
+      elif intent in ("Compliments", "Thanks", "are you a bot?", "I love you"):
+        hearts = ["❤️", "💯", "💕"]
+        return await ctx.add_reaction(random.choice(hearts))
+
+      elif intent == "give me 5 minutes":
+        clocks = ["⏰", "⌚", "🕰", "⏱"]
+        return await ctx.add_reaction(random.choice(clocks))
+
+      # TODO: Make the inspiration command
+      elif intent == "inspiration":
+        print("inspiration")
+        # await require("../commands/inspiration").execute(msg);
+
+      elif intent == "Math":
+        # // (?:.+)([0-9\+\-\/\*]+)(?:.+)
+        print("Big math")
+
+      # TODO: this
+      elif intent == "Tell me a joke friday":
+        print("joke")
+        # await require("../functions/reddit")(msg, bot, ["Jokes"], "text");
+
+      elif intent == "Shit" and ("shit" in ctx.clean_content.lower() or "crap" in ctx.clean_content.lower()):
+        return await ctx.add_reaction("💩")
+
+      elif intent == "How do commands":
+        reply = "To find all of my command please use the help command"
+        # await require("../commands/help")(msg, "", bot);
+
+      elif intent == "who am i?":
+        reply = f"Well I don't know your real name but your username is {ctx.author.name}"
+
+      elif intent == "doggo":
+        return await ctx.add_reaction(random.choice(["🐶", "🐕", "🐩", "🐕‍🦺"]))
+
+      else:
+        print(f"I dont have a response for this: {ctx.content}")
+        logging.warning("I dont have a response for this: %s", ctx.clean_content)
+    except BaseException:
+      await msg_reply(ctx, "Something in my code failed to run, I'll ask my boss to fix this :)")
+      raise
+      # print(e)
+      # logging.error(e)
+    if reply is not None:
+      await msg_reply(ctx, self.translate_request(reply, params=f"&from={lang}&to=en") if lang != 'en' else reply)
 
 
 def setup(bot):
