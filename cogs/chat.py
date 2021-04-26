@@ -21,29 +21,27 @@ trans_key = os.environ.get('TRANSLATORKEY')
 trans_endpoint = os.environ.get('TRANSLATORENDPOINT')
 
 
-async def translate_request(text: str, detect=False, params=""):
-  headers = {
-      'Ocp-Apim-Subscription-Key': trans_key,
-      'Content-type': 'application/json',
-      'X-ClientTraceId': str(uuid.uuid4())
-  }
-
-  body = [{
-      'text': text
-  }]
-
-  path = f'/{"detect" if detect is True else "translate"}?api-version=3.0'
-  url = trans_endpoint + path + params
-
-  async with aiohttp.ClientSession() as session:
-    async with session.post(url, headers=headers, json=body) as r:
-      if r.status == 200:
-        return await r.json()
-
-
 class Chat(commands.Cog):
   def __init__(self, bot):
     self.bot = bot
+
+  async def translate_request(self, text: str, detect=False, params=""):
+    headers = {
+        'Ocp-Apim-Subscription-Key': trans_key,
+        'Content-type': 'application/json',
+        'X-ClientTraceId': str(uuid.uuid4())
+    }
+
+    body = [{
+        'text': text
+    }]
+
+    path = f'/{"detect" if detect is True else "translate"}?api-version=3.0'
+    url = trans_endpoint + path + params
+
+    async with self.bot.session.post(url, headers=headers, json=body) as r:
+      if r.status == 200:
+        return await r.json()
 
   @commands.Cog.listener()
   async def on_message(self, ctx):
@@ -53,7 +51,7 @@ class Chat(commands.Cog):
       return
     if ctx.activity is not None:
       return
-    if len(ctx.clean_content) > 256:
+    if len(ctx.clean_content) > 200:
       return
 
     if ctx.clean_content.startswith("/"):
@@ -83,14 +81,14 @@ class Chat(commands.Cog):
           meinlastmessage = True
           # newest = msg
 
-      detect_response = await translate_request(ctx.clean_content, True)
+      detect_response = await self.translate_request(ctx.clean_content, True)
 
       # detected = json.dumps(response, sort_keys=True, indent=2, ensure_ascii=False, separators=(',', ': '))
       translation_text = ctx.clean_content
       if detect_response[0]["language"] != "en" and detect_response[0]["isTranslationSupported"] is True:
         params = f"&from={detect_response[0]['language']}&to=en"
 
-        translation = await translate_request(ctx.clean_content, params=params)
+        translation = await self.translate_request(ctx.clean_content, params=params)
 
         translation_text = translation[0]["translations"][0]["text"]
       # translation = translator.translate(ctx.clean_content, to_lang="en")
@@ -104,7 +102,7 @@ class Chat(commands.Cog):
       if detect_response[0]["language"] != "en" and detect_response[0]["isTranslationSupported"] is True:
         params = f"&from=en&to={detect_response[0]['language']}"
 
-        final_translation = await translate_request(result, params=params)
+        final_translation = await self.translate_request(result, params=params)
         result = final_translation[0]["translations"][0]["text"]
 
       # result = translator.translate(result, src="en", dest=translation.src).text if translation.src != "en" and result != "dynamic" else result
