@@ -28,11 +28,7 @@ logging.basicConfig(
     filename="logging.log"
 )
 
-load_dotenv()
 TOKEN = os.environ.get('TOKENTEST')
-WEBHOOKSPAM = os.environ.get("WEBHOOKSPAM")
-
-# slash = SlashCommand(Friday,sync_on_cog_reload=True,sync_commands=True)
 
 songqueue = {}
 dead_nodes_sent = False
@@ -288,24 +284,24 @@ class Friday(commands.AutoShardedBot):
     trace = traceback.format_exc()
     if "Missing Access" in str(trace):
       return
-    if self.prod:
-      try:
-        await relay_info(
-            f"{owner.mention if self.intents.members is True else ''}\n```bash\n{trace}```",
-            self,
-            short="Error sent",
-            channel=713270561840824361
-        )
-      except discord.HTTPException:
-        with open("err.log", "w") as f:
-          f.write(f"{trace}")
-          f.close()
-          await relay_info(
-              f"{owner.mention if self.intents.members is True else ''}",
-              self,
-              file="err.log",
-              channel=713270561840824361
-          )
+    # try:
+    await relay_info(
+        f"{owner.mention if self.intents.members is True else ''}\n```bash\n{trace}```",
+        self,
+        short="Error sent",
+        webhook=self.log_errors
+    )
+    # except discord.HTTPException:
+    #   with open("err.log", "w") as f:
+    #     f.write(f"{trace}")
+    #     f.close()
+    #     await relay_info(
+    #         f"{owner.mention if self.intents.members is True else ''}",
+    #         self,
+    #         file="err.log",
+    #         webhook=self.log_errors,
+    #         channel=713270561840824361
+    #     )
 
     print(trace)
     logging.error(trace)
@@ -314,9 +310,28 @@ class Friday(commands.AutoShardedBot):
   #   print("somethign")
 
   @discord.utils.cached_property
-  def spam_webhook(self):
-    webhook = discord.Webhook.from_url(WEBHOOKSPAM, adapter=discord.AsyncWebhookAdapter(self.session))
-    return webhook
+  def log_spam(self):
+    return discord.Webhook.from_url(os.environ.get("WEBHOOKSPAM"), adapter=discord.AsyncWebhookAdapter(self.session))
+
+  @discord.utils.cached_property
+  def log_chat(self):
+    return discord.Webhook.from_url(os.environ.get("WEBHOOKCHAT"), adapter=discord.AsyncWebhookAdapter(self.session))
+
+  @discord.utils.cached_property
+  def log_info(self):
+    return discord.Webhook.from_url(os.environ.get("WEBHOOKINFO"), adapter=discord.AsyncWebhookAdapter(self.session))
+
+  @discord.utils.cached_property
+  def log_issues(self):
+    return discord.Webhook.from_url(os.environ.get("WEBHOOKISSUES"), adapter=discord.AsyncWebhookAdapter(self.session))
+
+  @discord.utils.cached_property
+  def log_errors(self):
+    return discord.Webhook.from_url(os.environ.get("WEBHOOKERRORS"), adapter=discord.AsyncWebhookAdapter(self.session))
+
+  @discord.utils.cached_property
+  def log_join(self):
+    return discord.Webhook.from_url(os.environ.get("WEBHOOKJOIN"), adapter=discord.AsyncWebhookAdapter(self.session))
 
   async def log_spammer(self, ctx, message, retry_after, *, autoblock=False):
     guild_name = getattr(ctx.guild, "name", "No Guild/ DM Channel")
@@ -327,8 +342,10 @@ class Friday(commands.AutoShardedBot):
     # if not autoblock:
     #   return
 
-    # wh = self.spam_webhook
+    # wh = self.log_spam
     # return await wh.send(
+    #     username=self.user.name,
+    #     avatar_url=self.user.avatar_url,
     #     embed=embed(
     #         title="Auto-blocked Member",
     #         fieldstitle=["Member", "Guild Info", "Channel Info"],

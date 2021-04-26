@@ -482,7 +482,7 @@ class ServerManage(commands.Cog):
         relay_info(
             f"**Begone**\nUSER: {reference.clean_content}\nME: {message.clean_content}```{message}```",
             self.bot,
-            channel=814349008007856168
+            webhook=self.bot.log_chat
         ),
         message.delete(),
         ctx.reply(embed=embed(title="Message has been removed"), delete_after=20),

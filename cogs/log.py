@@ -94,7 +94,7 @@ class Log(commands.Cog):
 
   @commands.Cog.listener()
   async def on_guild_join(self, guild):
-    await relay_info("", self.bot, short=f"I have joined a new guild, making the total {len(self.bot.guilds)}", embed=embed(title=f"I have joined a new guild, making the total {len(self.bot.guilds)}"), channel=713270475031183390, logger=logger)
+    await relay_info(f"I have joined a new guild, making the total **{len(self.bot.guilds)}**", self.bot, short=f"I have joined a new guild, making the total {len(self.bot.guilds)}", webhook=self.bot.log_join, logger=logger)
     mydb = mydb_connect()
     owner = guild.owner.id if hasattr(guild, "owner") and hasattr(guild.owner, "id") else 0
     query(mydb, "INSERT INTO servers (id,owner,name) VALUES (%s,%s,%s)", guild.id, owner, guild.name)
@@ -110,7 +110,7 @@ class Log(commands.Cog):
 
   @commands.Cog.listener()
   async def on_guild_remove(self, guild):
-    await relay_info("", self.bot, short=f"I have been removed from a guild, making the total {len(self.bot.guilds)}", embed=embed(title=f"I have been removed from a guild, making the total {len(self.bot.guilds)}"), channel=713270475031183390, logger=logger)
+    await relay_info(f"I have been removed from a guild, making the total **{len(self.bot.guilds)}**", self.bot, short=f"I have been removed from a guild, making the total {len(self.bot.guilds)}", webhook=self.bot.log_join, logger=logger)
     mydb = mydb_connect()
     query(mydb, "DELETE FROM servers WHERE id=%s", guild.id)
     self.bot.remove_guild(guild.id)

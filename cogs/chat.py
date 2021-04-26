@@ -108,7 +108,7 @@ class Chat(commands.Cog):
       # result = translator.translate(result, src="en", dest=translation.src).text if translation.src != "en" and result != "dynamic" else result
 
       if intent == "Title of your sex tape" and ctx.guild.id not in dev_guilds:
-        return await relay_info(f"Not responding with TOYST for: `{ctx.clean_content}`", self.bot, channel=814349008007856168)
+        return await relay_info(f"Not responding with TOYST for: `{ctx.clean_content}`", self.bot, webhook=self.bot.log_chat)
 
       # print(incomingContext,outgoingContext,ctx.reference.resolved if ctx.reference is not None else "No reference")
       # if incomingContext is not None and len(incomingContext) > 0 and (newest is not None or ctx.reference is not None):
@@ -142,14 +142,14 @@ class Chat(commands.Cog):
         return
       if result is not None and result != '':
         if self.bot.prod:
-          await relay_info("", self.bot, embed=embed(title=f"Intent: {intent}\t{chance}", description=f"| original lang: {translation.src}\n| sentiment: {sentiment}\n| incoming Context: {incomingContext}\n| outgoing Context: {outgoingContext}\n| input: {ctx.clean_content}\n| translated text: {translation_text}\n| found in bag: {inbag}\n\t| en response: {non_trans_result}\n\\ response: {result}"), channel=814349008007856168)
+          await relay_info("", self.bot, embed=embed(title=f"Intent: {intent}\t{chance}", description=f"| original lang: {translation.src}\n| sentiment: {sentiment}\n| incoming Context: {incomingContext}\n| outgoing Context: {outgoingContext}\n| input: {ctx.clean_content}\n| translated text: {translation_text}\n| found in bag: {inbag}\n\t| en response: {non_trans_result}\n\\ response: {result}"), webhook=self.bot.log_chat)
         print(f"Intent: {intent}\t{chance}\n\t| sentiment: {sentiment}\n\t| incoming Context: {incomingContext}\n\t| outgoing Context: {outgoingContext}\n\t| input: {ctx.clean_content}\n\t| translated text: {translation_text}\n\t| found in bag: {inbag}\n\t| en response: {non_trans_result}\n\t\\ response: {result}")
         logger.info(f"\nIntent: {intent}\t{chance}\n\t| sentiment: {sentiment}\n\t| incoming Context: {incomingContext}\n\t| outgoing Context: {outgoingContext}\n\t| input: {ctx.clean_content}\n\t| translated text: {translation_text}\n\t| found in bag: {inbag}\n\t| en response: {non_trans_result}\n\t\\ response: {result}")
       else:
         print(f"\nIntent: {intent}\t{chance}\n\t| sentiment: {sentiment}\n\t| incoming Context: {incomingContext}\n\t| outgoing Context: {outgoingContext}\n\t| input: {ctx.clean_content}\n\t| translated text: {translation_text}\n\t| found in bag: {inbag}\n\t| en response: {non_trans_result}\n\t\\No response found: {ctx.clean_content.encode('unicode_escape')}")
         logger.info(f"\nIntent: {intent}\t{chance}\n\t| sentiment: {sentiment}\n\t| incoming Context: {incomingContext}\n\t| outgoing Context: {outgoingContext}\n\t| input: {ctx.clean_content}\n\t| translated text: {translation_text}\n\t| found in bag: {inbag}\n\t| en response: {non_trans_result}\n\t\\No response found: {ctx.clean_content.encode('unicode_escape')}")
         if "friday" in ctx.clean_content.lower() or self.bot.user in ctx.mentions:
-          await relay_info("", self.bot, embed=embed(title="I think i should respond to this", description=f"{ctx.content}"), channel=814349008007856168)
+          await relay_info("", self.bot, embed=embed(title="I think i should respond to this", description=f"{ctx.content}"), webhook=self.bot.log_chat)
           print(f"I think I should respond to this: {ctx.clean_content.lower()}{(' translated to `'+translation_text+'`') if detect_response[0]['language'] != 'en' else ''}")
           logger.info(f"I think I should respond to this: {ctx.clean_content.lower()}{(' translated to `'+translation_text+'`') if detect_response[0]['language'] != 'en' else ''}")
 
