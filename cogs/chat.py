@@ -186,6 +186,14 @@ class Chat(commands.Cog):
       elif intent == "Creator":
         appinfo = await self.bot.application_info()
         reply = f"{appinfo.owner} is my creator :)"
+
+      elif intent == "Soup Time":
+        return await ctx.reply(embed=embed(
+            title="Here is sum soup, just for you",
+            color=MessageColors.SOUPTIME,
+            description="I hope you enjoy!",
+            image=random.choice(config['soups'])
+        ))
       # elif intent == "Soup Time":
       #   const image = soups[random.randint(0, soups.length)];
       #   console.info(`Soup: ${image}`);
@@ -205,7 +213,7 @@ class Chat(commands.Cog):
         return await ctx.add_reaction("😅")
 
       elif intent == "No U":
-        await ctx.channel.send(
+        return await ctx.channel.send(
             embed=embed(
                 title="No u!",
                 image=random.choice(config["unoCards"]),

@@ -1,4 +1,4 @@
-from discord.ext.commands import Cog, command  # , bot_has_permissions
+from discord.ext import commands
 
 # from PIL import Image, ImageDraw
 # https://pillow.readthedocs.io/en/stable/reference/ImageDraw.html
@@ -8,13 +8,14 @@ from discord.ext.commands import Cog, command  # , bot_has_permissions
 from functions import embed
 
 
-class Inspiration(Cog):
+class Inspiration(commands.Cog):
   """description goes here"""
 
   def __init__(self, bot):
     self.bot = bot
 
-  @command(name="inspiration", enabled=False)
+  @commands.command(name="inspiration", hidden=True)
+  @commands.is_owner()
   async def inspiration(self, ctx):
     print("pong")
     await ctx.reply(embed=embed(title="Pong!"))
