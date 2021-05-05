@@ -7,6 +7,7 @@ from cogs.music import can_play
 from functions import MessageColors, embed, exceptions, mydb_connect, query
 
 
+# TODO: make slash commands for this cog
 class CustomMusic(commands.Cog):
   """Asign music urls to a command so you dont have to find the url everytime you want to play `bruh 2`"""
 

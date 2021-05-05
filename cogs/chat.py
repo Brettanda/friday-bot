@@ -1,20 +1,21 @@
 from google.cloud import translate_v2 as translate
-import logging
-import os
-import uuid
 import json
-from numpy import random
+import logging
+# import os
+# import uuid
 
+# import spacy
 import validators
 from discord.ext import commands
-# from dotenv import load_dotenv
+from numpy import random
 
 # from chatml import queryGen
 from chatml import queryIntents
 # from chatml.dynamicchat import dynamicchat
-from functions import (dev_guilds, embed, msg_reply, mydb_connect, query,
-                       relay_info, get_reddit_post, MessageColors)
-from functions.mysql_connection import query_prefix
+from functions import (MessageColors, dev_guilds, embed, get_reddit_post,
+                       msg_reply, relay_info)
+# from functions.mysql_connection import query_prefix
+
 
 # from functions import embed, , , msg_reply
 
@@ -22,10 +23,6 @@ with open('./config.json') as f:
   config = json.load(f)
 
 logger = logging.getLogger(__name__)
-
-# load_dotenv()
-trans_key = os.environ.get('TRANSLATORKEY')
-trans_endpoint = os.environ.get('TRANSLATORENDPOINT')
 
 
 class Chat(commands.Cog):
@@ -47,7 +44,7 @@ class Chat(commands.Cog):
     if len(ctx.clean_content) > 200:
       return
 
-    if ctx.clean_content.startswith("/"):
+    if ctx.clean_content.startswith(tuple(self.bot.get_prefixes())):
       return
 
     valid = validators.url(ctx.content)
@@ -55,16 +52,16 @@ class Chat(commands.Cog):
       return
 
     if ctx.guild is not None:
-      mydb = mydb_connect()
-      muted = query(mydb, "SELECT muted FROM servers WHERE id=%s", ctx.guild.id)
-      if muted == 1:
+      muted = self.bot.get_guild_muted(ctx.guild.id)
+      # mydb = mydb_connect()
+      # muted = query(mydb, "SELECT muted FROM servers WHERE id=%s", ctx.guild.id)
+      if muted == 1 or muted is True:
         return
 
     if ctx.type.name != "default":
       return
 
-    prefix = str(query_prefix(self.bot, ctx, True))
-    if not ctx.content.startswith(prefix):
+    if not ctx.content.startswith(tuple(self.bot.get_prefixes())):
       noContext = ["Title of your sex tape", "I dont want to talk to a chat bot", "The meaning of life?", "Birthday", "Memes", "Self Aware", "Soup Time", "No U", "I'm dad", "Bot discrimination"]
       lastmessages = await ctx.channel.history(limit=3).flatten()
       meinlastmessage = False

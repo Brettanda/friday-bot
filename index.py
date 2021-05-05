@@ -1,12 +1,15 @@
+from functions.mysql_connection import mydb_connect, query
+from functions import MessageColors, embed, exceptions, relay_info
+from cogs.help import cmd_help
 import asyncio
+import datetime
+import json
 import logging
 import os
 import sys
 import traceback
-import json
-import datetime
-import aiohttp
 
+import aiohttp
 import discord
 from discord.ext import commands
 from discord_slash import SlashCommand, SlashContext
@@ -18,10 +21,6 @@ load_dotenv()
 # from chatml import queryGen
 # from chatml import queryIntents
 # from cogs.cleanup import get_delete_time
-from cogs.help import cmd_help
-from functions import (MessageColors, embed, exceptions,
-                       relay_info)
-from functions.mysql_connection import mydb_connect, query
 
 logging.basicConfig(
     level=logging.INFO,
@@ -91,6 +90,7 @@ class Friday(commands.AutoShardedBot):
         strip_after_prefix=True,
         case_insensitive=True,
         intents=intents,
+        status=discord.Status.idle,
         owner_id=215227961048170496,
         description=config["description"],
         fetch_offline_members=False,
@@ -132,6 +132,9 @@ class Friday(commands.AutoShardedBot):
 
     raise commands.BotMissingPermissions(missing)
 
+  def get_prefixes(self):
+    return [g["prefix"] for g in self.saved_guilds.values()] + ["/", "!", "%", ">", "?"]
+
   def get_guild_delete_commands(self, guild: discord.Guild = None):
     if not guild:
       return None
@@ -143,6 +146,11 @@ class Friday(commands.AutoShardedBot):
       return "!"
     return self.saved_guilds[message.guild.id]["prefix"]
 
+  def get_guild_muted(self, guild_id: int):
+    if guild_id not in [int(item.id) for item in self.guilds]:
+      return False
+    return bool(self.saved_guilds[guild_id]["muted"])
+
   def get_guild_chat_channel(self, guild_id: int):
     if guild_id not in [int(item.id) for item in self.guilds]:
       return None
@@ -152,6 +160,7 @@ class Friday(commands.AutoShardedBot):
     with open("guilds.json", "r") as pre:
       x = json.load(pre)
 
+    x = {int(k): v for k, v in x.items()}
     x[guild_id]["prefix"] = prefix
     self.saved_guilds = x
     x = json.dumps(x)
@@ -162,7 +171,19 @@ class Friday(commands.AutoShardedBot):
     with open("guilds.json", "r") as pre:
       x = json.load(pre)
 
-    x[str(guild_id)]["autoDeleteMSGs"] = delete
+    x = {int(k): v for k, v in x.items()}
+    x[guild_id]["autoDeleteMSGs"] = delete
+    self.saved_guilds = x
+    x = json.dumps(x)
+    with open("guilds.json", "w") as pre:
+      pre.write(x)
+
+  def change_guild_chat_channel(self, guild_id: int, chatChannel: int):
+    with open("guilds.json", "r") as pre:
+      x = json.load(pre)
+
+    x = {int(k): v for k, v in x.items()}
+    x[guild_id]["chatChannel"] = chatChannel
     self.saved_guilds = x
     x = json.dumps(x)
     with open("guilds.json", "w") as pre:
@@ -181,6 +202,7 @@ class Friday(commands.AutoShardedBot):
     with open("guilds.json", "r") as pre:
       x = json.load(pre)
       x.pop(guild_id, None)
+    x = {int(k): v for k, v in x.items()}
     self.saved_guilds = x
     x = json.dumps(x)
     with open("guilds.json", "w") as pre:

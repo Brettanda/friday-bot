@@ -38,20 +38,18 @@ context = []
 model = load_model("ml/models/intent_model.h5")
 
 
-with open("ml/intents.json", encoding="utf8") as f:
+with open("ml/current_intents.json", encoding="utf8") as f:
   intents = json.load(f)
 
-new = []
-for intent in intents:
-  if int(intent["priority"]) > 0:
-    new.append(intent)
+new = [intent for intent in intents if intent["priority"] > 0]
+
 
 intents = new
 
 for intent in intents:
   for pattern in intent['patterns']:
     # tokenize each word in the sentence
-    w = nltk.word_tokenize(pattern)
+    w = nltk.word_tokenize("".join([p["text"] for p in pattern]))
     # add to our words list
     words.extend(w)
     # add to documents in our corpus

@@ -38,17 +38,17 @@ ignore_words = ['?']
 with open("ml/intents.json", encoding="utf8") as f:
   intents = json.load(f)
 
-new = []
-for intent in intents:
-  if int(intent["priority"]) > 0:
-    new.append(intent)
+  with open("ml/current_intents.json", mode="w", encoding="utf8") as a:
+    a.write(json.dumps(intents, indent=2, sort_keys=False))
+
+new = [intent for intent in intents if intent["priority"] > 0]
 
 intents = new
 
 for intent in intents:
   for pattern in intent['patterns']:
     # tokenize each word in the sentence
-    w = nltk.word_tokenize(pattern)
+    w = nltk.word_tokenize("".join([p["text"] for p in pattern]))
     # add to our words list
     words.extend(w)
     # add to documents in our corpus
@@ -113,11 +113,11 @@ train_y = list(training[:, 1])
 model = Sequential()
 # model.add(Dense(256, input_shape=(len(train_x[0]),), activation='relu'))
 model.add(Dense(128, input_shape=(len(train_x[0]),), activation='relu'))
-model.add(Dropout(0.25))
+model.add(Dropout(0.15))
 # model.add(Dense(128, activation='relu'))
 # model.add(Dropout(0.25))
 model.add(Dense(64, activation='relu'))
-model.add(Dropout(0.25))
+model.add(Dropout(0.15))
 model.add(Dense(len(train_y[0]), activation='softmax'))
 
 # Compile model. Stochastic gradient descent with Nesterov accelerated gradient gives good results for this model
