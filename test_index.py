@@ -8,6 +8,8 @@ from dotenv import load_dotenv
 
 from index import Friday
 
+from create_trans_key import run
+
 load_dotenv()
 TOKEN = os.environ.get('TOKENTEST')
 
@@ -25,6 +27,10 @@ class Friday_testing(Friday):
     await self.wait_until_ready()
     await asyncio.sleep(3)
     assert await self.close()
+
+
+def test_translate_key_gen():
+  run()
 
 
 def test_will_it_blend():

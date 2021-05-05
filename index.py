@@ -10,6 +10,10 @@ import aiohttp
 import discord
 from discord.ext import commands
 from discord_slash import SlashCommand, SlashContext
+from dotenv import load_dotenv
+
+load_dotenv()
+
 
 # from chatml import queryGen
 # from chatml import queryIntents

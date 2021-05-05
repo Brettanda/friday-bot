@@ -54,5 +54,11 @@ jobs:
         DBUSER: ${{ secrets.DBUSER }}
         DBPASS: ${{ secrets.DBPASS }}
         DBHOST: ${{ secrets.DBHOST }}
+        PROJECT_ID: ${{ secrets.PROJECT_ID }}
+        PRIVATE_KEY_ID: ${{ secrets.PRIVATE_KEY_ID }}
+        PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+        CLIENT_EMAIL: ${{ secrets.CLIENT_EMAIL }}
+        CLIENT_ID: ${{ secrets.CLIENT_ID }}
+        CLIENT_CERT_URL: ${{ secrets.CLIENT_CERT_URL }}
       run: |
         pytest
