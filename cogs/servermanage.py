@@ -98,6 +98,33 @@ class ServerManage(commands.Cog):
       query(mydb, "UPDATE servers SET muted=%s WHERE id=%s", 0, ctx.guild.id)
       return dict(embed=embed(title="I will now respond to chat message as well as commands"))
 
+  @settings_bot.command(name="chatchannel", alias="chat", description="Set the current channel so that I will always try to respond with something")
+  @commands.guild_only()
+  @commands.has_guild_permissions(manage_channels=True)
+  async def norm_settings_bot_chat_channel(self, ctx):
+    post = await self.settings_bot_chat_channel(ctx)
+    await ctx.reply(**post)
+
+  @cog_ext.cog_subcommand(base="bot", base_description="Bot settings", name="chatchannel", description="Set the current text channel so that I will always try to respond", guild_ids=[243159711237537802])
+  @commands.has_guild_permissions(manage_channels=True)
+  @checks.slash(user=True, private=False)
+  async def slash_settings_bot_chat_channel(self, ctx):
+    await ctx.defer()
+    post = await self.settings_bot_chat_channel(ctx)
+    await ctx.send(**post)
+
+  async def settings_bot_chat_channel(self, ctx):
+    mydb = mydb_connect()
+    chat_channel = query(mydb, "SELECT chatChannel FROM servers WHERE id=%s", ctx.guild.id)
+    if chat_channel is None:
+      query(mydb, "UPDATE servers SET chatChannel=%s WHERE id=%s", ctx.channel.id, ctx.guild.id)
+      self.bot.change_guild_chat_channel(ctx.guild.id, ctx.channel.id)
+      return dict(embed=embed(title="I will now (try to) respond to every message in this channel"))
+    else:
+      query(mydb, "UPDATE servers SET chatChannel=%s WHERE id=%s", None, ctx.guild.id)
+      self.bot.change_guild_chat_channel(ctx.guild.id, None)
+      return dict(embed=embed(title="I will no longer (try to) respond to all messages from this channel"))
+
   @commands.command(name="musicchannel", description="Set the channel where I can join and play music. If none then I will join any VC", hidden=True)
   @commands.is_owner()
   @commands.has_guild_permissions(manage_channels=True)

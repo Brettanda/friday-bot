@@ -143,6 +143,11 @@ class Friday(commands.AutoShardedBot):
       return "!"
     return self.saved_guilds[message.guild.id]["prefix"]
 
+  def get_guild_chat_channel(self, guild_id: int):
+    if guild_id not in [int(item.id) for item in self.guilds]:
+      return None
+    return self.saved_guilds[guild_id]["chatChannel"]
+
   def change_guild_prefix(self, guild_id: int, prefix: str = "!"):
     with open("guilds.json", "r") as pre:
       x = json.load(pre)
@@ -163,10 +168,10 @@ class Friday(commands.AutoShardedBot):
     with open("guilds.json", "w") as pre:
       pre.write(x)
 
-  def set_guild(self, guild_id: int, prefix: str = "!", autoDeleteMSG: int = 0):
+  def set_guild(self, guild_id: int, prefix: str = "!", autoDeleteMSG: int = None, chatChannel: int = None):
     with open("guilds.json", "r") as pre:
       x = json.load(pre)
-    x.update({int(guild_id): {"prefix": str(prefix), "autoDeleteMSGs": int(autoDeleteMSG)}})
+    x.update({int(guild_id): {"prefix": str(prefix), "autoDeleteMSGs": int(autoDeleteMSG), "chatChannel": int(chatChannel) if chatChannel is not None else None}})
     self.saved_guilds = x
     x = json.dumps(x)
     with open("guilds.json", "w") as pre:
@@ -183,10 +188,10 @@ class Friday(commands.AutoShardedBot):
 
   def set_all_guilds(self):
     mydb = mydb_connect()
-    servers = query(mydb, "SELECT id,prefix,autoDeleteMSGs,muted FROM servers")
+    servers = query(mydb, "SELECT id,prefix,autoDeleteMSGs,muted,chatChannel FROM servers")
     guilds = {}
-    for guild_id, prefix, autoDeleteMSG, muted in servers:
-      guilds.update({int(guild_id): {"prefix": str(prefix), "muted": True if muted == 1 else False, "autoDeleteMSGs": int(autoDeleteMSG)}})
+    for guild_id, prefix, autoDeleteMSG, muted, chatChannel in servers:
+      guilds.update({int(guild_id): {"prefix": str(prefix), "muted": True if muted == 1 else False, "autoDeleteMSGs": int(autoDeleteMSG), "chatChannel": int(chatChannel) if chatChannel is not None else None}})
     self.saved_guilds = guilds
     x = json.dumps(guilds)
     with open("guilds.json", "w") as pre:
