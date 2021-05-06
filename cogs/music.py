@@ -85,8 +85,8 @@ class Music(Cog):
     if ctx.author.voice.channel is None:
       raise exceptions.CantSeeNewVoiceChannelType("I believe you are in a new type of voice channel that I can't join yet")
 
-    if ctx.author.voice.channel.type.name == "stage_voice":
-      return dict(embed=embed(title="I cannot play in stage channels yet ;)", color=MessageColors.ERROR))
+    # if ctx.author.voice.channel.type.name == "stage_voice":
+    #   return dict(embed=embed(title="I cannot play in stage channels yet ;)", color=MessageColors.ERROR))
 
     voiceChannel = ctx.author.voice.channel
     for perm, value in voiceChannel.permissions_for(ctx.guild.me):
@@ -262,11 +262,14 @@ class Music(Cog):
       for player in players:
         songqueue[serverQueueId].append(player)
       vc = await ctx.author.voice.channel.connect(reconnect=True)
-      if vc.channel.type.name == "stage_voice" and vc.channel.topic is None:
-        vc.pause()
+      # if vc.channel.type.name == "stage_voice" and vc.channel.topic is None:
+      #   vc.pause()
       if vc.channel.type.name == "stage_voice":
-        await vc.channel.edit(topic=player.title)
-        await ctx.guild.me.request_to_speak()
+        # if vc.channel.topic is None:
+          # await vc.channel.edit(topic=player.title)
+          # await vc.channel.edit(topic="Beats with Friday")
+        await ctx.guild.me.edit(suppress=False)
+        # await ctx.guild.me.request_to_speak()
       await ctx.guild.change_voice_state(channel=vc.channel, self_mute=False, self_deaf=True)
     except BaseException as e:
       try:
