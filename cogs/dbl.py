@@ -3,15 +3,16 @@ import os
 
 import dbl
 from discord.ext import commands, tasks
+from functions import GlobalCog
 
 logger = logging.getLogger('dbl')
 
 
-class TopGG(commands.Cog):
+class TopGG(GlobalCog):
   """Handles interactions with the top.gg API"""
 
   def __init__(self, bot):
-    self.bot = bot
+    super().__init__(bot)
     self.token = os.getenv("TOKENDBL")
     self.dblpy = dbl.DBLClient(self.bot, self.token, autopost=False)
     if self.bot.prod:

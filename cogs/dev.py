@@ -14,21 +14,17 @@ from discord_slash import SlashContext  # , cog_ext
 # from discord_slash.utils.manage_commands import create_option, create_choice
 
 from cogs.help import cmd_help, syntax
-from functions import MessageColors, embed
+from functions import embed, GlobalCog  # , MessageColors
 from index import songqueue
 
 logger = logging.getLogger(__name__)
 
 
-class Dev(commands.Cog, command_attrs=dict(hidden=True)):
+class Dev(GlobalCog, command_attrs=dict(hidden=True)):
   """Commands used by and for the developer"""
 
-  def __init__(self, bot):
-    self.bot = bot
-    self.loop = bot.loop
-
   def cog_check(self, ctx):
-    if ctx.bot.owner_id == ctx.author.id:
+    if self.bot.owner_id == ctx.author.id:
       return True
     if isinstance(ctx, SlashContext):
       return commands.NotOwner("You do not own this bot and cannot use this command")

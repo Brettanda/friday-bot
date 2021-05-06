@@ -4,15 +4,12 @@ import validators
 from discord.ext import commands
 
 from cogs.music import can_play
-from functions import MessageColors, embed, exceptions, mydb_connect, query
+from functions import MessageColors, embed, exceptions, mydb_connect, query, GlobalCog
 
 
 # TODO: make slash commands for this cog
-class CustomMusic(commands.Cog):
+class CustomMusic(GlobalCog):
   """Asign music urls to a command so you dont have to find the url everytime you want to play `bruh 2`"""
-
-  def __init__(self, bot):
-    self.bot = bot
 
   def cog_check(self, ctx):
     if ctx.guild is None:

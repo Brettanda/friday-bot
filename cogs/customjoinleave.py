@@ -4,14 +4,12 @@ import typing
 
 from discord.ext import commands
 
-from functions import embed, mydb_connect, query
+from functions import embed, mydb_connect, query, GlobalCog
 
 # from discord_slash import cog_ext,SlashContext
 
 
-class CustomJoinLeave(commands.Cog):
-  def __init__(self, bot):
-    self.bot = bot
+class CustomJoinLeave(GlobalCog):
 
   def cog_check(self, ctx):
     if ctx.guild is None:

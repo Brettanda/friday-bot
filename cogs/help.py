@@ -1,13 +1,12 @@
 from discord import Embed
 from discord.ext import commands
-from discord.ext.commands import Cog
 from discord.ext.menus import ListPageSource, MenuPages
 from discord.utils import get
 
 from discord_slash import cog_ext, SlashContext
 
 # from cogs.cleanup import get_delete_time
-from functions import MessageColors, embed, checks
+from functions import MessageColors, embed, checks, GlobalCog
 
 
 def syntax(command, quotes: bool = True):
@@ -98,9 +97,9 @@ async def cmd_help(ctx: commands.Context or SlashContext, command, message: str 
     await ctx.reply(embed=embed)
 
 
-class Help(Cog):
+class Help(GlobalCog):
   def __init__(self, bot):
-    self.bot = bot
+    super().__init__(bot)
     self.bot.remove_command("help")
 
   @commands.command(name="help", aliases=["?", "commands"], usage="<command/group>")

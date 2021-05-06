@@ -7,14 +7,11 @@ from discord_slash import SlashContext, cog_ext, SlashCommandOptionType
 from discord_slash.utils.manage_commands import create_option
 
 from cogs.help import cmd_help
-from functions import MessageColors, embed, mydb_connect, query, checks, relay_info
+from functions import MessageColors, embed, mydb_connect, query, checks, relay_info, GlobalCog
 
 
-class ServerManage(commands.Cog):
+class ServerManage(GlobalCog):
   """Commands for managing Friday on your server"""
-
-  def __init__(self, bot):
-    self.bot = bot
 
   def cog_check(self, ctx):
     if ctx.guild is None:

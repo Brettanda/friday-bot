@@ -13,7 +13,7 @@ from numpy import random
 from chatml import queryIntents
 # from chatml.dynamicchat import dynamicchat
 from functions import (MessageColors, dev_guilds, embed, get_reddit_post,
-                       msg_reply, relay_info)
+                       msg_reply, relay_info, GlobalCog)
 # from functions.mysql_connection import query_prefix
 
 
@@ -25,9 +25,9 @@ with open('./config.json') as f:
 logger = logging.getLogger(__name__)
 
 
-class Chat(commands.Cog):
+class Chat(GlobalCog):
   def __init__(self, bot):
-    self.bot = bot
+    super().__init__(bot)
     self.translate_client = translate.Client()
 
   def translate_request(self, text: str, detect=False, from_lang="en", to_lang="en"):
@@ -251,7 +251,7 @@ class Chat(commands.Cog):
       # print(e)
       # logging.error(e)
     if reply is not None:
-      await msg_reply(ctx, self.translate_request(reply, params=f"&from={lang}&to=en") if lang != 'en' else reply)
+      await msg_reply(ctx, self.translate_request(reply, from_lang=lang) if lang != 'en' else reply)
 
 
 def setup(bot):

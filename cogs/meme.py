@@ -1,12 +1,12 @@
 from discord.ext import commands
 from discord_slash import SlashContext, cog_ext
 
-from functions import get_reddit_post
+from functions import get_reddit_post, GlobalCog
 
 
-class Meme(commands.Cog):
+class Meme(GlobalCog):
   def __init__(self, bot):
-    self.bot = bot
+    super().__init__(bot)
     self.subs = ["dankmemes", "memes", "wholesomememes"]
     self.posted = {}
 
