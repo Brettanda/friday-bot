@@ -9,7 +9,8 @@ import numpy as np
 from keras.layers import Dense, Dropout  # , Activation
 from keras.models import Sequential
 from keras.optimizers import SGD
-from nltk.stem.lancaster import LancasterStemmer
+from nltk.stem import PorterStemmer
+# from nltk.stem.lancaster import LancasterStemmer
 from nltk.sentiment import SentimentIntensityAnalyzer
 
 os.add_dll_directory("C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v10.1\\bin")
@@ -26,13 +27,13 @@ try:
 except LookupError:
   nltk.download('vader_lexicon')
 
-stemmer = LancasterStemmer()
+stemmer = PorterStemmer()
 sia = SentimentIntensityAnalyzer()
 
 words = []
 classes = []
 documents = []
-ignore_words = ['?']
+ignore_words = ['?', '.', ',', '!']
 # loop through each sentence in our intents patterns
 
 with open("ml/intents.json", encoding="utf8") as f:
@@ -84,10 +85,10 @@ for doc in documents:
 
   sentiment = sia.polarity_scores(" ".join(doc[0]))
 
-  bag.insert(0, sentiment["neg"])
-  bag.insert(0, sentiment["neu"])
-  bag.insert(0, sentiment["pos"])
-  bag.insert(0, 1 if "friday" in [d.lower() for d in doc[0]] else 0)
+  # bag.insert(0, sentiment["neg"])
+  # bag.insert(0, sentiment["neu"])
+  # bag.insert(0, sentiment["pos"])
+  # bag.insert(0, 1 if "friday" in [d.lower() for d in doc[0]] else 0)
   # bag.insert(0, sentiment["compound"])
   # bag.insert(0, 0)
 

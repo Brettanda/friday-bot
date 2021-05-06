@@ -12,7 +12,8 @@ import pandas as pd
 from keras.models import load_model  # , Sequential
 # from keras.optimizers import SGD
 from nltk.sentiment import SentimentIntensityAnalyzer
-from nltk.stem.lancaster import LancasterStemmer
+# from nltk.stem.lancaster import LancasterStemmer
+from nltk.stem import PorterStemmer
 
 try:
   nltk.data.find('tokenizers/punkt.zip')
@@ -23,7 +24,7 @@ try:
 except LookupError:
   nltk.download('vader_lexicon')
 sia = SentimentIntensityAnalyzer()
-stemmer = LancasterStemmer()
+stemmer = PorterStemmer()
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 # tagger = MultiTagger.load(["pos","ner"])
@@ -31,7 +32,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 words = []
 classes = []
 documents = []
-ignore_words = ['?']
+ignore_words = ['?', '.', ',', '!']
 context = []
 # loop through each sentence in our intents patterns
 
@@ -90,11 +91,11 @@ def bow(sentence, wrds, show_details=True, mentioned=False):
         if show_details:
           inbag += f"{w} "
           # print ("found in bag: %s" % w)
-  sentiment = sia.polarity_scores(" ".join(sentence))
-  bag.insert(0, sentiment["neg"])
-  bag.insert(0, sentiment["neu"])
-  bag.insert(0, sentiment["pos"])
-  bag.insert(0, 1 if "friday" in sentence else 0)
+  # sentiment = sia.polarity_scores(" ".join(sentence))
+  # bag.insert(0, sentiment["neg"])
+  # bag.insert(0, sentiment["neu"])
+  # bag.insert(0, sentiment["pos"])
+  # bag.insert(0, 1 if "friday" in sentence else 0)
   # bag.insert(0, sentiment["compound"])
   # bag.insert(0, 0)
   # print(f"found in bag: {inbag}")
