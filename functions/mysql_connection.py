@@ -4,6 +4,7 @@ import sys
 import mysql.connector
 from . import config
 
+
 def mydb_connect():
   # https://www.mysqltutorial.org/python-connecting-mysql-databases/
   if len(sys.argv) > 1 and (sys.argv[1] == "--prod" or sys.argv[1] == "--production"):
