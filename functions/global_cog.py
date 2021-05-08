@@ -1,7 +1,6 @@
 import logging
 
 from discord.ext import commands
-# from importlib import reload
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +16,3 @@ class GlobalCog(commands.Cog):
 
   def cog_unload(self):
     return super().cog_unload()
-
-  async def reload_imports(self, **imports):
-    # https://stackoverflow.com/questions/437589/how-do-i-unload-reload-a-python-module
-    print(imports)

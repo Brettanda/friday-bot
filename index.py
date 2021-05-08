@@ -90,19 +90,17 @@ class Friday(commands.AutoShardedBot):
       self.reload_extension(f"cogs.{i}")
 
   async def on_ready(self):
-    # while len(self.saved_guilds) != len(self.guilds):
-    #   pass
     self.ready = True
 
-  @property
-  def enabled(self):
-    for cog in self.cogs.values():
-      try:
-        if not cog.ready:
-          return False
-      except AttributeError:
-        pass
-    return self.ready
+  # @property
+  # def enabled(self):
+  #   for cog in self.cogs.values():
+  #     try:
+  #       if not cog.ready:
+  #         return False
+  #     except AttributeError:
+  #       pass
+  #   return self.ready
 
   async def on_message(self, ctx):
     if ctx.author.bot:

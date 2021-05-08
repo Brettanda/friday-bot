@@ -20,10 +20,18 @@ logger = logging.getLogger(__name__)
 # with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'config.json')) as f:
 #   config = json.load(f)
 
+# def is_enabled(ctx):
+#   if not ctx.enabled:
+#     raise commands.CheckFailure("Currently I am disabled, my boss has been notified, please try again later :)")
+#   return True
+
+
 class Log(commands.Cog):
   def __init__(self, bot):
     self.bot = bot
     self.loop = bot.loop
+
+    # self.bot.add_check(is_enabled)
 
     if not hasattr(self.bot, "session"):
       self.bot.session = aiohttp.ClientSession(loop=self.loop)
@@ -32,7 +40,7 @@ class Log(commands.Cog):
       self.bot.spam_control = commands.CooldownMapping.from_cooldown(8, 15.0, commands.BucketType.user)
 
     if not hasattr(self.bot, "slash"):
-      self.bot.slash = SlashCommand(self.bot, sync_on_cog_reload=True, sync_commands=True)
+      self.bot.slash = SlashCommand(self.bot, sync_on_cog_reload=True, sync_commands=True, override_type=True)
 
     self.bot.log_spam = self.log_spam
     self.bot.log_info = self.log_info
