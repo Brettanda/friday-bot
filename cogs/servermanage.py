@@ -7,7 +7,7 @@ from discord_slash import SlashContext, cog_ext, SlashCommandOptionType
 from discord_slash.utils.manage_commands import create_option
 
 from cogs.help import cmd_help
-from functions import MessageColors, embed, mydb_connect, query, checks, relay_info, GlobalCog
+from functions import MessageColors, embed, mydb_connect, query, checks, relay_info, GlobalCog, config
 
 
 class ServerManage(GlobalCog):
@@ -46,7 +46,7 @@ class ServerManage(GlobalCog):
 
   @commands.command(name="prefix")
   @commands.has_guild_permissions(administrator=True)
-  async def _prefix(self, ctx, new_prefix: typing.Optional[str] = "!"):
+  async def _prefix(self, ctx, new_prefix: typing.Optional[str] = config.defaultPrefix):
     new_prefix = new_prefix.lower()
     if len(new_prefix) > 5:
       await ctx.reply(embed=embed(title="Can't set a prefix with more than 5 characters", color=MessageColors.ERROR))

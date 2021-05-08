@@ -75,26 +75,16 @@ class MyContext(commands.Context):
 
 class Friday(commands.AutoShardedBot):
   def __init__(self):
-    intents = discord.Intents(
-        guilds=True,
-        voice_states=True,
-        messages=True,
-        reactions=True,
-        # Members intent required for giving roles appon a member
-        # joining a guild, and for reaction roles that will come soon
-        # members = True
-    )
-    allowed_mentions = discord.AllowedMentions(roles=True, everyone=False, users=True)
     super().__init__(
-        command_prefix=self.get_guild_prefix or "!",
+        command_prefix=get_prefix or functions.config.defaultPrefix,
         strip_after_prefix=True,
         case_insensitive=True,
-        intents=intents,
+        intents=functions.config.intents,
         status=discord.Status.idle,
         owner_id=215227961048170496,
-        description=config["description"],
+        description=functions.config.description,
         fetch_offline_members=False,
-        allowed_mentions=allowed_mentions,
+        allowed_mentions=functions.config.allowed_mentions,
         heartbeat_timeout=150.0
     )
 

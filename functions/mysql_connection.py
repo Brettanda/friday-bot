@@ -2,7 +2,7 @@ import os
 import sys
 
 import mysql.connector
-
+from . import config
 
 def mydb_connect():
   # https://www.mysqltutorial.org/python-connecting-mysql-databases/
@@ -38,7 +38,7 @@ def query(mydb, query: str, *params):
 
 def query_prefix(bot, ctx, client: bool = False):
   if str(ctx.channel.type) == "private":
-    return "!"
+    return config.defaultPrefix
   mydb = mydb_connect()
   mycursor = mydb.cursor()
   mycursor.execute(f"SELECT prefix FROM servers WHERE id='{ctx.guild.id}'")
@@ -54,8 +54,8 @@ def query_prefix(bot, ctx, client: bool = False):
     return result[0][0]
   else:
     try:
-      return result[0][0] or "!"
+      return result[0][0] or config.defaultPrefix
     except BaseException:
-      return "!"
+      return config.defaultPrefix
 
-  return "!"
+  return config.defaultPrefix
