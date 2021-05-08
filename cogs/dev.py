@@ -143,7 +143,7 @@ class Dev(GlobalCog, command_attrs=dict(hidden=True)):
       )
       subprocess.Popen([f"{thispath}{seperator}restart.sh"], stdin=subprocess.PIPE)
 
-  @norm_dev.command(name="reload")
+  @norm_dev.group(name="reload", invoke_without_command=True)
   async def reload(self, ctx, command: str):
     async with ctx.typing():
       com = self.bot.get_command(command)
@@ -151,6 +151,12 @@ class Dev(GlobalCog, command_attrs=dict(hidden=True)):
         command = com.cog_name
       self.bot.reload_extension(f"cogs.{command.lower()}")
     await ctx.reply(embed=embed(title=f"Cog *{command}* has been reloaded"))
+
+  @reload.command(name="all")
+  async def reload_all(self, ctx):
+    async with ctx.typing():
+      await self.bot.reload_cogs()
+    await ctx.reply(embed=embed(title="All cogs have been reloaded"))
 
   @norm_dev.command(name="load")
   async def load(self, ctx, command: str):
@@ -164,13 +170,14 @@ class Dev(GlobalCog, command_attrs=dict(hidden=True)):
       self.bot.unload_extension(f"cogs.{command.lower()}")
     await ctx.reply(embed=embed(title=f"Cog *{command}* has been unloaded"))
 
-  @reload.error
-  @load.error
-  @unload.error
-  async def reload_error(self, ctx, error):
-    await ctx.reply(embed=embed(title=f"Failed to reload *{str(''.join(ctx.message.content.split(ctx.prefix+ctx.command.name+' ')))}*", color=MessageColors.ERROR))
-    print(error)
-    logger.error(error)
+  # @reload.error
+  # @load.error
+  # @unload.error
+  # async def reload_error(self, ctx, error):
+  #   if not isinstance(error, commands.NotOwner):
+  #     await ctx.reply(embed=embed(title=f"Failed to reload *{str(''.join(ctx.message.content.split(ctx.prefix+ctx.command.name+' ')))}*", color=MessageColors.ERROR))
+  #     print(error)
+  #     logger.error(error)
 
   @norm_dev.command(name="update")
   async def update(self, ctx):
