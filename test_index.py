@@ -2,7 +2,6 @@ import asyncio
 import logging
 import os
 
-import discord
 from discord.ext import tasks
 from dotenv import load_dotenv
 
@@ -12,8 +11,6 @@ from create_trans_key import run
 
 load_dotenv()
 TOKEN = os.environ.get('TOKENTEST')
-
-intents = discord.Intents.default()
 
 
 class Friday_testing(Friday):
@@ -28,6 +25,8 @@ class Friday_testing(Friday):
     await asyncio.sleep(3)
     assert await self.close()
 
+
+# TODO: Add a check for functions modules/files not being named the same as the functions/defs
 
 def test_translate_key_gen():
   run()

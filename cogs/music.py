@@ -135,6 +135,8 @@ class Music(GlobalCog):
     serverQueueId = "{}".format(ctx.guild.id)
 
     if pop is True:
+      if ctx.guild.voice_client.channel.type == discord.ChannelType.stage_voice and ctx.guild.voice_client.channel.topic == songqueue[serverQueueId][0].title:
+        await ctx.guild.voice_client.channel.edit(topic=songqueue[serverQueueId][1].title)
       songqueue[serverQueueId].pop(0)
 
     if len(songqueue[serverQueueId]) > 0:
@@ -190,7 +192,7 @@ class Music(GlobalCog):
 
   @commands.command(name="play", aliases=['p', 'add'], usage="<url/title>", description="Follow this command with the title of a song to search for it or just paste the Youtube/SoundCloud url if the search gives and undesirable result")
   @commands.guild_only()
-  @commands.cooldown(1, 4, commands.BucketType.channel)
+  @commands.max_concurrency(1, commands.BucketType.guild, wait=True)
   @commands.bot_has_permissions(send_messages=True, embed_links=True, read_messages=True)
   async def norm_play(self, ctx, *, query: str):
     await self.play(ctx, query)
@@ -259,9 +261,9 @@ class Music(GlobalCog):
       vc = await ctx.author.voice.channel.connect(reconnect=True)
       # if vc.channel.type.name == "stage_voice" and vc.channel.topic is None:
       #   vc.pause()
-      if vc.channel.type.name == "stage_voice":
-        # if vc.channel.topic is None:
-          # await vc.channel.edit(topic=player.title)
+      if vc.channel.type == discord.ChannelType.stage_voice:
+        if vc.channel.topic is None:
+          await vc.channel.edit(topic=player.title)
           # await vc.channel.edit(topic="Beats with Friday")
         await ctx.guild.me.edit(suppress=False)
         # await ctx.guild.me.request_to_speak()
@@ -571,6 +573,8 @@ class Music(GlobalCog):
     try:
       await asyncio.sleep(3)
       if len(member.guild.voice_client.channel.members) == 1:
+        if member.guild.voice_client.channel.type == discord.ChannelType.stage_voice:
+          await member.guild.voice_client.channel.edit(topic="")
         await member.guild.voice_client.disconnect()
         del songqueue["{}".format(member.guild.id)]
     except KeyError:
