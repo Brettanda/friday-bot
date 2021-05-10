@@ -1,25 +1,18 @@
-# from functions.mysql_connection import mydb_connect, query
-# from functions import MessageColors, embed, exceptions, relay_info
-import functions
-import cogs
-from importlib import reload
 import asyncio
-import datetime
 import logging
 import os
 import sys
+from importlib import reload
 
 import discord
 from discord.ext import commands
-# from discord_slash import SlashCommand
 from dotenv import load_dotenv
+
+import cogs
+import functions
 
 load_dotenv()
 
-
-# from chatml import queryGen
-# from chatml import queryIntents
-# from cogs.cleanup import get_delete_time
 
 logging.basicConfig(
     level=logging.INFO,
@@ -55,9 +48,9 @@ class Friday(commands.AutoShardedBot):
     )
 
     self.restartPending = False
+    self.dead_nodes_sent = False
+    self.songqueue = {}
     self.prod = True if len(sys.argv) > 1 and (sys.argv[1] == "--prod" or sys.argv[1] == "--production") else False
-
-    self.ready = False
 
     for cog in cogs.default:
       self.load_extension(f"cogs.{cog}")
@@ -77,8 +70,6 @@ class Friday(commands.AutoShardedBot):
     return await super().get_context(message, cls=cls)
 
   async def reload_cogs(self):
-    self.ready = False
-
     reload(cogs)
     reload(functions)
 
@@ -89,43 +80,14 @@ class Friday(commands.AutoShardedBot):
     for i in cogs.default:
       self.reload_extension(f"cogs.{i}")
 
-  async def on_ready(self):
-    self.ready = True
-
-  # @property
-  # def enabled(self):
-  #   for cog in self.cogs.values():
-  #     try:
-  #       if not cog.ready:
-  #         return False
-  #     except AttributeError:
-  #       pass
-  #   return self.ready
-
   async def on_message(self, ctx):
     if ctx.author.bot:
       return
 
     await self.process_commands(ctx)
 
-  async def process_commands(self, message):
-    ctx = await self.get_context(message)
-
-    if ctx.command is None:
-      return
-
-    bucket = self.spam_control.get_bucket(message)
-    current = message.created_at.replace(tzinfo=datetime.timezone.utc).timestamp()
-    retry_after = bucket.update_rate_limit(current)
-    author_id = message.author.id
-    if retry_after and author_id != self.owner_id:
-      return await self.log_spammer(ctx, message, retry_after)
-
-    await self.invoke(ctx)
-
   async def close(self):
     await super().close()
-    await self.session.close()
 
 
 if __name__ == "__main__":

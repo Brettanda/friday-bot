@@ -1,8 +1,9 @@
 import json
 import logging
 import aiohttp
-
+import datetime
 import discord
+
 from discord.ext import commands
 from discord_slash import SlashContext, SlashCommand
 from cogs.help import cmd_help
@@ -41,6 +42,8 @@ class Log(commands.Cog):
 
     if not hasattr(self.bot, "slash"):
       self.bot.slash = SlashCommand(self.bot, sync_on_cog_reload=True, sync_commands=True, override_type=True)
+
+    self.bot.process_commands = self.process_commands
 
     self.bot.log_spam = self.log_spam
     self.bot.log_info = self.log_info
@@ -213,6 +216,21 @@ class Log(commands.Cog):
       # logging.error(ex)
       raise ex
 
+  async def process_commands(self, message):
+    ctx = await self.bot.get_context(message)
+
+    if ctx.command is None:
+      return
+
+    bucket = self.bot.spam_control.get_bucket(message)
+    current = message.created_at.replace(tzinfo=datetime.timezone.utc).timestamp()
+    retry_after = bucket.update_rate_limit(current)
+    author_id = message.author.id
+    if retry_after and author_id != self.bot.owner_id:
+      return await self.bot.log_spammer(ctx, message, retry_after)
+
+    await self.bot.invoke(ctx)
+
   def get_prefixes(self):
     return [g["prefix"] for g in self.bot.saved_guilds.values()] + ["/", "!", "%", ">", "?"]
 
@@ -230,12 +248,12 @@ class Log(commands.Cog):
     return commands.when_mentioned_or(self.bot.saved_guilds[message.guild.id]["prefix"] or config.defaultPrefix)(bot, message)
 
   def get_guild_muted(self, guild_id: int):
-    if guild_id not in [int(item.id) for item in self.guilds]:
+    if guild_id not in [int(item.id) for item in self.bot.guilds]:
       return False
     return bool(self.bot.saved_guilds[guild_id]["muted"])
 
   def get_guild_chat_channel(self, guild_id: int):
-    if guild_id not in [int(item.id) for item in self.guilds]:
+    if guild_id not in [int(item.id) for item in self.bot.guilds]:
       return None
     return self.bot.saved_guilds[guild_id]["chatChannel"]
 
