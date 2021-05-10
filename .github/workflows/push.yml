@@ -71,5 +71,6 @@ jobs:
         WEBHOOKERRORS: ${{ secrets.WEBHOOKERRORS }}
         WEBHOOKCHAT: ${{ secrets.WEBHOOKCHAT }}
         WEBHOOKJOIN: ${{ secrets.WEBHOOKJOIN }}
+        GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
       run: |
         pytest
