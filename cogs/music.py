@@ -80,7 +80,7 @@ class Music(GlobalCog):
     if ctx.author.voice.channel is None:
       raise exceptions.CantSeeNewVoiceChannelType("I believe you are in a new type of voice channel that I can't join yet")
 
-    if ctx.author.voice.channel.type.name == discord.ChannelType.stage_voice:
+    if ctx.author.voice.channel.type == discord.ChannelType.stage_voice:
       return dict(embed=embed(title="I cannot play in stage channels, yet ;)", color=MessageColors.ERROR))
 
     voiceChannel = ctx.author.voice.channel
