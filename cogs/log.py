@@ -222,10 +222,12 @@ class Log(commands.Cog):
     delete = self.bot.saved_guilds[guild.id]["autoDeleteMSGs"]
     return delete if delete != 0 else None
 
-  def get_guild_prefix(self, guild_id: int):
-    if guild_id == 707441352367013899:
-      return config.defaultPrefix
-    return self.bot.saved_guilds[guild_id]["prefix"]
+  def get_guild_prefix(self, bot, message):
+    if not message.guild:
+      return commands.when_mentioned_or(config.defaultPrefix)(bot, message)
+    if message.guild.id == 707441352367013899:
+      return commands.when_mentioned_or(config.defaultPrefix)(bot, message)
+    return commands.when_mentioned_or(self.bot.saved_guilds[message.guild.id]["prefix"] or config.defaultPrefix)(bot, message)
 
   def get_guild_muted(self, guild_id: int):
     if guild_id not in [int(item.id) for item in self.guilds]:

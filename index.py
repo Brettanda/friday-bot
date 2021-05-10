@@ -36,7 +36,7 @@ dead_nodes_sent = False
 
 
 async def get_prefix(bot, message):
-  return bot.get_guild_prefix(message.guild.id)
+  return bot.get_guild_prefix(bot, message)
 
 
 class Friday(commands.AutoShardedBot):

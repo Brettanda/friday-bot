@@ -44,6 +44,11 @@ class Chat(GlobalCog):
     if len(ctx.clean_content) > 200:
       return
 
+    com_ctx = await self.bot.get_context(ctx)
+
+    if com_ctx.command is not None:
+      return
+
     if ctx.clean_content.startswith(tuple(self.bot.get_prefixes())):
       return
 
