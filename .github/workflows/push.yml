@@ -67,4 +67,5 @@ jobs:
         WEBHOOKCHAT: ${{ secrets.WEBHOOKCHAT }}
         WEBHOOKJOIN: ${{ secrets.WEBHOOKJOIN }}
       run: |
+        python create_trans_key.py
         pytest
