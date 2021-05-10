@@ -60,5 +60,11 @@ jobs:
         CLIENT_EMAIL: ${{ secrets.CLIENT_EMAIL }}
         CLIENT_ID: ${{ secrets.CLIENT_ID }}
         CLIENT_CERT_URL: ${{ secrets.CLIENT_CERT_URL }}
+        WEBHOOKSPAM: ${{ secrets.WEBHOOKSPAM }}
+        WEBHOOKISSUES: ${{ secrets.WEBHOOKISSUES }}
+        WEBHOOKINFO: ${{ secrets.WEBHOOKINFO }}
+        WEBHOOKERRORS: ${{ secrets.WEBHOOKERRORS }}
+        WEBHOOKCHAT: ${{ secrets.WEBHOOKCHAT }}
+        WEBHOOKJOIN: ${{ secrets.WEBHOOKJOIN }}
       run: |
         pytest
