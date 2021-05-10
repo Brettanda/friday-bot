@@ -78,7 +78,7 @@ class ServerManage(GlobalCog):
     post = await self.settings_bot_mute(ctx)
     await ctx.reply(**post)
 
-  @cog_ext.cog_subcommand(base="bot", base_description="Bot settings", name="mute", description="Stop me from responding to non-command messages or not", guild_ids=[243159711237537802])
+  @cog_ext.cog_subcommand(base="bot", base_description="Bot settings", name="mute", description="Stop me from responding to non-command messages or not")
   @commands.has_guild_permissions(manage_channels=True)
   @checks.slash(user=True, private=False)
   async def slash_settings_bot_mute(self, ctx):
@@ -102,7 +102,7 @@ class ServerManage(GlobalCog):
     post = await self.settings_bot_chat_channel(ctx)
     await ctx.reply(**post)
 
-  @cog_ext.cog_subcommand(base="bot", base_description="Bot settings", name="chatchannel", description="Set the current text channel so that I will always try to respond", guild_ids=[243159711237537802])
+  @cog_ext.cog_subcommand(base="bot", base_description="Bot settings", name="chatchannel", description="Set the current text channel so that I will always try to respond")
   @commands.has_guild_permissions(manage_channels=True)
   @checks.slash(user=True, private=False)
   async def slash_settings_bot_chat_channel(self, ctx):
