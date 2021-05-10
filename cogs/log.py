@@ -1,4 +1,3 @@
-import json
 import logging
 import aiohttp
 import datetime
@@ -66,6 +65,8 @@ class Log(commands.Cog):
     self.bot.remove_guild = self.remove_guild
     # self.bot.set_all_guilds = self.set_all_guilds
 
+    self.bot.add_check(self.check_perms)
+
     if not hasattr(self.bot, "saved_guilds") or len(self.bot.saved_guilds) != len(self.bot.guilds):
       mydb = mydb_connect()
       servers = query(mydb, "SELECT id,prefix,autoDeleteMSGs,muted,chatChannel FROM servers")
@@ -73,6 +74,18 @@ class Log(commands.Cog):
       for guild_id, prefix, autoDeleteMSG, muted, chatChannel in servers:
         guilds.update({int(guild_id): {"prefix": str(prefix), "muted": True if muted == 1 else False, "autoDeleteMSGs": int(autoDeleteMSG), "chatChannel": int(chatChannel) if chatChannel is not None else None}})
       self.bot.saved_guilds = guilds
+
+  def check_perms(self, ctx):
+    required_perms = [("send_messages", True), ("read_messages", True), ("embed_links", True), ("read_message_history", True), ("add_reactions", True), ("manage_messages", True)]
+    guild = ctx.guild
+    me = guild.me if guild is not None else ctx.bot.user
+    permissions = ctx.channel.permissions_for(me)
+    missing = [perm for perm, value in required_perms if getattr(permissions, perm) != value]
+
+    if not missing:
+      return True
+
+    raise commands.BotMissingPermissions(missing)
 
   @commands.Cog.listener()
   async def on_shard_connect(self, shard_id):
@@ -258,56 +271,19 @@ class Log(commands.Cog):
     return self.bot.saved_guilds[guild_id]["chatChannel"]
 
   def change_guild_prefix(self, guild_id: int, prefix: str = config.defaultPrefix):
-    with open("guilds.json", "r") as pre:
-      x = json.load(pre)
-
-    x = {int(k): v for k, v in x.items()}
-    x[guild_id]["prefix"] = prefix
-    self.bot.saved_guilds = x
-    x = json.dumps(x)
-    with open("guilds.json", "w") as pre:
-      pre.write(x)
+    self.bot.saved_guilds[guild_id]["prefix"] = prefix
 
   def change_guild_delete(self, guild_id: int, delete: int = 0):
-    with open("guilds.json", "r") as pre:
-      x = json.load(pre)
+    self.bot.saved_guilds[guild_id]["autoDeleteMSGs"] = delete
 
-    x = {int(k): v for k, v in x.items()}
-    x[guild_id]["autoDeleteMSGs"] = delete
-    self.bot.saved_guilds = x
-    x = json.dumps(x)
-    with open("guilds.json", "w") as pre:
-      pre.write(x)
-
-  def change_guild_chat_channel(self, guild_id: int, chatChannel: int):
-    with open("guilds.json", "r") as pre:
-      x = json.load(pre)
-
-    x = {int(k): v for k, v in x.items()}
-    x[guild_id]["chatChannel"] = chatChannel
-    self.bot.saved_guilds = x
-    x = json.dumps(x)
-    with open("guilds.json", "w") as pre:
-      pre.write(x)
+  def change_guild_chat_channel(self, guild_id: int, chatChannel: int = None):
+    self.bot.saved_guilds[guild_id]["chatChannel"] = chatChannel
 
   def set_guild(self, guild_id: int, prefix: str = config.defaultPrefix, autoDeleteMSG: int = None, chatChannel: int = None):
-    with open("guilds.json", "r") as pre:
-      x = json.load(pre)
-    x.update({guild_id: {"prefix": prefix, "autoDeleteMSGs": autoDeleteMSG, "chatChannel": chatChannel if chatChannel is not None else None}})
-    self.bot.saved_guilds = x
-    x = json.dumps(x)
-    with open("guilds.json", "w") as pre:
-      pre.write(x)
+    self.bot.saved_guilds.update({guild_id: {"prefix": prefix, "autoDeleteMSGs": autoDeleteMSG, "chatChannel": chatChannel if chatChannel is not None else None}})
 
   def remove_guild(self, guild_id: int):
-    with open("guilds.json", "r") as pre:
-      x = json.load(pre)
-      x.pop(guild_id, None)
-    x = {int(k): v for k, v in x.items()}
-    self.bot.saved_guilds = x
-    x = json.dumps(x)
-    with open("guilds.json", "w") as pre:
-      pre.write(x)
+    self.bot.saved_guilds.pop(guild_id, None)
 
   # async def on_slash_command_error(self, ctx, *args, **kwargs):
   #   print("somethign")

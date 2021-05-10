@@ -55,17 +55,6 @@ class Friday(commands.AutoShardedBot):
     for cog in cogs.default:
       self.load_extension(f"cogs.{cog}")
 
-    self.add_check(
-        commands.bot_has_permissions(
-            send_messages=True,
-            read_messages=True,
-            embed_links=True,
-            read_message_history=True,
-            add_reactions=True,
-            manage_messages=True
-        ).predicate
-    )
-
   async def get_context(self, message, *, cls=functions.MyContext):
     return await super().get_context(message, cls=cls)
 
