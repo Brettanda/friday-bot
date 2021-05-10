@@ -7,9 +7,9 @@ from dotenv import load_dotenv
 
 from index import Friday
 
-from create_trans_key import run
+# from create_trans_key import run
 
-load_dotenv()
+load_dotenv(dotenv_path="./.env")
 TOKEN = os.environ.get('TOKENTEST')
 
 
@@ -28,8 +28,8 @@ class Friday_testing(Friday):
 
 # TODO: Add a check for functions modules/files not being named the same as the functions/defs
 
-def test_translate_key_gen():
-  run()
+# def test_translate_key_gen():
+#   run()
 
 
 def test_will_it_blend():
