@@ -50,6 +50,7 @@ class Log(commands.Cog):
     self.bot.log_join = self.log_join
     self.bot.log_chat = self.log_chat
     self.bot.log_errors = self.log_errors
+    self.bot.log_spammer = self.log_spammer
 
     self.bot.get_prefixes = self.get_prefixes
     self.bot.get_guild_delete_commands = self.get_guild_delete_commands
