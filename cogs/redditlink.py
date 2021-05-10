@@ -11,7 +11,7 @@ import youtube_dl
 from discord.ext import commands
 from discord_slash import cog_ext
 
-from functions import MessageColors, embed
+from functions import MessageColors, embed, GlobalCog
 
 ytdl_format_options = {
     # 'format': 'bestvideo+bestaudio/worstvideo+worstaudio',
@@ -37,9 +37,9 @@ ytdl_format_options = {
 ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
 
 
-class redditlink(commands.Cog):
+class redditlink(GlobalCog):
   def __init__(self, bot):
-    self.bot = bot
+    super().__init__(bot)
     self.emoji = "🔗"
     self.pattern = r"https://www.reddit.com/r/[a-zA-Z0-9-_]+/comments/[a-zA-Z0-9]+/[a-zA-Z0-9_-]+"
     self.patternspoiler = r"||https://www.reddit.com/r/[a-zA-Z0-9-_]+/comments/[a-zA-Z0-9]+/[a-zA-Z0-9_-]+||"

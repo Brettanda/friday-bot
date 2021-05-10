@@ -4,21 +4,20 @@ import typing
 
 from discord.ext import commands
 
-from functions import embed, mydb_connect, query
+from functions import embed, mydb_connect, query, GlobalCog
 
 # from discord_slash import cog_ext,SlashContext
 
 
-class CustomJoinLeave(commands.Cog):
-  def __init__(self, bot):
-    self.bot = bot
+class CustomJoinLeave(GlobalCog):
 
   def cog_check(self, ctx):
     if ctx.guild is None:
       raise commands.NoPrivateMessage("This command can only be used within a guild")
     return True
 
-  @commands.command(name="customjoin", aliases=["cjoin"], description="To remove your sound call this command with no arguments")
+  @commands.command(name="customjoin", aliases=["cjoin"], description="To remove your sound call this command with no arguments", hidden=True)
+  @commands.is_owner()
   async def custom_join(self, ctx, url: typing.Optional[str] = None):
     async with ctx.typing():
       mydb = mydb_connect()
@@ -35,7 +34,8 @@ class CustomJoinLeave(commands.Cog):
       query(mydb, "UPDATE servers SET customJoinLeave=%s WHERE id=%s", json.dumps(reactions), ctx.guild.id)
     await ctx.reply(embed=embed(title=f"The new join sound for `{ctx.author}` is now `{url}`"))
 
-  @commands.command(name="customleave", aliases=["cleave"], description="To remove your sound call this command with no arguments")
+  @commands.command(name="customleave", aliases=["cleave"], description="To remove your sound call this command with no arguments", hidden=True)
+  @commands.is_owner()
   async def custom_leave(self, ctx, url: typing.Optional[str] = None):
     async with ctx.typing():
       mydb = mydb_connect()

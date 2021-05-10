@@ -2,13 +2,10 @@ from discord.ext import commands
 
 from discord_slash import cog_ext
 
-from functions import embed, mydb_connect, query
+from functions import embed, mydb_connect, query, GlobalCog
 
 
-class ServerInfo(commands.Cog):
-  def __init__(self, bot):
-    self.bot = bot
-
+class ServerInfo(GlobalCog):
   @commands.command(name="serverinfo")
   @commands.guild_only()
   async def norm_server_info(self, ctx):
@@ -18,7 +15,6 @@ class ServerInfo(commands.Cog):
   @cog_ext.cog_slash(name="serverinfo", description="Info about a server")
   @commands.guild_only()
   async def slash_server_info(self, ctx):
-    print("shit")
     post = await self.server_info(ctx)
     await ctx.send(**post)
 

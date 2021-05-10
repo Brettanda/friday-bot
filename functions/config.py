@@ -1,9 +1,24 @@
-{
-  "prefix": "!",
-  "delMSGtimeout": 40000,
-  "typingTime": 3000,
-  "description": "Hello, my name is Friday, I am a chatbot built with TensorFlow and Keras, meaning I enjoy conversations. I also have a few commands for fun and moderating your servers!",
-  "games": [
+import discord
+
+defaultPrefix = "!"
+
+description = "Hello, my name is Friday, I am a chatbot built with TensorFlow and Keras, meaning I enjoy conversations. I also have a few commands for fun and moderating your servers!"
+
+reloadable_bot = "cogs.log"
+
+intents = discord.Intents(
+    guilds=True,
+    voice_states=True,
+    messages=True,
+    reactions=True,
+    # Members intent required for giving roles appon a member
+    # joining a guild, and for reaction roles that will come soon
+    # members=True
+)
+
+allowed_mentions = discord.AllowedMentions(roles=False, everyone=False, users=True)
+
+games = [
     "Developing myself",
     "Minecraft",
     "Use !help For commands",
@@ -35,8 +50,10 @@
     "Giving out inspirational quotes",
     "Among us",
     "[she/her]"
-  ],
-  "soups": [
+
+]
+
+soups = [
     "https://cdn.discordapp.com/attachments/503687266594586634/504016368618700801/homemade-chicken-noodle-soup.png",
     "https://cdn.discordapp.com/attachments/503687266594586634/504016424801402891/chicken-noodle-soup-from-scratch-feature.png",
     "https://cdn.discordapp.com/attachments/503687266594586634/504017222377668610/pumpkin-soup-with-a-twist-71237-1.png",
@@ -75,62 +92,66 @@
     "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSx3bhfnnLFVjULL_Fum2LR3j54u7zx7Q_tsCqGrg9zg-w_mmjvsQ",
     "https://www.bbcgoodfood.com/sites/default/files/styles/teaser_item/public/recipe/recipe-image/2018/10/cauliflower-soup-with-fancy-chorizo-topping.jpg?itok=eYP9xgNk",
     "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRbJOhpQo-oi8HWToVw6ZZQYfEbqwxiJGz2FnzUaXPR68yh-PKJ"
-  ],
-  "unoCards": [
+]
+
+
+unoCards = [
     "https://images-ext-1.discordapp.net/external/8lkW_Oc75LUsInVfw-SHFmixndOid-lriow7ld69ynI/%3Fitemid%3D13032597/https/media1.tenor.com/images/8a650dbffd5d35fcfa81816bcff1bbf9/tenor.gif",
     "https://i.imgur.com/yXEiYQ4.png",
     "https://i.redd.it/wiga0fsqors11.png"
-  ],
-  "theGame": [
-    "https://tenor.com/view/the-game-you-lost-simon-pegg-shaun-of-the-dead-gif-15513407",
-    "https://media1.tenor.com/images/4ee6e56242913c21e7581a1d38748b15/tenor.gif"
-  ],
-  "inspImages": [
-    "https://cdn.discordapp.com/attachments/243945221086248961/750276288169771108/nur-bayraktepe-TBWYkMaDElk-unsplash_1.jpg",
-    "https://cdn.discordapp.com/attachments/243945221086248961/750276629263286292/lynda-b-qCejnWFEs54-unsplash_2.jpg",
-    "https://cdn.discordapp.com/attachments/243945221086248961/750434086908067880/veronica-reverse-diAIZW5IWBY-unsplash.jpg",
-    "https://cdn.discordapp.com/attachments/243945221086248961/750434222405058580/racim-amr-8KKGTKmULU8-unsplash.jpg",
-    "https://cdn.discordapp.com/attachments/243945221086248961/750434504962867240/george-howden-CxvpmTTlj2M-unsplash.jpg",
-    "https://cdn.discordapp.com/attachments/243945221086248961/750435116202983484/solen-feyissa-g5CAJdzndhI-unsplash.jpg",
-    "https://cdn.discordapp.com/attachments/243945221086248961/750435323812773998/waldemar-brandt-WX65IQ6BX18-unsplash.jpg"
-  ],
-  "inspImageSources": [
-    "Photo by Nur Bayraktepe on Unsplash",
-    "Photo by Lynda B on Unsplash",
-    "Photo by Veronica Reverse on Unsplash",
-    "Photo by Racim Amr on Unsplash",
-    "Photo by George Howden on Unsplash",
-    "Photo by Solen Feyissa on Unsplash",
-    "Photo by Waldemar Brandt on Unsplash"
-  ],
-  "inspImageQuotes": [
-    "Lechuga",
-    "Manzana",
-    "Peace",
-    ":)",
-    "Love, Laugh, Live",
-    "GTFO",
-    "If you are not first, you are last",
-    "Have you eaten?",
-    "@everyone",
-    "@here",
-    "Drink some water!",
-    "Have you eaten yet today?",
-    "If at first you don't succeed,\n then skydiving definitely\n isn't for you.",
-    "People who wonder\nwhether the glass is\nhalf empty or half full\nare missing the point.\n\nThe glass is REFFILABLE!",
-    "The elevator to success\nis out of order.\nYou'll need to use the stairs...\none step at a time.",
-    "When nothing\ngoes right...\n\ngo left.",
-    "When life gives\nyou lemons,\ngo outside and\ntake a walk",
-    "When life gives\nyou lemons",
-    "When life has you down\nput on some lip chap",
-    "Alt + F4\nis the solution to\nall of life's\nproblems",
-    "E",
-    "Empty the grease tray",
-    "You are not insane",
-    "Bruh",
-    "Lemons",
-    "Pineapple",
-    "Eat your vegetables",
-    "Where there's a will"
-  ]
-}
+]
+
+# {
+#     "theGame": [
+#         "https://tenor.com/view/the-game-you-lost-simon-pegg-shaun-of-the-dead-gif-15513407",
+#         "https://media1.tenor.com/images/4ee6e56242913c21e7581a1d38748b15/tenor.gif"
+#     ],
+#     "inspImages": [
+#         "https://cdn.discordapp.com/attachments/243945221086248961/750276288169771108/nur-bayraktepe-TBWYkMaDElk-unsplash_1.jpg",
+#         "https://cdn.discordapp.com/attachments/243945221086248961/750276629263286292/lynda-b-qCejnWFEs54-unsplash_2.jpg",
+#         "https://cdn.discordapp.com/attachments/243945221086248961/750434086908067880/veronica-reverse-diAIZW5IWBY-unsplash.jpg",
+#         "https://cdn.discordapp.com/attachments/243945221086248961/750434222405058580/racim-amr-8KKGTKmULU8-unsplash.jpg",
+#         "https://cdn.discordapp.com/attachments/243945221086248961/750434504962867240/george-howden-CxvpmTTlj2M-unsplash.jpg",
+#         "https://cdn.discordapp.com/attachments/243945221086248961/750435116202983484/solen-feyissa-g5CAJdzndhI-unsplash.jpg",
+#         "https://cdn.discordapp.com/attachments/243945221086248961/750435323812773998/waldemar-brandt-WX65IQ6BX18-unsplash.jpg"
+#     ],
+#     "inspImageSources": [
+#         "Photo by Nur Bayraktepe on Unsplash",
+#         "Photo by Lynda B on Unsplash",
+#         "Photo by Veronica Reverse on Unsplash",
+#         "Photo by Racim Amr on Unsplash",
+#         "Photo by George Howden on Unsplash",
+#         "Photo by Solen Feyissa on Unsplash",
+#         "Photo by Waldemar Brandt on Unsplash"
+#     ],
+#     "inspImageQuotes": [
+#         "Lechuga",
+#         "Manzana",
+#         "Peace",
+#         ":)",
+#         "Love, Laugh, Live",
+#         "GTFO",
+#         "If you are not first, you are last",
+#         "Have you eaten?",
+#         "@everyone",
+#         "@here",
+#         "Drink some water!",
+#         "Have you eaten yet today?",
+#         "If at first you don't succeed,\n then skydiving definitely\n isn't for you.",
+#         "People who wonder\nwhether the glass is\nhalf empty or half full\nare missing the point.\n\nThe glass is REFFILABLE!",
+#         "The elevator to success\nis out of order.\nYou'll need to use the stairs...\none step at a time.",
+#         "When nothing\ngoes right...\n\ngo left.",
+#         "When life gives\nyou lemons,\ngo outside and\ntake a walk",
+#         "When life gives\nyou lemons",
+#         "When life has you down\nput on some lip chap",
+#         "Alt + F4\nis the solution to\nall of life's\nproblems",
+#         "E",
+#         "Empty the grease tray",
+#         "You are not insane",
+#         "Bruh",
+#         "Lemons",
+#         "Pineapple",
+#         "Eat your vegetables",
+#         "Where there's a will"
+#     ]
+# }

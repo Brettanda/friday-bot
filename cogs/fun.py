@@ -9,15 +9,15 @@ from discord_slash import cog_ext
 from discord_slash.utils.manage_commands import create_choice, create_option, SlashCommandOptionType
 
 # sys.path.insert(1, os.path.join(sys.path[0], '..'))
-from functions import MessageColors, embed, exceptions, checks
+from functions import MessageColors, embed, exceptions, checks, GlobalCog
 
 with open('./config.json') as f:
   config = json.load(f)
 
 
-class Fun(commands.Cog):
+class Fun(GlobalCog):
   def __init__(self, bot):
-    self.bot = bot
+    super().__init__(bot)
     self.rpsoptions = ["rock", "paper", "scissors"]
     # self.timeouter = None
     # self.timeoutCh = None
@@ -414,10 +414,10 @@ class Fun(commands.Cog):
       return await ctx.reply(embed=embed(title="You don't have permission to mention that role", color=MessageColors.ERROR))
 
     if slash:
-      message = await ctx.send(content=f"{role.mention} {message if message is not None else ''}", allowed_mentions=discord.AllowedMentions(roles=True, everyone=False))
+      message = await ctx.send(content=f"{role.mention} {message if message is not None else ''}", allowed_mentions=discord.AllowedMentions(roles=True, everyone=False, users=False))
     else:
       await ctx.delete()
-      message = await ctx.reply(content=f"{role.mention} {message if message is not None else ''}", allowed_mentions=discord.AllowedMentions(roles=True, everyone=False))
+      message = await ctx.reply(content=f"{role.mention} {message if message is not None else ''}", allowed_mentions=discord.AllowedMentions(roles=True, everyone=False, users=False))
 
     await message.add_reaction("👍")
     await message.add_reaction("👎")

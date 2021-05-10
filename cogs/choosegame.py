@@ -1,24 +1,22 @@
 import json
 import os
+import asyncio
 from numpy import random
 
 import discord
-from discord.ext import commands, tasks
+from discord.ext import tasks
+from functions import GlobalCog
 
-with open(
-    os.path.join(os.path.dirname(
-        os.path.abspath(__file__)), "..", "config.json")
-) as f:
+with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "config.json")) as f:
   config = json.load(f)
 
 
-class ChooseGame(commands.Cog):
+class ChooseGame(GlobalCog):
   def __init__(self, bot):
-    self.bot = bot
-    self.loop = bot.loop
+    super().__init__(bot)
     self.choose_game.start()
 
-  @tasks.loop(minutes=float(random.randint(15, 45)))
+  @tasks.loop(minutes=10.0)
   async def choose_game(self):
     for shard_id in self.bot.shards:
       gm = random.choice(config["games"])
@@ -33,6 +31,7 @@ class ChooseGame(commands.Cog):
         )
       else:
         await self.bot.change_presence(activity=None, shard_id=shard_id)
+    await asyncio.sleep(float(random.randint(5, 45)))
 
   @choose_game.before_loop
   async def before_choose_game(self):

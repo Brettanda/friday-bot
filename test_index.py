@@ -2,17 +2,15 @@ import asyncio
 import logging
 import os
 
-import discord
 from discord.ext import tasks
 from dotenv import load_dotenv
 
-from functions.mysql_connection import query_prefix
 from index import Friday
 
-load_dotenv()
-TOKEN = os.environ.get('TOKENTEST')
+# from create_trans_key import run
 
-intents = discord.Intents.default()
+load_dotenv(dotenv_path="./.env")
+TOKEN = os.environ.get('TOKENTEST')
 
 
 class Friday_testing(Friday):
@@ -28,8 +26,14 @@ class Friday_testing(Friday):
     assert await self.close()
 
 
+# TODO: Add a check for functions modules/files not being named the same as the functions/defs
+
+# def test_translate_key_gen():
+#   run()
+
+
 def test_will_it_blend():
-  bot = Friday_testing(command_prefix=query_prefix or "!", case_insensitive=True, intents=intents, owner_id=215227961048170496)
+  bot = Friday_testing()
   loop = asyncio.get_event_loop()
   try:
     loop.run_until_complete(bot.start(TOKEN, bot=True))

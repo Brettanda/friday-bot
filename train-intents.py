@@ -9,9 +9,10 @@ import numpy as np
 from keras.layers import Dense, Dropout  # , Activation
 from keras.models import Sequential
 from keras.optimizers import SGD
-from nltk.stem.lancaster import LancasterStemmer
+from nltk.stem import PorterStemmer
+# from nltk.stem.lancaster import LancasterStemmer
+from nltk.sentiment import SentimentIntensityAnalyzer
 
-stemmer = LancasterStemmer()
 os.add_dll_directory("C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v10.1\\bin")
 os.add_dll_directory("C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v10.1\\libnvvp")
 os.add_dll_directory("C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v10.1")
@@ -21,26 +22,34 @@ os.add_dll_directory("C:\\tools\\cuda\\bin")
 os.add_dll_directory("C:\\tools\\cuda")
 os.add_dll_directory("C:\\Program Files\\NVIDIA Corporation\\Nsight Compute 2019.4.0")
 
+try:
+  nltk.data.find('vader_lexicon')
+except LookupError:
+  nltk.download('vader_lexicon')
+
+stemmer = PorterStemmer()
+sia = SentimentIntensityAnalyzer()
+
 words = []
 classes = []
 documents = []
-ignore_words = ['?']
+ignore_words = ['?', '.', ',', '!']
 # loop through each sentence in our intents patterns
 
 with open("ml/intents.json", encoding="utf8") as f:
   intents = json.load(f)
 
-new = []
-for intent in intents:
-  if int(intent["priority"]) > 0:
-    new.append(intent)
+  with open("ml/current_intents.json", mode="w", encoding="utf8") as a:
+    a.write(json.dumps(intents, indent=2, sort_keys=False))
+
+new = [intent for intent in intents if intent["priority"] > 0]
 
 intents = new
 
 for intent in intents:
   for pattern in intent['patterns']:
     # tokenize each word in the sentence
-    w = nltk.word_tokenize(pattern)
+    w = nltk.word_tokenize("".join([p["text"] for p in pattern]))
     # add to our words list
     words.extend(w)
     # add to documents in our corpus
@@ -73,6 +82,16 @@ for doc in documents:
   pattern_words = doc[0]
   # stem each word - create base word, in attempt to represent related words
   pattern_words = [stemmer.stem(word.lower()) for word in pattern_words]
+
+  sentiment = sia.polarity_scores(" ".join(doc[0]))
+
+  # bag.insert(0, sentiment["neg"])
+  # bag.insert(0, sentiment["neu"])
+  # bag.insert(0, sentiment["pos"])
+  # bag.insert(0, 1 if "friday" in [d.lower() for d in doc[0]] else 0)
+  # bag.insert(0, sentiment["compound"])
+  # bag.insert(0, 0)
+
   # create our bag of words array with 1, if word match found in current pattern
   for w in words:
     bag.append(1) if w in pattern_words else bag.append(0)
@@ -83,6 +102,7 @@ for doc in documents:
 
   training.append([bag, output_row])
 # shuffle our features and turn into np.array
+
 random.shuffle(training)
 training = np.array(training)
 # create train and test lists. X - patterns, Y - intents
@@ -94,11 +114,11 @@ train_y = list(training[:, 1])
 model = Sequential()
 # model.add(Dense(256, input_shape=(len(train_x[0]),), activation='relu'))
 model.add(Dense(128, input_shape=(len(train_x[0]),), activation='relu'))
-model.add(Dropout(0.25))
+model.add(Dropout(0.20))
 # model.add(Dense(128, activation='relu'))
 # model.add(Dropout(0.25))
 model.add(Dense(64, activation='relu'))
-model.add(Dropout(0.25))
+model.add(Dropout(0.20))
 model.add(Dense(len(train_y[0]), activation='softmax'))
 
 # Compile model. Stochastic gradient descent with Nesterov accelerated gradient gives good results for this model

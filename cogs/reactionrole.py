@@ -3,13 +3,13 @@ import asyncio
 import discord
 from discord.ext import commands
 
-from cogs.cleanup import get_delete_time
-from functions import embed
+# from cogs.cleanup import get_delete_time
+from functions import embed, GlobalCog
 
 
-class ReactionRole(commands.Cog):
+class ReactionRole(GlobalCog):
   def __init__(self, bot):
-    self.bot = bot
+    super().__init__(bot)
     self.msgs = {}
 
   def cog_check(self, ctx):
@@ -86,8 +86,6 @@ class ReactionRole(commands.Cog):
   @commands.has_guild_permissions(manage_roles=True)
   @commands.bot_has_guild_permissions(manage_roles=True)
   async def reaction_role(self, ctx, message: discord.Message, *, reaction_roles: str):
-    # reaction_roles = list(reaction_roles)
-    # print(reaction_roles)
     reaction_roles = reaction_roles.split(" ")
     x = 0
     roles = {}
@@ -114,8 +112,8 @@ class ReactionRole(commands.Cog):
     await ctx.reply(embed=embed(title=f"{message.jump_url} is a new reaction role message"))
 
     await asyncio.gather(
-        ctx.message.delete(delay=await get_delete_time(ctx)),
-        msg.delete(delay=await get_delete_time(ctx))
+        ctx.message.delete(delay=self.bot.get_guild_delete_commands(ctx.guild)),
+        msg.delete(delay=self.bot.get_guild_delete_commands(ctx.guild))
     )
 
     print({f"{message.jump_url}": {**reaction_roles}})

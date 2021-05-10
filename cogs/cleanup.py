@@ -3,7 +3,7 @@ import asyncio
 # import discord
 from discord.ext import commands
 
-from functions import embed, mydb_connect, query
+from functions import embed, mydb_connect, query, GlobalCog
 
 
 async def get_delete_time(ctx: commands.Context = None, guild_id: int = None):
@@ -21,12 +21,11 @@ async def get_delete_time(ctx: commands.Context = None, guild_id: int = None):
     return
 
 
-class CleanUp(commands.Cog):
-  def __init__(self, bot):
-    self.bot = bot
-    # self.exlusions = ["meme","issue","reactionrole"]
+class CleanUp(GlobalCog):
+  # def __init__(self):
+  #   # self.exlusions = ["meme","issue","reactionrole"]
 
-  @commands.command(name="clear", description="Deletes the bots commands ignoring anything that is not a command")
+  @commands.command(name="clear", description="Deletes the bots commands ignoring anything that is not a command", hidden=True)
   @commands.is_owner()
   @commands.has_permissions(manage_channels=True)
   @commands.bot_has_permissions(manage_channels=True)

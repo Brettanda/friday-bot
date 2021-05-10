@@ -14,21 +14,17 @@ from discord_slash import SlashContext  # , cog_ext
 # from discord_slash.utils.manage_commands import create_option, create_choice
 
 from cogs.help import cmd_help, syntax
-from functions import MessageColors, embed
+from functions import embed, GlobalCog  # , MessageColors
 from index import songqueue
 
 logger = logging.getLogger(__name__)
 
 
-class Dev(commands.Cog, command_attrs=dict(hidden=True)):
+class Dev(GlobalCog, command_attrs=dict(hidden=True)):
   """Commands used by and for the developer"""
 
-  def __init__(self, bot):
-    self.bot = bot
-    self.loop = bot.loop
-
   def cog_check(self, ctx):
-    if ctx.bot.owner_id == ctx.author.id:
+    if self.bot.owner_id == ctx.author.id:
       return True
     if isinstance(ctx, SlashContext):
       return commands.NotOwner("You do not own this bot and cannot use this command")
@@ -147,7 +143,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       )
       subprocess.Popen([f"{thispath}{seperator}restart.sh"], stdin=subprocess.PIPE)
 
-  @norm_dev.command(name="reload")
+  @norm_dev.group(name="reload", invoke_without_command=True)
   async def reload(self, ctx, command: str):
     async with ctx.typing():
       com = self.bot.get_command(command)
@@ -155,6 +151,12 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
         command = com.cog_name
       self.bot.reload_extension(f"cogs.{command.lower()}")
     await ctx.reply(embed=embed(title=f"Cog *{command}* has been reloaded"))
+
+  @reload.command(name="all")
+  async def reload_all(self, ctx):
+    async with ctx.typing():
+      await self.bot.reload_cogs()
+    await ctx.reply(embed=embed(title="All cogs have been reloaded"))
 
   @norm_dev.command(name="load")
   async def load(self, ctx, command: str):
@@ -168,13 +170,14 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       self.bot.unload_extension(f"cogs.{command.lower()}")
     await ctx.reply(embed=embed(title=f"Cog *{command}* has been unloaded"))
 
-  @reload.error
-  @load.error
-  @unload.error
-  async def reload_error(self, ctx, error):
-    await ctx.reply(embed=embed(title=f"Failed to reload *{str(''.join(ctx.message.content.split(ctx.prefix+ctx.command.name+' ')))}*", color=MessageColors.ERROR))
-    print(error)
-    logger.error(error)
+  # @reload.error
+  # @load.error
+  # @unload.error
+  # async def reload_error(self, ctx, error):
+  #   if not isinstance(error, commands.NotOwner):
+  #     await ctx.reply(embed=embed(title=f"Failed to reload *{str(''.join(ctx.message.content.split(ctx.prefix+ctx.command.name+' ')))}*", color=MessageColors.ERROR))
+  #     print(error)
+  #     logger.error(error)
 
   @norm_dev.command(name="update")
   async def update(self, ctx):

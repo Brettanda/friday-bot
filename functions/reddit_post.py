@@ -18,7 +18,7 @@ async def request(url):
         url,
         headers={
             'User-Agent':
-            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.1916.47 Safari/537.36'
+            'DiscordBot (https://github.com/Rapptz/discord.py 1.7.2) Python/3.8 aiohttp/3.7.4'
         }
     ) as r:
       if r.status == 200:

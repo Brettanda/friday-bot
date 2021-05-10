@@ -7,14 +7,11 @@ from discord_slash import SlashContext, cog_ext, SlashCommandOptionType
 from discord_slash.utils.manage_commands import create_option
 
 from cogs.help import cmd_help
-from functions import MessageColors, embed, mydb_connect, query, checks, relay_info
+from functions import MessageColors, embed, mydb_connect, query, checks, relay_info, GlobalCog, config
 
 
-class ServerManage(commands.Cog):
+class ServerManage(GlobalCog):
   """Commands for managing Friday on your server"""
-
-  def __init__(self, bot):
-    self.bot = bot
 
   def cog_check(self, ctx):
     if ctx.guild is None:
@@ -49,13 +46,14 @@ class ServerManage(commands.Cog):
 
   @commands.command(name="prefix")
   @commands.has_guild_permissions(administrator=True)
-  async def _prefix(self, ctx, new_prefix: typing.Optional[str] = "!"):
+  async def _prefix(self, ctx, new_prefix: typing.Optional[str] = config.defaultPrefix):
     new_prefix = new_prefix.lower()
     if len(new_prefix) > 5:
       await ctx.reply(embed=embed(title="Can't set a prefix with more than 5 characters", color=MessageColors.ERROR))
       return
     mydb = mydb_connect()
     query(mydb, "UPDATE servers SET prefix=%s WHERE id=%s", new_prefix, ctx.guild.id)
+    self.bot.change_guild_prefix(ctx.guild.id, new_prefix)
     try:
       await ctx.reply(embed=embed(title=f"My new prefix is `{new_prefix}`"))
     except discord.Forbidden:
@@ -67,11 +65,11 @@ class ServerManage(commands.Cog):
   async def settings_bot(self, ctx):
     await cmd_help(ctx, ctx.command)
 
-  @cog_ext.cog_slash(name="bot", description="Bot settings")
-  @commands.has_guild_permissions(manage_channels=True)
-  @checks.slash(user=True, private=False)
-  async def slash_settings_bot(self, ctx):
-    print("askjdhla")
+  # @cog_ext.cog_slash(name="bot", description="Bot settings")
+  # @commands.has_guild_permissions(manage_channels=True)
+  # @checks.slash(user=True, private=False)
+  # async def slash_settings_bot(self, ctx):
+  #   print("askjdhla")
 
   @settings_bot.command(name="mute")
   @commands.guild_only()
@@ -80,7 +78,7 @@ class ServerManage(commands.Cog):
     post = await self.settings_bot_mute(ctx)
     await ctx.reply(**post)
 
-  @cog_ext.cog_subcommand(base="bot", base_description="Bot settings", name="mute", description="Stop me from responding to non-command messages or not")
+  @cog_ext.cog_subcommand(base="bot", base_description="Bot settings", name="mute", description="Stop me from responding to non-command messages or not", guild_ids=[243159711237537802])
   @commands.has_guild_permissions(manage_channels=True)
   @checks.slash(user=True, private=False)
   async def slash_settings_bot_mute(self, ctx):
@@ -96,6 +94,33 @@ class ServerManage(commands.Cog):
     else:
       query(mydb, "UPDATE servers SET muted=%s WHERE id=%s", 0, ctx.guild.id)
       return dict(embed=embed(title="I will now respond to chat message as well as commands"))
+
+  @settings_bot.command(name="chatchannel", alias="chat", description="Set the current channel so that I will always try to respond with something")
+  @commands.guild_only()
+  @commands.has_guild_permissions(manage_channels=True)
+  async def norm_settings_bot_chat_channel(self, ctx):
+    post = await self.settings_bot_chat_channel(ctx)
+    await ctx.reply(**post)
+
+  @cog_ext.cog_subcommand(base="bot", base_description="Bot settings", name="chatchannel", description="Set the current text channel so that I will always try to respond", guild_ids=[243159711237537802])
+  @commands.has_guild_permissions(manage_channels=True)
+  @checks.slash(user=True, private=False)
+  async def slash_settings_bot_chat_channel(self, ctx):
+    await ctx.defer()
+    post = await self.settings_bot_chat_channel(ctx)
+    await ctx.send(**post)
+
+  async def settings_bot_chat_channel(self, ctx):
+    mydb = mydb_connect()
+    chat_channel = query(mydb, "SELECT chatChannel FROM servers WHERE id=%s", ctx.guild.id)
+    if chat_channel is None:
+      query(mydb, "UPDATE servers SET chatChannel=%s WHERE id=%s", ctx.channel.id, ctx.guild.id)
+      self.bot.change_guild_chat_channel(ctx.guild.id, ctx.channel.id)
+      return dict(embed=embed(title="I will now (try to) respond to every message in this channel"))
+    else:
+      query(mydb, "UPDATE servers SET chatChannel=%s WHERE id=%s", None, ctx.guild.id)
+      self.bot.change_guild_chat_channel(ctx.guild.id, None)
+      return dict(embed=embed(title="I will no longer (try to) respond to all messages from this channel"))
 
   @commands.command(name="musicchannel", description="Set the channel where I can join and play music. If none then I will join any VC", hidden=True)
   @commands.is_owner()
@@ -119,6 +144,7 @@ class ServerManage(commands.Cog):
     async with ctx.typing():
       mydb = mydb_connect()
       query(mydb, "UPDATE servers SET autoDeleteMSGs=%s WHERE id=%s", time, ctx.guild.id)
+      self.bot.change_guild_delete(ctx.guild.id, time)
     if time == 0:
       await ctx.reply(embed=embed(title="I will no longer delete command messages"))
     else:
@@ -480,7 +506,7 @@ class ServerManage(commands.Cog):
         relay_info(
             f"**Begone**\nUSER: {reference.clean_content}\nME: {message.clean_content}```{message}```",
             self.bot,
-            channel=814349008007856168
+            webhook=self.bot.log_chat
         ),
         message.delete(),
         ctx.reply(embed=embed(title="Message has been removed"), delete_after=20),
