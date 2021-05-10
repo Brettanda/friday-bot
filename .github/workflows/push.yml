@@ -55,7 +55,7 @@ jobs:
         CLIENT_ID: ${{ secrets.CLIENT_ID }}
         CLIENT_CERT_URL: ${{ secrets.CLIENT_CERT_URL }}
       run: |
-        python create_trans_key.py
+        if not [ -f friday-trans-key.json ]; then python create_trans_key.py; fi
     - name: Test with pytest
       env:
         TOKENTEST: ${{ secrets.TOKENTEST }}
