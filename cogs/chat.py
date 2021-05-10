@@ -9,11 +9,8 @@ import validators
 from discord.ext import commands
 from numpy import random
 
-# from chatml import queryGen
-from chatml import queryIntents
-# from chatml.dynamicchat import dynamicchat
 from functions import (MessageColors, dev_guilds, embed, get_reddit_post,
-                       msg_reply, relay_info, GlobalCog)
+                       msg_reply, relay_info, GlobalCog, queryIntents)
 # from functions.mysql_connection import query_prefix
 
 
