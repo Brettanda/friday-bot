@@ -73,5 +73,5 @@ jobs:
         WEBHOOKJOIN: ${{ secrets.WEBHOOKJOIN }}
         GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
       run: |
-        if [ -f friday-trans-key.json ]; then printf "google file here"; fi
+        if [ -f friday-trans-key.json ]; then printf "Google file here"; fi
         pytest
