@@ -114,11 +114,11 @@ train_y = list(training[:, 1])
 model = Sequential()
 # model.add(Dense(256, input_shape=(len(train_x[0]),), activation='relu'))
 model.add(Dense(128, input_shape=(len(train_x[0]),), activation='relu'))
-model.add(Dropout(0.15))
+model.add(Dropout(0.20))
 # model.add(Dense(128, activation='relu'))
 # model.add(Dropout(0.25))
 model.add(Dense(64, activation='relu'))
-model.add(Dropout(0.15))
+model.add(Dropout(0.20))
 model.add(Dense(len(train_y[0]), activation='softmax'))
 
 # Compile model. Stochastic gradient descent with Nesterov accelerated gradient gives good results for this model
