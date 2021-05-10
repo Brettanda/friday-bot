@@ -65,6 +65,8 @@ class Log(commands.Cog):
     self.bot.remove_guild = self.remove_guild
     # self.bot.set_all_guilds = self.set_all_guilds
 
+    # TODO: add guilds locally after guilds have been synced with the DB
+
     self.bot.add_check(self.check_perms)
 
     if not hasattr(self.bot, "saved_guilds") or len(self.bot.saved_guilds) != len(self.bot.guilds):
@@ -76,6 +78,9 @@ class Log(commands.Cog):
       self.bot.saved_guilds = guilds
 
   def check_perms(self, ctx):
+    if ctx.channel.type == discord.ChannelType.private:
+      return True
+
     required_perms = [("send_messages", True), ("read_messages", True), ("embed_links", True), ("read_message_history", True), ("add_reactions", True), ("manage_messages", True)]
     guild = ctx.guild
     me = guild.me if guild is not None else ctx.bot.user
