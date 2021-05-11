@@ -85,6 +85,7 @@ class ReactionRole(GlobalCog):
   @commands.is_owner()
   @commands.has_guild_permissions(manage_roles=True)
   @commands.bot_has_guild_permissions(manage_roles=True)
+  @commands.bot_has_permissions(manage_messages=True)
   async def reaction_role(self, ctx, message: discord.Message, *, reaction_roles: str):
     reaction_roles = reaction_roles.split(" ")
     x = 0

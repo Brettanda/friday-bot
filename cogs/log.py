@@ -82,7 +82,7 @@ class Log(commands.Cog):
     if ctx.channel.type == discord.ChannelType.private:
       return True
 
-    required_perms = [("send_messages", True), ("read_messages", True), ("embed_links", True), ("read_message_history", True), ("add_reactions", True), ("manage_messages", True)]
+    required_perms = [("send_messages", True), ("read_messages", True), ("embed_links", True), ("read_message_history", True), ("add_reactions", True)]
     guild = ctx.guild
     me = guild.me if guild is not None else ctx.bot.user
     permissions = ctx.channel.permissions_for(me)
@@ -435,33 +435,21 @@ class Log(commands.Cog):
   async def on_error(self, ctx, error):
     if isinstance(error, discord.NotFound):
       return
-    appinfo = await self.application_info()
-    owner = self.get_user(appinfo.team.owner.id)
+    appinfo = await self.bot.application_info()
+    owner = self.bot.get_user(appinfo.team.owner.id)
 
     trace = traceback.format_exc()
     if "Missing Access" in str(trace):
       return
-    # try:
-    await relay_info(
-        f"{owner.mention if self.intents.members is True else ''}\n```bash\n{trace}```",
-        self,
-        short="Error sent",
-        webhook=self.log_errors
-    )
-    # except discord.HTTPException:
-    #   with open("err.log", "w") as f:
-    #     f.write(f"{trace}")
-    #     f.close()
-    #     await relay_info(
-    #         f"{owner.mention if self.intents.members is True else ''}",
-    #         self,
-    #         file="err.log",
-    #         webhook=self.log_errors,
-    #         channel=713270561840824361
-    #     )
 
     print(trace)
     logging.error(trace)
+    await relay_info(
+        f"{owner.mention if self.bot.intents.members is True else ''}\n```bash\n{trace}```",
+        self.bot,
+        short="Error sent",
+        webhook=self.log_errors
+    )
 
 
 def setup(bot):
