@@ -82,7 +82,7 @@ class Log(commands.Cog):
     if ctx.channel.type == discord.ChannelType.private:
       return True
 
-    required_perms = [("send_messages", True), ("read_messages", True), ("embed_links", True), ("read_message_history", True), ("add_reactions", True), ("manage_messages", True)]
+    required_perms = [("send_messages", True), ("read_messages", True), ("embed_links", True), ("read_message_history", True), ("add_reactions", True)]
     guild = ctx.guild
     me = guild.me if guild is not None else ctx.bot.user
     permissions = ctx.channel.permissions_for(me)
