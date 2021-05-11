@@ -136,7 +136,7 @@ class Help(GlobalCog):
       menu = Menu(source=HelpMenu(ctx, commands),
                   delete_message_after=True,
                   clear_reactions_after=True,
-                  timeout=delay if delay is not None and delay > 0 else None)
+                  timeout=delay if delay is not None and delay > 0 else 60)
       await menu.start(ctx)
 
     else:
