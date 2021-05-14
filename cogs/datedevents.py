@@ -5,8 +5,7 @@ import os
 from datetime import date
 
 # import discord
-from discord.ext import tasks
-from functions import GlobalCog
+from discord.ext import tasks, commands
 
 # from functions import embed
 
@@ -14,9 +13,9 @@ original_image = "assets\\friday-logo.png"
 logger = logging.getLogger(__name__)
 
 
-class DatedEvents(GlobalCog):
+class DatedEvents(commands.Cog):
   def __init__(self, bot):
-    super().__init__(bot)
+    self.bot = bot
     self.dated_events.start()
     # self.events = bot.loop.create_task(self.dated_events(),name="Dated events")
 

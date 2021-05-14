@@ -3,10 +3,13 @@ import asyncio
 from discord.ext import commands
 from discord_slash import cog_ext
 
-from functions import embed, relay_info, checks, GlobalCog
+from functions import embed, relay_info, checks
 
 
-class Issue(GlobalCog):
+class Issue(commands.Cog):
+  def __init__(self, bot):
+    self.bot = bot
+
   @commands.command(name="issue", aliases=["problem"], description="If you have an issue or noticed a bug with Friday, this will send a message to the developer.", usage="<Description of issue and steps to recreate the issue>")
   @commands.cooldown(1, 30, commands.BucketType.channel)
   async def norm_feedback(self, ctx, *, issue: str):

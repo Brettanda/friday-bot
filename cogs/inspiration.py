@@ -5,10 +5,10 @@ from discord.ext import commands
 
 # import os,sys
 # sys.path.insert(1, os.path.join(sys.path[0], '..'))
-from functions import embed, GlobalCog
+from functions import embed
 
 
-class Inspiration(GlobalCog):
+class Inspiration(commands.Cog):
   """description goes here"""
 
   @commands.command(name="inspiration", hidden=True)

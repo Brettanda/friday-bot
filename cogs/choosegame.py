@@ -4,16 +4,15 @@ import asyncio
 from numpy import random
 
 import discord
-from discord.ext import tasks
-from functions import GlobalCog
+from discord.ext import tasks, commands
 
 with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "config.json")) as f:
   config = json.load(f)
 
 
-class ChooseGame(GlobalCog):
+class ChooseGame(commands.Cog):
   def __init__(self, bot):
-    super().__init__(bot)
+    self.bot = bot
     self.choose_game.start()
 
   @tasks.loop(minutes=10.0)

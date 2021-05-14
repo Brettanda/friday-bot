@@ -2,10 +2,10 @@ from discord.ext import commands
 
 from discord_slash import cog_ext
 
-from functions import embed, mydb_connect, query, GlobalCog
+from functions import embed, mydb_connect, query
 
 
-class ServerInfo(GlobalCog):
+class ServerInfo(commands.Cog):
   @commands.command(name="serverinfo")
   @commands.guild_only()
   async def norm_server_info(self, ctx):

@@ -6,7 +6,7 @@ from discord.utils import get
 from discord_slash import cog_ext, SlashContext
 
 # from cogs.cleanup import get_delete_time
-from functions import MessageColors, embed, checks, GlobalCog
+from functions import MessageColors, embed, checks
 
 
 def syntax(command, quotes: bool = True):
@@ -97,9 +97,9 @@ async def cmd_help(ctx: commands.Context or SlashContext, command, message: str 
     await ctx.reply(embed=embed)
 
 
-class Help(GlobalCog):
+class Help(commands.Cog):
   def __init__(self, bot):
-    super().__init__(bot)
+    self.bot = bot
     self.bot.remove_command("help")
 
   @commands.command(name="help", aliases=["?", "commands"], usage="<command/group>")

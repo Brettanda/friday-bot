@@ -10,7 +10,7 @@ from discord.ext import commands
 from numpy import random
 
 from functions import (MessageColors, dev_guilds, embed, get_reddit_post,
-                       msg_reply, relay_info, GlobalCog, queryIntents)
+                       msg_reply, relay_info, queryIntents)
 # from functions.mysql_connection import query_prefix
 
 
@@ -22,9 +22,9 @@ with open('./config.json') as f:
 logger = logging.getLogger(__name__)
 
 
-class Chat(GlobalCog):
+class Chat(commands.Cog):
   def __init__(self, bot):
-    super().__init__(bot)
+    self.bot = bot
     self.translate_client = translate.Client()
 
   def translate_request(self, text: str, detect=False, from_lang="en", to_lang="en"):
