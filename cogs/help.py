@@ -103,7 +103,6 @@ class Help(commands.Cog):
     self.bot.remove_command("help")
 
   @commands.command(name="help", aliases=["?", "commands"], usage="<command/group>")
-  @commands.bot_has_permissions(add_reactions=True)
   async def norm_show_help(self, ctx, group: str = None, cmd: str = None):
     await self.show_help(ctx, group, cmd)
 
