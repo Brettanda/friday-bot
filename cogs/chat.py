@@ -130,9 +130,9 @@ class Chat(commands.Cog):
         print(f"\nIntent: {intent}\t{chance}\n\t| sentiment: {sentiment}\n\t| incoming Context: {incomingContext}\n\t| outgoing Context: {outgoingContext}\n\t| input: {ctx.clean_content}\n\t| translated text: {translation['translatedText']}\n\t| found in bag: {inbag}\n\t| en response: {non_trans_result}\n\t\\No response found: {ctx.clean_content.encode('unicode_escape')}")
         logger.info(f"\nIntent: {intent}\t{chance}\n\t| sentiment: {sentiment}\n\t| incoming Context: {incomingContext}\n\t| outgoing Context: {outgoingContext}\n\t| input: {ctx.clean_content}\n\t| translated text: {translation['translatedText']}\n\t| found in bag: {inbag}\n\t| en response: {non_trans_result}\n\t\\No response found: {ctx.clean_content.encode('unicode_escape')}")
         if "friday" in ctx.clean_content.lower() or self.bot.user in ctx.mentions:
-          await relay_info("", self.bot, embed=embed(title="I think i should respond to this", description=f"{original_text}{(' translated to `'+translation['detectedSourceLanguage']+'`') if translation['detectedSourceLanguage'] != 'en' else ''}"), webhook=self.bot.log_chat)
-          print(f"I think I should respond to this: {original_text}{(' translated to `'+translation['detectedSourceLanguage']+'`') if translation['detectedSourceLanguage'] != 'en' else ''}")
-          logger.info(f"I think I should respond to this: {original_text}{(' translated to `'+original_text+'`') if translation['detectedSourceLanguage'] != 'en' else ''}")
+          await relay_info("", self.bot, embed=embed(title="I think i should respond to this", description=f"{original_text}{(' translated to `'+translation['translatedText']+'`') if translation['detectedSourceLanguage'] != 'en' else ''}"), webhook=self.bot.log_chat)
+          print(f"I think I should respond to this: {original_text}{(' translated to `'+translation['translatedText']+'`') if translation['detectedSourceLanguage'] != 'en' else ''}")
+          logger.info(f"I think I should respond to this: {original_text}{(' translated to `'+translation['translatedText']+'`') if translation['detectedSourceLanguage'] != 'en' else ''}")
 
       if result is not None and result != '':
         if "dynamic" in result:
