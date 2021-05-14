@@ -4,7 +4,7 @@ defaultPrefix = "!"
 
 description = "Hello, my name is Friday, I am a chatbot built with TensorFlow and Keras, meaning I enjoy conversations. I also have a few commands for fun and moderating your servers!"
 
-reloadable_bot = "cogs.log"
+reloadable_bot = "Log"
 
 intents = discord.Intents(
     guilds=True,

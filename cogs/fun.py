@@ -9,15 +9,15 @@ from discord_slash import cog_ext
 from discord_slash.utils.manage_commands import create_choice, create_option, SlashCommandOptionType
 
 # sys.path.insert(1, os.path.join(sys.path[0], '..'))
-from functions import MessageColors, embed, exceptions, checks, GlobalCog
+from functions import MessageColors, embed, exceptions, checks
 
 with open('./config.json') as f:
   config = json.load(f)
 
 
-class Fun(GlobalCog):
+class Fun(commands.Cog):
   def __init__(self, bot):
-    super().__init__(bot)
+    self.bot = bot
     self.rpsoptions = ["rock", "paper", "scissors"]
     # self.timeouter = None
     # self.timeoutCh = None

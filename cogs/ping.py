@@ -1,10 +1,10 @@
 from discord.ext import commands
 from discord_slash import cog_ext
 
-from functions import embed, GlobalCog
+from functions import embed
 
 
-class Ping(GlobalCog):
+class Ping(commands.Cog):
   @commands.command(name="ping", description="Pong!")
   async def norm_ping(self, ctx):
     await ctx.reply(**await self.ping(ctx))

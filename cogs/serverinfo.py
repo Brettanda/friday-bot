@@ -2,10 +2,10 @@ from discord.ext import commands
 
 from discord_slash import cog_ext
 
-from functions import embed, mydb_connect, query, GlobalCog
+from functions import embed, mydb_connect, query
 
 
-class ServerInfo(GlobalCog):
+class ServerInfo(commands.Cog):
   @commands.command(name="serverinfo")
   @commands.guild_only()
   async def norm_server_info(self, ctx):
@@ -26,8 +26,10 @@ class ServerInfo(GlobalCog):
         embed=embed(
             title=ctx.guild.name + " - Info",
             thumbnail=ctx.guild.icon_url,
-            fieldstitle=["Server Name", "Members", "Server ID", "Region", "Verification level", "Command prefix", "Delete Commands After", "Music Channel", "Default Role"],
-            fieldsval=[ctx.guild.name, ctx.guild.member_count, ctx.guild.id, ctx.guild.region, ctx.guild.verification_level, prefix, f"{delete_after} seconds", ctx.guild.get_channel(musicchannel), ctx.guild.get_role(defaultRole)]
+            fieldstitle=["Server Name", "Members", "Server ID", "Region", "Verification level", "Command prefix", "Delete Commands After"],
+            fieldsval=[ctx.guild.name, ctx.guild.member_count, ctx.guild.id, ctx.guild.region, ctx.guild.verification_level, prefix, f"{delete_after} seconds"]
+            # fieldstitle=["Server Name", "Members", "Server ID", "Region", "Verification level", "Command prefix", "Delete Commands After", "Music Channel", "Default Role"],
+            # fieldsval=[ctx.guild.name, ctx.guild.member_count, ctx.guild.id, ctx.guild.region, ctx.guild.verification_level, prefix, f"{delete_after} seconds", ctx.guild.get_channel(musicchannel), ctx.guild.get_role(defaultRole)]
         )
     )
 

@@ -1,10 +1,13 @@
 from discord.ext import commands
 from discord_slash import cog_ext
 
-from functions import embed, GlobalCog
+from functions import embed
 
 
-class Info(GlobalCog):
+class Info(commands.Cog):
+  def __init__(self, bot):
+    self.bot = bot
+
   @commands.group(name="info", description="Displays some information about myself :)")
   async def norm_info(self, ctx):
     await ctx.reply(**await self.info(ctx))

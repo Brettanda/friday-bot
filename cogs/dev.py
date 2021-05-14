@@ -14,14 +14,16 @@ from discord_slash import SlashContext  # , cog_ext
 # from discord_slash.utils.manage_commands import create_option, create_choice
 
 from cogs.help import cmd_help, syntax
-from functions import embed, GlobalCog  # , MessageColors
-from index import songqueue
+from functions import embed  # , MessageColors
 
 logger = logging.getLogger(__name__)
 
 
-class Dev(GlobalCog, command_attrs=dict(hidden=True)):
+class Dev(commands.Cog, command_attrs=dict(hidden=True)):
   """Commands used by and for the developer"""
+
+  def __init__(self, bot):
+    self.bot = bot
 
   def cog_check(self, ctx):
     if self.bot.owner_id == ctx.author.id:
@@ -117,13 +119,13 @@ class Dev(GlobalCog, command_attrs=dict(hidden=True)):
       return
 
     self.bot.restartPending = True
-    stat = await ctx.reply(embed=embed(title="Pending"))
-    if len(songqueue) > 0 and force is False:
-      await stat.edit(embed=embed(title=f"{len(songqueue)} guilds are playing music"))
-      while len(songqueue) > 0:
-        await stat.edit(embed=embed(title=f"{len(songqueue)} guilds are playing music"))
+    stat = await ctx.reply(embed=embed(title="Pending"), delete_after=None)
+    if len(self.bot.voice_clients) > 0 and force is False:
+      await stat.edit(embed=embed(title=f"{len(self.bot.voice_clients)} guilds are playing music"))
+      while len(self.bot.voice_clients) > 0:
+        await stat.edit(embed=embed(title=f"{len(self.bot.voice_clients)} guilds are playing music"))
         await asyncio.sleep(1)
-      await stat.edit(embed=embed(title=f"{len(songqueue)} guilds are playing music"))
+      await stat.edit(embed=embed(title=f"{len(self.bot.voice_clients)} guilds are playing music"))
     # if len(songqueue) is 0 or force is True:
     thispath = os.getcwd()
     if "\\" in thispath:

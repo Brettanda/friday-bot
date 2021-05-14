@@ -10,7 +10,7 @@ from discord.ext import commands
 from numpy import random
 
 from functions import (MessageColors, dev_guilds, embed, get_reddit_post,
-                       msg_reply, relay_info, GlobalCog, queryIntents)
+                       msg_reply, relay_info, queryIntents)
 # from functions.mysql_connection import query_prefix
 
 
@@ -22,9 +22,9 @@ with open('./config.json') as f:
 logger = logging.getLogger(__name__)
 
 
-class Chat(GlobalCog):
+class Chat(commands.Cog):
   def __init__(self, bot):
-    super().__init__(bot)
+    self.bot = bot
     self.translate_client = translate.Client()
 
   def translate_request(self, text: str, detect=False, from_lang="en", to_lang="en"):
@@ -64,7 +64,7 @@ class Chat(GlobalCog):
       return
 
     if not ctx.content.startswith(tuple(self.bot.get_prefixes())):
-      noContext = ["Title of your sex tape", "I dont want to talk to a chat bot", "The meaning of life?", "Birthday", "Memes", "Self Aware", "Soup Time", "No U", "I'm dad", "Bot discrimination"]
+      noContext = ["Title of your sex tape", "I dont want to talk to a chat bot", "Self Aware", "No U", "I'm dad", "Bot discrimination"]
       lastmessages = await ctx.channel.history(limit=3).flatten()
       meinlastmessage = False
       # newest = None

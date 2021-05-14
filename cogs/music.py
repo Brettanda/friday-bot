@@ -15,7 +15,7 @@ import datetime
 import time
 # from cogs.cleanup import get_delete_time
 
-from functions import embed, MessageColors, exceptions, checks, GlobalCog  # , relay_info
+from functions import embed, MessageColors, exceptions, checks  # , relay_info
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +60,10 @@ ffmpeg_options = {
 ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
 
 
-class Music(GlobalCog):
+class Music(commands.Cog):
+  def __init__(self, bot):
+    self.bot = bot
+
   async def tryagain(self, ctx):
     # if isinstance(ctx, SlashContext):
       # await ctx.send(embed=embed(title="Something went wrong, please try again later", color=MessageColors.ERROR))

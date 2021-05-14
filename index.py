@@ -55,8 +55,8 @@ class Friday(commands.AutoShardedBot):
     for cog in cogs.default:
       self.load_extension(f"cogs.{cog}")
 
-  async def get_context(self, message, *, cls=functions.MyContext):
-    return await super().get_context(message, cls=cls)
+  async def get_context(self, message, *, cls=None):
+    return await super().get_context(message, cls=functions.MyContext)
 
   async def reload_cogs(self):
     reload(cogs)
@@ -74,6 +74,9 @@ class Friday(commands.AutoShardedBot):
       return
 
     await self.process_commands(ctx)
+
+  async def on_error(self, event_method, *args, **kwargs):
+    return await self.get_cog(functions.config.reloadable_bot).on_error(event_method, *args, **kwargs)
 
   async def close(self):
     await super().close()

@@ -3,10 +3,10 @@ import d20
 from discord.ext import commands
 from discord_slash import cog_ext
 
-from functions import embed, MessageColors, checks, GlobalCog
+from functions import embed, MessageColors, checks
 
 
-class Dice(GlobalCog):
+class Dice(commands.Cog):
   @commands.command(name="dice", aliases=["d", "r", "roll"])
   async def norm_dice(self, ctx, *, roll: str):
     if "bump" in roll:

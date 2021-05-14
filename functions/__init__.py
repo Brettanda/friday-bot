@@ -5,7 +5,6 @@ from . import exceptions, checks, config, queryIntents, queryGen
 from .myembed import embed
 
 from .custom_contexts import MyContext, MySlashContext
-from .global_cog import GlobalCog
 from .reply import msg_reply
 from .time import timeit
 from .relay import relay_info
@@ -15,4 +14,4 @@ dev_guilds = [243159711237537802, 707441352367013899, 215346091321720832]
 
 modules = [mod[:-3] for mod in os.listdir("./functions") if mod.endswith(".py") and mod != "__init__.py"]
 
-__all__ = ["MessageColors", "queryIntents", "queryGen", "config", "MyContext", "GlobalCog", "msg_reply", "MySlashContext", "timeit", "relay_info", "exceptions", "get_reddit_post", "mydb_connect", "query", "embed", "checks"]
+__all__ = ["MessageColors", "queryIntents", "queryGen", "config", "MyContext", "msg_reply", "MySlashContext", "timeit", "relay_info", "exceptions", "get_reddit_post", "mydb_connect", "query", "embed", "checks"]

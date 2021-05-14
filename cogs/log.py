@@ -43,6 +43,7 @@ class Log(commands.Cog):
       self.bot.slash = SlashCommand(self.bot, sync_on_cog_reload=True, sync_commands=True, override_type=True)
 
     self.bot.process_commands = self.process_commands
+    # self.bot.on_error = self.on_error
 
     self.bot.log_spam = self.log_spam
     self.bot.log_info = self.log_info
@@ -69,14 +70,6 @@ class Log(commands.Cog):
     # TODO: add guilds locally after guilds have been synced with the DB
 
     self.bot.add_check(self.check_perms)
-
-    if not hasattr(self.bot, "saved_guilds") or len(self.bot.saved_guilds) != len(self.bot.guilds):
-      mydb = mydb_connect()
-      servers = query(mydb, "SELECT id,prefix,autoDeleteMSGs,muted,chatChannel FROM servers")
-      guilds = {}
-      for guild_id, prefix, autoDeleteMSG, muted, chatChannel in servers:
-        guilds.update({int(guild_id): {"prefix": str(prefix), "muted": True if muted == 1 else False, "autoDeleteMSGs": int(autoDeleteMSG), "chatChannel": int(chatChannel) if chatChannel is not None else None}})
-      self.bot.saved_guilds = guilds
 
   def check_perms(self, ctx):
     if ctx.channel.type == discord.ChannelType.private:
@@ -119,7 +112,7 @@ class Log(commands.Cog):
             guild = self.bot.get_guild(guild_id)
             if guild is not None:
               owner = guild.owner.id if hasattr(guild, "owner") and hasattr(guild.owner, "id") else 0
-              query(mydb, "INSERT INTO servers (id,owner,name) VALUES (%s,%s,%s)", guild.id, owner, guild.name)
+              query(mydb, "INSERT INTO servers (id,owner,name,muted) VALUES (%s,%s,%s,%s)", guild.id, owner, guild.name, 0)
               if guild.system_channel is not None:
                 prefix = config.defaultPrefix
                 try:
@@ -144,7 +137,7 @@ class Log(commands.Cog):
       for guild_id in database_guilds:
         guild = self.bot.get_guild(guild_id[0])
         query(mydb, "UPDATE servers SET name=%s WHERE id=%s", guild.name, guild_id[0])
-    # self.bot.set_all_guilds()
+    self.set_all_guilds()
 
   @commands.Cog.listener()
   async def on_shard_ready(self, shard_id):
@@ -167,7 +160,7 @@ class Log(commands.Cog):
     await relay_info(f"I have joined a new guild, making the total **{len(self.bot.guilds)}**", self.bot, short=f"I have joined a new guild, making the total {len(self.bot.guilds)}", webhook=self.bot.log_join, logger=logger)
     mydb = mydb_connect()
     owner = guild.owner.id if hasattr(guild, "owner") and hasattr(guild.owner, "id") else 0
-    query(mydb, "INSERT INTO servers (id,owner,name) VALUES (%s,%s,%s)", guild.id, owner, guild.name)
+    query(mydb, "INSERT INTO servers (id,owner,name,muted) VALUES (%s,%s,%s,%s)", guild.id, owner, guild.name, 0)
     if guild.system_channel is not None:
       prefix = config.defaultPrefix
       try:
@@ -282,14 +275,27 @@ class Log(commands.Cog):
   def change_guild_delete(self, guild_id: int, delete: int = 0):
     self.bot.saved_guilds[guild_id]["autoDeleteMSGs"] = delete
 
+  def change_guild_muted(self, guild_id: int, muted: bool = False):
+    self.bot.saved_guilds[guild_id]["muted"] = muted
+
   def change_guild_chat_channel(self, guild_id: int, chatChannel: int = None):
     self.bot.saved_guilds[guild_id]["chatChannel"] = chatChannel
 
-  def set_guild(self, guild_id: int, prefix: str = config.defaultPrefix, autoDeleteMSG: int = None, chatChannel: int = None):
-    self.bot.saved_guilds.update({guild_id: {"prefix": prefix, "autoDeleteMSGs": autoDeleteMSG, "chatChannel": chatChannel if chatChannel is not None else None}})
+  def set_guild(self, guild_id: int, prefix: str = config.defaultPrefix, autoDeleteMSG: int = None, muted: bool = False, chatChannel: int = None):
+    self.bot.saved_guilds.update({guild_id: {"prefix": prefix, "autoDeleteMSGs": autoDeleteMSG, "muted": muted, "chatChannel": chatChannel if chatChannel is not None else None}})
 
   def remove_guild(self, guild_id: int):
     self.bot.saved_guilds.pop(guild_id, None)
+
+  def set_all_guilds(self):
+    # if not hasattr(self.bot, "saved_guilds") or len(self.bot.saved_guilds) != len(self.bot.guilds):
+    mydb = mydb_connect()
+    servers = query(mydb, "SELECT id,prefix,autoDeleteMSGs,muted,chatChannel FROM servers")
+    guilds = {}
+    for guild_id, prefix, autoDeleteMSG, muted, chatChannel in servers:
+      guilds.update({int(guild_id): {"prefix": str(prefix), "muted": True if muted == 1 else False, "autoDeleteMSGs": int(autoDeleteMSG), "chatChannel": int(chatChannel) if chatChannel is not None else None}})
+    self.bot.saved_guilds = guilds
+    return guilds
 
   # async def on_slash_command_error(self, ctx, *args, **kwargs):
   #   print("somethign")
@@ -353,6 +359,7 @@ class Log(commands.Cog):
       # return
 
     delete = self.bot.get_guild_delete_commands(ctx.guild)
+    error_text = getattr(error, 'original', error)
     if isinstance(error, commands.NotOwner):
       print("Someone found a dev command")
       logging.info("Someone found a dev command")
@@ -403,51 +410,60 @@ class Log(commands.Cog):
     )):
       try:
         if slash:
-          await ctx.send(embed=embed(title=f"{error}", color=MessageColors.ERROR), delete_after=delete)
+          await ctx.send(embed=embed(title=f"{error_text}", color=MessageColors.ERROR), delete_after=delete)
         else:
-          await ctx.reply(embed=embed(title=f"{error}", color=MessageColors.ERROR), delete_after=delete)
+          await ctx.reply(embed=embed(title=f"{error_text}", color=MessageColors.ERROR), delete_after=delete)
       except discord.Forbidden:
         try:
           if slash:
-            await ctx.send(f"{error}", delete_after=delete)
+            await ctx.send(f"{error_text}", delete_after=delete)
           else:
-            await ctx.reply(f"{error}", delete_after=delete)
+            await ctx.reply(f"{error_text}", delete_after=delete)
         except discord.Forbidden:
           logging.warning("well guess i just can't respond then")
     else:
       try:
         if slash:
-          await ctx.send(embed=embed(title=f"{error}", color=MessageColors.ERROR), delete_after=delete)
+          await ctx.send(embed=embed(title=f"{error_text}", color=MessageColors.ERROR), delete_after=delete)
         else:
-          await ctx.reply(embed=embed(title=f"{error}", color=MessageColors.ERROR), delete_after=delete)
+          await ctx.reply(embed=embed(title=f"{error_text}", color=MessageColors.ERROR), delete_after=delete)
       except discord.Forbidden:
         try:
           if slash:
-            await ctx.send(f"{error}", delete_after=delete)
+            await ctx.send(f"{error_text}", delete_after=delete)
           else:
-            await ctx.reply(f"{error}", delete_after=delete)
+            await ctx.reply(f"{error_text}", delete_after=delete)
         except discord.Forbidden:
           print("well guess i just can't respond then")
           logging.warning("well guess i just can't respond then")
       raise error
+      # trace = traceback.format_exception(type(error), error, error.__traceback__)
+      # print(''.join(trace))
+      # logging.error(''.join(trace))
+      # await relay_info(
+      #     f"```bash\n{''.join(trace)}```",
+      #     self.bot,
+      #     short="Error sent",
+      #     webhook=self.log_errors
+      # )
 
   @commands.Cog.listener()
-  async def on_error(self, ctx, error):
-    if isinstance(error, discord.NotFound):
-      return
-    appinfo = await self.bot.application_info()
-    owner = self.bot.get_user(appinfo.team.owner.id)
-
+  async def on_error(self, event, *args, **kwargs):
     trace = traceback.format_exc()
     if "Missing Access" in str(trace):
       return
 
+    with open("err.log", "w") as f:
+      f.write(trace)
+      f.close()
+
     print(trace)
     logging.error(trace)
     await relay_info(
-        f"{owner.mention if self.bot.intents.members is True else ''}\n```bash\n{trace}```",
+        f"```bash\n{trace}```",
         self.bot,
         short="Error sent",
+        file="err.log",
         webhook=self.log_errors
     )
 

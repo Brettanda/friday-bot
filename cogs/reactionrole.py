@@ -4,12 +4,12 @@ import discord
 from discord.ext import commands
 
 # from cogs.cleanup import get_delete_time
-from functions import embed, GlobalCog
+from functions import embed
 
 
-class ReactionRole(GlobalCog):
+class ReactionRole(commands.Cog):
   def __init__(self, bot):
-    super().__init__(bot)
+    self.bot = bot
     self.msgs = {}
 
   def cog_check(self, ctx):

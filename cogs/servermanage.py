@@ -7,11 +7,14 @@ from discord_slash import SlashContext, cog_ext, SlashCommandOptionType
 from discord_slash.utils.manage_commands import create_option
 
 from cogs.help import cmd_help
-from functions import MessageColors, embed, mydb_connect, query, checks, relay_info, GlobalCog, config
+from functions import MessageColors, embed, mydb_connect, query, checks, relay_info, config
 
 
-class ServerManage(GlobalCog):
+class ServerManage(commands.Cog):
   """Commands for managing Friday on your server"""
+
+  def __init__(self, bot):
+    self.bot = bot
 
   def cog_check(self, ctx):
     if ctx.guild is None:
@@ -137,6 +140,8 @@ class ServerManage(GlobalCog):
   @commands.command(name="deletecommandsafter", aliases=["deleteafter", "delcoms"], description="Set the time in seconds for how long to wait before deleting command messages")
   @commands.guild_only()
   @commands.has_guild_permissions(manage_channels=True)
+  @commands.bot_has_guild_permissions(manage_channels=True)
+  @commands.bot_has_permissions(manage_messages=True)
   async def delete_commands_after(self, ctx, time: typing.Optional[int] = 0):
     if time < 0:
       await ctx.reply(embed=embed(title="time has to be above 0"))
@@ -488,6 +493,7 @@ class ServerManage(GlobalCog):
       return dict(embed=embed(title=f"Locked `{voicechannel}`"))
 
   @commands.command(name="begone", description="Delete unwanted message that I send")
+  @commands.bot_has_permissions(manage_messages=True)
   async def begone(self, ctx, message: typing.Optional[discord.Message] = None):
     if message is not None and ctx.message.reference is not None:
       raise commands.TooManyArguments("Please only either reply to the problemed message or add it to the end of this message not both")
