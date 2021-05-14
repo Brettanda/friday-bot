@@ -43,6 +43,7 @@ class Log(commands.Cog):
       self.bot.slash = SlashCommand(self.bot, sync_on_cog_reload=True, sync_commands=True, override_type=True)
 
     self.bot.process_commands = self.process_commands
+    # self.bot.on_error = self.on_error
 
     self.bot.log_spam = self.log_spam
     self.bot.log_info = self.log_info
@@ -353,6 +354,7 @@ class Log(commands.Cog):
       # return
 
     delete = self.bot.get_guild_delete_commands(ctx.guild)
+    error_text = getattr(error, 'original', error)
     if isinstance(error, commands.NotOwner):
       print("Someone found a dev command")
       logging.info("Someone found a dev command")
@@ -403,51 +405,60 @@ class Log(commands.Cog):
     )):
       try:
         if slash:
-          await ctx.send(embed=embed(title=f"{error.original}", color=MessageColors.ERROR), delete_after=delete)
+          await ctx.send(embed=embed(title=f"{error_text}", color=MessageColors.ERROR), delete_after=delete)
         else:
-          await ctx.reply(embed=embed(title=f"{error.original}", color=MessageColors.ERROR), delete_after=delete)
+          await ctx.reply(embed=embed(title=f"{error_text}", color=MessageColors.ERROR), delete_after=delete)
       except discord.Forbidden:
         try:
           if slash:
-            await ctx.send(f"{error.original}", delete_after=delete)
+            await ctx.send(f"{error_text}", delete_after=delete)
           else:
-            await ctx.reply(f"{error.original}", delete_after=delete)
+            await ctx.reply(f"{error_text}", delete_after=delete)
         except discord.Forbidden:
           logging.warning("well guess i just can't respond then")
     else:
       try:
         if slash:
-          await ctx.send(embed=embed(title=f"{error.original}", color=MessageColors.ERROR), delete_after=delete)
+          await ctx.send(embed=embed(title=f"{error_text}", color=MessageColors.ERROR), delete_after=delete)
         else:
-          await ctx.reply(embed=embed(title=f"{error.original}", color=MessageColors.ERROR), delete_after=delete)
+          await ctx.reply(embed=embed(title=f"{error_text}", color=MessageColors.ERROR), delete_after=delete)
       except discord.Forbidden:
         try:
           if slash:
-            await ctx.send(f"{error.original}", delete_after=delete)
+            await ctx.send(f"{error_text}", delete_after=delete)
           else:
-            await ctx.reply(f"{error.original}", delete_after=delete)
+            await ctx.reply(f"{error_text}", delete_after=delete)
         except discord.Forbidden:
           print("well guess i just can't respond then")
           logging.warning("well guess i just can't respond then")
-      await self.on_error(ctx, error)
+      raise error
+      # trace = traceback.format_exception(type(error), error, error.__traceback__)
+      # print(''.join(trace))
+      # logging.error(''.join(trace))
+      # await relay_info(
+      #     f"```bash\n{''.join(trace)}```",
+      #     self.bot,
+      #     short="Error sent",
+      #     webhook=self.log_errors
+      # )
 
   @commands.Cog.listener()
-  async def on_error(self, ctx, error=None):
-    if isinstance(error, discord.NotFound):
-      return
-    appinfo = await self.bot.application_info()
-    owner = self.bot.get_user(appinfo.team.owner.id)
-
-    trace = traceback.format_exc() if error is None else traceback.format_exception(type(error), error, error.__traceback__)
+  async def on_error(self, event, *args, **kwargs):
+    trace = traceback.format_exc()
     if "Missing Access" in str(trace):
       return
 
-    print("".join(trace))
-    logging.error("".join(trace))
+    with open("err.log", "w") as f:
+      f.write(trace)
+      f.close()
+
+    print(trace)
+    logging.error(trace)
     await relay_info(
-        f"{owner.mention if self.bot.intents.members is True else ''}\n```bash\n{''.join(trace)}```",
+        f"```bash\n{trace}```",
         self.bot,
         short="Error sent",
+        file="err.log",
         webhook=self.log_errors
     )
 

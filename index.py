@@ -75,6 +75,9 @@ class Friday(commands.AutoShardedBot):
 
     await self.process_commands(ctx)
 
+  async def on_error(self, event_method, *args, **kwargs):
+    return await self.get_cog(functions.config.reloadable_bot).on_error(event_method, *args, **kwargs)
+
   async def close(self):
     await super().close()
 

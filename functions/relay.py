@@ -4,19 +4,19 @@ import os
 import discord
 
 
-async def relay_info(msg: str, bot: discord.Client or discord.AutoShardedClient, embed: discord.Embed = None, file=None, short: str = None, webhook: discord.Webhook = None, logger=logging.getLogger(__name__)):
+async def relay_info(msg: str, bot: discord.Client or discord.AutoShardedClient, embed: discord.Embed = None, file=None, filefirst=False, short: str = None, webhook: discord.Webhook = None, logger=logging.getLogger(__name__)):
   if webhook is None:
     webhook = bot.log_info
   if bot.prod:
-    if file is not None:
-      thispath = os.getcwd()
-      if "\\" in thispath:
-        seperator = "\\\\"
-      else:
-        seperator = "/"
-      await webhook.send(username=bot.user.name, avatar_url=bot.user.avatar_url, content=msg, embed=embed, file=discord.File(fp=f"{thispath}{seperator}{file}", filename="Error.txt"))
+    thispath = os.getcwd()
+    if "\\" in thispath:
+      seperator = "\\\\"
     else:
-      await webhook.send(username=bot.user.name, avatar_url=bot.user.avatar_url, content=msg, embed=embed)
+      seperator = "/"
+    try:
+      await webhook.send(username=bot.user.name, avatar_url=bot.user.avatar_url, content=msg, embed=embed if not filefirst else None, file=discord.File(fp=f"{thispath}{seperator}{file}", filename="Error.txt") if filefirst else None)
+    except discord.HTTPException:
+      await webhook.send(username=bot.user.name, avatar_url=bot.user.avatar_url, file=discord.File(fp=f"{thispath}{seperator}{file}", filename="Error.txt"))
   # elif bot.prod:
   #   appinfo = await bot.application_info()
   #   owner = bot.get_user(appinfo.team.owner.id)
