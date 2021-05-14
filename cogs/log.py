@@ -403,49 +403,49 @@ class Log(commands.Cog):
     )):
       try:
         if slash:
-          await ctx.send(embed=embed(title=f"{error}", color=MessageColors.ERROR), delete_after=delete)
+          await ctx.send(embed=embed(title=f"{error.original}", color=MessageColors.ERROR), delete_after=delete)
         else:
-          await ctx.reply(embed=embed(title=f"{error}", color=MessageColors.ERROR), delete_after=delete)
+          await ctx.reply(embed=embed(title=f"{error.original}", color=MessageColors.ERROR), delete_after=delete)
       except discord.Forbidden:
         try:
           if slash:
-            await ctx.send(f"{error}", delete_after=delete)
+            await ctx.send(f"{error.original}", delete_after=delete)
           else:
-            await ctx.reply(f"{error}", delete_after=delete)
+            await ctx.reply(f"{error.original}", delete_after=delete)
         except discord.Forbidden:
           logging.warning("well guess i just can't respond then")
     else:
       try:
         if slash:
-          await ctx.send(embed=embed(title=f"{error}", color=MessageColors.ERROR), delete_after=delete)
+          await ctx.send(embed=embed(title=f"{error.original}", color=MessageColors.ERROR), delete_after=delete)
         else:
-          await ctx.reply(embed=embed(title=f"{error}", color=MessageColors.ERROR), delete_after=delete)
+          await ctx.reply(embed=embed(title=f"{error.original}", color=MessageColors.ERROR), delete_after=delete)
       except discord.Forbidden:
         try:
           if slash:
-            await ctx.send(f"{error}", delete_after=delete)
+            await ctx.send(f"{error.original}", delete_after=delete)
           else:
-            await ctx.reply(f"{error}", delete_after=delete)
+            await ctx.reply(f"{error.original}", delete_after=delete)
         except discord.Forbidden:
           print("well guess i just can't respond then")
           logging.warning("well guess i just can't respond then")
-      raise error
+      await self.on_error(ctx, error)
 
   @commands.Cog.listener()
-  async def on_error(self, ctx, error):
+  async def on_error(self, ctx, error=None):
     if isinstance(error, discord.NotFound):
       return
     appinfo = await self.bot.application_info()
     owner = self.bot.get_user(appinfo.team.owner.id)
 
-    trace = traceback.format_exc()
+    trace = traceback.format_exc() if error is None else traceback.format_exception(type(error), error, error.__traceback__)
     if "Missing Access" in str(trace):
       return
 
-    print(trace)
-    logging.error(trace)
+    print("".join(trace))
+    logging.error("".join(trace))
     await relay_info(
-        f"{owner.mention if self.bot.intents.members is True else ''}\n```bash\n{trace}```",
+        f"{owner.mention if self.bot.intents.members is True else ''}\n```bash\n{''.join(trace)}```",
         self.bot,
         short="Error sent",
         webhook=self.log_errors
