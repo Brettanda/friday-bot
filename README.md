@@ -1,7 +1,8 @@
 # Friday Discord Bot
 
 [![](https://app.codacy.com/project/badge/Grade/0ad7826bb256410d885a47fca99ce624)](https://www.codacy.com/gh/Brettanda/friday-discord-python/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=Brettanda/friday-discord-python&amp;utm_campaign=Badge_Grade)
-[![GitHub license](https://img.shields.io/github/issues/Brettanda/friday-discord-python)](https://github.com/Brettanda/friday-discord-python/issues)
+[![GitHub license](https://img.shields.io/github/license/Brettanda/friday-discord-python)](https://github.com/Brettanda/friday-discord-python/blob/master/LICENSE.md)
+[![GitHub issues](https://img.shields.io/github/issues/Brettanda/friday-discord-python)](https://github.com/Brettanda/friday-discord-python/issues)
 [![Discord Chat](https://discord.com/api/guilds/707441352367013899/embed.png)](https://discord.gg/NTRuFjU)
 [![Vote](https://img.shields.io/badge/Vote-Friday-blue)](https://top.gg/bot/476303446547365891/vote)
 [![Add Friday to your server](https://img.shields.io/badge/Add%20Friday-to%20your%20server-orange)](https://discord.com/api/oauth2/authorize?client_id=476303446547365891&permissions=2469521478&scope=bot%20applications.commands)
