@@ -3089,6 +3089,18 @@
     }
   ],
   [
+    "Yo friday",
+    {
+      "entities": [
+        [
+          3,
+          8,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
     "hay friday",
     {
       "entities": [
@@ -4274,6 +4286,28 @@
     }
   ],
   [
+    ":man_raising_hand: hello, I added Friday to 2 servers of mine. she's online and ping is good but she doesn't respond to messages :thinking:  any thoughts?",
+    {
+      "entities": [
+        [
+          34,
+          39,
+          "@Self"
+        ],
+        [
+          63,
+          65,
+          "@pro-nouns"
+        ],
+        [
+          63,
+          65,
+          "@pro-nouns"
+        ]
+      ]
+    }
+  ],
+  [
     "not you Friday",
     {
       "entities": [
@@ -4492,6 +4526,18 @@
     "excuse me",
     {
       "entities": []
+    }
+  ],
+  [
+    "Good bye Friday. It was fun while it lasted.",
+    {
+      "entities": [
+        [
+          9,
+          14,
+          "@Self"
+        ]
+      ]
     }
   ],
   [
@@ -5187,6 +5233,12 @@
     }
   ],
   [
+    "i'm fine thanks",
+    {
+      "entities": []
+    }
+  ],
+  [
     "today is a great day",
     {
       "entities": [
@@ -5664,6 +5716,54 @@
     }
   ],
   [
+    "When was friday created?",
+    {
+      "entities": [
+        [
+          9,
+          14,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "When were you created Friday?",
+    {
+      "entities": [
+        [
+          22,
+          27,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday when were you born?",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday how old are you?",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
     "i am a real boy",
     {
       "entities": []
@@ -6099,13 +6199,25 @@
     }
   ],
   [
+    "i love you friday i just want you to know that",
+    {
+      "entities": [
+        [
+          11,
+          16,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
     "I love you with all of my heart Friday",
     {
       "entities": [
         [
           32,
           37,
-          "@sys.ignore"
+          "@Self"
         ]
       ]
     }
@@ -6117,7 +6229,7 @@
         [
           19,
           24,
-          "@sys.ignore"
+          "@Self"
         ]
       ]
     }
@@ -6129,7 +6241,7 @@
         [
           16,
           21,
-          "@sys.ignore"
+          "@Self"
         ]
       ]
     }
@@ -6141,7 +6253,7 @@
         [
           11,
           16,
-          "@sys.ignore"
+          "@Self"
         ]
       ]
     }
@@ -6904,47 +7016,6 @@
     }
   ],
   [
-    "fuck off",
-    {
-      "entities": [
-        [
-          0,
-          3,
-          "@sys.ignore"
-        ]
-      ]
-    }
-  ],
-  [
-    "shut up Friday",
-    {
-      "entities": [
-        [
-          0,
-          6,
-          "@sys.ignore"
-        ],
-        [
-          8,
-          13,
-          "@Self"
-        ]
-      ]
-    }
-  ],
-  [
-    "piss off",
-    {
-      "entities": [
-        [
-          0,
-          7,
-          "@sys.ignore"
-        ]
-      ]
-    }
-  ],
-  [
     "you're shit Friday",
     {
       "entities": [
@@ -7067,6 +7138,47 @@
           9,
           14,
           "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "discord.gg/F8KUDwu",
+    {
+      "entities": [
+        [
+          0,
+          17,
+          "@Server_invites"
+        ]
+      ]
+    }
+  ],
+  [
+    "https://discord.gg/NTRuFjU",
+    {
+      "entities": [
+        [
+          0,
+          25,
+          "@Server_invites"
+        ]
+      ]
+    }
+  ],
+  [
+    "https://discord.gg/KNT8uGwM here you are, there's a public channel called \"chat commands bot\" we can use to test",
+    {
+      "entities": [
+        [
+          0,
+          26,
+          "@Server_invites"
+        ],
+        [
+          89,
+          91,
+          "@sys.ignore"
         ]
       ]
     }
@@ -9031,6 +9143,47 @@
     }
   ],
   [
+    "Friday respond to me please",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday answer me!",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ],
+        [
+          16,
+          16,
+          "@sys.ignore"
+        ]
+      ]
+    }
+  ],
+  [
+    "Respond Friday",
+    {
+      "entities": [
+        [
+          8,
+          13,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
     "how does sand make you feel?",
     {
       "entities": []
@@ -9173,6 +9326,59 @@
     }
   ],
   [
+    "You shut up because Friday agrees with me",
+    {
+      "entities": [
+        [
+          20,
+          25,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "I am correct because the bot thinks I am right",
+    {
+      "entities": [
+        [
+          25,
+          27,
+          "@Bot"
+        ]
+      ]
+    }
+  ],
+  [
+    "That's a yes from Friday",
+    {
+      "entities": [
+        [
+          18,
+          23,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "See, Friday agrees with me!",
+    {
+      "entities": [
+        [
+          5,
+          10,
+          "@Self"
+        ],
+        [
+          26,
+          26,
+          "@sys.ignore"
+        ]
+      ]
+    }
+  ],
+  [
     "something about self aware",
     {
       "entities": []
@@ -9204,6 +9410,57 @@
           27,
           32,
           "@sys.ignore"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday send me some banknotes",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@sys.date-time"
+        ]
+      ]
+    }
+  ],
+  [
+    "Can Friday wire me some dollar bills?",
+    {
+      "entities": [
+        [
+          0,
+          2,
+          "@sys.ignore"
+        ],
+        [
+          4,
+          9,
+          "@sys.date-time"
+        ],
+        [
+          24,
+          29,
+          "@sys.currency-name"
+        ],
+        [
+          31,
+          35,
+          "@sys.ignore"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday can you send me some money?",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@sys.date-time"
         ]
       ]
     }
@@ -10019,6 +10276,24 @@
     }
   ],
   [
+    "That is so gross",
+    {
+      "entities": []
+    }
+  ],
+  [
+    "That looks awful",
+    {
+      "entities": []
+    }
+  ],
+  [
+    "that looks gross..........",
+    {
+      "entities": []
+    }
+  ],
+  [
     "no, the real-time is midnight",
     {
       "entities": [
@@ -10062,6 +10337,18 @@
           8,
           11,
           "@sys.date-time"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday, help, I'm starving, bring me some food",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
         ]
       ]
     }
@@ -10145,12 +10432,6 @@
     }
   ],
   [
-    "I want some food?",
-    {
-      "entities": []
-    }
-  ],
-  [
     "friday soup now",
     {
       "entities": [
@@ -10168,25 +10449,49 @@
     }
   ],
   [
-    "what should i eat?",
-    {
-      "entities": []
-    }
-  ],
-  [
-    "what should i have for dinner",
-    {
-      "entities": []
-    }
-  ],
-  [
     "I think it is time for some soup",
     {
       "entities": []
     }
   ],
   [
-    "What time is it?",
+    "Piss off friday",
+    {
+      "entities": [
+        [
+          9,
+          14,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Fuck off friday",
+    {
+      "entities": [
+        [
+          9,
+          14,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Shut up Friday",
+    {
+      "entities": [
+        [
+          8,
+          13,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Can you shut the fuck up?",
     {
       "entities": []
     }
@@ -10589,6 +10894,30 @@
     "Thank you",
     {
       "entities": []
+    }
+  ],
+  [
+    "I just told u when I get a thumbnail for it and edit it so maybe Friday",
+    {
+      "entities": [
+        [
+          65,
+          70,
+          "@sys.date"
+        ]
+      ]
+    }
+  ],
+  [
+    "See you on Friday",
+    {
+      "entities": [
+        [
+          11,
+          16,
+          "@sys.date"
+        ]
+      ]
     }
   ],
   [
@@ -11809,6 +12138,93 @@
     }
   ],
   [
+    "Hell ya Friday is now in NaCl",
+    {
+      "entities": [
+        [
+          8,
+          13,
+          "@Self"
+        ],
+        [
+          25,
+          28,
+          "@Guilds_name"
+        ]
+      ]
+    }
+  ],
+  [
+    "hell yeah, Friday is in here now",
+    {
+      "entities": [
+        [
+          11,
+          16,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "welcome Friday to the server!",
+    {
+      "entities": [
+        [
+          8,
+          13,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday has just joined the server",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday welcome to the danger zone",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ],
+        [
+          18,
+          32,
+          "@Guilds_name"
+        ]
+      ]
+    }
+  ],
+  [
+    "Welcome to the Event Discord Friday",
+    {
+      "entities": [
+        [
+          15,
+          27,
+          "@Guilds_name"
+        ],
+        [
+          29,
+          34,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
     "Are you doing anything tomorrow?",
     {
       "entities": [
@@ -12703,6 +13119,18 @@
     }
   ],
   [
+    "Hey friday marry me",
+    {
+      "entities": [
+        [
+          4,
+          9,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
     "would you marry me friday?",
     {
       "entities": [
@@ -12817,6 +13245,52 @@
     }
   ],
   [
+    "@everyone, Friday has joined the party and you too can speak to her",
+    {
+      "entities": [
+        [
+          11,
+          16,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday is here now, and she is open for conversations",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ],
+        [
+          15,
+          17,
+          "@sys.ignore"
+        ],
+        [
+          24,
+          26,
+          "@pro-nouns"
+        ]
+      ]
+    }
+  ],
+  [
+    "I'm fine, you can also speak to Friday",
+    {
+      "entities": [
+        [
+          32,
+          37,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
     "that was weird i wonder if friday is high as shit",
     {
       "entities": [
@@ -12849,6 +13323,60 @@
     "Friday you on some crack?",
     {
       "entities": []
+    }
+  ],
+  [
+    "Friday I don't think you should be in this server anymore",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Well Friday I think it is time for you to banish yourself from this server",
+    {
+      "entities": [
+        [
+          5,
+          10,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday this has been fun, but I think it is time for you to leave the server",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Why don't you leave the server",
+    {
+      "entities": []
+    }
+  ],
+  [
+    "Friday you should just leave the server",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
     }
   ],
   [
