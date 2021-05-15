@@ -18,7 +18,6 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s:%(name)s:%(levelname)-8s%(message)s",
     datefmt="%y-%m-%d %H:%M:%S",
-    filemode="w",
     filename="logging.log"
 )
 
