@@ -122,6 +122,8 @@ class redditlink(commands.Cog):
       await ctx.add_reaction(self.emoji)
     except discord.Forbidden:
       pass
+    except discord.NotFound:
+      pass
 
   @commands.Cog.listener()
   async def on_raw_reaction_add(self, payload):
@@ -130,7 +132,11 @@ class redditlink(commands.Cog):
     # channel = self.bot.get_guild(payload.guild_id).get_channel(payload.channel_id)
     # async with channel.typing():
     if payload.guild_id:
-      message = await (self.bot.get_channel(payload.channel_id)).fetch_message(payload.message_id)
+      message = None
+      try:
+        message = await (self.bot.get_channel(payload.channel_id)).fetch_message(payload.message_id)
+      except discord.NotFound:
+        return
     # TODO: When members intent change for the check below
     elif not payload.guild_id:
       return
