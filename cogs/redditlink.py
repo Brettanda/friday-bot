@@ -145,11 +145,8 @@ class redditlink(commands.Cog):
       return
     if payload.emoji.name != self.emoji:
       return
-    for react in message.reactions:
-      if react.me and react.emoji == self.emoji:
-        test = True
-      if test is False:
-        return
+    if len([react.emoji for react in message.reactions if react.me and react.emoji == self.emoji]) < 1:
+      return
     try:
       await asyncio.gather(
           message.remove_reaction(self.emoji, self.bot.user),
