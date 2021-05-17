@@ -1,5 +1,7 @@
 import asyncio
 import typing
+import datetime
+import validators
 
 import discord
 from discord.ext import commands
@@ -518,6 +520,34 @@ class ServerManage(commands.Cog):
         ctx.reply(embed=embed(title="Message has been removed"), delete_after=20),
         ctx.message.delete(delay=20)
     )
+
+  @commands.Cog.listener()
+  async def on_message(self, msg):
+    if msg.author.bot:
+      return
+
+    if not msg.guild:
+      return
+
+    if msg.guild.id != 215346091321720832:
+      return
+
+    if not validators.url(msg.clean_content) and len(msg.attachments) == 0:
+      return
+
+    ctx = await self.bot.get_context(msg)
+    if ctx.command:
+      return
+
+    async for message in msg.channel.history(limit=None, after=datetime.datetime.today() - datetime.timedelta(days=14), oldest_first=False):
+      if message.id != msg.id:
+        if len(msg.attachments) > 0 and len(message.attachments) > 0:
+          for msg_att in msg.attachments:
+            for att in message.attachments:
+              if msg_att.url == att.url:
+                return await msg.add_reaction("🔁")
+        if message.content == msg.content and message.content != "" and msg.content != "":
+          return await msg.add_reaction("🔁")
 
 
 def setup(bot):
