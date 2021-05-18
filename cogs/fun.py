@@ -277,6 +277,7 @@ class Fun(commands.Cog):
 
   @commands.command(name="poll", description="Make a poll. Seperate the options with `;;`")
   @commands.guild_only()
+  @commands.bot_has_permissions(manage_messages=True)
   async def norm_poll(self, ctx, title, *, options: str = None):
     options = options.split(";;")
 
@@ -303,6 +304,7 @@ class Fun(commands.Cog):
       ]
   )
   @checks.slash(user=True, private=False)
+  @commands.bot_has_permissions(manage_messages=True)
   async def slash_poll(self, ctx, title, option1, option2, option3=None, option4=None, option5=None, option6=None, option7=None, option8=None, option9=None, option10=None):
     options = []
     for item in [option1, option2, option3, option4, option5, option6, option7, option8, option9, option10]:
@@ -329,7 +331,7 @@ class Fun(commands.Cog):
     if slash:
       message = await ctx.send(embed=embed(title=f"Poll: {title}", fieldstitle=titles, fieldsval=vals, fieldsin=ins))
     else:
-      message = await ctx.reply(embed=embed(title=f"Poll: {title}", fieldstitle=titles, fieldsval=vals))
+      message = await ctx.reply(embed=embed(title=f"Poll: {title}", fieldstitle=titles, fieldsval=vals, fieldsin=ins))
 
     x = 0
     for _ in options:
