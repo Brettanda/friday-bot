@@ -41,6 +41,11 @@ class ChooseGame(commands.Cog):
     if self.status_updates.is_running():
       self.status_updates.cancel()
 
+  async def on_ready(self):
+    if self.choose_game.is_running():
+      self.choose_game.cancel()
+    self.choose_game.start()
+
   @choose_game.before_loop
   async def before_choose_game(self):
     await self.bot.wait_until_ready()
