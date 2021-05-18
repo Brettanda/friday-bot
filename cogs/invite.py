@@ -18,7 +18,7 @@ class Invite(commands.Cog):
 
   @cog_ext.cog_slash(name="invite", description="Get the invite link to add me to your server")
   async def _slash_invite(self, ctx):
-    await ctx.send(hidden=True, embed=embed(title="Invite me :)", description=f"[Invite link]({self.link})"))
+    await ctx.send(embed=embed(title="Invite me :)", description=f"[Invite link]({self.link})"))
 
 
 def setup(bot):

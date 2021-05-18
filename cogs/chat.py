@@ -245,7 +245,7 @@ class Chat(commands.Cog):
         return await ctx.add_reaction("💩")
 
       elif intent == "How do commands":
-        reply = "To find all of my command please use the help command"
+        reply = "To find all of my commands please use the help command"
         # await require("../commands/help")(msg, "", bot);
 
       elif intent == "who am i?":
