@@ -37,7 +37,7 @@ class Log(commands.Cog):
       self.bot.session = aiohttp.ClientSession(loop=self.loop)
 
     if not hasattr(self.bot, "spam_control"):
-      self.bot.spam_control = commands.CooldownMapping.from_cooldown(8, 15.0, commands.BucketType.user)
+      self.bot.spam_control = commands.CooldownMapping.from_cooldown(5, 15.0, commands.BucketType.user)
 
     if not hasattr(self.bot, "slash"):
       self.bot.slash = SlashCommand(self.bot, sync_on_cog_reload=True, sync_commands=True, override_type=True)
@@ -192,6 +192,8 @@ class Log(commands.Cog):
 
   @commands.Cog.listener()
   async def on_message_edit(self, before, after):
+    if after.author.bot:
+      return
     await self.bot.process_commands(after)
 
   @commands.Cog.listener()
@@ -331,20 +333,19 @@ class Log(commands.Cog):
     # if not autoblock:
     #   return
 
-    # wh = self.log_spam
-    # return await wh.send(
-    #     username=self.user.name,
-    #     avatar_url=self.user.avatar_url,
-    #     embed=functions.embed(
-    #         title="Auto-blocked Member",
-    #         fieldstitle=["Member", "Guild Info", "Channel Info"],
-    #         fieldsval=[
-    #             f'{message.author} (ID: {message.author.id})',
-    #             f'{guild_name} (ID: {guild_id})',
-    #             f'{message.channel} (ID: {message.channel.id}'],
-    #         fieldsin=[False, False, False]
-    #     )
-    # )
+    return await self.log_spam.send(
+        username=self.bot.user.name,
+        avatar_url=self.bot.user.avatar_url,
+        embed=embed(
+            title="Spam-Control Triggered",
+            fieldstitle=["Member", "Guild Info", "Channel Info"],
+            fieldsval=[
+                f'{message.author} (ID: {message.author.id})',
+                f'{guild_name} (ID: {guild_id})',
+                f'{message.channel} (ID: {message.channel.id}'],
+            fieldsin=[False, False, False]
+        )
+    )
 
   @commands.Cog.listener()
   async def on_command_error(self, ctx, error):

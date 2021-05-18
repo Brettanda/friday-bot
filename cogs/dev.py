@@ -289,7 +289,10 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       await ctx.add_reaction("♥")
 
     if r"process.exit()" in ctx.clean_content:
-      return await ctx.add_reaction("😡")
+      try:
+        return await ctx.add_reaction("😡")
+      except discord.Forbidden:
+        pass
 
 
 def setup(bot):

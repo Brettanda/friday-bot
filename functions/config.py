@@ -6,6 +6,23 @@ description = "Hello, my name is Friday, I am a chatbot built with TensorFlow an
 
 reloadable_bot = "Log"
 
+invite_permissions = discord.Permissions(
+    manage_roles=True,
+    kick_members=True,
+    ban_members=True,
+    send_messages=True,
+    manage_messages=True,
+    embed_links=True,
+    attach_files=True,
+    read_message_history=True,
+    add_reactions=True,
+    use_slash_commands=True,
+    connect=True,
+    speak=True,
+    move_members=True,
+    use_voice_activation=True
+)
+
 intents = discord.Intents(
     guilds=True,
     voice_states=True,
@@ -49,8 +66,16 @@ games = [
     "Practicing my dice rolling with !r",
     "Giving out inspirational quotes",
     "Among us",
-    "[she/her]"
-
+    "[she/her]",
+    {
+        "type": discord.ActivityType.watching, "content": "you 👀"
+    },
+    {
+        "type": discord.ActivityType.listening, "content": "myself"
+    },
+    {
+        "type": discord.ActivityType.watching, "content": "", "stats": True
+    }
 ]
 
 soups = [

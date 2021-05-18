@@ -25,10 +25,17 @@ logger = logging.getLogger(__name__)
 class Chat(commands.Cog):
   def __init__(self, bot):
     self.bot = bot
-    self.translate_client = translate.Client()
+    if not hasattr(self, "translate_client"):
+      self.translate_client = translate.Client()
+
+    # if not hasattr(self, "chat_spam_control"):
+    #   self.chat_spam_control = commands.CooldownMapping.from_cooldown(5, 15.0, commands.BucketType.user)
 
   def translate_request(self, text: str, detect=False, from_lang="en", to_lang="en"):
-    return self.translate_client.translate(text, target_language=to_lang)
+    try:
+      return self.translate_client.translate(text, target_language=to_lang)
+    except Exception as e:
+      raise e
 
   @commands.Cog.listener()
   async def on_message(self, ctx):
@@ -39,6 +46,9 @@ class Chat(commands.Cog):
     if ctx.activity is not None:
       return
     if len(ctx.clean_content) > 200:
+      return
+
+    if ctx.content == "":
       return
 
     com_ctx = await self.bot.get_context(ctx)
@@ -114,7 +124,7 @@ class Chat(commands.Cog):
       #     print(f"Requires context, not responding: {ctx.reference.resolved.clean_content if ctx.reference is not None else newest.clean_content}")
       #     return
       # TODO: add a check for another bot
-      if len([c for c in noContext if intent == c]) == 0 and (self.bot.user not in ctx.mentions) and ("friday" not in ctx.clean_content.lower()) and (meinlastmessage is not True) and (ctx.channel.type != "private") and self.bot.get_guild_chat_channel(ctx.guild.id) != ctx.channel.id:
+      if len([c for c in noContext if intent == c]) == 0 and (self.bot.user not in ctx.mentions) and ("friday" not in ctx.clean_content.lower()) and (meinlastmessage is not True) and ctx.channel.type != "private" and self.bot.get_guild_chat_channel(ctx.guild.id) != ctx.channel.id:
         print("I probably should not respond")
         # if "friday" in ctx.clean_content.lower() or self.bot.user in ctx.mentions:
         #   await relay_info("",self.bot,embed=embed(title="I think i should respond to this",description=f"{ctx.content}"),channel=814349008007856168)
@@ -235,7 +245,7 @@ class Chat(commands.Cog):
         return await ctx.add_reaction("💩")
 
       elif intent == "How do commands":
-        reply = "To find all of my command please use the help command"
+        reply = "To find all of my commands please use the help command"
         # await require("../commands/help")(msg, "", bot);
 
       elif intent == "who am i?":
