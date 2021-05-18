@@ -7,10 +7,15 @@ from functions import config, embed
 class Invite(commands.Cog):
   def __init__(self, bot):
     self.bot = bot
+    self.id = 476303446547365891
+
+  @commands.Cog.listener()
+  async def on_ready(self):
+    self.id = self.bot.user.id
 
   @cached_property
   def link(self):
-    return oauth_url(self.bot.user.id, permissions=config.invite_permissions, scopes=["bot", "applications.commands"])
+    return oauth_url(self.id, permissions=config.invite_permissions, scopes=["bot", "applications.commands"])
 
   @commands.command("invite", description="Get the invite link to add me to your server")
   async def _norm_invite(self, ctx):
