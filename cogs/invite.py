@@ -1,7 +1,7 @@
 from discord.utils import oauth_url, cached_property
 from discord.ext import commands
 from discord_slash import cog_ext
-from functions import config, embed, MessageColors
+from functions import config, embed
 
 
 class Invite(commands.Cog):

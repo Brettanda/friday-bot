@@ -1,6 +1,6 @@
 # Friday Discord Bot
 
-[![](https://app.codacy.com/project/badge/Grade/0ad7826bb256410d885a47fca99ce624)](https://www.codacy.com/gh/Brettanda/friday-discord-python/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=Brettanda/friday-discord-python&amp;utm_campaign=Badge_Grade)
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/0ad7826bb256410d885a47fca99ce624)](https://www.codacy.com/gh/Brettanda/friday-discord-python/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=Brettanda/friday-discord-python&amp;utm_campaign=Badge_Grade)
 [![GitHub license](https://img.shields.io/github/license/Brettanda/friday-discord-python)](https://github.com/Brettanda/friday-discord-python/blob/master/LICENSE.md)
 [![GitHub issues](https://img.shields.io/github/issues/Brettanda/friday-discord-python)](https://github.com/Brettanda/friday-discord-python/issues)
 [![Discord Chat](https://discord.com/api/guilds/707441352367013899/embed.png)](https://discord.gg/NTRuFjU)
@@ -9,6 +9,8 @@
 [![Become a Patron!](https://img.shields.io/badge/-Become%20a%20Patron!-rgb(232%2C%2091%2C%2070))](https://www.patreon.com/fridaybot)
 [![Will it blend?](https://github.com/Brettanda/friday-discord-python/actions/workflows/push.yml/badge.svg)](https://github.com/Brettanda/friday-discord-python/actions/workflows/push.yml)
 
+:bangbang: | Usage of the code in this repository is for educational purposes only.
+:---: | :---
 
 ## Commands
 

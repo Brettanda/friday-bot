@@ -1,7 +1,7 @@
 import asyncio
 import typing
-import datetime
-import validators
+# import datetime
+# import validators
 
 import discord
 from discord.ext import commands
