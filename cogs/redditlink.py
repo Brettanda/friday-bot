@@ -161,17 +161,20 @@ class redditlink(commands.Cog):
     except BaseException:
       pass
     async with channel.typing():
-      post = await self.extract(message.content, payload, guild=guild, channel=channel, message=message)
-    await message.reply(**post)
+      try:
+        await self.extract(message.content, payload=payload, guild=guild, channel=channel, message=message)
+      except Exception as e:
+        await message.reply(embed=embed(title="Something went wrong", description="Please try again later. I have notified my boss of this error", color=MessageColors.ERROR), mention_author=False)
+        raise e
 
   @cog_ext.cog_slash(name="redditextract", description="Extracts the file from the reddit post")
   async def slash_extract(self, ctx, link: str):
     await ctx.defer()
-    post = await self.extract(query=link, ctx=ctx, guild=ctx.guild, channel=ctx.channel)
-    await ctx.send(**post)
+    await self.extract(query=link, slash=True, ctx=ctx, guild=ctx.guild, channel=ctx.channel)
 
-  async def extract(self, query, payload=None, ctx=None, guild=None, channel=None, message=None):
-    slash = True if ctx is not None and payload is None else False
+  async def extract(self, query, slash=False, payload=None, ctx=None, guild=None, channel=None, message=None):
+    if ctx is None and message is not None:
+      ctx = await self.bot.get_context(message)
     if guild is None and not ctx.guild_id:
       raise commands.ArgumentParsingError()
     if channel is None and not ctx.channel_id:
@@ -183,7 +186,7 @@ class redditlink(commands.Cog):
 
     if len(reg) != 1:
       if slash:
-        return dict(embed=embed(title="That is not a reddit post url", color=MessageColors.ERROR))
+        return await ctx.send(embed=embed(title="That is not a reddit post url", color=MessageColors.ERROR))
       return
 
     body = None
@@ -199,8 +202,8 @@ class redditlink(commands.Cog):
         data = body[0]["data"]["children"][0]["data"]
     except KeyError:
       if slash:
-        return dict(embed=embed(title="There was a problem connecting to reddit", color=MessageColors.ERROR))
-      return dict(embed=embed(title="There was a problem connecting to reddit", color=MessageColors.ERROR), mention_author=False)
+        return await ctx.send(embed=embed(title="There was a problem connecting to reddit", color=MessageColors.ERROR))
+      return await ctx.reply(embed=embed(title="There was a problem connecting to reddit", color=MessageColors.ERROR), mention_author=False)
 
     link = None
     linkdata = None
@@ -245,12 +248,12 @@ class redditlink(commands.Cog):
         # name = f'{linkdata["extractor"]}-{linkdata["id"]}-{linkdata["title"]}.{linkdata["ext"]}'
         name = data["title"].split()
         if slash:
-          return dict(file=discord.File(fp=mp4file, filename=f'{"_".join(name)}.{ext}', spoiler=spoiler))
-        return dict(file=discord.File(fp=mp4file, filename=f'{"_".join(name)}.{ext}', spoiler=spoiler), mention_author=False)
+          return await ctx.send(file=discord.File(fp=mp4file, filename=f'{"_".join(name)}.{ext}', spoiler=spoiler))
+        return await ctx.reply(file=discord.File(fp=mp4file, filename=f'{"_".join(name)}.{ext}', spoiler=spoiler), mention_author=False)
       except discord.HTTPException:
         if slash:
-          return dict(embed=embed(title="This file is too powerful to be uploaded", description="You will have to open reddit to view this", color=MessageColors.ERROR))
-        return dict(embed=embed(title="This file is too powerful to be uploaded", description="You will have to open reddit to view this", color=MessageColors.ERROR), mention_author=False)
+          return await ctx.send(embed=embed(title="This file is too powerful to be uploaded", description="You will have to open reddit to view this", color=MessageColors.ERROR))
+        return await ctx.reply(embed=embed(title="This file is too powerful to be uploaded", description="You will have to open reddit to view this", color=MessageColors.ERROR), mention_author=False)
       finally:
         try:
           os.remove(mp4file)
@@ -259,12 +262,12 @@ class redditlink(commands.Cog):
     else:
       if spoiler is True:
         if slash:
-          return dict(content="||" + link + "||")
-        return dict(content="||" + link + "||", mention_author=False)
+          return await ctx.send(content="||" + link + "||")
+        return await ctx.reply(content="||" + link + "||", mention_author=False)
       else:
         if slash:
-          return dict(content=link)
-        return dict(content=link, mention_author=False)
+          return await ctx.send(content=link)
+        return await ctx.reply(content=link, mention_author=False)
     # elif reaction.message.channel.nsfw == False and data["over_18"] == False:
 
     # print(len(body))
