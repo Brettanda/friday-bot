@@ -1,19 +1,24 @@
+from discord.utils import oauth_url, cached_property
 from discord.ext import commands
 from discord_slash import cog_ext
+from functions import config, embed
 
 
 class Invite(commands.Cog):
   def __init__(self, bot):
     self.bot = bot
-    self.link = "https://discord.com/oauth2/authorize?client_id=476303446547365891&permissions=2469521478&scope=bot%20applications.commands"
+
+  @cached_property
+  def link(self):
+    return oauth_url(self.bot.user.id, permissions=config.invite_permissions, scopes=["bot", "applications.commands"])
 
   @commands.command("invite", description="Get the invite link to add me to your server")
   async def _norm_invite(self, ctx):
-    await ctx.reply(content=self.link)
+    await ctx.reply(embed=embed(title="Invite me :)", description=f"[Invite link]({self.link})"))
 
   @cog_ext.cog_slash(name="invite", description="Get the invite link to add me to your server")
   async def _slash_invite(self, ctx):
-    await ctx.send(hidden=True, content=self.link)
+    await ctx.send(hidden=True, embed=embed(title="Invite me :)", description=f"[Invite link]({self.link})"))
 
 
 def setup(bot):
