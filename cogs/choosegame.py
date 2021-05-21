@@ -26,11 +26,11 @@ class ChooseGame(commands.Cog):
               shard_id=shard_id,
           )
         elif gm.get("stats", None) is True:
-          await self.status_updates.start(shard_id)
+          self.status_updates.start(shard_id)
         else:
           await self.bot.change_presence(
               activity=discord.Activity(
-                  type=gm["type"],
+                  type=gm.get("type", discord.ActivityType.playing),
                   name=gm["content"]
               ),
               shard_id=shard_id
@@ -41,10 +41,12 @@ class ChooseGame(commands.Cog):
     if self.status_updates.is_running():
       self.status_updates.cancel()
 
+  @commands.Cog.listener()
   async def on_ready(self):
     if self.choose_game.is_running():
-      self.choose_game.cancel()
-    self.choose_game.start()
+      self.choose_game.restart()
+    if self.status_updates.is_running():
+      self.status_updates.cancel()
 
   @choose_game.before_loop
   async def before_choose_game(self):
