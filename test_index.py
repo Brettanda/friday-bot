@@ -6,6 +6,7 @@ from discord.ext import tasks
 from dotenv import load_dotenv
 
 from index import Friday
+import cogs
 
 # from create_trans_key import run
 
@@ -18,12 +19,21 @@ class Friday_testing(Friday):
     super().__init__(*args, **kwargs)
 
     self.test_stop.start()
+    self.test_message.start()
 
-  @tasks.loop(minutes=1)
+  def load_cogs(self):
+    for cog in cogs.default:
+      self.load_extension(f"cogs.{cog}")
+
+  @tasks.loop()
+  async def test_message(self):
+    print("passed")
+
+  @tasks.loop(minutes=1, count=1)
   async def test_stop(self):
     await self.wait_until_ready()
     await asyncio.sleep(3)
-    assert await self.close()
+    assert await super().close()
 
 
 # TODO: Add a check for functions modules/files not being named the same as the functions/defs

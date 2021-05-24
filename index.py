@@ -52,11 +52,18 @@ class Friday(commands.AutoShardedBot):
     self.songqueue = {}
     self.prod = True if len(sys.argv) > 1 and (sys.argv[1] == "--prod" or sys.argv[1] == "--production") else False
 
-    for cog in cogs.default:
-      self.load_extension(f"cogs.{cog}")
+    self.load_cogs()
 
   async def get_context(self, message, *, cls=None):
     return await super().get_context(message, cls=functions.MyContext)
+
+  def load_cogs(self):
+    for cog in cogs.default:
+      try:
+        self.load_extension(f"cogs.{cog}")
+      except Exception as e:
+        print(f"Failed to load extenstion {cog}", file=sys.stderr)
+        logging.error(f"Failed to load extenstion {cog} with \n {e}")
 
   async def reload_cogs(self):
     reload(cogs)
