@@ -7,7 +7,6 @@ from discord.ext import commands
 
 from discord_slash import cog_ext  # , SlashContext
 
-import logging
 import youtube_dl
 # import json
 import asyncio
@@ -16,8 +15,6 @@ import time
 # from cogs.cleanup import get_delete_time
 
 from functions import embed, MessageColors, exceptions, checks  # , relay_info
-
-logger = logging.getLogger(__name__)
 
 
 def can_play(ctx: commands.Context):

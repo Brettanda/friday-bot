@@ -32,7 +32,7 @@ async def relay_info(msg: str, bot: discord.Client or discord.AutoShardedClient,
   #       await owner.send(content=msg, embed=embed)
   if short is not None:
     print(short)
-    logger.info(short)
+    bot.logger.info(short)
   else:
     print(msg)
-    logger.info(msg)
+    bot.logger.info(msg)

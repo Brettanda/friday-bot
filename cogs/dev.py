@@ -1,5 +1,4 @@
 import asyncio
-import logging
 import os
 import shutil
 import subprocess
@@ -15,8 +14,6 @@ from discord_slash import SlashContext  # , cog_ext
 
 from cogs.help import cmd_help, syntax
 from functions import embed  # , MessageColors
-
-logger = logging.getLogger(__name__)
 
 
 class Dev(commands.Cog, command_attrs=dict(hidden=True)):
@@ -179,7 +176,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
   #   if not isinstance(error, commands.NotOwner):
   #     await ctx.reply(embed=embed(title=f"Failed to reload *{str(''.join(ctx.message.content.split(ctx.prefix+ctx.command.name+' ')))}*", color=MessageColors.ERROR))
   #     print(error)
-  #     logger.error(error)
+  #     self.bot.logger.error(error)
 
   @norm_dev.command(name="update")
   async def update(self, ctx):

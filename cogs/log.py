@@ -12,8 +12,6 @@ import traceback
 import os
 
 
-logger = logging.getLogger(__name__)
-
 # import discord_slash
 
 
@@ -41,9 +39,13 @@ class Log(commands.Cog):
 
     if not hasattr(self.bot, "slash"):
       self.bot.slash = SlashCommand(self.bot, sync_on_cog_reload=True, sync_commands=True, override_type=True)
+    if not hasattr(self.bot, "mydb"):
+      self.bot.mydb = mydb_connect()
 
     self.bot.process_commands = self.process_commands
     # self.bot.on_error = self.on_error
+
+    self.bot.logger = logging.getLogger(__name__)
 
     self.bot.log_spam = self.log_spam
     self.bot.log_info = self.log_info
@@ -86,14 +88,12 @@ class Log(commands.Cog):
 
   @commands.Cog.listener()
   async def on_shard_connect(self, shard_id):
-    print(f"Shard #{shard_id} has connected")
-    logger.info(f"Shard #{shard_id} has connected")
+    await relay_info(f"Shard #{shard_id} has connected", self.bot, logger=self.bot.logger)
 
   @commands.Cog.listener()
   async def on_ready(self):
-    await relay_info(f"Apart of {len(self.bot.guilds)} guilds", self.bot, logger=logger)
-    mydb = mydb_connect()
-    database_guilds = query(mydb, "SELECT id FROM servers")
+    await relay_info(f"Apart of {len(self.bot.guilds)} guilds", self.bot, logger=self.bot.logger)
+    database_guilds = await query(self.bot.mydb, "SELECT id FROM servers")
     if len(database_guilds) != len(self.bot.guilds):
       current_guilds = []
       for guild in self.bot.guilds:
@@ -110,7 +110,7 @@ class Log(commands.Cog):
             guild = self.bot.get_guild(guild_id)
             if guild is not None:
               owner = guild.owner.id if hasattr(guild, "owner") and hasattr(guild.owner, "id") else 0
-              query(mydb, "INSERT INTO servers (id,owner,name,muted) VALUES (%s,%s,%s,%s)", guild.id, owner, guild.name, 0)
+              await query(self.bot.mydb, "INSERT INTO servers (id,owner,name,muted) VALUES (%s,%s,%s,%s)", guild.id, owner, guild.name, 0)
               if guild.system_channel is not None:
                 prefix = config.defaultPrefix
                 try:
@@ -121,44 +121,43 @@ class Log(commands.Cog):
                   pass
             else:
               print(f"HELP guild could not be found {guild_id}")
-              logger.warning(f"HELP guild could not be found {guild_id}")
+              self.bot.logger.warning(f"HELP guild could not be found {guild_id}")
         elif len(database_guilds) > len(current_guilds):
           for guild_id in difference:
-            query(mydb, "DELETE FROM servers WHERE id=%s", guild_id)
+            await query(self.bot.mydb, "DELETE FROM servers WHERE id=%s", guild_id)
         else:
           print("Could not sync guilds")
-          logger.warning("Could not sync guilds")
+          self.bot.logger.warning("Could not sync guilds")
           return
         print("Synced guilds with database")
-        logger.info("Synced guilds with database")
+        self.bot.logger.info("Synced guilds with database")
     else:
       for guild_id in database_guilds:
         guild = self.bot.get_guild(guild_id[0])
-        query(mydb, "UPDATE servers SET name=%s WHERE id=%s", guild.name, guild_id[0])
-    self.set_all_guilds()
+        await query(self.bot.mydb, "UPDATE servers SET name=%s WHERE id=%s", guild.name, guild_id[0])
+    await self.set_all_guilds()
 
   @commands.Cog.listener()
   async def on_shard_ready(self, shard_id):
-    await relay_info(f"Logged on as #{shard_id} {self.bot.user}! - {self.bot.get_shard(shard_id).latency*1000:,.0f} ms", self.bot, logger=logger)
+    await relay_info(f"Logged on as #{shard_id} {self.bot.user}! - {self.bot.get_shard(shard_id).latency*1000:,.0f} ms", self.bot, logger=self.bot.logger)
 
   @commands.Cog.listener()
   async def on_shard_disconnect(self, shard_id):
-    await relay_info(f"Shard #{shard_id} has disconnected", self.bot, logger=logger)
+    await relay_info(f"Shard #{shard_id} has disconnected", self.bot, logger=self.bot.logger)
 
   @commands.Cog.listener()
   async def on_shard_reconnect(self, shard_id):
-    await relay_info(f"Shard #{shard_id} has reconnected", self.bot, logger=logger)
+    await relay_info(f"Shard #{shard_id} has reconnected", self.bot, logger=self.bot.logger)
 
   @commands.Cog.listener()
   async def on_shard_resumed(self, shard_id):
-    await relay_info(f"Shard #{shard_id} has resumed", self.bot, logger=logger)
+    await relay_info(f"Shard #{shard_id} has resumed", self.bot, logger=self.bot.logger)
 
   @commands.Cog.listener()
   async def on_guild_join(self, guild):
-    await relay_info(f"I have joined a new guild, making the total **{len(self.bot.guilds)}**", self.bot, short=f"I have joined a new guild, making the total {len(self.bot.guilds)}", webhook=self.bot.log_join, logger=logger)
-    mydb = mydb_connect()
+    await relay_info(f"I have joined a new guild, making the total **{len(self.bot.guilds)}**", self.bot, short=f"I have joined a new guild, making the total {len(self.bot.guilds)}", webhook=self.bot.log_join, logger=self.bot.logger)
     owner = guild.owner.id if hasattr(guild, "owner") and hasattr(guild.owner, "id") else 0
-    query(mydb, "INSERT INTO servers (id,owner,name,muted) VALUES (%s,%s,%s,%s)", guild.id, owner, guild.name, 0)
+    await query(self.bot.mydb, "INSERT INTO servers (id,owner,name,muted) VALUES (%s,%s,%s,%s)", guild.id, owner, guild.name, 0)
     if guild.system_channel is not None:
       prefix = config.defaultPrefix
       try:
@@ -171,22 +170,20 @@ class Log(commands.Cog):
 
   @commands.Cog.listener()
   async def on_guild_remove(self, guild):
-    await relay_info(f"I have been removed from a guild, making the total **{len(self.bot.guilds)}**", self.bot, short=f"I have been removed from a guild, making the total {len(self.bot.guilds)}", webhook=self.bot.log_join, logger=logger)
-    mydb = mydb_connect()
-    query(mydb, "DELETE FROM servers WHERE id=%s", guild.id)
+    await relay_info(f"I have been removed from a guild, making the total **{len(self.bot.guilds)}**", self.bot, short=f"I have been removed from a guild, making the total {len(self.bot.guilds)}", webhook=self.bot.log_join, logger=self.bot.logger)
+    await query(self.bot.mydb, "DELETE FROM servers WHERE id=%s", guild.id)
     self.bot.remove_guild(guild.id)
 
   @commands.Cog.listener()
   async def on_member_join(self, member):
-    mydb = mydb_connect()
-    role_id = query(mydb, "SELECT defaultRole FROM servers WHERE id=%s", member.guild.id)
+    role_id = await query(self.bot.mydb, "SELECT defaultRole FROM servers WHERE id=%s", member.guild.id)
     if role_id == 0 or role_id is None or str(role_id).lower() == "null":
       return
     else:
       role = member.guild.get_role(role_id)
       if role is None:
         # await member.guild.owner.send(f"The default role that was chosen for me to add to members when they join yours server \"{member.guild.name}\" could not be found, please update the default role at https://friday-self.bot.com")
-        query(mydb, "UPDATE servers SET defaultRole=NULL WHERE id=%s", member.guild.id)
+        await query(self.bot.mydb, "UPDATE servers SET defaultRole=NULL WHERE id=%s", member.guild.id)
       else:
         await member.add_roles(role, reason="Default Role")
 
@@ -199,12 +196,12 @@ class Log(commands.Cog):
   @commands.Cog.listener()
   async def on_command(self, ctx):
     print(f"Command: {ctx.message.clean_content.encode('unicode_escape')}")
-    logger.info(f"Command: {ctx.message.clean_content.encode('unicode_escape')}")
+    self.bot.logger.info(f"Command: {ctx.message.clean_content.encode('unicode_escape')}")
 
   @commands.Cog.listener()
   async def on_slash_command(self, ctx):
     print(f"Slash Command: {ctx.command} {ctx.kwargs}")
-    logger.info(f"Slash Command: {ctx.command} {ctx.kwargs}")
+    self.bot.logger.info(f"Slash Command: {ctx.command} {ctx.kwargs}")
 
   @commands.Cog.listener()
   async def on_slash_command_error(self, ctx: SlashContext, ex):
@@ -287,10 +284,9 @@ class Log(commands.Cog):
   def remove_guild(self, guild_id: int):
     self.bot.saved_guilds.pop(guild_id, None)
 
-  def set_all_guilds(self):
+  async def set_all_guilds(self):
     # if not hasattr(self.bot, "saved_guilds") or len(self.bot.saved_guilds) != len(self.bot.guilds):
-    mydb = mydb_connect()
-    servers = query(mydb, "SELECT id,prefix,autoDeleteMSGs,muted,chatChannel FROM servers")
+    servers = await query(self.bot.mydb, "SELECT id,prefix,autoDeleteMSGs,muted,chatChannel FROM servers")
     guilds = {}
     for guild_id, prefix, autoDeleteMSG, muted, chatChannel in servers:
       guilds.update({int(guild_id): {"prefix": str(prefix), "muted": True if muted == 1 else False, "autoDeleteMSGs": int(autoDeleteMSG), "chatChannel": int(chatChannel) if chatChannel is not None else None}})
