@@ -91,11 +91,11 @@ class ServerManage(commands.Cog):
     muted = await query(self.bot.mydb, "SELECT muted FROM servers WHERE id=%s", ctx.guild.id)
     if muted == 0:
       await query(self.bot.mydb, "UPDATE servers SET muted=%s WHERE id=%s", 1, ctx.guild.id)
-      query(mydb, "UPDATE servers SET muted=%s WHERE id=%s", 1, ctx.guild.id)
+      self.bot.change_guild_muted(ctx.guild.id, True)
       return dict(embed=embed(title="I will now only respond to commands"))
     else:
       await query(self.bot.mydb, "UPDATE servers SET muted=%s WHERE id=%s", 0, ctx.guild.id)
-      query(mydb, "UPDATE servers SET muted=%s WHERE id=%s", 0, ctx.guild.id)
+      self.bot.change_guild_muted(ctx.guild.id, False)
       return dict(embed=embed(title="I will now respond to chat message as well as commands"))
 
   @settings_bot.command(name="chatchannel", alias="chat", description="Set the current channel so that I will always try to respond with something")
