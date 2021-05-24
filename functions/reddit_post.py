@@ -1,5 +1,6 @@
 # import json
 import random
+import asyncio
 
 import aiohttp
 # import discord
@@ -10,6 +11,8 @@ from discord_slash import SlashContext
 from functions import MessageColors, embed
 
 posted = {}
+
+lock = asyncio.Lock()
 
 
 async def request(url):
@@ -35,7 +38,8 @@ async def get_reddit_post(ctx: commands.Context or SlashContext, sub_reddits: st
 
   # async with ctx.channel.typing():
   try:
-    body = await request(url)
+    async with lock:
+      body = await request(url)
   except BaseException:
     # if hidden:
       # return dict(content="Something went wrong, please try again.")
