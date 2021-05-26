@@ -20,7 +20,7 @@ class CustomJoinLeave(commands.Cog):
   @commands.is_owner()
   async def custom_join(self, ctx, url: typing.Optional[str] = None):
     async with ctx.typing():
-       
+
       reactions = await query(self.bot.mydb, "SELECT customJoinLeave FROM servers WHERE id=%s", ctx.guild.id)
       if reactions is None:
         reactions = r"{}"
@@ -38,7 +38,7 @@ class CustomJoinLeave(commands.Cog):
   @commands.is_owner()
   async def custom_leave(self, ctx, url: typing.Optional[str] = None):
     async with ctx.typing():
-       
+
       reactions = await query(self.bot.mydb, "SELECT customJoinLeave FROM servers WHERE id=%s", ctx.guild.id)
       if reactions is None:
         reactions = r"{}"
@@ -58,7 +58,7 @@ class CustomJoinLeave(commands.Cog):
   #   # print(after.channel)
   #   if before.channel is not None:
   #     return
-     
+
   #   reactions = await query(self.bot.mydb,"SELECT customJoinLeave FROM servers WHERE id=%s",member.guild.id)
   #   reactions = json.loads(reactions)
   #   if str(member.id) in reactions:
