@@ -187,6 +187,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     else:
       seperator = "/"
     subprocess.Popen([f"{thispath}{seperator}update.sh"], stdin=subprocess.PIPE)
+    subprocess.Popen([f"{thispath}{seperator}install.sh"], stdin=subprocess.PIPE)
     await message.edit(embed=embed(title="Update complete!"))
 
   @norm_dev.command(name="cogs")

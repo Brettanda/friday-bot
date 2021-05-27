@@ -59,7 +59,7 @@ games = [
     "Big brain time",
     "Uploading your consciousness",
     "Learning everything on the Internet",
-    "YouTube with !play",
+    "some games",
     "with Machine Learning",
     "xX_FINAL_FANTASY_Xx",
     "Escape from Tarkov",

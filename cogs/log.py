@@ -189,7 +189,7 @@ class Log(commands.Cog):
 
   @commands.Cog.listener()
   async def on_message_edit(self, before, after):
-    if after.author.bot:
+    if after.author.bot or before.content == after.content:
       return
     await self.bot.process_commands(after)
 
@@ -241,47 +241,60 @@ class Log(commands.Cog):
     await self.bot.invoke(ctx)
 
   def get_prefixes(self):
-    return [g["prefix"] for g in self.bot.saved_guilds.values()] + ["/", "!", "%", ">", "?"]
-
-  def get_guild_delete_commands(self, guild: discord.Guild = None):
-    if not guild:
-      return None
-    delete = self.bot.saved_guilds[guild.id]["autoDeleteMSGs"]
-    return delete if delete != 0 else None
+    return [g["prefix"] for g in self.bot.saved_guilds.values()] + ["/", "!", "%", ">", "?", "-", "(", ")"]
 
   def get_guild_prefix(self, bot, message):
-    if not message.guild:
-      return commands.when_mentioned_or(config.defaultPrefix)(bot, message)
-    if message.guild.id == 707441352367013899:
+    if not message.guild or message.guild.id == 707441352367013899:
       return commands.when_mentioned_or(config.defaultPrefix)(bot, message)
     return commands.when_mentioned_or(self.bot.saved_guilds[message.guild.id]["prefix"] or config.defaultPrefix)(bot, message)
 
-  def get_guild_muted(self, guild_id: int):
-    if guild_id not in [int(item.id) for item in self.bot.guilds]:
-      return False
-    return bool(self.bot.saved_guilds[guild_id]["muted"])
+  def get_guild_delete_commands(self, guild: discord.Guild or int):
+    if guild is not None:
+      delete = self.bot.saved_guilds[guild.id if isinstance(guild, discord.Guild) else guild]["autoDeleteMSGs"]
+      return delete if delete != 0 else None
 
-  def get_guild_chat_channel(self, guild_id: int):
+  def get_guild_muted(self, guild: discord.Guild or int):
+    if guild is not None:
+      if guild.id if isinstance(guild, discord.Guild) else guild not in [int(item.id) for item in self.bot.guilds]:
+        return False
+      return bool(self.bot.saved_guilds[guild.id if isinstance(guild, discord.Guild) else guild]["muted"])
+
+  def get_guild_chat_channel(self, guild: discord.Guild or int):
+    if guild is None:
+      return False
+    guild_id = guild.id if isinstance(guild, discord.Guild) else guild
     if guild_id not in [int(item.id) for item in self.bot.guilds]:
       return None
-    return self.bot.saved_guilds[guild_id]["chatChannel"]
+    return self.bot.saved_guilds[guild.id if isinstance(guild, discord.Guild) else guild]["chatChannel"]
 
-  def change_guild_prefix(self, guild_id: int, prefix: str = config.defaultPrefix):
-    self.bot.saved_guilds[guild_id]["prefix"] = prefix
+  def change_guild_prefix(self, guild: discord.Guild or int, prefix: str = config.defaultPrefix):
+    if guild is not None:
+      self.bot.saved_guilds[guild.id if isinstance(guild, discord.Guild) else guild]["prefix"] = prefix
 
-  def change_guild_delete(self, guild_id: int, delete: int = 0):
-    self.bot.saved_guilds[guild_id]["autoDeleteMSGs"] = delete
+  def change_guild_delete(self, guild: discord.Guild or int, delete: int = 0):
+    if guild is not None:
+      self.bot.saved_guilds[guild.id if isinstance(guild, discord.Guild) else guild]["autoDeleteMSGs"] = delete
 
-  def change_guild_muted(self, guild_id: int, muted: bool = False):
-    self.bot.saved_guilds[guild_id]["muted"] = muted
+  def change_guild_muted(self, guild: discord.Guild or int, muted: bool = False):
+    if guild is not None:
+      self.bot.saved_guilds[guild.id if isinstance(guild, discord.Guild) else guild]["muted"] = muted
 
-  def change_guild_chat_channel(self, guild_id: int, chatChannel: int = None):
-    self.bot.saved_guilds[guild_id]["chatChannel"] = chatChannel
+  def change_guild_premium(self, guild: discord.Guild or int, premium: bool = False):
+    if guild is not None:
+      self.bot.saved_guilds.get(guild.id if isinstance(guild, discord.Guild) else guild, None)["muted"] = premium
 
-  def set_guild(self, guild_id: int, prefix: str = config.defaultPrefix, autoDeleteMSG: int = None, muted: bool = False, chatChannel: int = None):
-    self.bot.saved_guilds.update({guild_id: {"prefix": prefix, "autoDeleteMSGs": autoDeleteMSG, "muted": muted, "chatChannel": chatChannel if chatChannel is not None else None}})
+  def change_guild_chat_channel(self, guild: discord.Guild or int, chatChannel: int = None):
+    if guild is not None:
+      self.bot.saved_guilds[guild.id if isinstance(guild, discord.Guild) else guild]["chatChannel"] = chatChannel
 
-  def remove_guild(self, guild_id: int):
+  def set_guild(self, guild: discord.Guild or int, prefix: str = config.defaultPrefix, autoDeleteMSG: int = None, muted: bool = False, chatChannel: int = None):
+    if guild is not None:
+      self.bot.saved_guilds.update({guild.id if isinstance(guild, discord.Guild) else guild: {"prefix": prefix, "autoDeleteMSGs": autoDeleteMSG, "muted": muted, "chatChannel": chatChannel if chatChannel is not None else None}})
+
+  def remove_guild(self, guild: discord.Guild or int):
+    if guild is None:
+      return False
+    guild_id = guild.id if isinstance(guild, discord.Guild) else guild
     self.bot.saved_guilds.pop(guild_id, None)
 
   async def set_all_guilds(self):

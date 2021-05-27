@@ -44,7 +44,7 @@ class Friday(commands.AutoShardedBot):
         # member_cache_flags=discord.MemberCacheFlags.voice(),
         fetch_offline_members=False,
         allowed_mentions=functions.config.allowed_mentions,
-        heartbeat_timeout=150.0
+        # heartbeat_timeout=150.0
     )
 
     self.restartPending = False
@@ -62,7 +62,7 @@ class Friday(commands.AutoShardedBot):
       try:
         self.load_extension(f"cogs.{cog}")
       except Exception as e:
-        print(f"Failed to load extenstion {cog}", file=sys.stderr)
+        print(f"Failed to load extenstion {cog} with \n {e}", file=sys.stderr)
         logging.error(f"Failed to load extenstion {cog} with \n {e}")
 
   async def reload_cogs(self):

@@ -282,7 +282,7 @@ class Music(commands.Cog):
     # except:
     # await self.tryagain(ctx)
 
-  @commands.command(name="stop")
+  @commands.command(name="stop", aliases=["disconnect"])
   @commands.guild_only()
   async def norm_stop(self, ctx):
     await self.stop(ctx)
