@@ -28,7 +28,9 @@ dead_nodes_sent = False
 
 
 async def get_prefix(bot, message):
-  return bot.get_guild_prefix(bot, message)
+  if hasattr(bot, "get_guild_prefix"):
+    return bot.get_guild_prefix(bot, message)
+  return functions.config.defaultPrefix
 
 
 class Friday(commands.AutoShardedBot):
@@ -97,7 +99,7 @@ if __name__ == "__main__":
       TOKEN = os.environ.get("TOKEN")
   loop = asyncio.get_event_loop()
   try:
-    loop.run_until_complete(bot.start(TOKEN, bot=True, reconnect=True))
+    loop.run_until_complete(bot.start(TOKEN, reconnect=True))
   except KeyboardInterrupt:
     # mydb.close()
     logging.info("STOPED")

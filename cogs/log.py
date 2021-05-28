@@ -37,6 +37,9 @@ class Log(commands.Cog):
     if not hasattr(self.bot, "spam_control"):
       self.bot.spam_control = commands.CooldownMapping.from_cooldown(5, 15.0, commands.BucketType.user)
 
+    # if not hasattr(self.bot, "super_spam_control"):
+    #   self.bot.super_spam_control = commands.CooldownMapping.from_cooldown()
+
     if not hasattr(self.bot, "slash"):
       self.bot.slash = SlashCommand(self.bot, sync_on_cog_reload=True, sync_commands=True, override_type=True)
     if not hasattr(self.bot, "mydb"):

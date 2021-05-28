@@ -328,7 +328,10 @@ class Music(commands.Cog):
   @commands.guild_only()
   @commands.bot_has_permissions(send_messages=True, embed_links=True, read_messages=True)
   async def norm_skip(self, ctx):
-    await ctx.message.delete(delay=self.bot.get_guild_delete_commands(ctx.guild))
+    try:
+      await ctx.message.delete(delay=self.bot.get_guild_delete_commands(ctx.guild))
+    except discord.NotFound:
+      pass
     await self.skip(ctx)
 
   @cog_ext.cog_slash(name="skip", description="Skips the current song", guild_ids=[243159711237537802])

@@ -33,7 +33,10 @@ class MyContext(Context):
   async def reply(self, content=None, **kwargs):
     ignore_coms = ["log", "help", "meme", "issue", "reactionrole", "minesweeper", "poll", "confirm", "souptime"]
     if not hasattr(kwargs, "delete_after") and self.command is not None and self.command.name not in ignore_coms:
-      delete = self.bot.get_guild_delete_commands(self.message.guild)
+      if hasattr(self.bot, "get_guild_delete_commands"):
+        delete = self.bot.get_guild_delete_commands(self.message.guild)
+      else:
+        delete = None
       delete = delete if delete is not None and delete != 0 else None
       if delete is not None:
         kwargs.update({"delete_after": delete})

@@ -75,7 +75,7 @@ class Chat(commands.Cog):
       return
 
     if not ctx.content.startswith(tuple(self.bot.get_prefixes())):
-      noContext = ["Title of your sex tape", "I dont want to talk to a chat bot", "Self Aware", "No U", "I'm dad", "Bot discrimination"]
+      noContext = ["Title of your sex tape", "Self Aware", "No U", "I'm dad"]
       lastmessages = await ctx.channel.history(limit=3, oldest_first=False).flatten()
       meinlastmessage = False
       # newest = None

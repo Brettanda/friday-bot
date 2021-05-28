@@ -13,6 +13,7 @@ class ChooseGame(commands.Cog):
 
   @tasks.loop(minutes=10.0)
   async def choose_game(self):
+    # This might run per shard
     for shard_id in self.bot.shards:
       if random.random() < 0.6:
         gm = random.choice(config.games)
