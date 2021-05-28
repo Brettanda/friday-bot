@@ -38,7 +38,7 @@ class MyContext(Context):
       else:
         delete = None
       delete = delete if delete is not None and delete != 0 else None
-      if delete is not None:
+      if delete is not None and self.command.name not in ignore_coms:
         kwargs.update({"delete_after": delete})
         await self.message.delete(delay=delete)
     if not hasattr(kwargs, "mention_author"):
