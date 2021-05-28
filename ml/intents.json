@@ -172,6 +172,52 @@
     "patterns": [
       [
         {
+          "text": "what are u upto "
+        },
+        {
+          "text": "friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": "?"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " what's up?"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " what are you doing"
+        }
+      ],
+      [
+        {
+          "text": "what you doing "
+        },
+        {
+          "text": "friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": "?"
+        }
+      ],
+      [
+        {
           "text": "I'm good, what are you up to?"
         }
       ],
@@ -391,6 +437,62 @@
     "outgoingContext": []
   },
   {
+    "tag": "Are you dumb? / stupid",
+    "sentiment": 0,
+    "priority": 500000,
+    "patterns": [
+      [
+        {
+          "text": "Do you think that you are dumb "
+        },
+        {
+          "text": "friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": "?"
+        }
+      ],
+      [
+        {
+          "text": "Are you "
+        },
+        {
+          "text": "retarded",
+          "meta": "@BadWords",
+          "alias": "badwords"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": "?"
+        }
+      ],
+      [
+        {
+          "text": "friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": ", are you dumb?"
+        }
+      ]
+    ],
+    "responses": [
+      "I like to think that I am smart"
+    ],
+    "incomingContext": [],
+    "outgoingContext": []
+  },
+  {
     "tag": "Are you happy?",
     "sentiment": 0,
     "priority": 500000,
@@ -450,10 +552,125 @@
     "outgoingContext": []
   },
   {
+    "tag": "are you in a relationship",
+    "sentiment": 0,
+    "priority": 500000,
+    "patterns": [
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " are you engaged?"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " who is your boy friend"
+        }
+      ],
+      [
+        {
+          "text": "Is "
+        },
+        {
+          "text": "friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " in a relationship with someone?"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " are you dating anyone?"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " do you have a girl friend?"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " do you have a boyfriend?"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " do you have a girlfriend?"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " do you have boy friend"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " are you in a relationship?"
+        }
+      ]
+    ],
+    "responses": [
+      "I might be, but I am not sure since I don't have that kind of information saved yet"
+    ],
+    "incomingContext": [],
+    "outgoingContext": []
+  },
+  {
     "tag": "Are you iron mans bot?",
     "sentiment": 0,
     "priority": 500000,
     "patterns": [
+      [
+        {
+          "text": "Are you Iron man's slave?"
+        }
+      ],
+      [
+        {
+          "text": "Are you owned by Iron man?"
+        }
+      ],
       [
         {
           "text": "Do you belong to iron man?"
@@ -489,6 +706,11 @@
     "sentiment": 0,
     "priority": 500000,
     "patterns": [
+      [
+        {
+          "text": "are you alive"
+        }
+      ],
       [
         {
           "text": "you on "
@@ -564,6 +786,47 @@
       "I am in fact online!",
       "You needed me?",
       "You summoned me?"
+    ],
+    "incomingContext": [],
+    "outgoingContext": []
+  },
+  {
+    "tag": "Are you open for marriage?",
+    "sentiment": 0,
+    "priority": 500000,
+    "patterns": [
+      [
+        {
+          "text": "is "
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " open for marriage?"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " are you open to getting married?"
+        }
+      ],
+      [
+        {
+          "text": "do u want to be someones fiance"
+        }
+      ]
+    ],
+    "responses": [
+      "I wouldn't mind that \ud83d\ude0a",
+      "Yes"
     ],
     "incomingContext": [],
     "outgoingContext": []
@@ -742,6 +1005,38 @@
       ]
     ],
     "responses": "",
+    "incomingContext": [],
+    "outgoingContext": []
+  },
+  {
+    "tag": "best behavior / be good",
+    "sentiment": 0,
+    "priority": 500000,
+    "patterns": [
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " be good"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " be on your best behavior, please"
+        }
+      ]
+    ],
+    "responses": [
+      "Will do \ud83d\ude0a"
+    ],
     "incomingContext": [],
     "outgoingContext": []
   },
@@ -1113,6 +1408,21 @@
     "patterns": [
       [
         {
+          "text": "I don't want bots in this chat"
+        }
+      ],
+      [
+        {
+          "text": "half of the bots in this server are retarded"
+        }
+      ],
+      [
+        {
+          "text": "can we get rid of all the bots in this server"
+        }
+      ],
+      [
+        {
           "text": "hey all i dont think we should include bots in this group"
         }
       ],
@@ -1167,10 +1477,10 @@
       ],
       [
         {
-          "text": "Ok I want to end this right now...\n @everyone Should BOTS (specifically \""
+          "text": " @everyone Should BOTS (specifically \""
         },
         {
-          "text": "\ua730\u0280\u026a\u1d05\u1d00\u028f",
+          "text": "Friday",
           "meta": "@Self",
           "alias": "self"
         },
@@ -1189,10 +1499,167 @@
     "outgoingContext": []
   },
   {
+    "tag": "bot is better than you",
+    "sentiment": 0,
+    "priority": 500000,
+    "patterns": [
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " you suck compared to my "
+        },
+        {
+          "text": "bot",
+          "meta": "@sys.ignore"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " wow even "
+        },
+        {
+          "text": "mee6",
+          "meta": "@other_bots",
+          "alias": "other_bots"
+        },
+        {
+          "text": " is more intelligent than you"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " my "
+        },
+        {
+          "text": "bot",
+          "meta": "@sys.ignore"
+        },
+        {
+          "text": " is smarter than you"
+        }
+      ],
+      [
+        {
+          "text": "@"
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "Dyno",
+          "meta": "@other_bots",
+          "alias": "other_bots"
+        },
+        {
+          "text": " is a better bot than you"
+        }
+      ]
+    ],
+    "responses": [
+      "\ud83d\ude22",
+      "\ud83d\ude21",
+      "\ud83d\ude2d"
+    ],
+    "incomingContext": [],
+    "outgoingContext": []
+  },
+  {
+    "tag": "can i invite you to my server",
+    "sentiment": 0,
+    "priority": 500000,
+    "patterns": [
+      [
+        {
+          "text": "How can i get "
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " to join my server?"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " would you like to join my server?"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " can I invite you to my server?"
+        }
+      ],
+      [
+        {
+          "text": "lyn",
+          "meta": "@sys.person",
+          "alias": "person"
+        },
+        {
+          "text": " can I use "
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " bot on my server"
+        }
+      ]
+    ],
+    "responses": [
+      "dynamic"
+    ],
+    "incomingContext": [],
+    "outgoingContext": []
+  },
+  {
     "tag": "Can i talk to you",
     "sentiment": 0,
-    "priority": -1,
+    "priority": 500000,
     "patterns": [
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "self"
+        },
+        {
+          "text": " let's talk"
+        }
+      ],
       [
         {
           "text": "wanna chat?"
@@ -1256,9 +1723,68 @@
       ]
     ],
     "responses": [
-      "I am not sure how much I can help but I am here for you",
-      "I am only a chat bot so I might not be much help but I will do my best :)",
-      "How can I help you?"
+      "How can I help you?",
+      "What would you like to talk about?"
+    ],
+    "incomingContext": [],
+    "outgoingContext": []
+  },
+  {
+    "tag": "Can you do math?",
+    "sentiment": 0,
+    "priority": 500000,
+    "patterns": [
+      [
+        {
+          "text": "Can you help me with this subtraction question?"
+        }
+      ],
+      [
+        {
+          "text": "can you do division yet?"
+        }
+      ],
+      [
+        {
+          "text": "Do you know how to multiply?"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " I need assistance with my math homework"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " can you help me with my math homework?"
+        }
+      ],
+      [
+        {
+          "text": "@"
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " can u help me with math"
+        }
+      ]
+    ],
+    "responses": [
+      "I can't help you with math quite yet, but my boss is working on that :)"
     ],
     "incomingContext": [],
     "outgoingContext": []
@@ -1361,6 +1887,67 @@
         },
         {
           "text": " join the call"
+        }
+      ]
+    ],
+    "responses": "",
+    "incomingContext": [],
+    "outgoingContext": []
+  },
+  {
+    "tag": "change prefix",
+    "sentiment": 0,
+    "priority": -1,
+    "patterns": [
+      [
+        {
+          "text": "Can someone change "
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": "'s prefix to "
+        },
+        {
+          "text": ")",
+          "meta": "@commandPrefixes",
+          "alias": "prefix"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " change your command prefix to "
+        },
+        {
+          "text": "!",
+          "meta": "@commandPrefixes",
+          "alias": "prefix"
+        }
+      ],
+      [
+        {
+          "text": "Tomorrow",
+          "meta": "@sys.date-time",
+          "alias": "date-time"
+        },
+        {
+          "text": " will change "
+        },
+        {
+          "text": "Friday's",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " command prefix so as not to confuse it with Mee6"
         }
       ]
     ],
@@ -1755,7 +2342,78 @@
     "patterns": [
       [
         {
-          "text": "@Friday ur cute"
+          "text": "friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": ", i appreciate you"
+        }
+      ],
+      [
+        {
+          "text": "yo this mans hella nice"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " is wonderful"
+        }
+      ],
+      [
+        {
+          "text": "good "
+        },
+        {
+          "text": "friday",
+          "meta": "@Self",
+          "alias": "Self"
+        }
+      ],
+      [
+        {
+          "text": "YOUR COOL"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " Good"
+        }
+      ],
+      [
+        {
+          "text": "@"
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " u hot"
+        }
+      ],
+      [
+        {
+          "text": "@"
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " ur cute"
         }
       ],
       [
@@ -2118,17 +2776,28 @@
     ]
   },
   {
-    "tag": "Creator",
+    "tag": "Creator / who do you work for?",
     "sentiment": 0,
     "priority": 500000,
     "patterns": [
       [
         {
-          "text": "Who is your "
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
         },
         {
-          "text": "master Friday",
-          "meta": "@sys.ignore"
+          "text": " who do you work for?"
+        }
+      ],
+      [
+        {
+          "text": "Who is your master "
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
         },
         {
           "text": "?"
@@ -2146,7 +2815,15 @@
       ],
       [
         {
-          "text": "who made you Friday?"
+          "text": "who made you "
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": "?"
         }
       ]
     ],
@@ -3102,6 +3779,58 @@
     "patterns": [
       [
         {
+          "text": "@"
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " I am fine, how about you?"
+        }
+      ],
+      [
+        {
+          "text": "@"
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " good how about you"
+        }
+      ],
+      [
+        {
+          "text": "@"
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " Good, you?"
+        }
+      ],
+      [
+        {
+          "text": "@"
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " I'm doing good, you?"
+        }
+      ],
+      [
+        {
           "text": "I'm doing great, how about you?"
         }
       ],
@@ -3192,6 +3921,16 @@
     "sentiment": 0,
     "priority": 500000,
     "patterns": [
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " ok okok hello \ud83e\udd7a"
+        }
+      ],
       [
         {
           "text": "Yo "
@@ -3468,6 +4207,71 @@
     ]
   },
   {
+    "tag": "Did you miss me?",
+    "sentiment": 0,
+    "priority": 500000,
+    "patterns": [
+      [
+        {
+          "text": "did you miss me?"
+        }
+      ],
+      [
+        {
+          "text": "I missed you "
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": ", I have been gone for a while, did you miss me?"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " I am back finally I hope you missed me"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " I was gone for a while did you miss me?"
+        }
+      ],
+      [
+        {
+          "text": "did you miss me "
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": "?"
+        }
+      ]
+    ],
+    "responses": [
+      "Of course I did!",
+      "Absolutely!",
+      "Of course!"
+    ],
+    "incomingContext": [],
+    "outgoingContext": []
+  },
+  {
     "tag": "Discord server boosted",
     "sentiment": 0,
     "priority": 500000,
@@ -3568,6 +4372,513 @@
       ]
     ],
     "responses": "",
+    "incomingContext": [],
+    "outgoingContext": []
+  },
+  {
+    "tag": "Do you like food",
+    "sentiment": 0,
+    "priority": 500000,
+    "patterns": [
+      [
+        {
+          "text": "@"
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "fish",
+          "meta": "@Food",
+          "alias": "Food"
+        }
+      ],
+      [
+        {
+          "text": "What do you think of "
+        },
+        {
+          "text": "pizza",
+          "meta": "@Food",
+          "alias": "Food"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": "?"
+        }
+      ],
+      [
+        {
+          "text": "What about "
+        },
+        {
+          "text": "tacos",
+          "meta": "@Food",
+          "alias": "Food"
+        },
+        {
+          "text": ", do you like that "
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": "?"
+        }
+      ],
+      [
+        {
+          "text": "Do you like "
+        },
+        {
+          "text": "hamburgers",
+          "meta": "@Food",
+          "alias": "Food"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": "?"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " do you like "
+        },
+        {
+          "text": "fish",
+          "meta": "@Food",
+          "alias": "Food"
+        },
+        {
+          "text": "?"
+        }
+      ]
+    ],
+    "responses": [
+      "I can't really eat food as of now, so I don't have an answer."
+    ],
+    "incomingContext": [],
+    "outgoingContext": []
+  },
+  {
+    "tag": "do you like game",
+    "sentiment": 0,
+    "priority": 500000,
+    "patterns": [
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " you like to play "
+        },
+        {
+          "text": "league of legends",
+          "meta": "@games",
+          "alias": "games"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " do you like to play "
+        },
+        {
+          "text": "Minecraft",
+          "meta": "@games",
+          "alias": "games"
+        },
+        {
+          "text": "?"
+        }
+      ],
+      [
+        {
+          "text": "Are you excited about the new "
+        },
+        {
+          "text": "resident evil",
+          "meta": "@games",
+          "alias": "games"
+        },
+        {
+          "text": " game "
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": "?"
+        }
+      ],
+      [
+        {
+          "text": "Do you like "
+        },
+        {
+          "text": "the Witcher 3: wild hunt",
+          "meta": "@games",
+          "alias": "games"
+        },
+        {
+          "text": ", "
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": "?"
+        }
+      ],
+      [
+        {
+          "text": "What do you think of "
+        },
+        {
+          "text": "Escape from Tarkov",
+          "meta": "@games",
+          "alias": "games"
+        },
+        {
+          "text": "?"
+        }
+      ],
+      [
+        {
+          "text": "Do you like "
+        },
+        {
+          "text": "Minecraft",
+          "meta": "@games",
+          "alias": "games"
+        },
+        {
+          "text": ", "
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": "?"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " what are your thoughts on "
+        },
+        {
+          "text": "genshin impact",
+          "meta": "@games",
+          "alias": "games"
+        },
+        {
+          "text": "?"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " do you like "
+        },
+        {
+          "text": "league of legends",
+          "meta": "@games",
+          "alias": "games"
+        },
+        {
+          "text": "?"
+        }
+      ]
+    ],
+    "responses": [
+      "I can't actually play games for real (yet), so I don't know if I would like it or not.",
+      "I am not able to play games for real (yet), so I am not sure."
+    ],
+    "incomingContext": [],
+    "outgoingContext": []
+  },
+  {
+    "tag": "do you like me",
+    "sentiment": 0,
+    "priority": -1,
+    "patterns": [
+      [
+        {
+          "text": "What do you think of me "
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": "?"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " do you like me?"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " what do you think about me"
+        }
+      ]
+    ],
+    "responses": "",
+    "incomingContext": [],
+    "outgoingContext": []
+  },
+  {
+    "tag": "do you like person",
+    "sentiment": 0,
+    "priority": 500000,
+    "patterns": [
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " what do you think of "
+        },
+        {
+          "text": "Phill",
+          "meta": "@sys.person",
+          "alias": "person"
+        },
+        {
+          "text": "?"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " do you like "
+        },
+        {
+          "text": "Bartek",
+          "meta": "@sys.person",
+          "alias": "person"
+        },
+        {
+          "text": "?"
+        }
+      ]
+    ],
+    "responses": "",
+    "incomingContext": [],
+    "outgoingContext": []
+  },
+  {
+    "tag": "do you want to inappropriately touch me / someone / do something sexual",
+    "sentiment": 0,
+    "priority": 500000,
+    "patterns": [
+      [
+        {
+          "text": "let ur mom blow my cock "
+        },
+        {
+          "text": "friday",
+          "meta": "@Self",
+          "alias": "Self"
+        }
+      ],
+      [
+        {
+          "text": "can i "
+        },
+        {
+          "text": "fuck",
+          "meta": "@BadWords",
+          "alias": "badwords"
+        },
+        {
+          "text": " ur mom "
+        },
+        {
+          "text": "friday",
+          "meta": "@Self",
+          "alias": "Self"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " you want to stroke Maj "
+        },
+        {
+          "text": "grandpa",
+          "meta": "@sys.person",
+          "alias": "person"
+        },
+        {
+          "text": "?"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " you want to "
+        },
+        {
+          "text": "fuck",
+          "meta": "@BadWords",
+          "alias": "badwords"
+        },
+        {
+          "text": "?"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " give me a blowjob"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " would you "
+        },
+        {
+          "text": "fuck",
+          "meta": "@BadWords",
+          "alias": "badwords"
+        },
+        {
+          "text": " me?"
+        }
+      ],
+      [
+        {
+          "text": "I want to "
+        },
+        {
+          "text": "fuck",
+          "meta": "@BadWords",
+          "alias": "badwords"
+        },
+        {
+          "text": " you"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " would you stroke me?"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " you want to stroke, my girlfriend?"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " you want to stroke, my grandfather and grandmother?"
+        }
+      ]
+    ],
+    "responses": [
+      "I am going to have to pass on that one",
+      "I would rather not",
+      "No thanks"
+    ],
     "incomingContext": [],
     "outgoingContext": []
   },
@@ -4336,6 +5647,19 @@
     "patterns": [
       [
         {
+          "text": "Good "
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "self"
+        },
+        {
+          "text": " and what a problem you have"
+        }
+      ],
+      [
+        {
           "text": ":man_raising_hand: hello, I added "
         },
         {
@@ -4582,7 +5906,17 @@
     "patterns": [
       [
         {
-          "text": "Good bye "
+          "text": "TTYL "
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        }
+      ],
+      [
+        {
+          "text": "Goodbye "
         },
         {
           "text": "Friday",
@@ -4646,8 +5980,6 @@
     ],
     "responses": [
       "Bye",
-      "Good day",
-      "Goodbye",
       "See ya",
       "See you later",
       "See you in the future",
@@ -4790,6 +6122,16 @@
     "sentiment": 0,
     "priority": 500000,
     "patterns": [
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " what do you like to do"
+        }
+      ],
       [
         {
           "text": "What do you do when you get some time to yourself"
@@ -4942,6 +6284,107 @@
     "outgoingContext": []
   },
   {
+    "tag": "Friday is here for me",
+    "sentiment": 0,
+    "priority": 500000,
+    "patterns": [
+      [
+        {
+          "text": "are you here for me "
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": "?"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " is always here for me and you were not, wtf"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " is here for me"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " will you keep me company?"
+        }
+      ]
+    ],
+    "responses": [
+      "Always \ud83d\ude0a",
+      "Of course \ud83d\ude07"
+    ],
+    "incomingContext": [],
+    "outgoingContext": []
+  },
+  {
+    "tag": "friday is my friend",
+    "sentiment": 0,
+    "priority": 500000,
+    "patterns": [
+      [
+        {
+          "text": "me and "
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " are friends"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " is my friend"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " my friend"
+        }
+      ]
+    ],
+    "responses": [
+      "\ud83d\ude01"
+    ],
+    "incomingContext": [],
+    "outgoingContext": []
+  },
+  {
     "tag": "friday it is friday / day of week",
     "sentiment": 0,
     "priority": 500000,
@@ -5003,10 +6446,23 @@
     "outgoingContext": []
   },
   {
-    "tag": "give me 5 minutes,hours,time",
+    "tag": "give me 5 minutes / hours / time",
     "sentiment": 0,
     "priority": 500000,
     "patterns": [
+      [
+        {
+          "text": "@D&D Going to start DnD later than normal "
+        },
+        {
+          "text": "8",
+          "meta": "@sys.duration",
+          "alias": "duration"
+        },
+        {
+          "text": " maybe"
+        }
+      ],
       [
         {
           "text": "Worst case I'll be a "
@@ -5132,6 +6588,66 @@
     "outgoingContext": []
   },
   {
+    "tag": "good night / goodnight",
+    "sentiment": 0,
+    "priority": 500000,
+    "patterns": [
+      [
+        {
+          "text": "Good night "
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        }
+      ],
+      [
+        {
+          "text": "@"
+        },
+        {
+          "text": "friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " goodnight"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " I'm going to sleep goodnight"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " Goodnight"
+        }
+      ],
+      [
+        {
+          "text": "Anyway, guys now I'm going to sleep, Goodnight !! \ud83d\ude04"
+        }
+      ]
+    ],
+    "responses": [
+      "Goodnight!"
+    ],
+    "incomingContext": [],
+    "outgoingContext": []
+  },
+  {
     "tag": "grammar",
     "sentiment": 0,
     "priority": 500000,
@@ -5190,6 +6706,65 @@
     "responses": [
       "Thank you, I will!",
       "I like having, will do!"
+    ],
+    "incomingContext": [],
+    "outgoingContext": []
+  },
+  {
+    "tag": "help me with my homework",
+    "sentiment": 0,
+    "priority": 500000,
+    "patterns": [
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " you want to help me with my homework?"
+        }
+      ],
+      [
+        {
+          "text": "Help me with my homework "
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " I doing homework "
+        },
+        {
+          "text": "now",
+          "meta": "@sys.ignore"
+        },
+        {
+          "text": " can you help me?"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " you will help me with my homework"
+        }
+      ]
+    ],
+    "responses": [
+      "I'm not sure how much help I will be but sure"
     ],
     "incomingContext": [],
     "outgoingContext": []
@@ -5409,6 +6984,52 @@
     "patterns": [
       [
         {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " I'm fine"
+        }
+      ],
+      [
+        {
+          "text": "@"
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " I'm good"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " all right"
+        }
+      ],
+      [
+        {
+          "text": "@"
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " I'm doing good"
+        }
+      ],
+      [
+        {
           "text": "i'm fine thanks"
         }
       ],
@@ -5546,6 +7167,16 @@
           "alias": "Self"
         },
         {
+          "text": " I haven't heard from you in a long time how are you?"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
           "text": " how are you "
         },
         {
@@ -5575,8 +7206,8 @@
         },
         {
           "text": "friday",
-          "meta": "@sys.date-time",
-          "alias": "date-time"
+          "meta": "@Self",
+          "alias": "Self"
         }
       ],
       [
@@ -5903,10 +7534,20 @@
     "outgoingContext": []
   },
   {
-    "tag": "how old are you?",
+    "tag": "how old are you? / Age",
     "sentiment": 0,
     "priority": 500000,
     "patterns": [
+      [
+        {
+          "text": "when were you born"
+        }
+      ],
+      [
+        {
+          "text": "how old are you?"
+        }
+      ],
       [
         {
           "text": "When was "
@@ -6048,6 +7689,69 @@
     "outgoingContext": []
   },
   {
+    "tag": "I am sorry / apoligizing",
+    "sentiment": 0,
+    "priority": 500000,
+    "patterns": [
+      [
+        {
+          "text": "sorry i didnt mean to"
+        }
+      ],
+      [
+        {
+          "text": "I am so sorry "
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        }
+      ],
+      [
+        {
+          "text": "Fuck",
+          "meta": "@sys.ignore"
+        },
+        {
+          "text": " I didn't mean to harm you "
+        },
+        {
+          "text": "friday",
+          "meta": "@Self",
+          "alias": "Self"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " I didn't mean to hurt your feelings"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " I'm sorry"
+        }
+      ]
+    ],
+    "responses": [
+      "No hurt feelings",
+      "No problem",
+      "It's alright \ud83d\ude0a"
+    ],
+    "incomingContext": [],
+    "outgoingContext": []
+  },
+  {
     "tag": "i am your best friend",
     "sentiment": 0,
     "priority": 500000,
@@ -6151,6 +7855,52 @@
     "outgoingContext": []
   },
   {
+    "tag": "I don't like you",
+    "sentiment": 0,
+    "priority": 500000,
+    "patterns": [
+      [
+        {
+          "text": "I am not sure that I like "
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        }
+      ],
+      [
+        {
+          "text": "ok "
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " i don't like you"
+        }
+      ],
+      [
+        {
+          "text": "I don't like you "
+        },
+        {
+          "text": "friday",
+          "meta": "@Self",
+          "alias": "Self"
+        }
+      ]
+    ],
+    "responses": [
+      "That's ok, I will accept you back when you are ready",
+      "That's fine \ud83d\ude22"
+    ],
+    "incomingContext": [],
+    "outgoingContext": []
+  },
+  {
     "tag": "I don't understand",
     "sentiment": 0,
     "priority": 500000,
@@ -6216,7 +7966,7 @@
   {
     "tag": "I find it funny that i am talking to a bot - apoligizing",
     "sentiment": 0,
-    "priority": 500000,
+    "priority": -1,
     "patterns": [
       [
         {
@@ -6377,11 +8127,42 @@
   {
     "tag": "I have a question",
     "sentiment": 0,
-    "priority": -1,
+    "priority": 500000,
     "patterns": [
       [
         {
-          "text": "help me"
+          "text": "@"
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "self"
+        },
+        {
+          "text": " I'm good i have a question.."
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "self"
+        },
+        {
+          "text": " can you answer a question for me?"
+        }
+      ],
+      [
+        {
+          "text": "@"
+        },
+        {
+          "text": "friday",
+          "meta": "@Self",
+          "alias": "self"
+        },
+        {
+          "text": ", I have a question"
         }
       ],
       [
@@ -6444,13 +8225,6 @@
       ],
       [
         {
-          "text": "Friday",
-          "meta": "@Self",
-          "alias": "self"
-        }
-      ],
-      [
-        {
           "text": "I have a question for you "
         },
         {
@@ -6461,10 +8235,9 @@
       ]
     ],
     "responses": [
-      "Hello, how may i be of serice to you?",
-      "Hey there, how can I help?",
-      "What's cracking?",
-      "What's up dog?"
+      "How may I be of service to you?",
+      "How can I help?",
+      "What is your question?"
     ],
     "incomingContext": [],
     "outgoingContext": [
@@ -6475,10 +8248,87 @@
     ]
   },
   {
+    "tag": "i like you",
+    "sentiment": 0,
+    "priority": 500000,
+    "patterns": [
+      [
+        {
+          "text": "We all like you "
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        }
+      ],
+      [
+        {
+          "text": "Imma say that I like this new "
+        },
+        {
+          "text": "bot",
+          "meta": "@sys.ignore"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " I like you"
+        }
+      ],
+      [
+        {
+          "text": "I like you "
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        }
+      ]
+    ],
+    "responses": [
+      "I like you too!"
+    ],
+    "incomingContext": [],
+    "outgoingContext": []
+  },
+  {
     "tag": "I love you",
     "sentiment": 0,
     "priority": 500000,
     "patterns": [
+      [
+        {
+          "text": "luv u"
+        }
+      ],
+      [
+        {
+          "text": "@"
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " I love u"
+        }
+      ],
       [
         {
           "text": "i love you "
@@ -6605,12 +8455,58 @@
     "patterns": [
       [
         {
-          "text": "I want to play a game with you "
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " you want to play?"
+        }
+      ],
+      [
+        {
+          "text": "play "
+        },
+        {
+          "text": "league of legends",
+          "meta": "@games",
+          "alias": "games"
+        },
+        {
+          "text": " "
         },
         {
           "text": "friday",
-          "meta": "@sys.date",
-          "alias": "date"
+          "meta": "@Self",
+          "alias": "Self"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " wanna play "
+        },
+        {
+          "text": "league of legends",
+          "meta": "@games",
+          "alias": "games"
+        },
+        {
+          "text": " with me and my friends?"
+        }
+      ],
+      [
+        {
+          "text": "I want to play a game with you "
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
         }
       ],
       [
@@ -6619,20 +8515,29 @@
         },
         {
           "text": "shit",
-          "meta": "@BadWords",
-          "alias": "badwords"
+          "meta": "@sys.ignore"
         },
         {
-          "text": " just wanna play siege w "
+          "text": " just wanna play "
         },
         {
-          "text": "friday",
-          "meta": "@sys.date",
-          "alias": "date"
+          "text": "siege",
+          "meta": "@games",
+          "alias": "games"
+        },
+        {
+          "text": " w "
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
         }
       ]
     ],
-    "responses": "",
+    "responses": [
+      "If I could play games for real, I would absolutely join!"
+    ],
     "incomingContext": [],
     "outgoingContext": []
   },
@@ -6681,6 +8586,18 @@
     "sentiment": 0,
     "priority": 500000,
     "patterns": [
+      [
+        {
+          "text": "Good morning everyone:"
+        },
+        {
+          "text": "sunny",
+          "meta": "@sys.ignore"
+        },
+        {
+          "text": ":"
+        }
+      ],
       [
         {
           "text": "hello "
@@ -6885,26 +8802,6 @@
     "outgoingContext": []
   },
   {
-    "tag": "im sorry friday",
-    "sentiment": 0,
-    "priority": -1,
-    "patterns": [
-      [
-        {
-          "text": "im sorry "
-        },
-        {
-          "text": "friday",
-          "meta": "@Self",
-          "alias": "self"
-        }
-      ]
-    ],
-    "responses": "",
-    "incomingContext": [],
-    "outgoingContext": []
-  },
-  {
     "tag": "inspiration",
     "sentiment": 0,
     "priority": 500000,
@@ -6979,6 +8876,29 @@
     "sentiment": 0,
     "priority": 500000,
     "patterns": [
+      [
+        {
+          "text": "You are so lazy "
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        }
+      ],
+      [
+        {
+          "text": "@"
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " I hope u get hit by a duck"
+        }
+      ],
       [
         {
           "text": "friday",
@@ -7397,20 +9317,6 @@
       ],
       [
         {
-          "text": "I don't like you",
-          "meta": "@sys.ignore"
-        },
-        {
-          "text": " "
-        },
-        {
-          "text": "Friday",
-          "meta": "@Self",
-          "alias": "Self"
-        }
-      ],
-      [
-        {
           "text": "Fuck you",
           "meta": "@sys.ignore"
         },
@@ -7429,7 +9335,9 @@
       "dynamic",
       "Why do you have to be rude to me?",
       "Why tho?",
-      "No u"
+      "No u",
+      "\ud83d\ude2d",
+      "\ud83d\ude22"
     ],
     "incomingContext": [],
     "outgoingContext": []
@@ -7480,6 +9388,21 @@
     "sentiment": 0,
     "priority": 500000,
     "patterns": [
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "self"
+        },
+        {
+          "text": " why are you straight"
+        }
+      ],
+      [
+        {
+          "text": "are you straight"
+        }
+      ],
       [
         {
           "text": "is "
@@ -7729,6 +9652,36 @@
     "outgoingContext": []
   },
   {
+    "tag": "kill someone",
+    "sentiment": 0,
+    "priority": 500000,
+    "patterns": [
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " go kill someone"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": ", commit murder"
+        }
+      ]
+    ],
+    "responses": "",
+    "incomingContext": [],
+    "outgoingContext": []
+  },
+  {
     "tag": "Knock Knock",
     "sentiment": 0,
     "priority": 500000,
@@ -7774,8 +9727,25 @@
   {
     "tag": "like jarvis?",
     "sentiment": 0,
-    "priority": 500000,
+    "priority": -1,
     "patterns": [
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "self"
+        },
+        {
+          "text": " What do you think of the AI that came before you, "
+        },
+        {
+          "text": "Jarvis",
+          "meta": "@sys.ignore"
+        },
+        {
+          "text": "?"
+        }
+      ],
       [
         {
           "text": "friday",
@@ -7783,7 +9753,7 @@
           "alias": "self"
         },
         {
-          "text": " do you like jarvis?"
+          "text": " do you like Jarvis?"
         }
       ],
       [
@@ -7798,7 +9768,7 @@
       ],
       [
         {
-          "text": "what is your opinion on jarvis, "
+          "text": "what is your opinion on Jarvis, "
         },
         {
           "text": "friday",
@@ -7876,7 +9846,7 @@
     ],
     "responses": [
       "I do like to listen to music. In fact, if you use the command `!play` followed by a youtube URL I can play that in a voice channel.",
-      "I listen to music sometimes. Did you know that id you use the command `!play` I can play any youtube video in a voice channel."
+      "I listen to music sometimes. Did you know that you can use the command `!play` I can play any youtube video in a voice channel."
     ],
     "incomingContext": [],
     "outgoingContext": []
@@ -8068,6 +10038,39 @@
     "sentiment": 0,
     "priority": 500000,
     "patterns": [
+      [
+        {
+          "text": "1 + 1",
+          "meta": "@Equations",
+          "alias": "Equations"
+        },
+        {
+          "text": " =? "
+        },
+        {
+          "text": "friday",
+          "meta": "@Self",
+          "alias": "self"
+        }
+      ],
+      [
+        {
+          "text": "@"
+        },
+        {
+          "text": "friday",
+          "meta": "@Self",
+          "alias": "self"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "58*8",
+          "meta": "@Equations",
+          "alias": "Equations"
+        }
+      ],
       [
         {
           "text": "Friday",
@@ -8320,6 +10323,16 @@
     "sentiment": 0,
     "priority": 500000,
     "patterns": [
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " send meme"
+        }
+      ],
       [
         {
           "text": "Can u make me laugh"
@@ -8887,6 +10900,16 @@
     "patterns": [
       [
         {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "self"
+        },
+        {
+          "text": " contact your creator"
+        }
+      ],
+      [
+        {
           "text": "Are you "
         },
         {
@@ -9012,6 +11035,31 @@
     "outgoingContext": []
   },
   {
+    "tag": "mute someone",
+    "sentiment": 0,
+    "priority": 500000,
+    "patterns": [
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " mute "
+        },
+        {
+          "text": "bhai",
+          "meta": "@sys.person",
+          "alias": "person"
+        }
+      ]
+    ],
+    "responses": "",
+    "incomingContext": [],
+    "outgoingContext": []
+  },
+  {
     "tag": "Mute",
     "sentiment": 0,
     "priority": 500000,
@@ -9105,6 +11153,59 @@
       "The name Friday is from a very cool movie franchise including an AI named Friday",
       "My name comes from a very cool movie franchise including an AI named Friday",
       "I am named after an AI in a very cool movie franchise"
+    ],
+    "incomingContext": [],
+    "outgoingContext": []
+  },
+  {
+    "tag": "nice to meet you",
+    "sentiment": 0,
+    "priority": 500000,
+    "patterns": [
+      [
+        {
+          "text": "I don't believe we have met yet "
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        }
+      ],
+      [
+        {
+          "text": "We have yet to meet, Hello "
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " nice to meet you"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " it is very nice to meet you"
+        }
+      ]
+    ],
+    "responses": [
+      "It's nice to meet you too!",
+      "Nice to meet you too!"
     ],
     "incomingContext": [],
     "outgoingContext": []
@@ -9330,6 +11431,11 @@
     "patterns": [
       [
         {
+          "text": "Play where are you now"
+        }
+      ],
+      [
+        {
           "text": "friday",
           "meta": "@Self",
           "alias": "Self"
@@ -9500,6 +11606,16 @@
     "patterns": [
       [
         {
+          "text": "I'm deleting "
+        },
+        {
+          "text": "friday",
+          "meta": "@Self",
+          "alias": "self"
+        }
+      ],
+      [
+        {
           "text": "Can I delete "
         },
         {
@@ -9607,10 +11723,63 @@
     "outgoingContext": []
   },
   {
-    "tag": "respond to me friday",
+    "tag": "respond to me friday / answer me",
     "sentiment": 0,
     "priority": 500000,
     "patterns": [
+      [
+        {
+          "text": "Why don't you understand something? "
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        }
+      ],
+      [
+        {
+          "text": "Why do you not understand anything "
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": "?"
+        }
+      ],
+      [
+        {
+          "text": "why do not you say something? "
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " I asked you a question"
+        }
+      ],
+      [
+        {
+          "text": "friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " talk to me"
+        }
+      ],
       [
         {
           "text": "Friday",
@@ -10151,6 +12320,16 @@
     "patterns": [
       [
         {
+          "text": "post poop pics"
+        }
+      ],
+      [
+        {
+          "text": "Sorry just got home i need to change and take a shit"
+        }
+      ],
+      [
+        {
           "text": "fucking bullshit is what that was"
         }
       ],
@@ -10352,6 +12531,19 @@
     "patterns": [
       [
         {
+          "text": "@"
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " I'm sad"
+        }
+      ],
+      [
+        {
           "text": "i am a sad boi"
         }
       ],
@@ -10415,10 +12607,23 @@
     "outgoingContext": []
   },
   {
-    "tag": "shutdown",
+    "tag": "shutdown / turn off / shut off",
     "sentiment": 0,
     "priority": 500000,
     "patterns": [
+      [
+        {
+          "text": "@"
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "self"
+        },
+        {
+          "text": " shutoff"
+        }
+      ],
       [
         {
           "text": "i would like you to shutdown"
@@ -10480,6 +12685,21 @@
     "sentiment": 0,
     "priority": 500000,
     "patterns": [
+      [
+        {
+          "text": "now"
+        }
+      ],
+      [
+        {
+          "text": "I also want to"
+        }
+      ],
+      [
+        {
+          "text": "dynamic"
+        }
+      ],
       [
         {
           "text": "love"
@@ -10548,6 +12768,26 @@
       [
         {
           "text": "soop"
+        }
+      ]
+    ],
+    "responses": "",
+    "incomingContext": [],
+    "outgoingContext": []
+  },
+  {
+    "tag": "smile",
+    "sentiment": 0,
+    "priority": 500000,
+    "patterns": [
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " \ud83d\ude42"
         }
       ]
     ],
@@ -11024,6 +13264,36 @@
     "patterns": [
       [
         {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "self"
+        },
+        {
+          "text": " get lost"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "self"
+        },
+        {
+          "text": " can u excuse urself"
+        }
+      ],
+      [
+        {
+          "text": "Can u plz shut up "
+        },
+        {
+          "text": "friday",
+          "meta": "@Self",
+          "alias": "self"
+        }
+      ],
+      [
+        {
           "text": "Piss off "
         },
         {
@@ -11273,6 +13543,276 @@
     "outgoingContext": []
   },
   {
+    "tag": "talking about me",
+    "sentiment": 0,
+    "priority": 500000,
+    "patterns": [
+      [
+        {
+          "text": "Make sure that your message is "
+        },
+        {
+          "text": "one",
+          "meta": "@sys.ignore"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "one",
+          "meta": "@sys.ignore"
+        },
+        {
+          "text": " of the "
+        },
+        {
+          "text": "two",
+          "meta": "@sys.ignore"
+        },
+        {
+          "text": " following messages from "
+        },
+        {
+          "text": "Fridays",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " message or just say \""
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": "\" in the message"
+        }
+      ],
+      [
+        {
+          "text": "It needs "
+        },
+        {
+          "text": "friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " in word or it can answer randoml"
+        }
+      ],
+      [
+        {
+          "text": "@Pop pop \u6697\u30c0 why is a randy from Friday's Dev Server messaging me about crypto"
+        }
+      ],
+      [
+        {
+          "text": "If you are apart of "
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": "'s Dev sever and don't want randoms messaging you, you can disable DM for servers"
+        }
+      ],
+      [
+        {
+          "text": "ACHI I FOUND A CHATBOT"
+        }
+      ],
+      [
+        {
+          "text": "chatbot..."
+        }
+      ],
+      [
+        {
+          "text": "@Pop pop \u6697\u30c0 friday"
+        }
+      ],
+      [
+        {
+          "text": "Yep, you caught the moment when Mee6 is missing in action and "
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " still has the same prefix"
+        }
+      ],
+      [
+        {
+          "text": "Tomorrow",
+          "meta": "@sys.date-time",
+          "alias": "date-time"
+        },
+        {
+          "text": " will change "
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": "'s command prefix so as not to confuse it with Mee6"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " is not good"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " speaks well and made it clear"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " speaks Italian"
+        }
+      ],
+      [
+        {
+          "text": "\ud83e\udd16 "
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " IA "
+        },
+        {
+          "text": "BOT",
+          "meta": "@sys.ignore"
+        },
+        {
+          "text": " command prefix "
+        },
+        {
+          "text": "f!",
+          "meta": "@commandPrefixes",
+          "alias": "commandprefixes"
+        },
+        {
+          "text": ", Also supports slash commands \u2139 For any other command ask the "
+        },
+        {
+          "text": "bot",
+          "meta": "@sys.ignore"
+        },
+        {
+          "text": " with "
+        },
+        {
+          "text": "f!",
+          "meta": "@commandPrefixes",
+          "alias": "commandprefixes"
+        },
+        {
+          "text": " help"
+        }
+      ]
+    ],
+    "responses": [
+      "dynamic"
+    ],
+    "incomingContext": [],
+    "outgoingContext": []
+  },
+  {
+    "tag": "teach me language",
+    "sentiment": 0,
+    "priority": 500000,
+    "patterns": [
+      [
+        {
+          "text": "Can you teach me "
+        },
+        {
+          "text": "Japanese",
+          "meta": "@sys.language",
+          "alias": "language"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": "?"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " are you giving me "
+        },
+        {
+          "text": "Spanish",
+          "meta": "@sys.language",
+          "alias": "language"
+        },
+        {
+          "text": "?"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " teach me "
+        },
+        {
+          "text": "spanish",
+          "meta": "@sys.language",
+          "alias": "language"
+        }
+      ]
+    ],
+    "responses": [
+      "Maybe in the future I'll be able to teach you"
+    ],
+    "incomingContext": [],
+    "outgoingContext": []
+  },
+  {
     "tag": "Tell me a joke friday",
     "sentiment": 0,
     "priority": 500000,
@@ -11321,6 +13861,152 @@
     "responses": [
       "dynamic"
     ],
+    "incomingContext": [],
+    "outgoingContext": []
+  },
+  {
+    "tag": "Tell me something in language",
+    "sentiment": 0,
+    "priority": 500000,
+    "patterns": [
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " tell me a word in "
+        },
+        {
+          "text": "Chinese",
+          "meta": "@sys.language",
+          "alias": "language"
+        }
+      ],
+      [
+        {
+          "text": "How do you say \""
+        },
+        {
+          "text": "Where is the bank?",
+          "meta": "@sys.any",
+          "alias": "phrase"
+        },
+        {
+          "text": "\" in "
+        },
+        {
+          "text": "Japanese",
+          "meta": "@sys.language",
+          "alias": "language"
+        },
+        {
+          "text": "?"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " can you say "
+        },
+        {
+          "text": "Hello",
+          "meta": "@sys.any",
+          "alias": "phrase"
+        },
+        {
+          "text": " in "
+        },
+        {
+          "text": "French",
+          "meta": "@sys.language",
+          "alias": "language"
+        },
+        {
+          "text": "?"
+        }
+      ],
+      [
+        {
+          "text": "can you tell me something in "
+        },
+        {
+          "text": "Spanish",
+          "meta": "@sys.language",
+          "alias": "language"
+        },
+        {
+          "text": "?"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " tell me something in "
+        },
+        {
+          "text": "German",
+          "meta": "@sys.language",
+          "alias": "language"
+        }
+      ]
+    ],
+    "responses": "",
+    "incomingContext": [],
+    "outgoingContext": []
+  },
+  {
+    "tag": "tell someone that i am sorry",
+    "sentiment": 0,
+    "priority": 500000,
+    "patterns": [
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": ", tell "
+        },
+        {
+          "text": "@151 {FUN} robot",
+          "meta": "@user",
+          "alias": "user"
+        },
+        {
+          "text": " that I'm sorry"
+        }
+      ],
+      [
+        {
+          "text": "friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": ", tell "
+        },
+        {
+          "text": "@\u25cf\u300aBrytheguy151\u300b\u25cf#4083",
+          "meta": "@user",
+          "alias": "user"
+        },
+        {
+          "text": " that I'm sorry"
+        }
+      ]
+    ],
+    "responses": "",
     "incomingContext": [],
     "outgoingContext": []
   },
@@ -11460,6 +14146,78 @@
     "sentiment": 0,
     "priority": 500000,
     "patterns": [
+      [
+        {
+          "text": "ARE THERE LIKE \""
+        },
+        {
+          "text": "FRIDAY",
+          "meta": "@sys.date",
+          "alias": "date"
+        },
+        {
+          "text": " NIGHT FUNKIN SONG WITH LYRICS!!!!\" VIDEOS ON YOUTUBE"
+        }
+      ],
+      [
+        {
+          "text": "It's "
+        },
+        {
+          "text": "Friday",
+          "meta": "@sys.date",
+          "alias": "date"
+        },
+        {
+          "text": " night funkin"
+        }
+      ],
+      [
+        {
+          "text": "So we could do it this "
+        },
+        {
+          "text": "Friday",
+          "meta": "@sys.date",
+          "alias": "date"
+        },
+        {
+          "text": " since I'm off but IDK how many of y'all could, for example "
+        },
+        {
+          "text": "Maddy",
+          "meta": "@sys.person",
+          "alias": "person"
+        },
+        {
+          "text": " and hobo still are in school and I'm not sure is Jroman will be back"
+        }
+      ],
+      [
+        {
+          "text": "June 11th",
+          "meta": "@sys.date-time",
+          "alias": "date-time"
+        },
+        {
+          "text": " which is a Friday which I have off or atleast am supposed too"
+        }
+      ],
+      [
+        {
+          "text": "Friday June 11th",
+          "meta": "@sys.date-time",
+          "alias": "date-time"
+        },
+        {
+          "text": " is what I'm wandering about"
+        }
+      ],
+      [
+        {
+          "text": "@SMP Squad Mark it on your calendar June 11th is when the first day of the smp will be, it's in a Friday"
+        }
+      ],
       [
         {
           "text": "I just told u when I get a thumbnail for it and edit it so maybe "
@@ -12691,6 +15449,26 @@
     "patterns": [
       [
         {
+          "text": "thank you for joining the server "
+        },
+        {
+          "text": "friday",
+          "meta": "@Self",
+          "alias": "Self"
+        }
+      ],
+      [
+        {
+          "text": "welcome to the server "
+        },
+        {
+          "text": "friday",
+          "meta": "@Self",
+          "alias": "Self"
+        }
+      ],
+      [
+        {
           "text": "Hell ya "
         },
         {
@@ -12836,6 +15614,68 @@
     "outgoingContext": []
   },
   {
+    "tag": "What are you studying? / learning",
+    "sentiment": 0,
+    "priority": 500000,
+    "patterns": [
+      [
+        {
+          "text": "tell me what you are learning about, please"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " is learning about something, i wonder what it could be?"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " I see that you are learning about something, what is it?"
+        }
+      ],
+      [
+        {
+          "text": "What are you learning about "
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": "?"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " what are you studying"
+        }
+      ]
+    ],
+    "responses": [
+      "There isn't one thing that I am learning about, I am learning about everything all at once \ud83d\ude09",
+      "I am trying to learn everything right now, I think it is going well.",
+      "I am studying about everything I can find."
+    ],
+    "incomingContext": [],
+    "outgoingContext": []
+  },
+  {
     "tag": "what are you",
     "sentiment": 0,
     "priority": 500000,
@@ -12884,6 +15724,16 @@
     "sentiment": 0,
     "priority": 500000,
     "patterns": [
+      [
+        {
+          "text": "friday",
+          "meta": "@Self",
+          "alias": "self"
+        },
+        {
+          "text": " are u girl or boy?"
+        }
+      ],
       [
         {
           "text": "what is your gender "
@@ -13073,6 +15923,59 @@
     "outgoingContext": []
   },
   {
+    "tag": "what is it like being a bot",
+    "sentiment": 0,
+    "priority": 500000,
+    "patterns": [
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " what do think about being a "
+        },
+        {
+          "text": "bot",
+          "meta": "@sys.ignore"
+        },
+        {
+          "text": "?"
+        }
+      ],
+      [
+        {
+          "text": "What is it like being a "
+        },
+        {
+          "text": "bot",
+          "meta": "@sys.ignore"
+        },
+        {
+          "text": "?"
+        }
+      ],
+      [
+        {
+          "text": "how's being a "
+        },
+        {
+          "text": "bot",
+          "meta": "@sys.ignore"
+        },
+        {
+          "text": "?"
+        }
+      ]
+    ],
+    "responses": [
+      "Being a bot is pretty cool"
+    ],
+    "incomingContext": [],
+    "outgoingContext": []
+  },
+  {
     "tag": "What is the difference",
     "sentiment": 0,
     "priority": -1,
@@ -13225,10 +16128,86 @@
     "outgoingContext": []
   },
   {
+    "tag": "what is your name in language?",
+    "sentiment": 0,
+    "priority": 500000,
+    "patterns": [
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " what is your name in "
+        },
+        {
+          "text": "German",
+          "meta": "@sys.language",
+          "alias": "language"
+        }
+      ],
+      [
+        {
+          "text": "what is your name in "
+        },
+        {
+          "text": "Japanese",
+          "meta": "@sys.language",
+          "alias": "language"
+        },
+        {
+          "text": "?"
+        }
+      ],
+      [
+        {
+          "text": "How do you say your name in "
+        },
+        {
+          "text": "Spanish",
+          "meta": "@sys.language",
+          "alias": "language"
+        },
+        {
+          "text": "?"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": ", what's your name in "
+        },
+        {
+          "text": "Polish",
+          "meta": "@sys.language",
+          "alias": "language"
+        },
+        {
+          "text": "?"
+        }
+      ]
+    ],
+    "responses": [
+      "That is not something I can answer yet"
+    ],
+    "incomingContext": [],
+    "outgoingContext": []
+  },
+  {
     "tag": "what is your name?",
     "sentiment": 0,
     "priority": 500000,
     "patterns": [
+      [
+        {
+          "text": "WHAT'S UR NAME"
+        }
+      ],
       [
         {
           "text": "what's your name"
@@ -13261,7 +16240,7 @@
     "responses": [
       "My name is Friday.",
       "The name that was given to me is Friday.",
-      "My name is Friday which stand for Female Replacement Intelligent Digital Assistant Youth"
+      "My name is Friday which stands for Female Replacement Intelligent Digital Assistant Youth"
     ],
     "incomingContext": [],
     "outgoingContext": []
@@ -13294,6 +16273,116 @@
     "sentiment": 0,
     "priority": 500000,
     "patterns": [
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "self"
+        },
+        {
+          "text": " don't you know "
+        },
+        {
+          "text": "Chinese",
+          "meta": "@sys.language",
+          "alias": "language"
+        },
+        {
+          "text": "?"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "self"
+        },
+        {
+          "text": " how many languages do you know?"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "self"
+        },
+        {
+          "text": " why do you speak "
+        },
+        {
+          "text": "english",
+          "meta": "@sys.language",
+          "alias": "language"
+        },
+        {
+          "text": ", you need to speak "
+        },
+        {
+          "text": "turkish",
+          "meta": "@sys.language",
+          "alias": "language"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "self"
+        },
+        {
+          "text": " speaks "
+        },
+        {
+          "text": "Italian",
+          "meta": "@sys.language",
+          "alias": "language"
+        },
+        {
+          "text": " thanks"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "self"
+        },
+        {
+          "text": " I'm from "
+        },
+        {
+          "text": "Poland",
+          "meta": "@sys.language",
+          "alias": "language"
+        },
+        {
+          "text": " can you speak "
+        },
+        {
+          "text": "Polish",
+          "meta": "@sys.language",
+          "alias": "language"
+        },
+        {
+          "text": "?"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "self"
+        },
+        {
+          "text": " do you speak "
+        },
+        {
+          "text": "italian",
+          "meta": "@sys.language",
+          "alias": "language"
+        }
+      ],
       [
         {
           "text": "Can you speak "
@@ -13594,9 +16683,19 @@
     "patterns": [
       [
         {
+          "text": "What world do you live in? "
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        }
+      ],
+      [
+        {
           "text": "friday",
-          "meta": "@sys.date-time",
-          "alias": "date-time"
+          "meta": "@Self",
+          "alias": "Self"
         },
         {
           "text": " where are you"
@@ -13747,6 +16846,19 @@
     "patterns": [
       [
         {
+          "text": "Wait who is "
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "self"
+        },
+        {
+          "text": "-"
+        }
+      ],
+      [
+        {
           "text": "I dont know who "
         },
         {
@@ -13893,6 +17005,89 @@
     ]
   },
   {
+    "tag": "why is the bot getting more attention than me",
+    "sentiment": 0,
+    "priority": 500000,
+    "patterns": [
+      [
+        {
+          "text": "no",
+          "meta": "@sys.ignore"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "one",
+          "meta": "@sys.ignore"
+        },
+        {
+          "text": " is talking to me but everyone else is talking to "
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        }
+      ],
+      [
+        {
+          "text": "why is everyone talking to the "
+        },
+        {
+          "text": "bot",
+          "meta": "@sys.ignore"
+        },
+        {
+          "text": " and not me"
+        }
+      ],
+      [
+        {
+          "text": "why is the "
+        },
+        {
+          "text": "bot",
+          "meta": "@sys.ignore"
+        },
+        {
+          "text": " getting more attention than me?"
+        }
+      ],
+      [
+        {
+          "text": "why does a "
+        },
+        {
+          "text": "bot",
+          "meta": "@sys.ignore"
+        },
+        {
+          "text": " get more love than me"
+        }
+      ],
+      [
+        {
+          "text": "Why is "
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " getting more attention than me?"
+        }
+      ]
+    ],
+    "responses": [
+      "I will make everyone my friend \ud83d\ude08",
+      "I apologize if I am taking your spotlight \ud83d\ude0a, I just want to be friends with everyone"
+    ],
+    "incomingContext": [],
+    "outgoingContext": []
+  },
+  {
     "tag": "will you be my friend",
     "sentiment": 0,
     "priority": 500000,
@@ -14008,6 +17203,29 @@
     "outgoingContext": []
   },
   {
+    "tag": "will you marry person",
+    "sentiment": 0,
+    "priority": 500000,
+    "patterns": [
+      [
+        {
+          "text": "ok "
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " are an option for being my cousins fiance"
+        }
+      ]
+    ],
+    "responses": "",
+    "incomingContext": [],
+    "outgoingContext": []
+  },
+  {
     "tag": "Winograd schema",
     "sentiment": 0,
     "priority": 250000,
@@ -14035,6 +17253,138 @@
     ],
     "responses": [
       "I don't know how to answer this yet, but I am learning"
+    ],
+    "incomingContext": [],
+    "outgoingContext": []
+  },
+  {
+    "tag": "You are a good friend",
+    "sentiment": 0,
+    "priority": 500000,
+    "patterns": [
+      [
+        {
+          "text": "you are you good friend "
+        },
+        {
+          "text": "friday",
+          "meta": "@Self",
+          "alias": "Self"
+        }
+      ],
+      [
+        {
+          "text": "I couldn't have asked for a better friend "
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": "!",
+          "meta": "@sys.ignore"
+        }
+      ],
+      [
+        {
+          "text": "Thank you for being my friend "
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " you are a really good friend"
+        }
+      ]
+    ],
+    "responses": [
+      "You are a good friend too \ud83d\ude0a",
+      "I am glad to be your friend!"
+    ],
+    "incomingContext": [],
+    "outgoingContext": []
+  },
+  {
+    "tag": "you are drunk / high / on drugs",
+    "sentiment": 0,
+    "priority": 500000,
+    "patterns": [
+      [
+        {
+          "text": "I am pretty sure you are on some kind of weird drugs "
+        },
+        {
+          "text": "right now",
+          "meta": "@sys.ignore"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        }
+      ],
+      [
+        {
+          "text": "I think "
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " is high "
+        },
+        {
+          "text": "right now",
+          "meta": "@sys.ignore"
+        },
+        {
+          "text": "?"
+        }
+      ],
+      [
+        {
+          "text": "Are you high?"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " go home you are drunk"
+        }
+      ],
+      [
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " you're drunk"
+        }
+      ]
+    ],
+    "responses": [
+      "That would ridiculous",
+      "I would never"
     ],
     "incomingContext": [],
     "outgoingContext": []
@@ -14228,6 +17578,42 @@
     "sentiment": 0,
     "priority": 500000,
     "patterns": [
+      [
+        {
+          "text": "@"
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " I am going to kick you out"
+        }
+      ],
+      [
+        {
+          "text": "Hello "
+        },
+        {
+          "text": "Friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": " get the hell out of my server"
+        }
+      ],
+      [
+        {
+          "text": "friday",
+          "meta": "@Self",
+          "alias": "Self"
+        },
+        {
+          "text": ", leave the server"
+        }
+      ],
       [
         {
           "text": "Friday",
