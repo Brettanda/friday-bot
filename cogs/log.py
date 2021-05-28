@@ -99,9 +99,7 @@ class Log(commands.Cog):
     await relay_info(f"Apart of {len(self.bot.guilds)} guilds", self.bot, logger=self.bot.logger)
     database_guilds = await query(self.bot.mydb, "SELECT id FROM servers")
     if len(database_guilds) != len(self.bot.guilds):
-      current_guilds = []
-      for guild in self.bot.guilds:
-        current_guilds.append(guild.id)
+      current_guilds = [guild.id for guild in self.bot.guilds]
       x = 0
       for guild in database_guilds:
         database_guilds[x] = guild[0]
@@ -114,7 +112,7 @@ class Log(commands.Cog):
             guild = self.bot.get_guild(guild_id)
             if guild is not None:
               owner = guild.owner.id if hasattr(guild, "owner") and hasattr(guild.owner, "id") else 0
-              await query(self.bot.mydb, "INSERT INTO servers (id,owner,name,muted) VALUES (%s,%s,%s,%s)", guild.id, owner, guild.name, 0)
+              await query(self.bot.mydb, "INSERT INTO servers (id,owner,name,muted,lang) VALUES (%s,%s,%s,%s,%s)", guild.id, owner, guild.name, 0, guild.preferred_locale.split("-")[0])
               if guild.system_channel is not None:
                 prefix = config.defaultPrefix
                 try:
@@ -161,16 +159,16 @@ class Log(commands.Cog):
   async def on_guild_join(self, guild):
     await relay_info(f"I have joined a new guild, making the total **{len(self.bot.guilds)}**", self.bot, short=f"I have joined a new guild, making the total {len(self.bot.guilds)}", webhook=self.bot.log_join, logger=self.bot.logger)
     owner = guild.owner.id if hasattr(guild, "owner") and hasattr(guild.owner, "id") else 0
-    await query(self.bot.mydb, "INSERT INTO servers (id,owner,name,muted,lang) VALUES (%s,%s,%s,%s,%s)", guild.id, owner, guild.name, 0, guild.preferred_locale)
+    await query(self.bot.mydb, "INSERT INTO servers (id,owner,name,muted,lang) VALUES (%s,%s,%s,%s,%s)", guild.id, owner, guild.name, 0, guild.preferred_locale.split("-")[0])
     if guild.system_channel is not None:
       prefix = config.defaultPrefix
       try:
         await guild.system_channel.send(
-            f"Thank you for inviting me to your server. My name is {self.bot.user.name}, and I like to party. I will respond to some chats directed towards me and commands. To get started with commands type `{prefix}help`.\nAn example of something I will respond to is `Hello {self.bot.user.name}` or `{self.bot.user.name} hello`. At my current stage of development I am very chaotic, so if I do something I shouldn't have please use send a message Issues channel in Friday's Development server. If something goes terribly wrong and you want it to stop, talk to my creator https://discord.gg/NTRuFjU\n\t- To change my prefix use the `!prefix` command.\n\t- If I start bothering people with message use the `!bot mute` command."
+            f"Thank you for inviting me to your server. My name is {self.bot.user.name}, and I like to party. I will respond to some chats directed towards me and commands. To get started with commands type `{prefix}help`.\nAn example of something I will respond to is `Hello {self.bot.user.name}` or `{self.bot.user.name} hello`. At my current stage of development I am very chaotic, so if I do something I shouldn't have please use send a message Issues channel in Friday's Development server. If something goes terribly wrong and you want it to stop, talk to my creator https://discord.gg/NTRuFjU\n\t- To change my prefix use the `!prefix` command.\n\t- If I start bothering people with messages use the `!bot mute` command.\n - Four ways that I will respond to messages are when mentioned, your message contains 'Friday', you reply to one of my messages, or your message is one of the following two messages after a message from me. 😊"
         )
       except discord.Forbidden:
         pass
-    self.bot.set_guild(guild.id)
+    self.set_guild(guild)
 
   @commands.Cog.listener()
   async def on_guild_remove(self, guild):
@@ -273,13 +271,13 @@ class Log(commands.Cog):
 
   def get_guild_premium(self, guild: discord.Guild or int):
     if guild is not None:
-      return self.bot.saved_guilds[guild.id if isinstance(guild, discord.Guild) else guild]["tier"]
+      guild = self.bot.saved_guilds.get(guild.id if isinstance(guild, discord.Guild) else guild, None)
+      return guild.get("tier", 0) if guild is not None else 0
 
   def get_guild_lang(self, guild: discord.Guild or int):
     if guild is not None:
-      # if guild.id if isinstance(guild, discord.Guild) else guild not in [int(item.id) for item in self.bot.guilds]:
-      #   return guild.preferred_locale.split("-")[0] if isinstance(guild, discord.Guild) else "en"
-      lang = self.bot.saved_guilds[guild.id if isinstance(guild, discord.Guild) else guild]["lang"]
+      guild = self.bot.saved_guilds.get(guild.id if isinstance(guild, discord.Guild) else guild, None)
+      lang = guild.get("lang", None) if guild is not None else None
       return lang if lang is not None else guild.preferred_locale.split("-")[0] if isinstance(guild, discord.Guild) else "en"
 
   def change_guild_prefix(self, guild: discord.Guild or int, prefix: str = config.defaultPrefix):
@@ -308,6 +306,7 @@ class Log(commands.Cog):
 
   def set_guild(self, guild: discord.Guild or int, prefix: str = config.defaultPrefix, tier: int = 0, autoDeleteMSG: int = None, muted: bool = False, chatChannel: int = None, lang: str = None):
     if guild is not None:
+      guild = guild if isinstance(guild, discord.Guild) else self.bot.get_guild(guild)
       self.bot.saved_guilds.update({guild.id if isinstance(guild, discord.Guild) else guild: {"prefix": prefix, "tier": tier, "autoDeleteMSGs": autoDeleteMSG, "muted": muted, "chatChannel": chatChannel if chatChannel is not None else None, "lang": lang if lang is not None else guild.preferred_locale.split("-")[0]}})
 
   def remove_guild(self, guild: discord.Guild or int):
