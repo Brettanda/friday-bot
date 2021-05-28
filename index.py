@@ -28,7 +28,9 @@ dead_nodes_sent = False
 
 
 async def get_prefix(bot, message):
-  return bot.get_guild_prefix(bot, message)
+  if hasattr(bot, "get_guild_prefix"):
+    return bot.get_guild_prefix(bot, message)
+  return functions.config.defaultPrefix
 
 
 class Friday(commands.AutoShardedBot):
@@ -44,7 +46,7 @@ class Friday(commands.AutoShardedBot):
         # member_cache_flags=discord.MemberCacheFlags.voice(),
         fetch_offline_members=False,
         allowed_mentions=functions.config.allowed_mentions,
-        heartbeat_timeout=150.0
+        # heartbeat_timeout=150.0
     )
 
     self.restartPending = False
@@ -52,11 +54,18 @@ class Friday(commands.AutoShardedBot):
     self.songqueue = {}
     self.prod = True if len(sys.argv) > 1 and (sys.argv[1] == "--prod" or sys.argv[1] == "--production") else False
 
-    for cog in cogs.default:
-      self.load_extension(f"cogs.{cog}")
+    self.load_cogs()
 
   async def get_context(self, message, *, cls=None):
     return await super().get_context(message, cls=functions.MyContext)
+
+  def load_cogs(self):
+    for cog in cogs.default:
+      try:
+        self.load_extension(f"cogs.{cog}")
+      except Exception as e:
+        print(f"Failed to load extenstion {cog} with \n {e}", file=sys.stderr)
+        logging.error(f"Failed to load extenstion {cog} with \n {e}")
 
   async def reload_cogs(self):
     reload(cogs)
@@ -90,7 +99,7 @@ if __name__ == "__main__":
       TOKEN = os.environ.get("TOKEN")
   loop = asyncio.get_event_loop()
   try:
-    loop.run_until_complete(bot.start(TOKEN, bot=True, reconnect=True))
+    loop.run_until_complete(bot.start(TOKEN, reconnect=True))
   except KeyboardInterrupt:
     # mydb.close()
     logging.info("STOPED")

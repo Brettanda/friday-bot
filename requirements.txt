@@ -16,8 +16,8 @@ d20==1.0.4
 dblpy==0.4.0
 decorator==4.4.2
 discord-ext-menus @ git+https://github.com/Rapptz/discord-ext-menus@6f2b873bf0d28903eb752aa1166b3aac26dc9007
-discord-py-slash-command==1.1.2
-discord.py==1.7.1
+discord-py-slash-command==1.2.0
+discord.py==1.7.2
 # flair==0.8.0.post1
 flatbuffers==1.12
 ftfy==5.9
@@ -90,3 +90,4 @@ yarl==1.6.3
 youtube-dl==2021.1.24.1
 spacy==3.0.6
 google-cloud-translate==2.0.1
+pycountry==20.7.3

@@ -7,11 +7,7 @@ from functions import config, embed
 class Invite(commands.Cog):
   def __init__(self, bot):
     self.bot = bot
-    self.id = 476303446547365891
-
-  @commands.Cog.listener()
-  async def on_ready(self):
-    self.id = self.bot.user.id
+    self.id = 476303446547365891 if self.bot.prod else 751680714948214855
 
   @cached_property
   def link(self):

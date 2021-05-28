@@ -1,5 +1,4 @@
 import asyncio
-import logging
 import os
 import shutil
 import subprocess
@@ -15,8 +14,6 @@ from discord_slash import SlashContext  # , cog_ext
 
 from cogs.help import cmd_help, syntax
 from functions import embed  # , MessageColors
-
-logger = logging.getLogger(__name__)
 
 
 class Dev(commands.Cog, command_attrs=dict(hidden=True)):
@@ -158,6 +155,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
   async def reload_all(self, ctx):
     async with ctx.typing():
       await self.bot.reload_cogs()
+      await self.bot.get_cog("Log").set_all_guilds()
     await ctx.reply(embed=embed(title="All cogs have been reloaded"))
 
   @norm_dev.command(name="load")
@@ -179,7 +177,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
   #   if not isinstance(error, commands.NotOwner):
   #     await ctx.reply(embed=embed(title=f"Failed to reload *{str(''.join(ctx.message.content.split(ctx.prefix+ctx.command.name+' ')))}*", color=MessageColors.ERROR))
   #     print(error)
-  #     logger.error(error)
+  #     self.bot.logger.error(error)
 
   @norm_dev.command(name="update")
   async def update(self, ctx):
@@ -189,7 +187,9 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       seperator = "\\\\"
     else:
       seperator = "/"
-    subprocess.Popen([f"{thispath}{seperator}update.sh"], stdin=subprocess.PIPE)
+    if self.bot.prod:
+      subprocess.Popen([f"{thispath}{seperator}update.sh"], stdin=subprocess.PIPE)
+    subprocess.Popen([f"{thispath}{seperator}install.sh"], stdin=subprocess.PIPE)
     await message.edit(embed=embed(title="Update complete!"))
 
   @norm_dev.command(name="cogs")
@@ -234,6 +234,40 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     else:
       seperator = "/"
     await ctx.reply(file=discord.File(fp=f"{thispath}{seperator}commands.md", filename="commands.md"))
+
+  @norm_dev.command(name="html")
+  async def html(self, ctx):
+    commands = self.bot.commands
+    header_start = 3
+    cogs = []
+    for command in commands:
+      if command.hidden is False and command.enabled is True and command.cog_name not in cogs:
+        cogs.append(command.cog_name)
+    with open("commands.html", "w") as f:
+      for cog in cogs:
+        f.write(f"<h{header_start} class='t-lg'>{cog}</h{header_start}>")
+        for com in commands:
+          if com.hidden is False and com.enabled is True and com.cog_name == cog:
+            f.write(f"<h{header_start+1}>{ctx.prefix}{com.name}</h{header_start+1}>")
+            usage = '<br>'.join(syntax(com, quotes=False).replace("<", "&lt;").replace(">", "&gt;").split('\n'))
+            # usage = discord.utils.escape_markdown(usage)
+            f.write(f"<p>Usage:<br>{usage}</p>")
+            f.write("<p>Aliases: " + (f'{ctx.prefix}' + f",{ctx.prefix}".join(com.aliases) if len(com.aliases) > 0 else 'None') + "</p>")
+            f.write(f"<p>Description: {com.description or 'None'}</p>")
+      f.close()
+    thispath = os.getcwd()
+    if "\\" in thispath:
+      seperator = "\\\\"
+    else:
+      seperator = "/"
+    await ctx.reply(file=discord.File(fp=f"{thispath}{seperator}commands.html", filename="commands.html"))
+
+  # @norm_dev.command(name="joinleave")
+  # async def norm_dev_join_leave(self, ctx):
+  #   channel = self.bot.get_guild(707441352367013899).get_channel(713270475031183390)
+  #   messages = await channel.history(limit=None, oldest_first=True).flatten()
+
+  #   # for msg in messages:
 
   # @norm_dev.command(name="eval")
   # async def _eval(self, ctx, *, body: str):
@@ -281,6 +315,18 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
   #     else:
   #       self._last_result = ret
   #       await ctx.send(f'```py\n{value}{ret}\n```')
+
+  @commands.Cog.listener()
+  async def on_member_join(self, member):
+    if member.guild.id != 707441352367013899:
+      return
+
+    if 215346091321720832 not in [guild.id for guild in member.mutual_guilds]:
+      return
+
+    role = member.guild.get_role(763916955388084246)
+
+    await member.add_roles(role, reason="Friend from NaCl")
 
   @commands.Cog.listener()
   async def on_message(self, ctx):

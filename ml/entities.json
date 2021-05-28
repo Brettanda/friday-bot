@@ -120,6 +120,54 @@
     }
   ],
   [
+    "what are u upto friday?",
+    {
+      "entities": [
+        [
+          16,
+          21,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday what's up?",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday what are you doing",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "what you doing friday?",
+    {
+      "entities": [
+        [
+          15,
+          20,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
     "I'm good, what are you up to?",
     {
       "entities": []
@@ -304,6 +352,47 @@
     }
   ],
   [
+    "Do you think that you are dumb friday?",
+    {
+      "entities": [
+        [
+          31,
+          36,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Are you retarded Friday?",
+    {
+      "entities": [
+        [
+          8,
+          15,
+          "@BadWords"
+        ],
+        [
+          17,
+          22,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "friday, are you dumb?",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
     "Is friday happy?",
     {
       "entities": [
@@ -352,6 +441,126 @@
     }
   ],
   [
+    "Friday are you engaged?",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday who is your boy friend",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Is friday in a relationship with someone?",
+    {
+      "entities": [
+        [
+          3,
+          8,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday are you dating anyone?",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday do you have a girl friend?",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday do you have a boyfriend?",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday do you have a girlfriend?",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday do you have boy friend",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday are you in a relationship?",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Are you Iron man's slave?",
+    {
+      "entities": []
+    }
+  ],
+  [
+    "Are you owned by Iron man?",
+    {
+      "entities": []
+    }
+  ],
+  [
     "Do you belong to iron man?",
     {
       "entities": []
@@ -373,6 +582,12 @@
           "@Bot"
         ]
       ]
+    }
+  ],
+  [
+    "are you alive",
+    {
+      "entities": []
     }
   ],
   [
@@ -445,6 +660,36 @@
           "@sys.ignore"
         ]
       ]
+    }
+  ],
+  [
+    "is Friday open for marriage?",
+    {
+      "entities": [
+        [
+          3,
+          8,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday are you open to getting married?",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "do u want to be someones fiance",
+    {
+      "entities": []
     }
   ],
   [
@@ -580,6 +825,30 @@
           30,
           33,
           "@BadWords"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday be good",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday be on your best behavior, please",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
         ]
       ]
     }
@@ -939,6 +1208,24 @@
     }
   ],
   [
+    "I don't want bots in this chat",
+    {
+      "entities": []
+    }
+  ],
+  [
+    "half of the bots in this server are retarded",
+    {
+      "entities": []
+    }
+  ],
+  [
+    "can we get rid of all the bots in this server",
+    {
+      "entities": []
+    }
+  ],
+  [
     "hey all i dont think we should include bots in this group",
     {
       "entities": []
@@ -993,12 +1280,145 @@
     }
   ],
   [
-    "Ok I want to end this right now...\n @everyone Should BOTS (specifically \"\ua730\u0280\u026a\u1d05\u1d00\u028f\") be allowed to run in server elections? :y: or :n:",
+    " @everyone Should BOTS (specifically \"Friday\") be allowed to run in server elections? :y: or :n:",
     {
       "entities": [
         [
-          73,
-          78,
+          38,
+          43,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday you suck compared to my bot",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ],
+        [
+          31,
+          33,
+          "@sys.ignore"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday wow even mee6 is more intelligent than you",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ],
+        [
+          16,
+          19,
+          "@other_bots"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday my bot is smarter than you",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ],
+        [
+          10,
+          12,
+          "@sys.ignore"
+        ]
+      ]
+    }
+  ],
+  [
+    "@Friday Dyno is a better bot than you",
+    {
+      "entities": [
+        [
+          1,
+          6,
+          "@Self"
+        ],
+        [
+          8,
+          11,
+          "@other_bots"
+        ]
+      ]
+    }
+  ],
+  [
+    "How can i get Friday to join my server?",
+    {
+      "entities": [
+        [
+          14,
+          19,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday would you like to join my server?",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday can I invite you to my server?",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "lyn can I use Friday bot on my server",
+    {
+      "entities": [
+        [
+          0,
+          2,
+          "@sys.person"
+        ],
+        [
+          14,
+          19,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday let's talk",
+    {
+      "entities": [
+        [
+          0,
+          5,
           "@Self"
         ]
       ]
@@ -1065,6 +1485,60 @@
         [
           4,
           9,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Can you help me with this subtraction question?",
+    {
+      "entities": []
+    }
+  ],
+  [
+    "can you do division yet?",
+    {
+      "entities": []
+    }
+  ],
+  [
+    "Do you know how to multiply?",
+    {
+      "entities": []
+    }
+  ],
+  [
+    "Friday I need assistance with my math homework",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday can you help me with my math homework?",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "@Friday can u help me with math",
+    {
+      "entities": [
+        [
+          1,
+          6,
           "@Self"
         ]
       ]
@@ -1148,6 +1622,57 @@
           20,
           27,
           "@Owner"
+        ]
+      ]
+    }
+  ],
+  [
+    "Can someone change Friday's prefix to )",
+    {
+      "entities": [
+        [
+          19,
+          24,
+          "@Self"
+        ],
+        [
+          38,
+          38,
+          "@commandPrefixes"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday change your command prefix to !",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ],
+        [
+          37,
+          37,
+          "@commandPrefixes"
+        ]
+      ]
+    }
+  ],
+  [
+    "Tomorrow will change Friday's command prefix so as not to confuse it with Mee6",
+    {
+      "entities": [
+        [
+          0,
+          7,
+          "@sys.date-time"
+        ],
+        [
+          21,
+          28,
+          "@Self"
         ]
       ]
     }
@@ -1548,9 +2073,87 @@
     }
   ],
   [
-    "@Friday ur cute",
+    "friday, i appreciate you",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "yo this mans hella nice",
     {
       "entities": []
+    }
+  ],
+  [
+    "Friday is wonderful",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "good friday",
+    {
+      "entities": [
+        [
+          5,
+          10,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "YOUR COOL",
+    {
+      "entities": []
+    }
+  ],
+  [
+    "Friday Good",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "@Friday u hot",
+    {
+      "entities": [
+        [
+          1,
+          6,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "@Friday ur cute",
+    {
+      "entities": [
+        [
+          1,
+          6,
+          "@Self"
+        ]
+      ]
     }
   ],
   [
@@ -1950,13 +2553,25 @@
     }
   ],
   [
+    "Friday who do you work for?",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
     "Who is your master Friday?",
     {
       "entities": [
         [
-          12,
+          19,
           24,
-          "@sys.ignore"
+          "@Self"
         ]
       ]
     }
@@ -1976,7 +2591,13 @@
   [
     "who made you Friday?",
     {
-      "entities": []
+      "entities": [
+        [
+          13,
+          18,
+          "@Self"
+        ]
+      ]
     }
   ],
   [
@@ -3005,6 +3626,54 @@
     }
   ],
   [
+    "@Friday I am fine, how about you?",
+    {
+      "entities": [
+        [
+          1,
+          6,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "@Friday good how about you",
+    {
+      "entities": [
+        [
+          1,
+          6,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "@Friday Good, you?",
+    {
+      "entities": [
+        [
+          1,
+          6,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "@Friday I'm doing good, you?",
+    {
+      "entities": [
+        [
+          1,
+          6,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
     "I'm doing great, how about you?",
     {
       "entities": []
@@ -3086,6 +3755,18 @@
     "im good how about you?",
     {
       "entities": []
+    }
+  ],
+  [
+    "Friday ok okok hello \ud83e\udd7a",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
     }
   ],
   [
@@ -3382,6 +4063,60 @@
     }
   ],
   [
+    "did you miss me?",
+    {
+      "entities": []
+    }
+  ],
+  [
+    "I missed you Friday, I have been gone for a while, did you miss me?",
+    {
+      "entities": [
+        [
+          13,
+          18,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday I am back finally I hope you missed me",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday I was gone for a while did you miss me?",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "did you miss me Friday?",
+    {
+      "entities": [
+        [
+          16,
+          21,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
     "I have bought 2 more server boosts",
     {
       "entities": []
@@ -3447,6 +4182,432 @@
           19,
           23,
           "@Food"
+        ]
+      ]
+    }
+  ],
+  [
+    "@Friday fish",
+    {
+      "entities": [
+        [
+          1,
+          6,
+          "@Self"
+        ],
+        [
+          8,
+          11,
+          "@Food"
+        ]
+      ]
+    }
+  ],
+  [
+    "What do you think of pizza Friday?",
+    {
+      "entities": [
+        [
+          21,
+          25,
+          "@Food"
+        ],
+        [
+          27,
+          32,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "What about tacos, do you like that Friday?",
+    {
+      "entities": [
+        [
+          11,
+          15,
+          "@Food"
+        ],
+        [
+          35,
+          40,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Do you like hamburgers Friday?",
+    {
+      "entities": [
+        [
+          12,
+          21,
+          "@Food"
+        ],
+        [
+          23,
+          28,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday do you like fish?",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ],
+        [
+          19,
+          22,
+          "@Food"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday you like to play league of legends",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ],
+        [
+          24,
+          40,
+          "@games"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday do you like to play Minecraft?",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ],
+        [
+          27,
+          35,
+          "@games"
+        ]
+      ]
+    }
+  ],
+  [
+    "Are you excited about the new resident evil game Friday?",
+    {
+      "entities": [
+        [
+          30,
+          42,
+          "@games"
+        ],
+        [
+          49,
+          54,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Do you like the Witcher 3: wild hunt, Friday?",
+    {
+      "entities": [
+        [
+          12,
+          35,
+          "@games"
+        ],
+        [
+          38,
+          43,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "What do you think of Escape from Tarkov?",
+    {
+      "entities": [
+        [
+          21,
+          38,
+          "@games"
+        ]
+      ]
+    }
+  ],
+  [
+    "Do you like Minecraft, Friday?",
+    {
+      "entities": [
+        [
+          12,
+          20,
+          "@games"
+        ],
+        [
+          23,
+          28,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday what are your thoughts on genshin impact?",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ],
+        [
+          33,
+          46,
+          "@games"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday do you like league of legends?",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ],
+        [
+          19,
+          35,
+          "@games"
+        ]
+      ]
+    }
+  ],
+  [
+    "What do you think of me Friday?",
+    {
+      "entities": [
+        [
+          24,
+          29,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday do you like me?",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday what do you think about me",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday what do you think of Phill?",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ],
+        [
+          28,
+          32,
+          "@sys.person"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday do you like Bartek?",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ],
+        [
+          19,
+          24,
+          "@sys.person"
+        ]
+      ]
+    }
+  ],
+  [
+    "let ur mom blow my cock friday",
+    {
+      "entities": [
+        [
+          24,
+          29,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "can i fuck ur mom friday",
+    {
+      "entities": [
+        [
+          6,
+          9,
+          "@BadWords"
+        ],
+        [
+          18,
+          23,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday you want to stroke Maj grandpa?",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ],
+        [
+          30,
+          36,
+          "@sys.person"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday you want to fuck?",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ],
+        [
+          19,
+          22,
+          "@BadWords"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday give me a blowjob",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday would you fuck me?",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ],
+        [
+          17,
+          20,
+          "@BadWords"
+        ]
+      ]
+    }
+  ],
+  [
+    "I want to fuck you",
+    {
+      "entities": [
+        [
+          10,
+          13,
+          "@BadWords"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday would you stroke me?",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday you want to stroke, my girlfriend?",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday you want to stroke, my grandfather and grandmother?",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
         ]
       ]
     }
@@ -4286,6 +5447,18 @@
     }
   ],
   [
+    "Good Friday and what a problem you have",
+    {
+      "entities": [
+        [
+          5,
+          10,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
     ":man_raising_hand: hello, I added Friday to 2 servers of mine. she's online and ping is good but she doesn't respond to messages :thinking:  any thoughts?",
     {
       "entities": [
@@ -4529,12 +5702,24 @@
     }
   ],
   [
-    "Good bye Friday. It was fun while it lasted.",
+    "TTYL Friday",
     {
       "entities": [
         [
-          9,
-          14,
+          5,
+          10,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Goodbye Friday. It was fun while it lasted.",
+    {
+      "entities": [
+        [
+          8,
+          13,
           "@Self"
         ]
       ]
@@ -4696,6 +5881,18 @@
     }
   ],
   [
+    "Friday what do you like to do",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
     "What do you do when you get some time to yourself",
     {
       "entities": []
@@ -4823,6 +6020,90 @@
     }
   ],
   [
+    "are you here for me Friday?",
+    {
+      "entities": [
+        [
+          20,
+          25,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday is always here for me and you were not, wtf",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday is here for me",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday will you keep me company?",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "me and Friday are friends",
+    {
+      "entities": [
+        [
+          7,
+          12,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday is my friend",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday my friend",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
     "IT'S FRIDAY FRIDAYYYY",
     {
       "entities": [
@@ -4869,6 +6150,18 @@
           0,
           5,
           "@sys.date"
+        ]
+      ]
+    }
+  ],
+  [
+    "@D&D Going to start DnD later than normal 8 maybe",
+    {
+      "entities": [
+        [
+          42,
+          42,
+          "@sys.duration"
         ]
       ]
     }
@@ -5005,6 +6298,60 @@
     }
   ],
   [
+    "Good night Friday",
+    {
+      "entities": [
+        [
+          11,
+          16,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "@friday goodnight",
+    {
+      "entities": [
+        [
+          1,
+          6,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday I'm going to sleep goodnight",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday Goodnight",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Anyway, guys now I'm going to sleep, Goodnight !! \ud83d\ude04",
+    {
+      "entities": []
+    }
+  ],
+  [
     "they're",
     {
       "entities": []
@@ -5050,6 +6397,59 @@
     "have fun friday",
     {
       "entities": []
+    }
+  ],
+  [
+    "Friday you want to help me with my homework?",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Help me with my homework Friday",
+    {
+      "entities": [
+        [
+          25,
+          30,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday I doing homework now can you help me?",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ],
+        [
+          24,
+          26,
+          "@sys.ignore"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday you will help me with my homework",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
     }
   ],
   [
@@ -5233,6 +6633,54 @@
     }
   ],
   [
+    "Friday I'm fine",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "@Friday I'm good",
+    {
+      "entities": [
+        [
+          1,
+          6,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday all right",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "@Friday I'm doing good",
+    {
+      "entities": [
+        [
+          1,
+          6,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
     "i'm fine thanks",
     {
       "entities": []
@@ -5347,6 +6795,18 @@
     }
   ],
   [
+    "Friday I haven't heard from you in a long time how are you?",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
     "Friday how are you today",
     {
       "entities": [
@@ -5388,7 +6848,7 @@
         [
           4,
           9,
-          "@sys.date-time"
+          "@Self"
         ]
       ]
     }
@@ -5716,6 +7176,18 @@
     }
   ],
   [
+    "when were you born",
+    {
+      "entities": []
+    }
+  ],
+  [
+    "how old are you?",
+    {
+      "entities": []
+    }
+  ],
+  [
     "When was friday created?",
     {
       "entities": [
@@ -5829,6 +7301,65 @@
     }
   ],
   [
+    "sorry i didnt mean to",
+    {
+      "entities": []
+    }
+  ],
+  [
+    "I am so sorry Friday",
+    {
+      "entities": [
+        [
+          14,
+          19,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Fuck I didn't mean to harm you friday",
+    {
+      "entities": [
+        [
+          0,
+          3,
+          "@sys.ignore"
+        ],
+        [
+          31,
+          36,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday I didn't mean to hurt your feelings",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday I'm sorry",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
     "me and friday are now friends!",
     {
       "entities": [
@@ -5916,6 +7447,42 @@
     "I don't want to talk to a chatbot",
     {
       "entities": []
+    }
+  ],
+  [
+    "I am not sure that I like Friday",
+    {
+      "entities": [
+        [
+          26,
+          31,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "ok Friday i don't like you",
+    {
+      "entities": [
+        [
+          3,
+          8,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "I don't like you friday",
+    {
+      "entities": [
+        [
+          17,
+          22,
+          "@Self"
+        ]
+      ]
     }
   ],
   [
@@ -6103,9 +7670,39 @@
     }
   ],
   [
-    "help me",
+    "@Friday I'm good i have a question..",
     {
-      "entities": []
+      "entities": [
+        [
+          1,
+          6,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday can you answer a question for me?",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "@friday, I have a question",
+    {
+      "entities": [
+        [
+          1,
+          6,
+          "@Self"
+        ]
+      ]
     }
   ],
   [
@@ -6175,7 +7772,48 @@
     }
   ],
   [
-    "Friday",
+    "I have a question for you Friday",
+    {
+      "entities": [
+        [
+          26,
+          31,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "We all like you Friday",
+    {
+      "entities": [
+        [
+          16,
+          21,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Imma say that I like this new bot Friday",
+    {
+      "entities": [
+        [
+          30,
+          32,
+          "@sys.ignore"
+        ],
+        [
+          34,
+          39,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday I like you",
     {
       "entities": [
         [
@@ -6187,12 +7825,30 @@
     }
   ],
   [
-    "I have a question for you Friday",
+    "I like you Friday",
     {
       "entities": [
         [
-          26,
-          31,
+          11,
+          16,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "luv u",
+    {
+      "entities": []
+    }
+  ],
+  [
+    "@Friday I love u",
+    {
+      "entities": [
+        [
+          1,
+          6,
           "@Self"
         ]
       ]
@@ -6307,30 +7963,81 @@
     }
   ],
   [
-    "I want to play a game with you friday",
+    "Friday you want to play?",
     {
       "entities": [
         [
-          31,
-          36,
-          "@sys.date"
+          0,
+          5,
+          "@Self"
         ]
       ]
     }
   ],
   [
-    "feels like pure shit just wanna play siege w friday",
+    "play league of legends friday",
+    {
+      "entities": [
+        [
+          5,
+          21,
+          "@games"
+        ],
+        [
+          23,
+          28,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday wanna play league of legends with me and my friends?",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ],
+        [
+          18,
+          34,
+          "@games"
+        ]
+      ]
+    }
+  ],
+  [
+    "I want to play a game with you Friday",
+    {
+      "entities": [
+        [
+          31,
+          36,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "feels like pure shit just wanna play siege w Friday",
     {
       "entities": [
         [
           16,
           19,
-          "@BadWords"
+          "@sys.ignore"
+        ],
+        [
+          37,
+          41,
+          "@games"
         ],
         [
           45,
           50,
-          "@sys.date"
+          "@Self"
         ]
       ]
     }
@@ -6361,6 +8068,18 @@
           0,
           5,
           "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Good morning everyone:sunny:",
+    {
+      "entities": [
+        [
+          22,
+          26,
+          "@sys.ignore"
         ]
       ]
     }
@@ -6549,18 +8268,6 @@
     }
   ],
   [
-    "im sorry friday",
-    {
-      "entities": [
-        [
-          9,
-          14,
-          "@Self"
-        ]
-      ]
-    }
-  ],
-  [
     "can you give me some inspiration?",
     {
       "entities": []
@@ -6621,6 +8328,30 @@
         [
           24,
           29,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "You are so lazy Friday",
+    {
+      "entities": [
+        [
+          16,
+          21,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "@Friday I hope u get hit by a duck",
+    {
+      "entities": [
+        [
+          1,
+          6,
           "@Self"
         ]
       ]
@@ -7109,23 +8840,6 @@
     }
   ],
   [
-    "I don't like you Friday",
-    {
-      "entities": [
-        [
-          0,
-          15,
-          "@sys.ignore"
-        ],
-        [
-          17,
-          22,
-          "@Self"
-        ]
-      ]
-    }
-  ],
-  [
     "Fuck you Friday",
     {
       "entities": [
@@ -7181,6 +8895,24 @@
           "@sys.ignore"
         ]
       ]
+    }
+  ],
+  [
+    "Friday why are you straight",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "are you straight",
+    {
+      "entities": []
     }
   ],
   [
@@ -7418,6 +9150,30 @@
     }
   ],
   [
+    "Friday go kill someone",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday, commit murder",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
     "knock knock friday",
     {
       "entities": [
@@ -7448,7 +9204,24 @@
     }
   ],
   [
-    "friday do you like jarvis?",
+    "Friday What do you think of the AI that came before you, Jarvis?",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ],
+        [
+          57,
+          62,
+          "@sys.ignore"
+        ]
+      ]
+    }
+  ],
+  [
+    "friday do you like Jarvis?",
     {
       "entities": [
         [
@@ -7472,7 +9245,7 @@
     }
   ],
   [
-    "what is your opinion on jarvis, friday?",
+    "what is your opinion on Jarvis, friday?",
     {
       "entities": [
         [
@@ -7678,6 +9451,40 @@
           17,
           19,
           "@sys.ignore"
+        ]
+      ]
+    }
+  ],
+  [
+    "1 + 1 =? friday",
+    {
+      "entities": [
+        [
+          0,
+          4,
+          "@Equations"
+        ],
+        [
+          9,
+          14,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "@friday 58*8",
+    {
+      "entities": [
+        [
+          1,
+          6,
+          "@Self"
+        ],
+        [
+          8,
+          11,
+          "@Equations"
         ]
       ]
     }
@@ -7914,6 +9721,18 @@
     "that one made me chuckle",
     {
       "entities": []
+    }
+  ],
+  [
+    "Friday send meme",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
     }
   ],
   [
@@ -8547,6 +10366,18 @@
     }
   ],
   [
+    "Friday contact your creator",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
     "Are you able to transmit something to your owner?",
     {
       "entities": [
@@ -8653,6 +10484,23 @@
     }
   ],
   [
+    "Friday mute bhai",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ],
+        [
+          12,
+          15,
+          "@sys.person"
+        ]
+      ]
+    }
+  ],
+  [
     "Why is friday being so annoying right now?",
     {
       "entities": [
@@ -8725,6 +10573,54 @@
         [
           18,
           23,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "I don't believe we have met yet Friday",
+    {
+      "entities": [
+        [
+          32,
+          37,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "We have yet to meet, Hello Friday",
+    {
+      "entities": [
+        [
+          27,
+          32,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday nice to meet you",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday it is very nice to meet you",
+    {
+      "entities": [
+        [
+          0,
+          5,
           "@Self"
         ]
       ]
@@ -8899,6 +10795,12 @@
     }
   ],
   [
+    "Play where are you now",
+    {
+      "entities": []
+    }
+  ],
+  [
     "friday please play beethoven moonlight sonata 3rd movement",
     {
       "entities": [
@@ -9042,6 +10944,18 @@
     }
   ],
   [
+    "I'm deleting friday",
+    {
+      "entities": [
+        [
+          13,
+          18,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
     "Can I delete Friday?",
     {
       "entities": [
@@ -9137,6 +11051,66 @@
         [
           7,
           12,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Why don't you understand something? Friday",
+    {
+      "entities": [
+        [
+          36,
+          41,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Why do you not understand anything Friday?",
+    {
+      "entities": [
+        [
+          35,
+          40,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "why do not you say something? Friday",
+    {
+      "entities": [
+        [
+          30,
+          35,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday I asked you a question",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "friday talk to me",
+    {
+      "entities": [
+        [
+          0,
+          5,
           "@Self"
         ]
       ]
@@ -9625,6 +11599,18 @@
     }
   ],
   [
+    "post poop pics",
+    {
+      "entities": []
+    }
+  ],
+  [
+    "Sorry just got home i need to change and take a shit",
+    {
+      "entities": []
+    }
+  ],
+  [
     "fucking bullshit is what that was",
     {
       "entities": []
@@ -9832,6 +11818,18 @@
     }
   ],
   [
+    "@Friday I'm sad",
+    {
+      "entities": [
+        [
+          1,
+          6,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
     "i am a sad boi",
     {
       "entities": []
@@ -9898,6 +11896,18 @@
     }
   ],
   [
+    "@Friday shutoff",
+    {
+      "entities": [
+        [
+          1,
+          6,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
     "i would like you to shutdown",
     {
       "entities": []
@@ -9947,6 +11957,24 @@
   ],
   [
     "i command you to shutdown",
+    {
+      "entities": []
+    }
+  ],
+  [
+    "now",
+    {
+      "entities": []
+    }
+  ],
+  [
+    "I also want to",
+    {
+      "entities": []
+    }
+  ],
+  [
+    "dynamic",
     {
       "entities": []
     }
@@ -10033,6 +12061,18 @@
     "soop",
     {
       "entities": []
+    }
+  ],
+  [
+    "Friday \ud83d\ude42",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
     }
   ],
   [
@@ -10455,6 +12495,42 @@
     }
   ],
   [
+    "Friday get lost",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday can u excuse urself",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Can u plz shut up friday",
+    {
+      "entities": [
+        [
+          18,
+          23,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
     "Piss off friday",
     {
       "entities": [
@@ -10723,6 +12799,234 @@
     }
   ],
   [
+    "Make sure that your message is one one of the two following messages from Fridays message or just say \"Friday\" in the message",
+    {
+      "entities": [
+        [
+          31,
+          33,
+          "@sys.ignore"
+        ],
+        [
+          31,
+          33,
+          "@sys.ignore"
+        ],
+        [
+          46,
+          48,
+          "@sys.ignore"
+        ],
+        [
+          74,
+          80,
+          "@Self"
+        ],
+        [
+          74,
+          79,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "It needs friday in word or it can answer randoml",
+    {
+      "entities": [
+        [
+          9,
+          14,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "@Pop pop \u6697\u30c0 why is a randy from Friday's Dev Server messaging me about crypto",
+    {
+      "entities": []
+    }
+  ],
+  [
+    "If you are apart of Friday's Dev sever and don't want randoms messaging you, you can disable DM for servers",
+    {
+      "entities": [
+        [
+          20,
+          25,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "ACHI I FOUND A CHATBOT",
+    {
+      "entities": []
+    }
+  ],
+  [
+    "chatbot...",
+    {
+      "entities": []
+    }
+  ],
+  [
+    "@Pop pop \u6697\u30c0 friday",
+    {
+      "entities": []
+    }
+  ],
+  [
+    "Yep, you caught the moment when Mee6 is missing in action and Friday still has the same prefix",
+    {
+      "entities": [
+        [
+          62,
+          67,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Tomorrow will change Friday's command prefix so as not to confuse it with Mee6",
+    {
+      "entities": [
+        [
+          0,
+          7,
+          "@sys.date-time"
+        ],
+        [
+          21,
+          26,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday is not good",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday speaks well and made it clear",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday speaks Italian",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "\ud83e\udd16 Friday IA BOT command prefix f!, Also supports slash commands \u2139 For any other command ask the bot with f! help",
+    {
+      "entities": [
+        [
+          2,
+          7,
+          "@Self"
+        ],
+        [
+          12,
+          14,
+          "@sys.ignore"
+        ],
+        [
+          31,
+          32,
+          "@commandPrefixes"
+        ],
+        [
+          96,
+          98,
+          "@sys.ignore"
+        ],
+        [
+          31,
+          32,
+          "@commandPrefixes"
+        ]
+      ]
+    }
+  ],
+  [
+    "Can you teach me Japanese Friday?",
+    {
+      "entities": [
+        [
+          17,
+          24,
+          "@sys.language"
+        ],
+        [
+          26,
+          31,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday are you giving me Spanish?",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ],
+        [
+          25,
+          31,
+          "@sys.language"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday teach me spanish",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ],
+        [
+          16,
+          22,
+          "@sys.language"
+        ]
+      ]
+    }
+  ],
+  [
     "someone tell me a joke",
     {
       "entities": []
@@ -10768,6 +13072,125 @@
     "Tell me a joke",
     {
       "entities": []
+    }
+  ],
+  [
+    "Friday tell me a word in Chinese",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ],
+        [
+          25,
+          31,
+          "@sys.language"
+        ]
+      ]
+    }
+  ],
+  [
+    "How do you say \"Where is the bank?\" in Japanese?",
+    {
+      "entities": [
+        [
+          16,
+          33,
+          "@sys.any"
+        ],
+        [
+          39,
+          46,
+          "@sys.language"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday can you say Hello in French?",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ],
+        [
+          19,
+          23,
+          "@sys.any"
+        ],
+        [
+          28,
+          33,
+          "@sys.language"
+        ]
+      ]
+    }
+  ],
+  [
+    "can you tell me something in Spanish?",
+    {
+      "entities": [
+        [
+          29,
+          35,
+          "@sys.language"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday tell me something in German",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ],
+        [
+          28,
+          33,
+          "@sys.language"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday, tell @151 {FUN} robot that I'm sorry",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ],
+        [
+          13,
+          28,
+          "@user"
+        ]
+      ]
+    }
+  ],
+  [
+    "friday, tell @\u25cf\u300aBrytheguy151\u300b\u25cf#4083 that I'm sorry",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ],
+        [
+          13,
+          34,
+          "@user"
+        ]
+      ]
     }
   ],
   [
@@ -10892,6 +13315,77 @@
   ],
   [
     "Thank you",
+    {
+      "entities": []
+    }
+  ],
+  [
+    "ARE THERE LIKE \"FRIDAY NIGHT FUNKIN SONG WITH LYRICS!!!!\" VIDEOS ON YOUTUBE",
+    {
+      "entities": [
+        [
+          16,
+          21,
+          "@sys.date"
+        ]
+      ]
+    }
+  ],
+  [
+    "It's Friday night funkin",
+    {
+      "entities": [
+        [
+          5,
+          10,
+          "@sys.date"
+        ]
+      ]
+    }
+  ],
+  [
+    "So we could do it this Friday since I'm off but IDK how many of y'all could, for example Maddy and hobo still are in school and I'm not sure is Jroman will be back",
+    {
+      "entities": [
+        [
+          23,
+          28,
+          "@sys.date"
+        ],
+        [
+          89,
+          93,
+          "@sys.person"
+        ]
+      ]
+    }
+  ],
+  [
+    "June 11th which is a Friday which I have off or atleast am supposed too",
+    {
+      "entities": [
+        [
+          0,
+          8,
+          "@sys.date-time"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday June 11th is what I'm wandering about",
+    {
+      "entities": [
+        [
+          0,
+          15,
+          "@sys.date-time"
+        ]
+      ]
+    }
+  ],
+  [
+    "@SMP Squad Mark it on your calendar June 11th is when the first day of the smp will be, it's in a Friday",
     {
       "entities": []
     }
@@ -12138,6 +14632,30 @@
     }
   ],
   [
+    "thank you for joining the server friday",
+    {
+      "entities": [
+        [
+          33,
+          38,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "welcome to the server friday",
+    {
+      "entities": [
+        [
+          22,
+          27,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
     "Hell ya Friday is now in NaCl",
     {
       "entities": [
@@ -12261,6 +14779,60 @@
     }
   ],
   [
+    "tell me what you are learning about, please",
+    {
+      "entities": []
+    }
+  ],
+  [
+    "Friday is learning about something, i wonder what it could be?",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday I see that you are learning about something, what is it?",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "What are you learning about Friday?",
+    {
+      "entities": [
+        [
+          28,
+          33,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday what are you studying",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
     "what is friday?",
     {
       "entities": [
@@ -12285,6 +14857,18 @@
         [
           13,
           18,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "friday are u girl or boy?",
+    {
+      "entities": [
+        [
+          0,
+          5,
           "@Self"
         ]
       ]
@@ -12447,6 +15031,47 @@
     }
   ],
   [
+    "Friday what do think about being a bot?",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ],
+        [
+          35,
+          37,
+          "@sys.ignore"
+        ]
+      ]
+    }
+  ],
+  [
+    "What is it like being a bot?",
+    {
+      "entities": [
+        [
+          24,
+          26,
+          "@sys.ignore"
+        ]
+      ]
+    }
+  ],
+  [
+    "how's being a bot?",
+    {
+      "entities": [
+        [
+          14,
+          16,
+          "@sys.ignore"
+        ]
+      ]
+    }
+  ],
+  [
     "Friday what is the difference between jelly and jam?",
     {
       "entities": [
@@ -12566,6 +15191,70 @@
     }
   ],
   [
+    "Friday what is your name in German",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ],
+        [
+          28,
+          33,
+          "@sys.language"
+        ]
+      ]
+    }
+  ],
+  [
+    "what is your name in Japanese?",
+    {
+      "entities": [
+        [
+          21,
+          28,
+          "@sys.language"
+        ]
+      ]
+    }
+  ],
+  [
+    "How do you say your name in Spanish?",
+    {
+      "entities": [
+        [
+          28,
+          34,
+          "@sys.language"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday, what's your name in Polish?",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ],
+        [
+          28,
+          33,
+          "@sys.language"
+        ]
+      ]
+    }
+  ],
+  [
+    "WHAT'S UR NAME",
+    {
+      "entities": []
+    }
+  ],
+  [
     "what's your name",
     {
       "entities": []
@@ -12603,6 +15292,113 @@
           28,
           33,
           "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday don't you know Chinese?",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ],
+        [
+          22,
+          28,
+          "@sys.language"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday how many languages do you know?",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday why do you speak english, you need to speak turkish",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ],
+        [
+          24,
+          30,
+          "@sys.language"
+        ],
+        [
+          51,
+          57,
+          "@sys.language"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday speaks Italian thanks",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ],
+        [
+          14,
+          20,
+          "@sys.language"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday I'm from Poland can you speak Polish?",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ],
+        [
+          16,
+          21,
+          "@sys.language"
+        ],
+        [
+          37,
+          42,
+          "@sys.language"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday do you speak italian",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ],
+        [
+          20,
+          26,
+          "@sys.language"
         ]
       ]
     }
@@ -12850,13 +15646,25 @@
     }
   ],
   [
+    "What world do you live in? Friday",
+    {
+      "entities": [
+        [
+          27,
+          32,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
     "friday where are you",
     {
       "entities": [
         [
           0,
           5,
-          "@sys.date-time"
+          "@Self"
         ]
       ]
     }
@@ -12969,6 +15777,18 @@
     }
   ],
   [
+    "Wait who is Friday-",
+    {
+      "entities": [
+        [
+          12,
+          17,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
     "I dont know who friday is?",
     {
       "entities": [
@@ -13071,6 +15891,76 @@
     }
   ],
   [
+    "no one is talking to me but everyone else is talking to Friday",
+    {
+      "entities": [
+        [
+          0,
+          1,
+          "@sys.ignore"
+        ],
+        [
+          3,
+          5,
+          "@sys.ignore"
+        ],
+        [
+          56,
+          61,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "why is everyone talking to the bot and not me",
+    {
+      "entities": [
+        [
+          31,
+          33,
+          "@sys.ignore"
+        ]
+      ]
+    }
+  ],
+  [
+    "why is the bot getting more attention than me?",
+    {
+      "entities": [
+        [
+          11,
+          13,
+          "@sys.ignore"
+        ]
+      ]
+    }
+  ],
+  [
+    "why does a bot get more love than me",
+    {
+      "entities": [
+        [
+          11,
+          13,
+          "@sys.ignore"
+        ]
+      ]
+    }
+  ],
+  [
+    "Why is Friday getting more attention than me?",
+    {
+      "entities": [
+        [
+          7,
+          12,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
     "would you want to be my friend friday?",
     {
       "entities": [
@@ -13161,6 +16051,18 @@
     }
   ],
   [
+    "ok Friday are an option for being my cousins fiance",
+    {
+      "entities": [
+        [
+          3,
+          8,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
     "Do you know about winograd schema?",
     {
       "entities": []
@@ -13182,6 +16084,123 @@
     "make it so the winograd schema works",
     {
       "entities": []
+    }
+  ],
+  [
+    "you are you good friend friday",
+    {
+      "entities": [
+        [
+          24,
+          29,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "I couldn't have asked for a better friend Friday!",
+    {
+      "entities": [
+        [
+          42,
+          47,
+          "@Self"
+        ],
+        [
+          48,
+          48,
+          "@sys.ignore"
+        ]
+      ]
+    }
+  ],
+  [
+    "Thank you for being my friend Friday",
+    {
+      "entities": [
+        [
+          30,
+          35,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday you are a really good friend",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "I am pretty sure you are on some kind of weird drugs right now Friday",
+    {
+      "entities": [
+        [
+          53,
+          61,
+          "@sys.ignore"
+        ],
+        [
+          63,
+          68,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "I think Friday is high right now?",
+    {
+      "entities": [
+        [
+          8,
+          13,
+          "@Self"
+        ],
+        [
+          23,
+          31,
+          "@sys.ignore"
+        ]
+      ]
+    }
+  ],
+  [
+    "Are you high?",
+    {
+      "entities": []
+    }
+  ],
+  [
+    "Friday go home you are drunk",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Friday you're drunk",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
     }
   ],
   [
@@ -13323,6 +16342,42 @@
     "Friday you on some crack?",
     {
       "entities": []
+    }
+  ],
+  [
+    "@Friday I am going to kick you out",
+    {
+      "entities": [
+        [
+          1,
+          6,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "Hello Friday get the hell out of my server",
+    {
+      "entities": [
+        [
+          6,
+          11,
+          "@Self"
+        ]
+      ]
+    }
+  ],
+  [
+    "friday, leave the server",
+    {
+      "entities": [
+        [
+          0,
+          5,
+          "@Self"
+        ]
+      ]
     }
   ],
   [

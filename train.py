@@ -10,19 +10,18 @@ from keras.models import Model  # , load_model
 
 custom = True
 
-os.add_dll_directory("C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v11.0\\bin")
-os.add_dll_directory("C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v11.0\\libnvvp")
-os.add_dll_directory("C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v11.0")
-os.add_dll_directory(
-    "C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v11.0\\extras\\CUPTI\\lib64")
-os.add_dll_directory("C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v11.0\\include")
+os.add_dll_directory("C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v10.1\\bin")
+os.add_dll_directory("C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v10.1\\libnvvp")
+os.add_dll_directory("C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v10.1")
+os.add_dll_directory("C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v10.1\\extras\\CUPTI\\lib64")
+os.add_dll_directory("C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v10.1\\include")
 os.add_dll_directory("C:\\tools\\cuda\\bin")
 os.add_dll_directory("C:\\tools\\cuda")
 os.add_dll_directory("C:\\Program Files\\NVIDIA Corporation\\Nsight Compute 2019.4.0")
 
 if custom is True:
-  data_path = "ml/custom_human_text.txt"
-  data_path2 = "ml/custom_robot_text.txt"
+  data_path = "ml/intent_human.txt"
+  data_path2 = "ml/intent_robot.txt"
 else:
   data_path = "ml/human_text.txt"
   data_path2 = "ml/robot_text.txt"
@@ -104,9 +103,6 @@ def start(pairss):
         dec_target_data[line, timestep - 1, target_features_dict[token]] = 1.
   # Dimensionality
   dimensionality = 256
-  # The batch size and number of epochs
-  batch_size = 3
-  epochs = 20
   # enc
   enc_inps = Input(shape=(None, num_enc_tokens))
   # enc_inps = Input(shape=(None, len(pairs)))
@@ -131,9 +127,7 @@ def start(pairss):
       dec_inps,
       dec_outs,
       num_enc_tokens,
-      num_dec_tokens,
-      epochs,
-      batch_size
+      num_dec_tokens
   )
 
 
@@ -143,7 +137,7 @@ def start(pairss):
 # while i < len(chunks):
   # print(chunks[i])
 # enc_inp_data,dec_inp_data,dec_target_data,enc_inps,dec_inps,dec_outs,epochs,batch_size = start(pairs[slice(chunks[i][0],chunks[i][1])])
-enc_inp_data, dec_inp_data, dec_target_data, enc_inps, dec_inps, dec_outs, num_enc_tokens, num_dec_tokens, epochs, batch_size = start(pairs)
+enc_inp_data, dec_inp_data, dec_target_data, enc_inps, dec_inps, dec_outs, num_enc_tokens, num_dec_tokens = start(pairs)
 # if i > 0:
 #   training_model = load_model("full_training_model_0.h5")
 #   training_model.layers[0] = Reshape(enc_inp_data.shape)
@@ -158,8 +152,8 @@ training_model.compile(optimizer='rmsprop', loss='categorical_crossentropy', met
 training_model.fit(
     [enc_inp_data, dec_inp_data],
     dec_target_data,
-    batch_size=batch_size,
-    epochs=epochs,
+    batch_size=10,
+    epochs=300,
     workers=8,
     shuffle=True,
     use_multiprocessing=True)  # verbose=2,   validation_split = 0.2

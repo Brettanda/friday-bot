@@ -2,7 +2,7 @@ from discord.ext import commands
 
 from discord_slash import cog_ext
 
-from functions import embed, mydb_connect, query
+from functions import embed, query
 
 
 class ServerInfo(commands.Cog):
@@ -20,8 +20,7 @@ class ServerInfo(commands.Cog):
 
   async def server_info(self, ctx):
     # async with ctx.typing() if ctx.typing is not None else ctx.defer():
-    mydb = mydb_connect()
-    prefix, delete_after, musicchannel, defaultRole = query(mydb, "SELECT prefix,autoDeleteMSGs,musicChannel,defaultRole FROM servers WHERE id=%s", ctx.guild.id)[0]
+    prefix, delete_after, musicchannel, defaultRole = await query(self.bot.mydb, "SELECT prefix,autoDeleteMSGs,musicChannel,defaultRole FROM servers WHERE id=%s", ctx.guild.id)[0]
     return dict(
         embed=embed(
             title=ctx.guild.name + " - Info",
