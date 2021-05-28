@@ -70,6 +70,7 @@ class Log(commands.Cog):
     self.bot.change_guild_prefix = self.change_guild_prefix
     self.bot.change_guild_delete = self.change_guild_delete
     self.bot.change_guild_chat_channel = self.change_guild_chat_channel
+    self.bot.change_guild_muted = self.change_guild_muted
     self.bot.change_guild_lang = self.change_guild_lang
     self.bot.change_guild_premium = self.change_guild_premium
 
