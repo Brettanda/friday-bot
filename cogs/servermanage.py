@@ -139,7 +139,6 @@ class ServerManage(commands.Cog):
   @commands.command(name="deletecommandsafter", aliases=["deleteafter", "delcoms"], description="Set the time in seconds for how long to wait before deleting command messages")
   @commands.guild_only()
   @commands.has_guild_permissions(manage_channels=True)
-  @commands.bot_has_guild_permissions(manage_channels=True)
   @commands.bot_has_permissions(manage_messages=True)
   async def delete_commands_after(self, ctx, time: typing.Optional[int] = 0):
     if time < 0:
