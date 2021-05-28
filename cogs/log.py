@@ -41,7 +41,8 @@ class Log(commands.Cog):
     #   self.bot.super_spam_control = commands.CooldownMapping.from_cooldown()
 
     if not hasattr(self.bot, "slash"):
-      self.bot.slash = SlashCommand(self.bot, sync_on_cog_reload=True, sync_commands=True, override_type=True)
+      self.bot.slash = SlashCommand(self.bot, sync_on_cog_reload=True, sync_commands=True)
+
     if not hasattr(self.bot, "mydb"):
       self.bot.mydb = mydb_connect()
 
@@ -182,11 +183,18 @@ class Log(commands.Cog):
       prefix = config.defaultPrefix
       try:
         await guild.system_channel.send(
-            f"Thank you for inviting me to your server. My name is {self.bot.user.name}, and I like to party. I will respond to some chats directed towards me and commands. To get started with commands type `{prefix}help`.\nAn example of something I will respond to is `Hello {self.bot.user.name}` or `{self.bot.user.name} hello`. At my current stage of development I am very chaotic, so if I do something I shouldn't have please use send a message Issues channel in Friday's Development server. If something goes terribly wrong and you want it to stop, talk to my creator https://discord.gg/NTRuFjU\n\t- To change my prefix use the `!prefix` command.\n\t- If I start bothering people with messages use the `!bot mute` command.\n - Four ways that I will respond to messages are when mentioned, your message contains 'Friday', you reply to one of my messages, or your message is one of the following two messages after a message from me. 😊"
+            f"Thank you for inviting me to your server. My name is {self.bot.user.name}, and I like to party."
+            f"I will respond to some chats directed towards me and commands. To get started with commands type `{prefix}help`.\n"
+            f"An example of something I will respond to is `Hello {self.bot.user.name}` or `{self.bot.user.name} hello`. "
+            "At my current stage of development I am very chaotic, so if I do something I shouldn't have please use send a message Issues channel in Friday's Development server. "
+            "If something goes terribly wrong and you want it to stop, talk to my creator https://discord.gg/NTRuFjU\n"
+            f"\t- To change my prefix use the `{prefix}prefix` command.\n"
+            f"\t- If I start bothering people with messages use the `{prefix}bot mute` command.\n"
+            f"\t- Four ways that I will respond to messages are: when mentioned eg.`@Friday`, your message contains 'Friday' or 'friday', you reply to one of my messages, or your message is one of the following two messages after a message from me. 😊"
         )
       except discord.Forbidden:
         pass
-    self.set_guild(guild)
+    self.set_guild(guild.id)
 
   @commands.Cog.listener()
   async def on_guild_remove(self, guild):
@@ -297,6 +305,17 @@ class Log(commands.Cog):
       guild = self.bot.saved_guilds.get(guild.id if isinstance(guild, discord.Guild) else guild, None)
       lang = guild.get("lang", None) if guild is not None else None
       return lang if lang is not None else guild.preferred_locale.split("-")[0] if isinstance(guild, discord.Guild) else "en"
+
+  # def change_guild_attritbute(
+  #         self,
+  #         guild: discord.Guild or int,
+  #         prefix: str = config.defaultPrefix,
+  #         delete: int = None,
+  #         muted: bool = False,
+  #         premium: bool = False,
+  #         chat_channel: int = None):
+  #   if guild is None or :
+  #     return False
 
   def change_guild_prefix(self, guild: discord.Guild or int, prefix: str = config.defaultPrefix):
     if guild is not None:

@@ -235,6 +235,40 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       seperator = "/"
     await ctx.reply(file=discord.File(fp=f"{thispath}{seperator}commands.md", filename="commands.md"))
 
+  @norm_dev.command(name="html")
+  async def html(self, ctx):
+    commands = self.bot.commands
+    header_start = 3
+    cogs = []
+    for command in commands:
+      if command.hidden is False and command.enabled is True and command.cog_name not in cogs:
+        cogs.append(command.cog_name)
+    with open("commands.html", "w") as f:
+      for cog in cogs:
+        f.write(f"<h{header_start} class='t-lg'>{cog}</h{header_start}>")
+        for com in commands:
+          if com.hidden is False and com.enabled is True and com.cog_name == cog:
+            f.write(f"<h{header_start+1}>{ctx.prefix}{com.name}</h{header_start+1}>")
+            usage = '<br>'.join(syntax(com, quotes=False).replace("<", "&lt;").replace(">", "&gt;").split('\n'))
+            # usage = discord.utils.escape_markdown(usage)
+            f.write(f"<p>Usage:<br>{usage}</p>")
+            f.write("<p>Aliases: " + (f'{ctx.prefix}' + f",{ctx.prefix}".join(com.aliases) if len(com.aliases) > 0 else 'None') + "</p>")
+            f.write(f"<p>Description: {com.description or 'None'}</p>")
+      f.close()
+    thispath = os.getcwd()
+    if "\\" in thispath:
+      seperator = "\\\\"
+    else:
+      seperator = "/"
+    await ctx.reply(file=discord.File(fp=f"{thispath}{seperator}commands.html", filename="commands.html"))
+
+  # @norm_dev.command(name="joinleave")
+  # async def norm_dev_join_leave(self, ctx):
+  #   channel = self.bot.get_guild(707441352367013899).get_channel(713270475031183390)
+  #   messages = await channel.history(limit=None, oldest_first=True).flatten()
+
+  #   # for msg in messages:
+
   # @norm_dev.command(name="eval")
   # async def _eval(self, ctx, *, body: str):
   #   """Evaluates a code"""
@@ -281,6 +315,18 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
   #     else:
   #       self._last_result = ret
   #       await ctx.send(f'```py\n{value}{ret}\n```')
+
+  @commands.Cog.listener()
+  async def on_member_join(self, member):
+    if member.guild.id != 707441352367013899:
+      return
+
+    if 215346091321720832 not in [guild.id for guild in member.mutual_guilds]:
+      return
+
+    role = member.guild.get_role(763916955388084246)
+
+    await member.add_roles(role, reason="Friend from NaCl")
 
   @commands.Cog.listener()
   async def on_message(self, ctx):
