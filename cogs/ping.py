@@ -11,7 +11,7 @@ class Ping(commands.Cog):
   async def norm_ping(self, ctx):
     # view = discord.ui.View()
     # message = await ctx.channel.send(**await self.ping(ctx))
-    await ctx.channel.send(**await self.ping(ctx))
+    await ctx.reply(**await self.ping(ctx))
     # view.add_item(discord.ui.Button(style=discord.ButtonStyle.primary, label="click me!", custom_id=f"{ctx.channel.id}-{message.id}"))
     # await message.edit(view=view)
 
