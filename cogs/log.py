@@ -3,7 +3,7 @@ import aiohttp
 import datetime
 import discord
 
-from discord.ext import commands
+from discord.ext import commands, tasks
 from discord_slash import SlashContext, SlashCommand
 from cogs.help import cmd_help
 from functions import MessageColors, embed, mydb_connect, query, relay_info, exceptions, config  # ,choosegame
@@ -73,6 +73,8 @@ class Log(commands.Cog):
     self.bot.remove_guild = self.remove_guild
     # self.bot.set_all_guilds = self.set_all_guilds
 
+    self.check_for_mydb.start()
+
     self.bot.add_check(self.check_perms)
 
   def check_perms(self, ctx):
@@ -89,6 +91,19 @@ class Log(commands.Cog):
       return True
 
     raise commands.BotMissingPermissions(missing)
+
+  @tasks.loop(seconds=10.0)
+  async def check_for_mydb(self):
+    if not self.bot.mydb.is_connected():
+      self.bot.mydb.reconnect()
+      await relay_info("Reconnected to MYDB", self.bot, logger=self.bot.logger)
+
+  @check_for_mydb.before_loop
+  async def before_check_for_mydb(self):
+    await self.bot.wait_until_ready()
+
+  def cog_unload(self):
+    self.check_for_mydb.stop()
 
   @commands.Cog.listener()
   async def on_shard_connect(self, shard_id):
