@@ -90,3 +90,4 @@ yarl==1.6.3
 youtube-dl==2021.1.24.1
 spacy==3.0.6
 google-cloud-translate==2.0.1
+pycountry==20.7.3

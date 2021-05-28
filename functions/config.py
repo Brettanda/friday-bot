@@ -33,6 +33,13 @@ intents = discord.Intents(
     # members=True
 )
 
+
+class PremiumTiers():
+  BASIC = 0
+  ALLPOWERFULL = 1
+  ONE_GUILD = 2
+
+
 allowed_mentions = discord.AllowedMentions(roles=False, everyone=False, users=True)
 
 games = [

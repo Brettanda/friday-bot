@@ -28,6 +28,8 @@ class Chat(commands.Cog):
     await ctx.reply(content, allowed_mentions=discord.AllowedMentions(roles=False, everyone=False, users=False))
 
   def translate_request(self, text: str, detect=False, from_lang=None, to_lang="en"):
+    if from_lang == to_lang:
+      return None
     try:
       return self.translate_client.translate(text, source_language=from_lang, target_language=to_lang)
     except Exception as e:
@@ -37,7 +39,8 @@ class Chat(commands.Cog):
   async def on_message(self, ctx):
     dynamic = False
 
-    locale = ctx.guild.preferred_locale.split("-")[0]
+    lang = self.bot.get_guild_lang(ctx.guild)
+    tier = self.bot.get_guild_premium(ctx.guild)
 
     if ctx.author.bot and ctx.channel.id != 827656054728818718:
       return
@@ -86,8 +89,8 @@ class Chat(commands.Cog):
           # newest = msg
 
       translation = {}
-      if locale != "en":
-        translation = self.translate_request(ctx.clean_content)
+      if lang != "en" or tier > 0:
+        translation = self.translate_request(ctx.clean_content, from_lang=lang if tier == 0 else None)
         if translation.get("translatedText", None) is not None:
           translation['translatedText'] = translation['translatedText'].replace("&#39;", "'")
       original_text = ctx.clean_content
@@ -101,8 +104,8 @@ class Chat(commands.Cog):
       if result is not None and "dynamic" in result:
         dynamic = True
 
-      if translation.get("detectedSourceLanguage", "en") != "en" and result is not None and "dynamic" not in result:
-        final_translation = self.translate_request(result.strip("dynamic"), to_lang=translation.get("detectedSourceLanguage", "en"))
+      if translation.get("detectedSourceLanguage", lang) != "en" and result is not None and "dynamic" not in result:
+        final_translation = self.translate_request(result.replace("dynamic", ""), to_lang=translation.get("detectedSourceLanguage", lang))
         result = final_translation["translatedText"]
       # elif dynamic and translation.get("detectedSourceLanguage", "en") != "en" and result is not None:
       #   dynamic_translate = True
@@ -120,10 +123,10 @@ class Chat(commands.Cog):
         if self.bot.prod:
           await relay_info("", self.bot, embed=embed(title=f"Intent: {intent}\t{chance}", description=f"| lang: {translation.get('detectedSourceLanguage',None)}\n| original lang: {ctx.guild.preferred_locale}\n| sentiment: {sentiment}\n| incoming Context: {incomingContext}\n| outgoing Context: {outgoingContext}\n| input: {ctx.clean_content}\n| translated text: {translation.get('translatedText',original_text)}\n| found in bag: {inbag}\n\t| output: {non_trans_result}\n\\ response: {result}"), webhook=self.bot.log_chat)
         print(f"Intent: {intent}\t{chance}\n\t| sentiment: {sentiment}\n\t| incoming Context: {incomingContext}\n\t| outgoing Context: {outgoingContext}\n\t| input: {ctx.clean_content}\n\t| translated text: {translation.get('translatedText',None)}\n\t| found in bag: {inbag}\n\t| output: {non_trans_result}\n\t\\ response: {result}")
-        self.bot.logger.info(f"\nIntent: {intent}\t{chance}\n\t| sentiment: {sentiment}\n\t| incoming Context: {incomingContext}\n\t| outgoing Context: {outgoingContext}\n\t| input: {ctx.clean_content}\n\t| translated text: {translation.get('translatedText',None)}\n\t| found in bag: {inbag}\n\t| output: {non_trans_result}\n\t\\ response: {result}")
+        self.bot.logger.info(f"\nIntent: {intent}\t{chance}\n\t| sentiment: {sentiment}\n\t| incoming Context: {incomingContext}\n\t| outgoing Context: {outgoingContext}\n\t| input: {ctx.clean_content.encode('unicode_escape')}\n\t| translated text: {translation.get('translatedText',None)}\n\t| found in bag: {inbag}\n\t| output: {non_trans_result}\n\t\\ response: {result.encode('unicode_escape')}")
       else:
-        print(f"\nIntent: {intent}\t{chance}\n\t| sentiment: {sentiment}\n\t| incoming Context: {incomingContext}\n\t| outgoing Context: {outgoingContext}\n\t| input: {ctx.clean_content}\n\t| translated text: {translation.get('translatedText', original_text)}\n\t| found in bag: {inbag}\n\t| output: {non_trans_result}\n\t\\No response found: {ctx.clean_content.encode('unicode_escape')}")
-        self.bot.logger.info(f"\nIntent: {intent}\t{chance}\n\t| sentiment: {sentiment}\n\t| incoming Context: {incomingContext}\n\t| outgoing Context: {outgoingContext}\n\t| input: {ctx.clean_content}\n\t| translated text: {translation.get('translatedText', original_text)}\n\t| found in bag: {inbag}\n\t| output: {non_trans_result}\n\t\\No response found: {ctx.clean_content.encode('unicode_escape')}")
+        print(f"\nIntent: {intent}\t{chance}\n\t| sentiment: {sentiment}\n\t| incoming Context: {incomingContext}\n\t| outgoing Context: {outgoingContext}\n\t| input: {ctx.clean_content.encode('unicode_escape')}\n\t| translated text: {translation.get('translatedText', original_text).encode('unicode_escape')}\n\t| found in bag: {inbag}\n\t| output: {non_trans_result}\n\t\\No response found: {ctx.clean_content.encode('unicode_escape')}")
+        self.bot.logger.info(f"\nIntent: {intent}\t{chance}\n\t| sentiment: {sentiment}\n\t| incoming Context: {incomingContext}\n\t| outgoing Context: {outgoingContext}\n\t| input: {ctx.clean_content.encode('unicode_escape')}\n\t| translated text: {translation.get('translatedText', original_text).encode('unicode_escape')}\n\t| found in bag: {inbag}\n\t| output: {non_trans_result}\n\t\\No response found: {ctx.clean_content.encode('unicode_escape')}")
         if "friday" in ctx.clean_content.lower() or self.bot.user in ctx.mentions:
           await relay_info("", self.bot, embed=embed(title="I think i should respond to this", description=f"{original_text}{(' translated to `'+translation.get('translatedText',original_text)+'`') if translation.get('detectedSourceLanguage', 'en') != 'en' else ''}"), webhook=self.bot.log_chat)
           print(f"I think I should respond to this: {original_text}{(' translated to `'+translation.get('translatedText',original_text)+'`') if translation.get('detectedSourceLanguage', 'en') != 'en' else ''}")
@@ -131,12 +134,12 @@ class Chat(commands.Cog):
 
       if result is not None and result != '':
         if dynamic:
-          await self.dynamicchat(ctx, intent, result, lang=translation.get('detectedSourceLanguage', 'en'))
+          await self.dynamicchat(ctx, intent, result, lang=lang if tier == 0 else translation.get("detectedSourceLanguage", lang))
         else:
           await msg_reply(ctx, result, mention_author=False)
 
-  async def dynamicchat(self, ctx, intent, response=None, lang='en', **kwargs):
-    response = response.strip("dynamic")
+  async def dynamicchat(self, ctx, intent, response=None, lang=None, **kwargs):
+    response = response.replace("dynamic", "")
     # print(f"intent: {intent}")
     # logging.info(f"intent: {intent}")
     reply = None
@@ -233,7 +236,7 @@ class Chat(commands.Cog):
       elif intent == "doggo":
         return await ctx.add_reaction(random.choice(["🐶", "🐕", "🐩", "🐕‍🦺"]))
 
-      elif intent == "how old are you?":
+      elif intent == "how old are you? / Age":
         now = datetime.datetime.now()
         born = self.bot.user.created_at
         months = (now.year - born.year) * 12 + (now.month - born.month)

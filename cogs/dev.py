@@ -155,6 +155,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
   async def reload_all(self, ctx):
     async with ctx.typing():
       await self.bot.reload_cogs()
+      await self.bot.get_cog("Log").set_all_guilds()
     await ctx.reply(embed=embed(title="All cogs have been reloaded"))
 
   @norm_dev.command(name="load")
@@ -186,7 +187,8 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       seperator = "\\\\"
     else:
       seperator = "/"
-    subprocess.Popen([f"{thispath}{seperator}update.sh"], stdin=subprocess.PIPE)
+    if self.bot.prod:
+      subprocess.Popen([f"{thispath}{seperator}update.sh"], stdin=subprocess.PIPE)
     subprocess.Popen([f"{thispath}{seperator}install.sh"], stdin=subprocess.PIPE)
     await message.edit(embed=embed(title="Update complete!"))
 

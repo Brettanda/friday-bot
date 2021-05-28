@@ -60,10 +60,14 @@ class Log(commands.Cog):
     self.bot.get_guild_prefix = self.get_guild_prefix
     self.bot.get_guild_muted = self.get_guild_muted
     self.bot.get_guild_chat_channel = self.get_guild_chat_channel
+    self.bot.get_guild_lang = self.get_guild_lang
+    self.bot.get_guild_premium = self.get_guild_premium
 
     self.bot.change_guild_prefix = self.change_guild_prefix
     self.bot.change_guild_delete = self.change_guild_delete
     self.bot.change_guild_chat_channel = self.change_guild_chat_channel
+    self.bot.change_guild_lang = self.change_guild_lang
+    self.bot.change_guild_premium = self.change_guild_premium
 
     self.bot.set_guild = self.set_guild
     self.bot.remove_guild = self.remove_guild
@@ -157,7 +161,7 @@ class Log(commands.Cog):
   async def on_guild_join(self, guild):
     await relay_info(f"I have joined a new guild, making the total **{len(self.bot.guilds)}**", self.bot, short=f"I have joined a new guild, making the total {len(self.bot.guilds)}", webhook=self.bot.log_join, logger=self.bot.logger)
     owner = guild.owner.id if hasattr(guild, "owner") and hasattr(guild.owner, "id") else 0
-    await query(self.bot.mydb, "INSERT INTO servers (id,owner,name,muted) VALUES (%s,%s,%s,%s)", guild.id, owner, guild.name, 0)
+    await query(self.bot.mydb, "INSERT INTO servers (id,owner,name,muted,lang) VALUES (%s,%s,%s,%s,%s)", guild.id, owner, guild.name, 0, guild.preferred_locale)
     if guild.system_channel is not None:
       prefix = config.defaultPrefix
       try:
@@ -267,6 +271,17 @@ class Log(commands.Cog):
       return None
     return self.bot.saved_guilds[guild.id if isinstance(guild, discord.Guild) else guild]["chatChannel"]
 
+  def get_guild_premium(self, guild: discord.Guild or int):
+    if guild is not None:
+      return self.bot.saved_guilds[guild.id if isinstance(guild, discord.Guild) else guild]["tier"]
+
+  def get_guild_lang(self, guild: discord.Guild or int):
+    if guild is not None:
+      # if guild.id if isinstance(guild, discord.Guild) else guild not in [int(item.id) for item in self.bot.guilds]:
+      #   return guild.preferred_locale.split("-")[0] if isinstance(guild, discord.Guild) else "en"
+      lang = self.bot.saved_guilds[guild.id if isinstance(guild, discord.Guild) else guild]["lang"]
+      return lang if lang is not None else guild.preferred_locale.split("-")[0] if isinstance(guild, discord.Guild) else "en"
+
   def change_guild_prefix(self, guild: discord.Guild or int, prefix: str = config.defaultPrefix):
     if guild is not None:
       self.bot.saved_guilds[guild.id if isinstance(guild, discord.Guild) else guild]["prefix"] = prefix
@@ -279,17 +294,21 @@ class Log(commands.Cog):
     if guild is not None:
       self.bot.saved_guilds[guild.id if isinstance(guild, discord.Guild) else guild]["muted"] = muted
 
-  def change_guild_premium(self, guild: discord.Guild or int, premium: bool = False):
+  def change_guild_premium(self, guild: discord.Guild or int, premium: int = 0):
     if guild is not None:
-      self.bot.saved_guilds.get(guild.id if isinstance(guild, discord.Guild) else guild, None)["muted"] = premium
+      self.bot.saved_guilds.get(guild.id if isinstance(guild, discord.Guild) else guild, None)["tier"] = premium
 
   def change_guild_chat_channel(self, guild: discord.Guild or int, chatChannel: int = None):
     if guild is not None:
       self.bot.saved_guilds[guild.id if isinstance(guild, discord.Guild) else guild]["chatChannel"] = chatChannel
 
-  def set_guild(self, guild: discord.Guild or int, prefix: str = config.defaultPrefix, autoDeleteMSG: int = None, muted: bool = False, chatChannel: int = None):
+  def change_guild_lang(self, guild: discord.Guild or int, lang: str = None):
     if guild is not None:
-      self.bot.saved_guilds.update({guild.id if isinstance(guild, discord.Guild) else guild: {"prefix": prefix, "autoDeleteMSGs": autoDeleteMSG, "muted": muted, "chatChannel": chatChannel if chatChannel is not None else None}})
+      self.bot.saved_guilds[guild.id if isinstance(guild, discord.Guild) else guild]["lang"] = lang if lang is not None else guild.preferred_locale.split("-")[0] if isinstance(guild, discord.Guild) else "en"
+
+  def set_guild(self, guild: discord.Guild or int, prefix: str = config.defaultPrefix, tier: int = 0, autoDeleteMSG: int = None, muted: bool = False, chatChannel: int = None, lang: str = None):
+    if guild is not None:
+      self.bot.saved_guilds.update({guild.id if isinstance(guild, discord.Guild) else guild: {"prefix": prefix, "tier": tier, "autoDeleteMSGs": autoDeleteMSG, "muted": muted, "chatChannel": chatChannel if chatChannel is not None else None, "lang": lang if lang is not None else guild.preferred_locale.split("-")[0]}})
 
   def remove_guild(self, guild: discord.Guild or int):
     if guild is None:
@@ -299,10 +318,10 @@ class Log(commands.Cog):
 
   async def set_all_guilds(self):
     # if not hasattr(self.bot, "saved_guilds") or len(self.bot.saved_guilds) != len(self.bot.guilds):
-    servers = await query(self.bot.mydb, "SELECT id,prefix,autoDeleteMSGs,muted,chatChannel FROM servers")
+    servers = await query(self.bot.mydb, "SELECT id,prefix,tier,autoDeleteMSGs,muted,chatChannel,lang FROM servers")
     guilds = {}
-    for guild_id, prefix, autoDeleteMSG, muted, chatChannel in servers:
-      guilds.update({int(guild_id): {"prefix": str(prefix), "muted": True if muted == 1 else False, "autoDeleteMSGs": int(autoDeleteMSG), "chatChannel": int(chatChannel) if chatChannel is not None else None}})
+    for guild_id, prefix, tier, autoDeleteMSG, muted, chatChannel, lang in servers:
+      guilds.update({int(guild_id): {"prefix": str(prefix), "tier": int(tier), "muted": True if muted == 1 else False, "autoDeleteMSGs": int(autoDeleteMSG), "chatChannel": int(chatChannel) if chatChannel is not None else None, "lang": lang}})
     self.bot.saved_guilds = guilds
     return guilds
 

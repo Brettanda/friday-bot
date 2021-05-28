@@ -2,6 +2,7 @@ import asyncio
 import typing
 # import datetime
 # import validators
+import pycountry
 
 import discord
 from discord.ext import commands
@@ -515,6 +516,23 @@ class ServerManage(commands.Cog):
         ctx.reply(embed=embed(title="Message has been removed"), delete_after=20),
         ctx.message.delete(delay=20)
     )
+
+  @commands.command(name="language", aliases=["lang"], description="Change the language that I will speak")
+  # @commands.cooldown(1, 3600, commands.BucketType.guild)
+  @commands.has_guild_permissions(administrator=True)
+  async def language(self, ctx, language: str = None):
+    lang = ctx.guild.preferred_locale.split("-")[0]
+    if language is None and ctx.guild is not None:
+      language = lang
+
+    new_lang = pycountry.languages.get(alpha_2=language) if len(language) <= 2 else pycountry.languages.get(name=language)
+    if new_lang is None:
+      return await ctx.reply(embed=embed(title=f"Failed to find language: `{language}`", color=MessageColors.ERROR))
+
+    final_lang = new_lang.alpha_2 if new_lang is not None else lang
+    await query(self.bot.mydb, "UPDATE servers SET lang=%s WHERE id=%s", final_lang, ctx.guild.id)
+    self.bot.change_guild_lang(ctx.guild, final_lang)
+    return await ctx.reply(embed=embed(title=f"New language set to: `{final_lang}`"))
 
   # @commands.Cog.listener()
   # async def on_message(self, msg):
