@@ -76,7 +76,11 @@ class Chat(commands.Cog):
 
     if not ctx.content.startswith(tuple(self.bot.get_prefixes())):
       noContext = ["Title of your sex tape", "Self Aware", "No U", "I'm dad"]
-      lastmessages = await ctx.channel.history(limit=3, oldest_first=False).flatten()
+      lastmessages = None
+      try:
+        lastmessages = await ctx.channel.history(limit=3, oldest_first=False).flatten()
+      except TimeoutError:
+        return
       meinlastmessage = False
       # newest = None
 
@@ -116,7 +120,7 @@ class Chat(commands.Cog):
         return await relay_info(f"Not responding with TOYST for: `{ctx.clean_content}`", self.bot, webhook=self.bot.log_chat)
 
       # TODO: add a check for another bot
-      if len([c for c in noContext if intent == c]) == 0 and (self.bot.user not in ctx.mentions) and ("friday" not in ctx.clean_content.lower()) and (meinlastmessage is not True) and ctx.channel.type != "private" and self.bot.get_guild_chat_channel(ctx.guild) != ctx.channel.id:
+      if len([c for c in noContext if intent == c]) == 0 and (self.bot.user not in ctx.mentions) and ("friday" not in ctx.clean_content.lower()) and (meinlastmessage is not True) and (not hasattr(ctx.channel, "type") or ctx.channel.type != "private") and self.bot.get_guild_chat_channel(ctx.guild) != ctx.channel.id:
         print("I probably should not respond")
         return
       if result is not None and result != '':

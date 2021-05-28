@@ -328,15 +328,18 @@ class Fun(commands.Cog):
       vals.append(f"{self.bar(0,1)}")
       ins.append(False)
       x += 1
-    if slash:
-      message = await ctx.send(embed=embed(title=f"Poll: {title}", fieldstitle=titles, fieldsval=vals, fieldsin=ins))
+    try:
+      if slash:
+        message = await ctx.send(embed=embed(title=f"Poll: {title}", fieldstitle=titles, fieldsval=vals, fieldsin=ins))
+      else:
+        message = await ctx.reply(embed=embed(title=f"Poll: {title}", fieldstitle=titles, fieldsval=vals, fieldsin=ins))
+    except Exception as e:
+      raise e
     else:
-      message = await ctx.reply(embed=embed(title=f"Poll: {title}", fieldstitle=titles, fieldsval=vals, fieldsin=ins))
-
-    x = 0
-    for _ in options:
-      await message.add_reaction(self.POLLEMOTES[x])
-      x += 1
+      x = 0
+      for _ in options:
+        await message.add_reaction(self.POLLEMOTES[x])
+        x += 1
 
   @commands.Cog.listener("on_raw_reaction_add")
   @commands.Cog.listener("on_raw_reaction_remove")
