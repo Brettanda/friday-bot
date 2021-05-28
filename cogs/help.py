@@ -115,11 +115,13 @@ class Help(commands.Cog):
   async def show_help(self, ctx, group: str = None, cmd: str = None):
     """Shows this message."""
 
+    slash = True if isinstance(ctx, SlashContext) else False
+
     if cmd is None:
       cmd = group
 
     delay = self.bot.get_guild_delete_commands(ctx.guild)
-    if delay is not None and delay > 0:
+    if delay is not None and delay > 0 and not slash:
       await ctx.message.delete(delay=delay)
     if cmd is not None:
       for item in self.bot.commands:
