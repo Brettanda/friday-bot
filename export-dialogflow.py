@@ -1,7 +1,7 @@
 import json
 import os
 
-from nltk import word_tokenize
+# from nltk import word_tokenize
 # from nltk.tokenize.treebank import TreebankWordDetokenizer
 
 direc = r"E:\Users\Brett\Downloads\Friday"
