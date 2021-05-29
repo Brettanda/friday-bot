@@ -85,7 +85,7 @@ class Chat(commands.Cog):
       meinlastmessage = False
       # newest = None
 
-      if lastauthormessages[1].content == ctx.content and ctx.author.id != self.bot.owner_id:
+      if len(lastauthormessages) > 2 and lastauthormessages[1].content == ctx.content and ctx.author.id != self.bot.owner_id:
         return
 
       for msg in lastmessages:
