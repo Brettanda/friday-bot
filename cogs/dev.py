@@ -316,24 +316,9 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
   #       self._last_result = ret
   #       await ctx.send(f'```py\n{value}{ret}\n```')
 
-  @commands.Cog.listener()
-  async def on_member_join(self, member):
-    if member.guild.id != 707441352367013899:
-      return
-
-    if 215346091321720832 not in [guild.id for guild in member.mutual_guilds]:
-      return
-
-    role = member.guild.get_role(763916955388084246)
-
-    await member.add_roles(role, reason="Friend from NaCl")
 
   @commands.Cog.listener()
   async def on_message(self, ctx):
-    # Reacts to any message in the updates channel in the development server
-    if ctx.channel.id == 744652167142441020:
-      await ctx.add_reaction("♥")
-
     if r"process.exit()" in ctx.clean_content:
       try:
         return await ctx.add_reaction("😡")
