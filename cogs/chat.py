@@ -79,12 +79,13 @@ class Chat(commands.Cog):
       lastmessages = None
       try:
         lastmessages = await ctx.channel.history(limit=3, oldest_first=False).flatten()
+        lastauthormessages = [message for message in await ctx.channel.history(limit=5, oldest_first=False).flatten() if message.author.id == ctx.author.id]
       except TimeoutError:
         return
       meinlastmessage = False
       # newest = None
 
-      if lastmessages[0].content == ctx.content and ctx.author.id != self.bot.owner_id:
+      if lastauthormessages[1].content == ctx.content and ctx.author.id != self.bot.owner_id:
         return
 
       for msg in lastmessages:
