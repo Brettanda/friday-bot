@@ -1,15 +1,13 @@
-from google.cloud import translate_v2 as translate
-# import os
-# import uuid
-
-# import spacy
-import validators
 import discord
 from discord.ext import commands
+
 from numpy import random
+import validators
 import datetime
 
-from functions import (MessageColors, dev_guilds, embed, get_reddit_post, config, msg_reply, relay_info, queryIntents)
+from six.moves.html_parser import HTMLParser
+from google.cloud import translate_v2 as translate
+from functions import MessageColors, dev_guilds, embed, get_reddit_post, config, msg_reply, relay_info, queryIntents  # , checks
 
 
 class Chat(commands.Cog):
@@ -17,6 +15,7 @@ class Chat(commands.Cog):
     self.bot = bot
     if not hasattr(self, "translate_client"):
       self.translate_client = translate.Client()
+    self.h = HTMLParser()
 
     # if not hasattr(self, "chat_spam_control"):
     #   self.chat_spam_control = commands.CooldownMapping.from_cooldown(5, 15.0, commands.BucketType.channel)
@@ -97,7 +96,7 @@ class Chat(commands.Cog):
       if lang != "en" or tier > 0:
         translation = self.translate_request(ctx.clean_content, from_lang=lang if tier == 0 else None)
         if translation.get("translatedText", None) is not None:
-          translation['translatedText'] = translation['translatedText'].replace("&#39;", "'")
+          translation["translatedText"] = self.h.unescape(translation["translatedText"])
       original_text = ctx.clean_content
 
       mentioned = True if "friday" in original_text.lower() or (ctx.reference is not None and ctx.reference.resolved is not None and ctx.reference.resolved.author == self.bot.user) or (ctx.guild is not None and ctx.guild.me in ctx.mentions) else False
@@ -110,8 +109,10 @@ class Chat(commands.Cog):
         dynamic = True
 
       if translation.get("detectedSourceLanguage", lang) != "en" and result is not None and "dynamic" not in result:
-        final_translation = self.translate_request(result.replace("dynamic", ""), to_lang=translation.get("detectedSourceLanguage", lang))
-        result = final_translation["translatedText"]
+        final_translation = self.translate_request(result.replace("dynamic", ""), from_lang="en", to_lang=translation.get("detectedSourceLanguage", lang) if translation.get("translatedText") != translation.get("input") else "en")
+        if final_translation is not None and final_translation.get("translatedText", None) is not None:
+          final_translation["translatedText"] = self.h.unescape(final_translation["translatedText"])
+        result = final_translation["translatedText"] if final_translation is not None else result.replace("dynamic", "")
       # elif dynamic and translation.get("detectedSourceLanguage", "en") != "en" and result is not None:
       #   dynamic_translate = True
 

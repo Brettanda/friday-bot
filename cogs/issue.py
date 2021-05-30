@@ -53,14 +53,6 @@ class Issue(commands.Cog):
       except Exception:
         await confirm.remove_reaction("✅", self.bot.user)
 
-  @commands.command(name="support", description="Get an invite link to my support server")
-  async def norm_support(self, ctx):
-    await ctx.reply("https://discord.gg/NTRuFjU")
-
-  @cog_ext.cog_slash(name="support", description="Support server link")
-  async def slash_support(self, ctx):
-    await ctx.send("https://discord.gg/NTRuFjU", hidden=True)
-
 
 def setup(bot):
   bot.add_cog(Issue(bot))
