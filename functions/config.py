@@ -6,6 +6,8 @@ description = "Hello, my name is Friday, I am a chatbot built with TensorFlow an
 
 reloadable_bot = "Log"
 
+support_server_id = 707441352367013899
+
 invite_permissions = discord.Permissions(
     manage_roles=True,
     kick_members=True,
@@ -46,7 +48,6 @@ games = [
     "Developing myself",
     "Minecraft",
     "Use !help For commands",
-    "Use !help For commands",
     "Super Smash Bros. Ultimate",
     "Cyberpunk 2077",
     "Forza Horizon 4",
@@ -59,19 +60,15 @@ games = [
     "Animal Crossing New Horizons",
     "With the internet",
     "DOOM Eternal",
-    "DOOM External",
-    "DOOM Internal",
-    "DOOM Reternal",
     "D&D (solo)",
     "Big brain time",
     "Uploading your consciousness",
     "Learning everything on the Internet",
     "some games",
     "with Machine Learning",
-    "xX_FINAL_FANTASY_Xx",
     "Escape from Tarkov",
-    "Practicing my dice rolling with !r",
-    "Giving out inspirational quotes",
+    "Practicing my dice rolling with !d",
+    # "Giving out inspirational quotes",
     "Among us",
     "[she/her]",
     {

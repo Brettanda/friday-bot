@@ -316,7 +316,6 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
   #       self._last_result = ret
   #       await ctx.send(f'```py\n{value}{ret}\n```')
 
-
   @commands.Cog.listener()
   async def on_message(self, ctx):
     if r"process.exit()" in ctx.clean_content:
