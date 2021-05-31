@@ -358,7 +358,7 @@ class Log(commands.Cog):
     servers = await query(self.bot.mydb, "SELECT id,prefix,tier,autoDeleteMSGs,muted,chatChannel,lang FROM servers")
     guilds = {}
     for guild_id, prefix, tier, autoDeleteMSG, muted, chatChannel, lang in servers:
-      guilds.update({int(guild_id): {"prefix": str(prefix), "tier": int(tier), "muted": True if muted == 1 else False, "autoDeleteMSGs": int(autoDeleteMSG), "chatChannel": int(chatChannel) if chatChannel is not None else None, "lang": lang}})
+      guilds.update({int(guild_id): {"prefix": str(prefix), "tier": int(tier), "muted": True if int(muted) == 1 else False, "autoDeleteMSGs": int(autoDeleteMSG), "chatChannel": int(chatChannel) if chatChannel is not None else None, "lang": lang}})
     self.bot.saved_guilds = guilds
     return guilds
 
