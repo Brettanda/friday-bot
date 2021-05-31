@@ -529,9 +529,10 @@ class ServerManage(commands.Cog):
       return await ctx.reply(embed=embed(title=f"Failed to find language: `{language}`", color=MessageColors.ERROR))
 
     final_lang = new_lang.alpha_2 if new_lang is not None else lang
+    final_lang_name = new_lang.name if new_lang is not None else lang
     await query(self.bot.mydb, "UPDATE servers SET lang=%s WHERE id=%s", final_lang, ctx.guild.id)
     self.bot.change_guild_lang(ctx.guild, final_lang)
-    return await ctx.reply(embed=embed(title=f"New language set to: `{final_lang}`"))
+    return await ctx.reply(embed=embed(title=f"New language set to: `{final_lang_name}`"))
 
   # @commands.Cog.listener()
   # async def on_message(self, msg):
