@@ -4,6 +4,7 @@ from discord.ext.commands import CommandError
 
 class Base(CommandError):
   def __init__(self, message=None, *args, **kwargs):
+    self.log = False
     super().__init__(message=message, *args, **kwargs)
 
   def __str__(self):
@@ -39,5 +40,22 @@ class CantSeeNewVoiceChannelType(Base):
 
 
 class OnlySlashCommands(Base):
+  """ An exception for when I have been added to a server without a bot user"""
+
   def __init__(self, message="I need to be added to this server with my bot account for this command to work. Please use the link found on <https://friday-bot.com>", *args, **kwargs):
+    super().__init__(message=message, *args, **kwargs)
+
+
+class NotSupporter(Base):
+  def __init__(self, message="You need to be a Patreon supporter to use this command.", *args, **kwargs):
+    super().__init__(message=message, *args, **kwargs)
+
+
+class RequiredTier(Base):
+  def __init__(self, message="You do not have the required Patreon tier for this command.", *args, **kwargs):
+    super().__init__(message=message, *args, **kwargs)
+
+
+class NotInSupportServer(Base):
+  def __init__(self, message="You need to be in my support server for this command.", *args, **kwargs):
     super().__init__(message=message, *args, **kwargs)

@@ -65,14 +65,15 @@ class Log(commands.Cog):
     self.bot.get_guild_muted = self.get_guild_muted
     self.bot.get_guild_chat_channel = self.get_guild_chat_channel
     self.bot.get_guild_lang = self.get_guild_lang
-    self.bot.get_guild_premium = self.get_guild_premium
+    self.bot.get_guild_tier = self.get_guild_tier
+    self.bot.fetch_user_tier = self.fetch_user_tier
 
     self.bot.change_guild_prefix = self.change_guild_prefix
     self.bot.change_guild_delete = self.change_guild_delete
     self.bot.change_guild_chat_channel = self.change_guild_chat_channel
     self.bot.change_guild_muted = self.change_guild_muted
     self.bot.change_guild_lang = self.change_guild_lang
-    self.bot.change_guild_premium = self.change_guild_premium
+    self.bot.change_guild_tier = self.change_guild_tier
 
     self.bot.set_guild = self.set_guild
     self.bot.remove_guild = self.remove_guild
@@ -296,10 +297,32 @@ class Log(commands.Cog):
       return None
     return self.bot.saved_guilds[guild.id if isinstance(guild, discord.Guild) else guild]["chatChannel"]
 
-  def get_guild_premium(self, guild: discord.Guild or int):
+  def get_guild_tier(self, guild: discord.Guild or int):
     if guild is not None:
       guild = self.bot.saved_guilds.get(guild.id if isinstance(guild, discord.Guild) else guild, None)
-      return guild.get("tier", 0) if guild is not None else 0
+      return guild.get("tier", "free") if guild is not None else "free"
+
+  async def fetch_user_tier(self, user: discord.User):
+    if user.id == self.bot.owner_id:
+      return list(config.premium_tiers)[-1]
+    if user is not None:
+      member = await self.bot.get_guild(config.support_server_id).fetch_member(user.id)
+      if member is None:
+        raise exceptions.NotInSupportServer()
+      roles = [role.id for role in member.roles]
+      if config.patreon_supporting_role not in roles:
+        raise exceptions.NotSupporter()
+      # role = [role for role in roles if role in config.premium_roles.values()]
+      # something = list(config.premium_roles.values())[::2]
+      available_tiers_roles = [tier for tier in config.premium_roles.values() if tier != 843941723041300480]
+      available_tiers_roles = available_tiers_roles[::2]
+      x, final_tier = 0, None
+      for tier in available_tiers_roles:
+        if tier in [role.id for role in member.roles]:
+          final_tier = available_tiers_roles.index(tier)
+          final_tier = list(config.premium_tiers)[final_tier + 1]
+        x += 1
+      return final_tier if final_tier is not None else None
 
   def get_guild_lang(self, guild: discord.Guild or int):
     if guild is not None:
@@ -330,7 +353,7 @@ class Log(commands.Cog):
     if guild is not None:
       self.bot.saved_guilds[guild.id if isinstance(guild, discord.Guild) else guild]["muted"] = muted
 
-  def change_guild_premium(self, guild: discord.Guild or int, premium: int = 0):
+  def change_guild_tier(self, guild: discord.Guild or int, premium: int = 0):
     if guild is not None:
       self.bot.saved_guilds.get(guild.id if isinstance(guild, discord.Guild) else guild, None)["tier"] = premium
 
@@ -355,15 +378,12 @@ class Log(commands.Cog):
 
   async def set_all_guilds(self):
     # if not hasattr(self.bot, "saved_guilds") or len(self.bot.saved_guilds) != len(self.bot.guilds):
-    servers = await query(self.bot.mydb, "SELECT id,prefix,tier,autoDeleteMSGs,muted,chatChannel,lang FROM servers")
+    servers = await query(self.bot.mydb, "SELECT id,prefix,tier,patreon_user,autoDeleteMSGs,muted,chatChannel,lang FROM servers")
     guilds = {}
-    for guild_id, prefix, tier, autoDeleteMSG, muted, chatChannel, lang in servers:
-      guilds.update({int(guild_id): {"prefix": str(prefix), "tier": int(tier), "muted": True if int(muted) == 1 else False, "autoDeleteMSGs": int(autoDeleteMSG), "chatChannel": int(chatChannel) if chatChannel is not None else None, "lang": lang}})
+    for guild_id, prefix, tier, patreon_user, autoDeleteMSG, muted, chatChannel, lang in servers:
+      guilds.update({int(guild_id): {"prefix": str(prefix), "tier": str(tier), "patreon_user": int(patreon_user) if patreon_user is not None else None, "muted": True if int(muted) == 1 else False, "autoDeleteMSGs": int(autoDeleteMSG), "chatChannel": int(chatChannel) if chatChannel is not None else None, "lang": lang}})
     self.bot.saved_guilds = guilds
     return guilds
-
-  # async def on_slash_command_error(self, ctx, *args, **kwargs):
-  #   print("somethign")
 
   @discord.utils.cached_property
   def log_spam(self):
@@ -461,17 +481,7 @@ class Log(commands.Cog):
       await cmd_help(ctx, ctx.command, str(error) or "Too many arguments were passed for this command, here is how the command should look", delete_after=delete)
     # elif isinstance(error,commands.CommandError) or isinstance(error,commands.CommandInvokeError):
     #   await ctx.reply(embed=embed(title=f"{error}",color=MessageColors.ERROR))
-    elif (isinstance(error, (
-                discord.Forbidden,
-                discord.NotFound,
-                commands.MissingPermissions,
-                commands.BotMissingPermissions,
-                commands.MaxConcurrencyReached,
-                exceptions.UserNotInVoiceChannel,
-                exceptions.NoCustomSoundsFound,
-                exceptions.CantSeeNewVoiceChannelType,
-                exceptions.ArgumentTooLarge)
-    )):
+    elif isinstance(error, (discord.Forbidden, discord.NotFound, commands.MissingPermissions, commands.BotMissingPermissions, commands.MaxConcurrencyReached)) or (hasattr(error, "log") and error.log is False):
       try:
         if slash:
           await ctx.send(embed=embed(title=f"{error_text}", color=MessageColors.ERROR), delete_after=delete)

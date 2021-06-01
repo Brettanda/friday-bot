@@ -36,10 +36,43 @@ intents = discord.Intents(
 )
 
 
-class PremiumTiers():
-  BASIC = 0
-  ALLPOWERFULL = 1
-  ONE_GUILD = 2
+# all_support_ranks = [item for item in support_ranks]
+
+patreon_supporting_role = 843941723041300480
+
+premium_tiers = {
+    "free": 0,
+    # "supporting": 843941723041300480,
+    # "friends": 763916955388084246,
+    # "early": 761492640268943380,
+    # "one_guild": 844090257221222401
+    # "supporting": 1,
+    "one_guild": 1,
+    "early": 2,
+    "friends": 3
+}
+
+premium_roles = {
+    # "supporting": 843941723041300480,
+    # premium_tiers["supporting"]: 843941723041300480,
+    "one_guild": 844090257221222401,
+    premium_tiers["one_guild"]: 844090257221222401,
+    "early": 761492640268943380,
+    premium_tiers["early"]: 761492640268943380,
+    "friends": 763916955388084246,
+    premium_tiers["friends"]: 763916955388084246,
+}
+
+# class PremiumTiers():
+#   BASIC = 0
+#   ALLPOWERFULL = 1
+#   EARLY = 2
+#   ONE_GUILD = 3
+
+# class PremiumRoles():
+#   EARLY = 761492640268943380
+#   SUPPORTING = 843941723041300480
+#   ONE_GUILD = 844090257221222401
 
 
 allowed_mentions = discord.AllowedMentions(roles=False, everyone=False, users=True)
