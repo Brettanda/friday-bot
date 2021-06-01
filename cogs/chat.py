@@ -7,7 +7,7 @@ import datetime
 
 from six.moves.html_parser import HTMLParser
 from google.cloud import translate_v2 as translate
-from functions import MessageColors, dev_guilds, embed, get_reddit_post, config, msg_reply, relay_info, queryIntents  # , checks
+from functions import MessageColors, dev_guilds, embed, get_reddit_post, config, msg_reply, relay_info, queryIntents, checks
 
 
 class Chat(commands.Cog):
