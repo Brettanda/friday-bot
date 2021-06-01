@@ -7,7 +7,7 @@ import datetime
 
 from six.moves.html_parser import HTMLParser
 from google.cloud import translate_v2 as translate
-from functions import MessageColors, dev_guilds, embed, get_reddit_post, config, msg_reply, relay_info, queryIntents  # , checks
+from functions import MessageColors, dev_guilds, embed, get_reddit_post, config, msg_reply, relay_info, queryIntents, checks
 
 
 class Chat(commands.Cog):
@@ -39,7 +39,7 @@ class Chat(commands.Cog):
     dynamic = False
 
     lang = self.bot.get_guild_lang(ctx.guild)
-    tier = self.bot.get_guild_premium(ctx.guild)
+    tier = self.bot.get_guild_tier(ctx.guild)
 
     if ctx.author.bot and ctx.channel.id != 827656054728818718:
       return
@@ -93,7 +93,7 @@ class Chat(commands.Cog):
           # newest = msg
 
       translation = {}
-      if lang != "en" or tier > 0:
+      if lang not in (None, "en") or await checks.guild_is_min_tier(self.bot, ctx.guild, "one_guild") or await checks.user_is_min_tier(self.bot, ctx.author, "one_guild"):
         translation = self.translate_request(ctx.clean_content, from_lang=lang if tier == 0 else None)
         if translation.get("translatedText", None) is not None:
           translation["translatedText"] = self.h.unescape(translation["translatedText"])

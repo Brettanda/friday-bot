@@ -44,13 +44,13 @@ class Friday(commands.AutoShardedBot):
         owner_id=215227961048170496,
         description=functions.config.description,
         # member_cache_flags=discord.MemberCacheFlags.voice(),
-        fetch_offline_members=False,
+        # fetch_offline_members=False,
         allowed_mentions=functions.config.allowed_mentions,
         # heartbeat_timeout=150.0
     )
 
     self.restartPending = False
-    self.dead_nodes_sent = False
+    self.saved_guilds = {}
     self.songqueue = {}
     self.prod = True if len(sys.argv) > 1 and (sys.argv[1] == "--prod" or sys.argv[1] == "--production") else False
 

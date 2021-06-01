@@ -20,6 +20,56 @@ class SupportServer(commands.Cog):
     await ctx.send("https://discord.gg/NTRuFjU", hidden=True)
 
   @commands.Cog.listener()
+  async def on_raw_reaction_add(self, payload):
+    member = payload.member
+
+    if not self.bot.prod or not payload.guild_id:
+      return
+
+    if member is None:
+      member = await self.bot.get_guild(payload.guild_id).fetch_member(payload.user_id)
+
+    if member.bot:
+      return
+
+    if payload.guild_id != 707441352367013899 or payload.channel_id != 707458929696702525 or payload.message_id != 707520808448294983:
+      return
+
+    if str(payload.emoji) != "📌":
+      return
+
+    role = member.guild.get_role(848626624365592636)
+    if role is None:
+      return
+
+    await member.add_roles(role, reason="Updates!")
+
+  @commands.Cog.listener()
+  async def on_raw_reaction_remove(self, payload):
+    member = payload.member
+
+    if not self.bot.prod or not payload.guild_id:
+      return
+
+    if member is None:
+      member = await self.bot.get_guild(payload.guild_id).fetch_member(payload.user_id)
+
+    if member.bot:
+      return
+
+    if payload.guild_id != 707441352367013899 or payload.channel_id != 707458929696702525 or payload.message_id != 707520808448294983:
+      return
+
+    if str(payload.emoji) != "📌":
+      return
+
+    role = member.guild.get_role(848626624365592636)
+    if role is None:
+      return
+
+    await member.remove_roles(role, reason="No more updates :(")
+
+  @commands.Cog.listener()
   async def on_message(self, ctx):
     # Reacts to any message in the updates channel in the development server
     if ctx.channel.id == 744652167142441020:
