@@ -75,7 +75,7 @@ class Chat(commands.Cog):
 
     if not ctx.content.startswith(tuple(self.bot.get_prefixes())):
       noContext = ["Title of your sex tape", "Self Aware", "No U", "I'm dad"]
-      lastmessages, lastauthormessages = None
+      lastmessages, lastauthormessages = None, None
       try:
         lastmessages = await ctx.channel.history(limit=3, oldest_first=False).flatten()
         lastauthormessages = [message for message in await ctx.channel.history(limit=5, oldest_first=False).flatten() if message.author.id == ctx.author.id]
