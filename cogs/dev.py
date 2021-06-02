@@ -188,7 +188,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     else:
       seperator = "/"
     if self.bot.prod:
-      subprocess.Popen([f"{thispath}{seperator}update.sh"], stdin=subprocess.PIPE)
+      subprocess.Popen([f"{thispath}{seperator}update{'' if not self.bot.canary else '_canary'}.sh"], stdin=subprocess.PIPE)
     subprocess.Popen([f"{thispath}{seperator}install.sh"], stdin=subprocess.PIPE)
     await message.edit(embed=embed(title="Update complete!"))
 

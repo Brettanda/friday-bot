@@ -53,6 +53,7 @@ class Friday(commands.AutoShardedBot):
     self.saved_guilds = {}
     self.songqueue = {}
     self.prod = True if len(sys.argv) > 1 and (sys.argv[1] == "--prod" or sys.argv[1] == "--production") else False
+    self.canary = True if len(sys.argv) > 1 and (sys.argv[1] == "--canary") else False
 
     self.load_cogs()
 
