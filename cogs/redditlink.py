@@ -41,6 +41,7 @@ class redditlink(commands.Cog):
   def __init__(self, bot):
     self.bot = bot
     self.emoji = "🔗"
+    self.lock = asyncio.Lock()
     self.pattern = r"https://www.reddit.com/r/[a-zA-Z0-9-_]+/comments/[a-zA-Z0-9]+/[a-zA-Z0-9_-]+"
     self.patternspoiler = r"||https://www.reddit.com/r/[a-zA-Z0-9-_]+/comments/[a-zA-Z0-9]+/[a-zA-Z0-9_-]+||"
 
@@ -162,7 +163,8 @@ class redditlink(commands.Cog):
       pass
     async with channel.typing():
       try:
-        await self.extract(message.content, payload=payload, guild=guild, channel=channel, message=message)
+        async with self.lock:
+          await self.extract(message.content, payload=payload, guild=guild, channel=channel, message=message)
       except Exception as e:
         await message.reply(embed=embed(title="Something went wrong", description="Please try again later. I have notified my boss of this error", color=MessageColors.ERROR), mention_author=False)
         raise e
@@ -170,7 +172,8 @@ class redditlink(commands.Cog):
   @cog_ext.cog_slash(name="redditextract", description="Extracts the file from the reddit post")
   async def slash_extract(self, ctx, link: str):
     await ctx.defer()
-    await self.extract(query=link, slash=True, ctx=ctx, guild=ctx.guild, channel=ctx.channel)
+    async with self.lock:
+      await self.extract(query=link, slash=True, ctx=ctx, guild=ctx.guild, channel=ctx.channel)
 
   async def extract(self, query, slash=False, payload=None, ctx=None, guild=None, channel=None, message=None):
     if ctx is None and message is not None:

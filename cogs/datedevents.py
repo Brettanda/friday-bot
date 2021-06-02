@@ -1,5 +1,4 @@
 import asyncio
-import logging
 import os
 # import sys
 from datetime import date
@@ -10,7 +9,6 @@ from discord.ext import tasks, commands
 # from functions import embed
 
 original_image = "assets\\friday-logo.png"
-logger = logging.getLogger(__name__)
 
 
 class DatedEvents(commands.Cog):
@@ -35,7 +33,7 @@ class DatedEvents(commands.Cog):
       seperator = "/"
     if int(month) == 4 and int(day) == 1:
       print("april fools")
-      logger.info("april fools")
+      self.bot.logger.info("april fools")
       with open(f"{thispath}{seperator}assets{seperator}friday_april_fools.png", "rb") as image:
         f = image.read()
         await user.edit(avatar=f)
@@ -43,7 +41,7 @@ class DatedEvents(commands.Cog):
       await asyncio.sleep(43200.0)
     elif int(month) == 4 and int(day) == 2:
       print("post-april fools")
-      logger.info("post-april fools")
+      self.bot.logger.info("post-april fools")
       with open(f"{thispath}{seperator}assets{seperator}friday-logo.png", "rb") as image:
         f = image.read()
         await guild.edit(icon=f, reason="Post-april fools")

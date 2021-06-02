@@ -7,7 +7,6 @@ from discord.ext import commands
 
 from discord_slash import cog_ext  # , SlashContext
 
-import logging
 import youtube_dl
 # import json
 import asyncio
@@ -16,8 +15,6 @@ import time
 # from cogs.cleanup import get_delete_time
 
 from functions import embed, MessageColors, exceptions, checks  # , relay_info
-
-logger = logging.getLogger(__name__)
 
 
 def can_play(ctx: commands.Context):
@@ -285,7 +282,7 @@ class Music(commands.Cog):
     # except:
     # await self.tryagain(ctx)
 
-  @commands.command(name="stop")
+  @commands.command(name="stop", aliases=["disconnect"])
   @commands.guild_only()
   async def norm_stop(self, ctx):
     await self.stop(ctx)
@@ -331,7 +328,10 @@ class Music(commands.Cog):
   @commands.guild_only()
   @commands.bot_has_permissions(send_messages=True, embed_links=True, read_messages=True)
   async def norm_skip(self, ctx):
-    await ctx.message.delete(delay=self.bot.get_guild_delete_commands(ctx.guild))
+    try:
+      await ctx.message.delete(delay=self.bot.get_guild_delete_commands(ctx.guild))
+    except discord.NotFound:
+      pass
     await self.skip(ctx)
 
   @cog_ext.cog_slash(name="skip", description="Skips the current song", guild_ids=[243159711237537802])

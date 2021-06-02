@@ -2,6 +2,7 @@ import asyncio
 import typing
 # import datetime
 # import validators
+import pycountry
 
 import discord
 from discord.ext import commands
@@ -9,7 +10,7 @@ from discord_slash import SlashContext, cog_ext, SlashCommandOptionType
 from discord_slash.utils.manage_commands import create_option
 
 from cogs.help import cmd_help
-from functions import MessageColors, embed, mydb_connect, query, checks, relay_info, config
+from functions import MessageColors, embed, query, checks, relay_info, config
 
 
 class ServerManage(commands.Cog):
@@ -28,8 +29,7 @@ class ServerManage(commands.Cog):
   @commands.has_guild_permissions(manage_roles=True)
   async def _defaultrole(self, ctx, role: discord.Role):
     # TODO: Need the members intent so assign the role
-    mydb = mydb_connect()
-    query(mydb, "UPDATE servers SET defaultRole=%s WHERE id=%s", role.id, ctx.guild.id)
+    await query(self.bot.mydb, "UPDATE servers SET defaultRole=%s WHERE id=%s", role.id, ctx.guild.id)
     try:
       await ctx.reply(embed=embed(title=f"The new default role for new members is `{role}`"))
     except discord.Forbidden:
@@ -40,13 +40,12 @@ class ServerManage(commands.Cog):
   # @commands.has_guild_permissions(manage_roles=True)
   # async def mute(self,ctx,members:commands.Greedy[discord.Member]=None):
   #   if self.bot.user in members:
-  #     mydb = mydb_connect()
-  #     muted = query(mydb,"SELECT muted FROM servers WHERE id=%s",ctx.guild.id)
+  #     muted = await query(self.bot.mydb,"SELECT muted FROM servers WHERE id=%s",ctx.guild.id)
   #     if muted == 0:
-  #       query(mydb,"UPDATE servers SET muted=%s WHERE id=%s",1,ctx.guild.id)
+  #       await query(self.bot.mydb,"UPDATE servers SET muted=%s WHERE id=%s",1,ctx.guild.id)
   #       await ctx.reply(embed=embed(title="I will now only respond to commands"))
   #     else:
-  #       query(mydb,"UPDATE servers SET muted=%s WHERE id=%s",0,ctx.guild.id)
+  #       await query(self.bot.mydb,"UPDATE servers SET muted=%s WHERE id=%s",0,ctx.guild.id)
   #       await ctx.reply(embed=embed(title="I will now respond to chat message as well as commands"))
 
   @commands.command(name="prefix")
@@ -56,8 +55,7 @@ class ServerManage(commands.Cog):
     if len(new_prefix) > 5:
       await ctx.reply(embed=embed(title="Can't set a prefix with more than 5 characters", color=MessageColors.ERROR))
       return
-    mydb = mydb_connect()
-    query(mydb, "UPDATE servers SET prefix=%s WHERE id=%s", new_prefix, ctx.guild.id)
+    await query(self.bot.mydb, "UPDATE servers SET prefix=%s WHERE id=%s", new_prefix, ctx.guild.id)
     self.bot.change_guild_prefix(ctx.guild.id, new_prefix)
     try:
       await ctx.reply(embed=embed(title=f"My new prefix is `{new_prefix}`"))
@@ -91,13 +89,14 @@ class ServerManage(commands.Cog):
     await ctx.send(**post)
 
   async def settings_bot_mute(self, ctx):
-    mydb = mydb_connect()
-    muted = query(mydb, "SELECT muted FROM servers WHERE id=%s", ctx.guild.id)
-    if muted == 0:
-      query(mydb, "UPDATE servers SET muted=%s WHERE id=%s", 1, ctx.guild.id)
+    muted = await query(self.bot.mydb, "SELECT muted FROM servers WHERE id=%s", ctx.guild.id)
+    if int(muted) == 0:
+      await query(self.bot.mydb, "UPDATE servers SET muted=%s WHERE id=%s", 1, ctx.guild.id)
+      self.bot.change_guild_muted(ctx.guild.id, True)
       return dict(embed=embed(title="I will now only respond to commands"))
     else:
-      query(mydb, "UPDATE servers SET muted=%s WHERE id=%s", 0, ctx.guild.id)
+      await query(self.bot.mydb, "UPDATE servers SET muted=%s WHERE id=%s", 0, ctx.guild.id)
+      self.bot.change_guild_muted(ctx.guild.id, False)
       return dict(embed=embed(title="I will now respond to chat message as well as commands"))
 
   @settings_bot.command(name="chatchannel", alias="chat", description="Set the current channel so that I will always try to respond with something")
@@ -116,14 +115,13 @@ class ServerManage(commands.Cog):
     await ctx.send(**post)
 
   async def settings_bot_chat_channel(self, ctx):
-    mydb = mydb_connect()
-    chat_channel = query(mydb, "SELECT chatChannel FROM servers WHERE id=%s", ctx.guild.id)
+    chat_channel = await query(self.bot.mydb, "SELECT chatChannel FROM servers WHERE id=%s", ctx.guild.id)
     if chat_channel is None:
-      query(mydb, "UPDATE servers SET chatChannel=%s WHERE id=%s", ctx.channel.id, ctx.guild.id)
+      await query(self.bot.mydb, "UPDATE servers SET chatChannel=%s WHERE id=%s", ctx.channel.id, ctx.guild.id)
       self.bot.change_guild_chat_channel(ctx.guild.id, ctx.channel.id)
       return dict(embed=embed(title="I will now (try to) respond to every message in this channel"))
     else:
-      query(mydb, "UPDATE servers SET chatChannel=%s WHERE id=%s", None, ctx.guild.id)
+      await query(self.bot.mydb, "UPDATE servers SET chatChannel=%s WHERE id=%s", None, ctx.guild.id)
       self.bot.change_guild_chat_channel(ctx.guild.id, None)
       return dict(embed=embed(title="I will no longer (try to) respond to all messages from this channel"))
 
@@ -132,8 +130,7 @@ class ServerManage(commands.Cog):
   @commands.has_guild_permissions(manage_channels=True)
   async def music_channel(self, ctx, voicechannel: typing.Optional[discord.VoiceChannel] = None):
     async with ctx.typing():
-      mydb = mydb_connect()
-      query(mydb, "UPDATE servers SET musicChannel=%s WHERE id=%s", voicechannel.id if voicechannel is not None else None, ctx.guild.id)
+      await query(self.bot.mydb, "UPDATE servers SET musicChannel=%s WHERE id=%s", voicechannel.id if voicechannel is not None else None, ctx.guild.id)
     if voicechannel is None:
       await ctx.reply(embed=embed(title="All the voice channels are my music channels 😈 (jk)"))
     else:
@@ -142,15 +139,13 @@ class ServerManage(commands.Cog):
   @commands.command(name="deletecommandsafter", aliases=["deleteafter", "delcoms"], description="Set the time in seconds for how long to wait before deleting command messages")
   @commands.guild_only()
   @commands.has_guild_permissions(manage_channels=True)
-  @commands.bot_has_guild_permissions(manage_channels=True)
   @commands.bot_has_permissions(manage_messages=True)
   async def delete_commands_after(self, ctx, time: typing.Optional[int] = 0):
     if time < 0:
       await ctx.reply(embed=embed(title="time has to be above 0"))
       return
     async with ctx.typing():
-      mydb = mydb_connect()
-      query(mydb, "UPDATE servers SET autoDeleteMSGs=%s WHERE id=%s", time, ctx.guild.id)
+      await query(self.bot.mydb, "UPDATE servers SET autoDeleteMSGs=%s WHERE id=%s", time, ctx.guild.id)
       self.bot.change_guild_delete(ctx.guild.id, time)
     if time == 0:
       await ctx.reply(embed=embed(title="I will no longer delete command messages"))
@@ -520,6 +515,24 @@ class ServerManage(commands.Cog):
         ctx.reply(embed=embed(title="Message has been removed"), delete_after=20),
         ctx.message.delete(delay=20)
     )
+
+  @commands.command(name="language", aliases=["lang"], description="Change the language that I will speak")
+  # @commands.cooldown(1, 3600, commands.BucketType.guild)
+  @commands.has_guild_permissions(administrator=True)
+  async def language(self, ctx, language: str = None):
+    lang = ctx.guild.preferred_locale.split("-")[0]
+    if language is None and ctx.guild is not None:
+      language = lang
+
+    new_lang = pycountry.languages.get(alpha_2=language) if len(language) <= 2 else pycountry.languages.get(name=language)
+    if new_lang is None:
+      return await ctx.reply(embed=embed(title=f"Failed to find language: `{language}`", color=MessageColors.ERROR))
+
+    final_lang = new_lang.alpha_2 if new_lang is not None else lang
+    final_lang_name = new_lang.name if new_lang is not None else lang
+    await query(self.bot.mydb, "UPDATE servers SET lang=%s WHERE id=%s", final_lang, ctx.guild.id)
+    self.bot.change_guild_lang(ctx.guild, final_lang)
+    return await ctx.reply(embed=embed(title=f"New language set to: `{final_lang_name}`"))
 
   # @commands.Cog.listener()
   # async def on_message(self, msg):

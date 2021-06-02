@@ -4,7 +4,7 @@ import validators
 from discord.ext import commands
 
 from cogs.music import can_play
-from functions import MessageColors, embed, exceptions, mydb_connect, query
+from functions import MessageColors, embed, exceptions, query
 
 
 # TODO: make slash commands for this cog
@@ -26,8 +26,7 @@ class CustomMusic(commands.Cog):
   async def custom(self, ctx, name: str):
     try:
       async with ctx.typing():
-        mydb = mydb_connect()
-        sounds = query(mydb, "SELECT customSounds FROM servers WHERE id=%s", ctx.guild.id)
+        sounds = await query(self.bot.mydb, "SELECT customSounds FROM servers WHERE id=%s", ctx.guild.id)
         sounds = json.loads(sounds)
     except KeyError:
       await ctx.reply(embed=embed(title=f"Could not find the custom command `{name}`", color=MessageColors.ERROR))
@@ -52,8 +51,7 @@ class CustomMusic(commands.Cog):
 
     async with ctx.typing():
       name = "".join(name.split(" ")).lower()
-      mydb = mydb_connect()
-      sounds = query(mydb, "SELECT tier,customSounds FROM servers WHERE id=%s", ctx.guild.id)[0][1:]
+      sounds = await query(self.bot.mydb, "SELECT tier,customSounds FROM servers WHERE id=%s", ctx.guild.id)[0][1:]
       if sounds == "" or sounds is None:
         sounds = r"{}"
       sounds = json.loads(sounds)
@@ -61,14 +59,13 @@ class CustomMusic(commands.Cog):
         await ctx.reply(embed=embed(title=f"`{name}` was already added, please choose another", color=MessageColors.ERROR))
         return
       sounds.update({name: url})
-      query(mydb, "UPDATE servers SET customSounds=%s WHERE id=%s", json.dumps(sounds), ctx.guild.id)
+      await query(self.bot.mydb, "UPDATE servers SET customSounds=%s WHERE id=%s", json.dumps(sounds), ctx.guild.id)
     await ctx.reply(embed=embed(title=f"I will now play `{url}` for the command `{ctx.prefix}{ctx.command.parent} {name}`"))
 
   @custom.command(name="list")
   async def custom_list(self, ctx):
     async with ctx.typing():
-      mydb = mydb_connect()
-      sounds = query(mydb, "SELECT customSounds FROM servers WHERE id=%s", ctx.guild.id)
+      sounds = await query(self.bot.mydb, "SELECT customSounds FROM servers WHERE id=%s", ctx.guild.id)
       if sounds is None:
         raise exceptions.NoCustomSoundsFound("There are no custom sounds for this server (yet)")
       sounds = json.loads(sounds)
@@ -85,12 +82,11 @@ class CustomMusic(commands.Cog):
     try:
       async with ctx.typing():
         name = "".join(name.split(" ")).lower()
-        mydb = mydb_connect()
-        sounds = query(mydb, "SELECT customSounds FROM servers WHERE id=%s", ctx.guild.id)
+        sounds = await query(self.bot.mydb, "SELECT customSounds FROM servers WHERE id=%s", ctx.guild.id)
         sounds = json.loads(sounds)
         old = sounds[name]
         sounds[name] = url
-        query(mydb, "UPDATE servers SET customSounds=%s WHERE id=%s", json.dumps(sounds), ctx.guild.id)
+        await query(self.bot.mydb, "UPDATE servers SET customSounds=%s WHERE id=%s", json.dumps(sounds), ctx.guild.id)
     except KeyError:
       await ctx.reply(embed=embed(title=f"Could not find the custom command `{name}`", color=MessageColors.ERROR))
     else:
@@ -102,11 +98,10 @@ class CustomMusic(commands.Cog):
     try:
       async with ctx.typing():
         name = "".join(name.split(" ")).lower()
-        mydb = mydb_connect()
-        sounds = query(mydb, "SELECT customSounds FROM servers WHERE id=%s", ctx.guild.id)
+        sounds = await query(self.bot.mydb, "SELECT customSounds FROM servers WHERE id=%s", ctx.guild.id)
         sounds = json.loads(sounds)
         del sounds[name]
-        query(mydb, "UPDATE servers SET customSounds=%s WHERE id=%s", json.dumps(sounds), ctx.guild.id)
+        await query(self.bot.mydb, "UPDATE servers SET customSounds=%s WHERE id=%s", json.dumps(sounds), ctx.guild.id)
     except KeyError:
       await ctx.reply(embed=embed(title=f"Could not find the custom command `{name}`", color=MessageColors.ERROR))
     else:

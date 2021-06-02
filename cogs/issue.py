@@ -29,7 +29,10 @@ class Issue(commands.Cog):
       confirm = await ctx.reply(f"Please confirm your feedback by reacting with ✅. This will cancel after {timeout} seconds", embed=embed(title="Are you sure you would like to submit this issue?", description=f"{issue}"))
     delay = self.bot.get_guild_delete_commands(ctx.guild)
     if not slash:
-      await ctx.message.delete(delay=delay)
+      try:
+        await ctx.message.delete(delay=delay)
+      except Exception:
+        pass
     await confirm.add_reaction("✅")
 
     def check(reaction, user):
@@ -38,25 +41,17 @@ class Issue(commands.Cog):
     try:
       await self.bot.wait_for("reaction_add", timeout=float(timeout), check=check)
     except asyncio.TimeoutError:
-      await confirm.edit(content="", embed=embed(title="Canceled"))
+      await confirm.edit(content="", embed=embed(title="Canceled"), mention_author=False)
     else:
-      await confirm.edit(content="", embed=embed(title="Sent. For a follow up to this issue please join the support server https://discord.gg/NTRuFjU"))
+      await confirm.edit(content="", embed=embed(title="Sent. For a follow up to this issue please join the support server https://discord.gg/NTRuFjU"), mention_author=False)
       await relay_info("", embed=embed(title="Issue", description=f"{issue}", ctx=ctx), bot=self.bot, webhook=self.bot.log_issues)
     finally:
       if not slash:
-        await confirm.delete(delay=delay)
+        await confirm.delete(delay=delay if delay is not None else 30)
       try:
         await confirm.clear_reaction("✅")
-      except BaseException:
+      except Exception:
         await confirm.remove_reaction("✅", self.bot.user)
-
-  @commands.command(name="support", description="Get an invite link to my support server")
-  async def norm_support(self, ctx):
-    await ctx.reply("https://discord.gg/NTRuFjU")
-
-  @cog_ext.cog_slash(name="support", description="Support server link")
-  async def slash_support(self, ctx):
-    await ctx.send("https://discord.gg/NTRuFjU", hidden=True)
 
 
 def setup(bot):

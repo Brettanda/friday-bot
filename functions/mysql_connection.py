@@ -21,9 +21,8 @@ def mydb_connect():
   return mydb
 
 
-def query(mydb, query: str, *params):
+async def query(mydb, query: str, *params):
   # print(params)
-  mydb = mydb_connect()
   mycursor = mydb.cursor(prepared=True)
   mycursor.execute(query, params)
   if "select" in query.lower():
@@ -32,22 +31,20 @@ def query(mydb, query: str, *params):
     else:
       result = mycursor.fetchall()
   mydb.commit()
-  mydb.close()
   if "select" in query.lower():
     return result
 
 
-def query_prefix(bot, ctx, client: bool = False):
+async def query_prefix(bot, ctx, client: bool = False):
   if str(ctx.channel.type) == "private":
     return config.defaultPrefix
-  mydb = mydb_connect()
-  mycursor = mydb.cursor()
+
+  mycursor = bot.mydb.cursor()
   mycursor.execute(f"SELECT prefix FROM servers WHERE id='{ctx.guild.id}'")
 
   result = mycursor.fetchall()
   try:
-    mydb.commit()
-    mydb.close()
+    bot.mydb.commit()
   except BaseException:
     pass
 
