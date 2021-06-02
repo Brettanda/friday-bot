@@ -9,6 +9,8 @@ def mydb_connect():
   # https://www.mysqltutorial.org/python-connecting-mysql-databases/
   if len(sys.argv) > 1 and (sys.argv[1] == "--prod" or sys.argv[1] == "--production"):
     DATABASE = os.getenv("DATABASE")
+  elif len(sys.argv) > 1 and sys.argv[1] == "--canary":
+    DATABASE = os.getenv("DATABASECANARY")
   else:
     DATABASE = os.getenv("DATABASETEST")
   mydb = mysql.connector.connect(
