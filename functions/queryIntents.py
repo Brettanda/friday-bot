@@ -8,9 +8,9 @@ import numpy as np
 import pandas as pd
 # from flair.data import Sentence
 # from flair.models import MultiTagger  # , SequenceTagger
-# from keras.layers import Dropout, Activation, Dense
-from keras.models import load_model  # , Sequential
-# from keras.optimizers import SGD
+# from tensorflow.keras.layers import Dropout, Activation, Dense
+from tensorflow.keras.models import load_model  # , Sequential
+# from tensorflow.keras.optimizers import SGD
 from nltk.sentiment import SentimentIntensityAnalyzer
 # from nltk.stem.lancaster import LancasterStemmer
 from nltk.stem import PorterStemmer
