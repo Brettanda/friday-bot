@@ -81,7 +81,7 @@ tqdm==4.56.1
 typed-ast==1.4.2
 typing-extensions==3.7.4.3
 unicode==2.8
-urllib3==1.26.4
+urllib3==1.26.5
 validators==0.18.2
 wavelink==0.9.9
 Werkzeug==1.0.1
