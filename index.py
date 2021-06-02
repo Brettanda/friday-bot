@@ -53,6 +53,7 @@ class Friday(commands.AutoShardedBot):
     self.saved_guilds = {}
     self.songqueue = {}
     self.prod = True if len(sys.argv) > 1 and (sys.argv[1] == "--prod" or sys.argv[1] == "--production") else False
+    self.canary = True if len(sys.argv) > 1 and (sys.argv[1] == "--canary") else False
 
     self.load_cogs()
 
@@ -97,6 +98,8 @@ if __name__ == "__main__":
   if len(sys.argv) > 1:
     if sys.argv[1] == "--prod" or sys.argv[1] == "--production":
       TOKEN = os.environ.get("TOKEN")
+    elif sys.argv[1] == "--canary":
+      TOKEN = os.environ.get("TOKENCANARY")
   loop = asyncio.get_event_loop()
   try:
     loop.run_until_complete(bot.start(TOKEN, reconnect=True))
