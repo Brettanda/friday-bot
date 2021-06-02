@@ -62,7 +62,11 @@ async def user_is_min_tier(bot: "Bot", user: discord.User, tier: str) -> bool:
   """ Checks if a user has at least patreon 'tier' """
 
   if user.guild and user.guild.id != config.support_server_id:
-    user = await bot.get_guild(config.support_server_id).fetch_member(user.id)
+    user = None
+    try:
+      user = await bot.get_guild(config.support_server_id).fetch_member(user.id)
+    except discord.NotFound:
+      return False
   if not hasattr(user, "guild"):
     return False
   roles = [role.id for role in user.roles]
