@@ -6,6 +6,9 @@ from functions import embed, query
 
 
 class ServerInfo(commands.Cog):
+  def __init__(self, bot):
+    self.bot = bot
+
   @commands.command(name="serverinfo")
   @commands.guild_only()
   async def norm_server_info(self, ctx):
