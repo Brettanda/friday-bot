@@ -65,7 +65,7 @@ async def user_is_min_tier(bot: "Bot", user: discord.User, tier: str) -> bool:
     user = None
     try:
       user = await bot.get_guild(config.support_server_id).fetch_member(user.id)
-    except discord.NotFound:
+    except Exception:
       return False
   if not hasattr(user, "guild"):
     return False
