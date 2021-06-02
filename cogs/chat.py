@@ -79,9 +79,7 @@ class Chat(commands.Cog):
       try:
         lastmessages = await ctx.channel.history(limit=3, oldest_first=False).flatten()
         lastauthormessages = [message for message in await ctx.channel.history(limit=5, oldest_first=False).flatten() if message.author.id == ctx.author.id]
-      except TimeoutError:
-        return
-      except discord.DiscordServerError:
+      except TimeoutError or discord.DiscordServerError:
         pass
       meinlastmessage = False
       # newest = None
