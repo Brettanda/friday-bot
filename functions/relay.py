@@ -7,7 +7,7 @@ import discord
 async def relay_info(msg: str, bot: discord.Client or discord.AutoShardedClient, embed: discord.Embed = None, file=None, filefirst=False, short: str = None, webhook: discord.Webhook = None, logger=logging.getLogger(__name__)):
   if webhook is None:
     webhook = bot.log_info
-  if bot.prod:
+  if bot.prod or bot.canary:
     thispath = os.getcwd()
     if "\\" in thispath:
       seperator = "\\\\"

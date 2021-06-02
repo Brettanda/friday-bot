@@ -14,7 +14,7 @@ class Chat(commands.Cog):
   def __init__(self, bot):
     self.bot = bot
     if not hasattr(self, "translate_client"):
-      self.translate_client = translate.Client()
+      self.translate_client = translate.Client(_http=self.bot.http)
     self.h = HTMLParser()
 
     # if not hasattr(self, "chat_spam_control"):
@@ -75,12 +75,12 @@ class Chat(commands.Cog):
 
     if not ctx.content.startswith(tuple(self.bot.get_prefixes())):
       noContext = ["Title of your sex tape", "Self Aware", "No U", "I'm dad"]
-      lastmessages = None
+      lastmessages, lastauthormessages = None, None
       try:
         lastmessages = await ctx.channel.history(limit=3, oldest_first=False).flatten()
         lastauthormessages = [message for message in await ctx.channel.history(limit=5, oldest_first=False).flatten() if message.author.id == ctx.author.id]
-      except TimeoutError:
-        return
+      except TimeoutError or discord.DiscordServerError:
+        pass
       meinlastmessage = False
       # newest = None
 
