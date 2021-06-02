@@ -1,4 +1,4 @@
 #!/bin/sh
 
 git reset --hard
-git pull origin dev
+git pull origin canary
