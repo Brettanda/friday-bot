@@ -14,7 +14,7 @@ class Chat(commands.Cog):
   def __init__(self, bot):
     self.bot = bot
     if not hasattr(self, "translate_client"):
-      self.translate_client = translate.Client(_http=self.bot.http)
+      self.translate_client = translate.Client()
     self.h = HTMLParser()
 
     # if not hasattr(self, "chat_spam_control"):
