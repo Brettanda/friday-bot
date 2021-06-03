@@ -113,8 +113,8 @@ class ReactionRole(commands.Cog):
     await ctx.reply(embed=embed(title=f"{message.jump_url} is a new reaction role message"))
 
     await asyncio.gather(
-        ctx.message.delete(delay=self.bot.get_guild_delete_commands(ctx.guild)),
-        msg.delete(delay=self.bot.get_guild_delete_commands(ctx.guild))
+        ctx.message.delete(delay=self.bot.log.get_guild_delete_commands(ctx.guild)),
+        msg.delete(delay=self.bot.log.get_guild_delete_commands(ctx.guild))
     )
 
     print({f"{message.jump_url}": {**reaction_roles}})

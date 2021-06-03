@@ -13,14 +13,6 @@ import functions
 
 load_dotenv()
 
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s:%(name)s:%(levelname)-8s%(message)s",
-    datefmt="%y-%m-%d %H:%M:%S",
-    filename="logging.log"
-)
-
 TOKEN = os.environ.get('TOKENTEST')
 
 songqueue = {}
@@ -29,12 +21,18 @@ dead_nodes_sent = False
 
 async def get_prefix(bot, message):
   if hasattr(bot, "get_guild_prefix"):
-    return bot.get_guild_prefix(bot, message)
+    return bot.log.get_guild_prefix(bot, message)
   return functions.config.defaultPrefix
 
 
 class Friday(commands.AutoShardedBot):
-  def __init__(self):
+  def __init__(self, **kwargs):
+    self.cluster_name = kwargs.get("cluster_name", "MAIN")
+    self.cluster_ids = kwargs.get("cluster_idx", None)
+    self.should_start = kwargs.get("start", False)
+
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     super().__init__(
         command_prefix=get_prefix or functions.config.defaultPrefix,
         strip_after_prefix=True,
@@ -46,7 +44,8 @@ class Friday(commands.AutoShardedBot):
         # member_cache_flags=discord.MemberCacheFlags.voice(),
         # fetch_offline_members=False,
         allowed_mentions=functions.config.allowed_mentions,
-        # heartbeat_timeout=150.0
+        # heartbeat_timeout=150.0,
+        **kwargs, loop=loop
     )
 
     self.restartPending = False
@@ -55,7 +54,19 @@ class Friday(commands.AutoShardedBot):
     self.prod = True if len(sys.argv) > 1 and (sys.argv[1] == "--prod" or sys.argv[1] == "--production") else False
     self.canary = True if len(sys.argv) > 1 and (sys.argv[1] == "--canary") else False
 
+    self.load_extension("cogs.log")
     self.load_cogs()
+    self.logger.info(f"[CLUSTER #{self.cluster_name}] {kwargs.get('shard_ids', None)}, {kwargs.get('shard_count', 1)}")
+    if self.should_start:
+      self.run(kwargs["token"])
+
+  @property
+  def log(self):
+    return self.get_cog(functions.config.reloadable_bot)
+
+  @property
+  def logger(self):
+    return self.get_cog(functions.config.reloadable_bot).logger
 
   async def get_context(self, message, *, cls=None):
     return await super().get_context(message, cls=functions.MyContext)
@@ -65,8 +76,7 @@ class Friday(commands.AutoShardedBot):
       try:
         self.load_extension(f"cogs.{cog}")
       except Exception as e:
-        print(f"Failed to load extenstion {cog} with \n {e}", file=sys.stderr)
-        logging.error(f"Failed to load extenstion {cog} with \n {e}")
+        self.logger.error(f"Failed to load extenstion {cog} with \n {e}")
 
   async def reload_cogs(self):
     reload(cogs)
@@ -86,9 +96,10 @@ class Friday(commands.AutoShardedBot):
     await self.process_commands(ctx)
 
   async def on_error(self, event_method, *args, **kwargs):
-    return await self.get_cog(functions.config.reloadable_bot).on_error(event_method, *args, **kwargs)
+    return await self.log.on_error(event_method, *args, **kwargs)
 
   async def close(self):
+    self.logger.info("Shutting down")
     await super().close()
 
 

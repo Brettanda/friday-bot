@@ -120,7 +120,7 @@ class Help(commands.Cog):
     if cmd is None:
       cmd = group
 
-    delay = self.bot.get_guild_delete_commands(ctx.guild)
+    delay = self.bot.log.get_guild_delete_commands(ctx.guild)
     if delay is not None and delay > 0 and not slash:
       await ctx.message.delete(delay=delay)
     if cmd is not None:

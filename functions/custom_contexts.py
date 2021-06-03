@@ -34,7 +34,7 @@ class MyContext(Context):
     ignore_coms = ["log", "help", "meme", "issue", "reactionrole", "minesweeper", "poll", "confirm", "souptime", "say"]
     if not hasattr(kwargs, "delete_after") and self.command is not None and self.command.name not in ignore_coms:
       if hasattr(self.bot, "get_guild_delete_commands"):
-        delete = self.bot.get_guild_delete_commands(self.message.guild)
+        delete = self.bot.log.get_guild_delete_commands(self.message.guild)
       else:
         delete = None
       delete = delete if delete is not None and delete != 0 else None

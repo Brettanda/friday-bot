@@ -1,0 +1,180 @@
+import asyncio
+import os
+import sys
+import signal
+import time
+import multiprocessing
+import logging
+
+import requests
+
+from index import Friday
+
+logger = logging.getLogger("Cluster#Launcher")
+# logger.basicConfig(
+#     level=logging.INFO,
+#     format="%(asctime)s:%(name)s:%(levelname)-8s%(message)s",
+#     datefmt="%y-%m-%d %H:%M:%S",
+#     filename="logging.log"
+# )
+logger.setLevel(logging.INFO)
+hdlr = logging.StreamHandler()
+hdlr.setFormatter(logging.Formatter("%(asctime)s:%(name)s:%(levelname)-8s%(message)s"))
+fhdlr = logging.FileHandler("logging.log", encoding="utf-8")
+fhdlr.setFormatter(logging.Formatter("%(asctime)s:%(name)s:%(levelname)-8s%(message)s"))
+logger.handlers = [hdlr, fhdlr]
+
+CLUSER_NAMES = (
+    "Jarvis",
+    "Karen",
+    "Ultron",
+    "EDITH",
+)
+
+NAMES = iter(CLUSER_NAMES)
+
+TOKEN = os.environ.get('TOKENTEST')
+if len(sys.argv) > 1:
+  if sys.argv[1] == "--prod" or sys.argv[1] == "--production":
+    TOKEN = os.environ.get("TOKEN")
+  elif sys.argv[1] == "--canary":
+    TOKEN = os.environ.get("TOKENCANARY")
+
+
+class Launcher:
+  def __init__(self, loop):
+    self.cluster_queue = []
+    self.clusters = []
+
+    self.fut = None
+    self.loop = loop
+    self.alive = True
+
+    self.keep_alive = None
+    self.init = time.perf_counter()
+
+  def get_shard_count(self):
+    data = requests.get(
+        "https://discord.com/api/v9/gateway/bot",
+        headers={
+            "Authorization": f"Bot {TOKEN}",
+            "User-Agent": 'DiscordBot (https://github.com/Rapptz/discord.py 1.7.2) Python/3.8 aiohttp/3.7.4'
+        }
+    )
+    data.raise_for_status()
+    content = data.json()
+    logger.info(f"Successfully got shard count of {content['shards']} ({data.status_code}, {data.reason})")
+    return content["shards"]
+
+  def start(self):
+    self.fut = asyncio.ensure_future(self.startup(), loop=self.loop)
+
+    try:
+      self.loop.run_forever()
+    except KeyboardInterrupt:
+      self.loop.run_until_complete(self.shutdown())
+    finally:
+      self.cleanup()
+
+  def cleanup(self):
+    self.loop.stop()
+    self.loop.close()
+
+  def task_complete(self, task):
+    if task.exception():
+      task.print_stack()
+      self.keep_alive = self.loop.create_task(self.rebooter())
+      self.keep_alive.add_done_callback(self.task_complete)
+
+  async def startup(self):
+    shards = list(range(self.get_shard_count()))
+    size = [shards[x:x + 4] for x in range(0, len(shards), 4)]
+    logger.info(f"Preparing {len(size)} clusters")
+    for shard_ids in size:
+      self.cluster_queue.append(Cluster(self, next(NAMES), shard_ids, len(shards)))
+
+    await self.start_cluster()
+    self.keep_alive = self.loop.create_task(self.rebooter())
+    self.keep_alive.add_done_callback(self.task_complete)
+    logger.info(f"Startup completed in {time.perf_counter()-self.init}s")
+
+  async def shutdown(self):
+    logger.info("Shutting down clusters")
+    self.alive = False
+    if self.keep_alive:
+      self.keep_alive.cancel()
+    for cluster in self.clusters:
+      cluster.stop()
+    self.cleanup()
+
+  async def rebooter(self):
+    while self.alive:
+      if not self.clusters:
+        logger.info("All clusters appear to be dead")
+        asyncio.ensure_future(self.shutdown())
+      for cluster in self.clusters:
+        if not cluster.process.is_alive():
+          logger.info(f"CLUSTER #{cluster.name} exited with code {cluster.process.exitcode}")
+          logger.info(f"Restarting cluster #{cluster.name}")
+          await cluster.start()
+      await asyncio.sleep(5)
+
+  async def start_cluster(self):
+    for cluster in self.cluster_queue:
+      self.clusters.append(cluster)
+      logger.info(f"Starting Cluster #{cluster.name}")
+      self.loop.create_task(cluster.start())
+      await asyncio.sleep(0.5)
+
+
+class Cluster:
+  def __init__(self, launcher, name, shard_ids, max_shards):
+    self.launcher = launcher
+    self.process = None
+    self.kwargs = dict(
+        token=TOKEN,
+        shard_ids=shard_ids,
+        shard_count=max_shards,
+        cluster_name=name,
+        cluster_idx=CLUSER_NAMES.index(name),
+        start=True
+    )
+    self.name = name
+    self.logger = logging.getLogger(f"Cluster#{name}")
+    self.logger.setLevel(logging.INFO)
+    hdlr = logging.StreamHandler()
+    hdlr.setFormatter(logging.Formatter("%(asctime)s:%(name)s:%(levelname)-8s%(message)s"))
+    fhdlr = logging.FileHandler("logging.log", encoding="utf-8")
+    fhdlr.setFormatter(logging.Formatter("%(asctime)s:%(name)s:%(levelname)-8s%(message)s"))
+    self.logger.handlers = [hdlr, fhdlr]
+    self.logger.info(f"Initialized with shard ids {shard_ids}, total shards {max_shards}")
+
+  def wait_close(self):
+    return self.process.join()
+
+  async def start(self, *, force=False):
+    if self.process and self.process.is_alive():
+      if not force:
+        self.logger.info("Start called with already running cluster, pass `force=True` to override")
+        return
+      self.logger.info("Terminating existing process")
+      self.process.terminate()
+      self.process.close()
+
+    self.process = multiprocessing.Process(target=Friday, kwargs=self.kwargs, daemon=True)
+    self.process.start()
+    self.logger.info(f"Process started with PID {self.process.pid}")
+
+    return True
+
+  def stop(self, sign=signal.SIGINT):
+    self.logger.info(f"Shutting down with signal {sign!r}")
+    try:
+      os.kill(self.process.pid, sign)
+    except ProcessLookupError:
+      pass
+
+
+if __name__ == "__main__":
+  loop = asyncio.get_event_loop()
+  Launcher(loop).start()
