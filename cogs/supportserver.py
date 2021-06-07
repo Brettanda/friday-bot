@@ -23,6 +23,14 @@ class SupportServer(commands.Cog):
   async def slash_support(self, ctx):
     await ctx.send("https://discord.gg/NTRuFjU", hidden=True)
 
+  @commands.command(name="donate", description="Get the Patreon link for Friday")
+  async def norm_donate(self, ctx):
+    await ctx.reply("https://www.patreon.com/fridaybot")
+
+  @cog_ext.cog_slash(name="donate", description="Get the Patreon link for Friday")
+  async def slash_donate(self, ctx):
+    await ctx.send("https://www.patreon.com/fridaybot", hidden=True)
+
   @commands.Cog.listener()
   async def on_raw_reaction_add(self, payload):
     member = payload.member
