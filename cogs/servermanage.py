@@ -8,15 +8,19 @@ import discord
 from discord.ext import commands
 from discord_slash import SlashContext, cog_ext, SlashCommandOptionType
 from discord_slash.utils.manage_commands import create_option
+from typing_extensions import TYPE_CHECKING
 
 from cogs.help import cmd_help
 from functions import MessageColors, embed, query, checks, relay_info, config
+
+if TYPE_CHECKING:
+  from index import Friday as Bot
 
 
 class ServerManage(commands.Cog):
   """Commands for managing Friday on your server"""
 
-  def __init__(self, bot):
+  def __init__(self, bot: "Bot"):
     self.bot = bot
 
   def cog_check(self, ctx):
@@ -56,7 +60,7 @@ class ServerManage(commands.Cog):
       await ctx.reply(embed=embed(title="Can't set a prefix with more than 5 characters", color=MessageColors.ERROR))
       return
     await query(self.bot.mydb, "UPDATE servers SET prefix=%s WHERE id=%s", new_prefix, ctx.guild.id)
-    self.bot.change_guild_prefix(ctx.guild.id, new_prefix)
+    self.bot.log.change_guild_prefix(ctx.guild.id, new_prefix)
     try:
       await ctx.reply(embed=embed(title=f"My new prefix is `{new_prefix}`"))
     except discord.Forbidden:
@@ -92,11 +96,11 @@ class ServerManage(commands.Cog):
     muted = await query(self.bot.mydb, "SELECT muted FROM servers WHERE id=%s", ctx.guild.id)
     if int(muted) == 0:
       await query(self.bot.mydb, "UPDATE servers SET muted=%s WHERE id=%s", 1, ctx.guild.id)
-      self.bot.change_guild_muted(ctx.guild.id, True)
+      self.bot.log.change_guild_muted(ctx.guild.id, True)
       return dict(embed=embed(title="I will now only respond to commands"))
     else:
       await query(self.bot.mydb, "UPDATE servers SET muted=%s WHERE id=%s", 0, ctx.guild.id)
-      self.bot.change_guild_muted(ctx.guild.id, False)
+      self.bot.log.change_guild_muted(ctx.guild.id, False)
       return dict(embed=embed(title="I will now respond to chat message as well as commands"))
 
   @settings_bot.command(name="chatchannel", alias="chat", description="Set the current channel so that I will always try to respond with something")
@@ -118,11 +122,11 @@ class ServerManage(commands.Cog):
     chat_channel = await query(self.bot.mydb, "SELECT chatChannel FROM servers WHERE id=%s", ctx.guild.id)
     if chat_channel is None:
       await query(self.bot.mydb, "UPDATE servers SET chatChannel=%s WHERE id=%s", ctx.channel.id, ctx.guild.id)
-      self.bot.change_guild_chat_channel(ctx.guild.id, ctx.channel.id)
+      self.bot.log.change_guild_chat_channel(ctx.guild.id, ctx.channel.id)
       return dict(embed=embed(title="I will now (try to) respond to every message in this channel"))
     else:
       await query(self.bot.mydb, "UPDATE servers SET chatChannel=%s WHERE id=%s", None, ctx.guild.id)
-      self.bot.change_guild_chat_channel(ctx.guild.id, None)
+      self.bot.log.change_guild_chat_channel(ctx.guild.id, None)
       return dict(embed=embed(title="I will no longer (try to) respond to all messages from this channel"))
 
   @commands.command(name="musicchannel", description="Set the channel where I can join and play music. If none then I will join any VC", hidden=True)
@@ -146,7 +150,7 @@ class ServerManage(commands.Cog):
       return
     async with ctx.typing():
       await query(self.bot.mydb, "UPDATE servers SET autoDeleteMSGs=%s WHERE id=%s", time, ctx.guild.id)
-      self.bot.change_guild_delete(ctx.guild.id, time)
+      self.bot.log.change_guild_delete(ctx.guild.id, time)
     if time == 0:
       await ctx.reply(embed=embed(title="I will no longer delete command messages"))
     else:
@@ -509,12 +513,63 @@ class ServerManage(commands.Cog):
         relay_info(
             f"**Begone**\nUSER: {reference.clean_content}\nME: {message.clean_content}```{message}```",
             self.bot,
-            webhook=self.bot.log_chat
+            webhook=self.bot.log.log_chat
         ),
         message.delete(),
         ctx.reply(embed=embed(title="Message has been removed"), delete_after=20),
         ctx.message.delete(delay=20)
     )
+
+  @commands.command(name="userinfo", description="Some information on the mentioned user")
+  @commands.guild_only()
+  async def norm_user_info(self, ctx, user: discord.Member):
+    await self.user_info(ctx, user)
+
+  @cog_ext.cog_slash(name="userinfo", description="Some information on the mentioned user", options=[create_option(name="user", description="The user to get info for", option_type=SlashCommandOptionType.USER, required=True)])
+  @checks.slash(user=True, private=False)
+  async def slash_user_info(self, ctx, user: discord.Member):
+    await self.user_info(ctx, user, True)
+
+  async def user_info(self, ctx, member: discord.Member, slash=False):
+    e = embed(
+        title=f"{member.name} - Info",
+        thumbnail=member.avatar_url,
+        fieldstitle=["Name", "Nickname", "Mention", "Role count", "Joined", "Top Role", "Pending"],
+        fieldsval=[member.name, member.nick, member.mention, len(member.roles), member.joined_at.strftime("%b %d, %Y"), member.top_role.mention, member.pending],
+        color=member.color if member.color.value != 0 else MessageColors.DEFAULT
+    )
+    if slash:
+      return await ctx.send(embed=e)
+    return await ctx.reply(embed=e)
+
+  @commands.command(name="mute", description="Mute a member from text channels")
+  @commands.guild_only()
+  @commands.has_guild_permissions(manage_channels=True)
+  @commands.bot_has_guild_permissions(manage_channels=True)
+  async def norm_mute(self, ctx, *, member: discord.Member):
+    async with ctx.typing():
+      x = 0
+      for channel in ctx.guild.text_channels:
+        perms = channel.overwrites_for(member)
+        if perms.send_messages is False:
+          x += 1
+        perms.send_messages = False
+        await channel.set_permissions(member, reason="Muted!", overwrite=perms)
+    if x >= len(ctx.guild.text_channels):
+      return await ctx.reply(embed=embed(title=f"{member} has already been muted", color=MessageColors.ERROR))
+    await ctx.reply(embed=embed(title=f"{member} has been muted."))
+
+  @commands.command(name="unmute", description="Unmute a member from text channels")
+  @commands.guild_only()
+  @commands.has_guild_permissions(manage_channels=True)
+  @commands.bot_has_guild_permissions(manage_channels=True)
+  async def unmute(self, ctx, *, member: discord.Member):
+    async with ctx.typing():
+      for channel in ctx.guild.text_channels:
+        perms = channel.overwrites_for(member)
+        perms.send_messages = None
+        await channel.set_permissions(member, reason="Unmuted!", overwrite=perms if perms._values != {} else None)
+    await ctx.reply(embed=embed(title=f"{member} has been unmuted."))
 
   @commands.command(name="language", aliases=["lang"], description="Change the language that I will speak")
   # @commands.cooldown(1, 3600, commands.BucketType.guild)
@@ -531,7 +586,7 @@ class ServerManage(commands.Cog):
     final_lang = new_lang.alpha_2 if new_lang is not None else lang
     final_lang_name = new_lang.name if new_lang is not None else lang
     await query(self.bot.mydb, "UPDATE servers SET lang=%s WHERE id=%s", final_lang, ctx.guild.id)
-    self.bot.change_guild_lang(ctx.guild, final_lang)
+    self.bot.log.change_guild_lang(ctx.guild, final_lang)
     return await ctx.reply(embed=embed(title=f"New language set to: `{final_lang_name}`"))
 
   # @commands.Cog.listener()

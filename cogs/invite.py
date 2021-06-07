@@ -2,10 +2,14 @@ from discord.utils import oauth_url, cached_property
 from discord.ext import commands
 from discord_slash import cog_ext
 from functions import config, embed
+from typing_extensions import TYPE_CHECKING
+
+if TYPE_CHECKING:
+  from index import Friday as Bot
 
 
 class Invite(commands.Cog):
-  def __init__(self, bot):
+  def __init__(self, bot: "Bot"):
     self.bot = bot
     self.id = 476303446547365891 if self.bot.prod else 760615464300445726 if self.bot.canary else 751680714948214855
 

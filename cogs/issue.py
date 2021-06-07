@@ -4,10 +4,14 @@ from discord.ext import commands
 from discord_slash import cog_ext
 
 from functions import embed, relay_info, checks
+from typing_extensions import TYPE_CHECKING
+
+if TYPE_CHECKING:
+  from index import Friday as Bot
 
 
 class Issue(commands.Cog):
-  def __init__(self, bot):
+  def __init__(self, bot: "Bot"):
     self.bot = bot
 
   @commands.command(name="issue", aliases=["problem"], description="If you have an issue or noticed a bug with Friday, this will send a message to the developer.", usage="<Description of issue and steps to recreate the issue>")
@@ -27,7 +31,7 @@ class Issue(commands.Cog):
       confirm = await ctx.send(f"Please confirm your feedback by reacting with ✅. This will cancel after {timeout} seconds", embed=embed(title="Are you sure you would like to submit this issue?", description=f"{issue}"))
     else:
       confirm = await ctx.reply(f"Please confirm your feedback by reacting with ✅. This will cancel after {timeout} seconds", embed=embed(title="Are you sure you would like to submit this issue?", description=f"{issue}"))
-    delay = self.bot.get_guild_delete_commands(ctx.guild)
+    delay = self.bot.log.get_guild_delete_commands(ctx.guild)
     if not slash:
       try:
         await ctx.message.delete(delay=delay)

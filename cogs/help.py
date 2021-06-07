@@ -4,9 +4,12 @@ from discord.ext.menus import ListPageSource, MenuPages
 from discord.utils import get
 
 from discord_slash import cog_ext, SlashContext
-
+from typing_extensions import TYPE_CHECKING
 # from cogs.cleanup import get_delete_time
 from functions import MessageColors, embed, checks
+
+if TYPE_CHECKING:
+  from index import Friday as Bot
 
 
 def syntax(command, quotes: bool = True):
@@ -98,7 +101,7 @@ async def cmd_help(ctx: commands.Context or SlashContext, command, message: str 
 
 
 class Help(commands.Cog):
-  def __init__(self, bot):
+  def __init__(self, bot: "Bot"):
     self.bot = bot
     self.bot.remove_command("help")
 
@@ -120,7 +123,7 @@ class Help(commands.Cog):
     if cmd is None:
       cmd = group
 
-    delay = self.bot.get_guild_delete_commands(ctx.guild)
+    delay = self.bot.log.get_guild_delete_commands(ctx.guild)
     if delay is not None and delay > 0 and not slash:
       await ctx.message.delete(delay=delay)
     if cmd is not None:

@@ -10,13 +10,18 @@ from discord_slash.utils.manage_commands import create_choice, create_option, Sl
 
 # sys.path.insert(1, os.path.join(sys.path[0], '..'))
 from functions import MessageColors, embed, exceptions, checks
+from typing_extensions import TYPE_CHECKING
+
+if TYPE_CHECKING:
+  from index import Friday as Bot
+
 
 with open('./config.json') as f:
   config = json.load(f)
 
 
 class Fun(commands.Cog):
-  def __init__(self, bot):
+  def __init__(self, bot: "Bot"):
     self.bot = bot
     self.rpsoptions = ["rock", "paper", "scissors"]
     # self.timeouter = None

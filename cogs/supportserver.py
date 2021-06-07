@@ -2,12 +2,16 @@ from discord.ext import commands
 from discord_slash import cog_ext
 
 from functions import config  # ,embed
+from typing_extensions import TYPE_CHECKING
+
+if TYPE_CHECKING:
+  from index import Friday as Bot
 
 # import discord
 
 
 class SupportServer(commands.Cog):
-  def __init__(self, bot):
+  def __init__(self, bot: "Bot"):
     self.bot = bot
     self.server_id = config.support_server_id
 
@@ -18,6 +22,14 @@ class SupportServer(commands.Cog):
   @cog_ext.cog_slash(name="support", description="Support server link")
   async def slash_support(self, ctx):
     await ctx.send("https://discord.gg/NTRuFjU", hidden=True)
+
+  @commands.command(name="donate", description="Get the Patreon link for Friday")
+  async def norm_donate(self, ctx):
+    await ctx.reply("https://www.patreon.com/fridaybot")
+
+  @cog_ext.cog_slash(name="donate", description="Get the Patreon link for Friday")
+  async def slash_donate(self, ctx):
+    await ctx.send("https://www.patreon.com/fridaybot", hidden=True)
 
   @commands.Cog.listener()
   async def on_raw_reaction_add(self, payload):

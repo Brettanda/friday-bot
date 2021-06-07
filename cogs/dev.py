@@ -10,16 +10,20 @@ import typing
 import discord
 from discord.ext import commands
 from discord_slash import SlashContext  # , cog_ext
+from typing_extensions import TYPE_CHECKING
 # from discord_slash.utils.manage_commands import create_option, create_choice
 
 from cogs.help import cmd_help, syntax
 from functions import embed  # , MessageColors
 
+if TYPE_CHECKING:
+  from index import Friday as Bot
+
 
 class Dev(commands.Cog, command_attrs=dict(hidden=True)):
   """Commands used by and for the developer"""
 
-  def __init__(self, bot):
+  def __init__(self, bot: "Bot"):
     self.bot = bot
 
   def cog_check(self, ctx):
@@ -109,6 +113,9 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     print("")
 
   @norm_dev.command(name="restart")
+  #
+  # This could not work when clusters
+  #
   async def restart(self, ctx, force: bool = False):
     # global restartPending,songqueue
     if self.bot.restartPending is True and force is False:
@@ -143,6 +150,9 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       subprocess.Popen([f"{thispath}{seperator}restart.sh"], stdin=subprocess.PIPE)
 
   @norm_dev.group(name="reload", invoke_without_command=True)
+  #
+  # This could not work when clusters
+  #
   async def reload(self, ctx, command: str):
     async with ctx.typing():
       com = self.bot.get_command(command)
@@ -152,19 +162,28 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     await ctx.reply(embed=embed(title=f"Cog *{command}* has been reloaded"))
 
   @reload.command(name="all")
+  #
+  # This could not work when clusters
+  #
   async def reload_all(self, ctx):
     async with ctx.typing():
       await self.bot.reload_cogs()
-      await self.bot.get_cog("Log").set_all_guilds()
+      await self.bot.log.set_all_guilds()
     await ctx.reply(embed=embed(title="All cogs have been reloaded"))
 
   @norm_dev.command(name="load")
+  #
+  # This could not work when clusters
+  #
   async def load(self, ctx, command: str):
     async with ctx.typing():
       self.bot.load_extension(f"cogs.{command.lower()}")
     await ctx.reply(embed=embed(title=f"Cog *{command}* has been loaded"))
 
   @norm_dev.command(name="unload")
+  #
+  # This could not work when clusters
+  #
   async def unload(self, ctx, command: str):
     async with ctx.typing():
       self.bot.unload_extension(f"cogs.{command.lower()}")
@@ -180,6 +199,9 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
   #     self.bot.logger.error(error)
 
   @norm_dev.command(name="update")
+  #
+  # This could not work when clusters
+  #
   async def update(self, ctx):
     message = await ctx.reply(embed=embed(title="Updating..."))
     thispath = os.getcwd()

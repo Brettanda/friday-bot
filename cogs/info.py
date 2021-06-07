@@ -2,10 +2,14 @@ from discord.ext import commands
 from discord_slash import cog_ext
 
 from functions import embed
+from typing_extensions import TYPE_CHECKING
+
+if TYPE_CHECKING:
+  from index import Friday as Bot
 
 
 class Info(commands.Cog):
-  def __init__(self, bot):
+  def __init__(self, bot: "Bot"):
     self.bot = bot
 
   @commands.group(name="info", description="Displays some information about myself :)")

@@ -1,8 +1,10 @@
+import sys
 import logging
 import aiohttp
 import datetime
 import discord
 
+from typing import TYPE_CHECKING
 from discord.ext import commands, tasks
 from discord_slash import SlashContext, SlashCommand
 from cogs.help import cmd_help
@@ -11,6 +13,8 @@ import traceback
 
 import os
 
+if TYPE_CHECKING:
+  from index import Friday as Bot
 
 # import discord_slash
 
@@ -23,9 +27,11 @@ import os
 #     raise commands.CheckFailure("Currently I am disabled, my boss has been notified, please try again later :)")
 #   return True
 
+formatter = logging.Formatter("%(levelname)s:%(name)s: %(message)s")
+
 
 class Log(commands.Cog):
-  def __init__(self, bot):
+  def __init__(self, bot: "Bot"):
     self.bot = bot
     self.loop = bot.loop
 
@@ -49,35 +55,18 @@ class Log(commands.Cog):
     self.bot.process_commands = self.process_commands
     # self.bot.on_error = self.on_error
 
-    self.bot.logger = logging.getLogger(__name__)
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setFormatter(formatter)
+    filehandler = logging.FileHandler("logging.log", encoding="utf-8")
+    filehandler.setFormatter(logging.Formatter("%(asctime)s:%(name)s:%(levelname)-8s%(message)s"))
 
-    self.bot.log_spam = self.log_spam
-    self.bot.log_info = self.log_info
-    self.bot.log_issues = self.log_issues
-    self.bot.log_join = self.log_join
-    self.bot.log_chat = self.log_chat
-    self.bot.log_errors = self.log_errors
-    self.bot.log_spammer = self.log_spammer
+    self.logger = logging.getLogger(f"Cluster#{self.bot.cluster_name}")
+    self.logger.handlers = [handler, filehandler]
+    self.logger.setLevel(logging.INFO)
 
-    self.bot.get_prefixes = self.get_prefixes
-    self.bot.get_guild_delete_commands = self.get_guild_delete_commands
-    self.bot.get_guild_prefix = self.get_guild_prefix
-    self.bot.get_guild_muted = self.get_guild_muted
-    self.bot.get_guild_chat_channel = self.get_guild_chat_channel
-    self.bot.get_guild_lang = self.get_guild_lang
-    self.bot.get_guild_tier = self.get_guild_tier
-    self.bot.fetch_user_tier = self.fetch_user_tier
-
-    self.bot.change_guild_prefix = self.change_guild_prefix
-    self.bot.change_guild_delete = self.change_guild_delete
-    self.bot.change_guild_chat_channel = self.change_guild_chat_channel
-    self.bot.change_guild_muted = self.change_guild_muted
-    self.bot.change_guild_lang = self.change_guild_lang
-    self.bot.change_guild_tier = self.change_guild_tier
-
-    self.bot.set_guild = self.set_guild
-    self.bot.remove_guild = self.remove_guild
-    # self.bot.set_all_guilds = self.set_all_guilds
+    # dlog = logging.getLogger("discord")
+    # dlog.handlers = [handler]
+    # dlog.setLevel(logging.INFO)
 
     self.check_for_mydb.start()
 
@@ -102,7 +91,7 @@ class Log(commands.Cog):
   async def check_for_mydb(self):
     if not self.bot.mydb.is_connected():
       self.bot.mydb.reconnect()
-      await relay_info("Reconnected to MYDB", self.bot, logger=self.bot.logger)
+      await relay_info("Reconnected to MYDB", self.bot, logger=self.logger)
 
   @check_for_mydb.before_loop
   async def before_check_for_mydb(self):
@@ -113,11 +102,14 @@ class Log(commands.Cog):
 
   @commands.Cog.listener()
   async def on_shard_connect(self, shard_id):
-    await relay_info(f"Shard #{shard_id} has connected", self.bot, logger=self.bot.logger)
+    await relay_info(f"Shard #{shard_id} has connected", self.bot, logger=self.logger)
 
   @commands.Cog.listener()
   async def on_ready(self):
-    await relay_info(f"Apart of {len(self.bot.guilds)} guilds", self.bot, logger=self.bot.logger)
+    #
+    # FIXME: I think this could delete some of the db with more than one cluster
+    #
+    await relay_info(f"Apart of {len(self.bot.guilds)} guilds", self.bot, logger=self.logger)
     database_guilds = await query(self.bot.mydb, "SELECT id FROM servers")
     if len(database_guilds) != len(self.bot.guilds):
       current_guilds = [guild.id for guild in self.bot.guilds]
@@ -143,38 +135,36 @@ class Log(commands.Cog):
                 except discord.Forbidden:
                   pass
             else:
-              print(f"HELP guild could not be found {guild_id}")
-              self.bot.logger.warning(f"HELP guild could not be found {guild_id}")
+              self.logger.warning(f"HELP guild could not be found {guild_id}")
         elif len(database_guilds) > len(current_guilds):
           for guild_id in difference:
             await query(self.bot.mydb, "DELETE FROM servers WHERE id=%s", guild_id)
         else:
-          print("Could not sync guilds")
-          self.bot.logger.warning("Could not sync guilds")
+          self.logger.warning("Could not sync guilds")
           return
-        print("Synced guilds with database")
-        self.bot.logger.info("Synced guilds with database")
+        self.logger.info("Synced guilds with database")
     else:
       for guild_id in database_guilds:
         guild = self.bot.get_guild(guild_id[0])
         await query(self.bot.mydb, "UPDATE servers SET name=%s WHERE id=%s", guild.name, guild_id[0])
     await self.set_all_guilds()
+    self.bot.ready = True
 
   @commands.Cog.listener()
   async def on_shard_ready(self, shard_id):
-    await relay_info(f"Logged on as #{shard_id} {self.bot.user}! - {self.bot.get_shard(shard_id).latency*1000:,.0f} ms", self.bot, logger=self.bot.logger)
+    await relay_info(f"Logged on as #{shard_id} {self.bot.user}! - {self.bot.get_shard(shard_id).latency*1000:,.0f} ms", self.bot, logger=self.logger)
 
   @commands.Cog.listener()
   async def on_shard_disconnect(self, shard_id):
-    await relay_info(f"Shard #{shard_id} has disconnected", self.bot, logger=self.bot.logger)
+    await relay_info(f"Shard #{shard_id} has disconnected", self.bot, logger=self.logger)
 
   @commands.Cog.listener()
   async def on_shard_reconnect(self, shard_id):
-    await relay_info(f"Shard #{shard_id} has reconnected", self.bot, logger=self.bot.logger)
+    await relay_info(f"Shard #{shard_id} has reconnected", self.bot, logger=self.logger)
 
   @commands.Cog.listener()
   async def on_shard_resumed(self, shard_id):
-    await relay_info(f"Shard #{shard_id} has resumed", self.bot, logger=self.bot.logger)
+    await relay_info(f"Shard #{shard_id} has resumed", self.bot, logger=self.logger)
 
   @commands.Cog.listener()
   async def on_guild_join(self, guild):
@@ -200,7 +190,7 @@ class Log(commands.Cog):
 
   @commands.Cog.listener()
   async def on_guild_remove(self, guild):
-    await relay_info(f"I have been removed from a guild, making the total **{len(self.bot.guilds)}**", self.bot, short=f"I have been removed from a guild, making the total {len(self.bot.guilds)}", webhook=self.bot.log_join, logger=self.bot.logger)
+    await relay_info(f"I have been removed from a guild, making the total **{len(self.bot.guilds)}**", self.bot, short=f"I have been removed from a guild, making the total {len(self.bot.guilds)}", webhook=self.log_join, logger=self.logger)
     await query(self.bot.mydb, "DELETE FROM servers WHERE id=%s", guild.id)
     self.bot.remove_guild(guild.id)
 
@@ -225,13 +215,11 @@ class Log(commands.Cog):
 
   @commands.Cog.listener()
   async def on_command(self, ctx):
-    print(f"Command: {ctx.message.clean_content.encode('unicode_escape')}")
-    self.bot.logger.info(f"Command: {ctx.message.clean_content.encode('unicode_escape')}")
+    self.logger.info(f"Command: {ctx.message.clean_content.encode('unicode_escape')}")
 
   @commands.Cog.listener()
   async def on_slash_command(self, ctx):
-    print(f"Slash Command: {ctx.command} {ctx.kwargs}")
-    self.bot.logger.info(f"Slash Command: {ctx.command} {ctx.kwargs}")
+    self.logger.info(f"Slash Command: {ctx.command} {ctx.kwargs}")
 
   @commands.Cog.listener()
   async def on_slash_command_error(self, ctx: SlashContext, ex):
@@ -270,26 +258,26 @@ class Log(commands.Cog):
 
     await self.bot.invoke(ctx)
 
-  def get_prefixes(self):
+  def get_prefixes(self) -> [int]:
     return [g["prefix"] for g in self.bot.saved_guilds.values()] + ["/", "!", "%", ">", "?", "-", "(", ")"]
 
-  def get_guild_prefix(self, bot, message):
+  def get_guild_prefix(self, bot, message) -> str:
     if not message.guild or message.guild.id == 707441352367013899:
       return commands.when_mentioned_or(config.defaultPrefix)(bot, message)
     return commands.when_mentioned_or(self.bot.saved_guilds[message.guild.id]["prefix"] or config.defaultPrefix)(bot, message)
 
-  def get_guild_delete_commands(self, guild: discord.Guild or int):
+  def get_guild_delete_commands(self, guild: discord.Guild or int) -> int:
     if guild is not None:
       delete = self.bot.saved_guilds[guild.id if isinstance(guild, discord.Guild) else guild]["autoDeleteMSGs"]
       return delete if delete != 0 else None
 
-  def get_guild_muted(self, guild: discord.Guild or int):
+  def get_guild_muted(self, guild: discord.Guild or int) -> bool:
     if guild is not None:
       if guild.id if isinstance(guild, discord.Guild) else guild not in [int(item.id) for item in self.bot.guilds]:
         return False
       return bool(self.bot.saved_guilds[guild.id if isinstance(guild, discord.Guild) else guild]["muted"])
 
-  def get_guild_chat_channel(self, guild: discord.Guild or int):
+  def get_guild_chat_channel(self, guild: discord.Guild or int) -> int:
     if guild is None:
       return False
     guild_id = guild.id if isinstance(guild, discord.Guild) else guild
@@ -297,7 +285,7 @@ class Log(commands.Cog):
       return None
     return self.bot.saved_guilds[guild.id if isinstance(guild, discord.Guild) else guild]["chatChannel"]
 
-  def get_guild_tier(self, guild: discord.Guild or int):
+  def get_guild_tier(self, guild: discord.Guild or int) -> str:
     if guild is not None:
       guild = self.bot.saved_guilds.get(guild.id if isinstance(guild, discord.Guild) else guild, None)
       return guild.get("tier", "free") if guild is not None else "free"
@@ -324,7 +312,7 @@ class Log(commands.Cog):
         x += 1
       return final_tier if final_tier is not None else None
 
-  def get_guild_lang(self, guild: discord.Guild or int):
+  def get_guild_lang(self, guild: discord.Guild or int) -> str:
     if guild is not None:
       guild = self.bot.saved_guilds.get(guild.id if isinstance(guild, discord.Guild) else guild, None)
       lang = guild.get("lang", None) if guild is not None else None
@@ -386,27 +374,27 @@ class Log(commands.Cog):
     return guilds
 
   @discord.utils.cached_property
-  def log_spam(self):
+  def log_spam(self) -> discord.Webhook:
     return discord.Webhook.from_url(os.environ.get("WEBHOOKSPAM"), adapter=discord.AsyncWebhookAdapter(self.bot.session))
 
   @discord.utils.cached_property
-  def log_chat(self):
+  def log_chat(self) -> discord.Webhook:
     return discord.Webhook.from_url(os.environ.get("WEBHOOKCHAT"), adapter=discord.AsyncWebhookAdapter(self.bot.session))
 
   @discord.utils.cached_property
-  def log_info(self):
+  def log_info(self) -> discord.Webhook:
     return discord.Webhook.from_url(os.environ.get("WEBHOOKINFO"), adapter=discord.AsyncWebhookAdapter(self.bot.session))
 
   @discord.utils.cached_property
-  def log_issues(self):
+  def log_issues(self) -> discord.Webhook:
     return discord.Webhook.from_url(os.environ.get("WEBHOOKISSUES"), adapter=discord.AsyncWebhookAdapter(self.bot.session))
 
   @discord.utils.cached_property
-  def log_errors(self):
+  def log_errors(self) -> discord.Webhook:
     return discord.Webhook.from_url(os.environ.get("WEBHOOKERRORS"), adapter=discord.AsyncWebhookAdapter(self.bot.session))
 
   @discord.utils.cached_property
-  def log_join(self):
+  def log_join(self) -> discord.Webhook:
     return discord.Webhook.from_url(os.environ.get("WEBHOOKJOIN"), adapter=discord.AsyncWebhookAdapter(self.bot.session))
 
   async def log_spammer(self, ctx, message, retry_after, *, autoblock=False):
@@ -442,7 +430,7 @@ class Log(commands.Cog):
       # if ctx.cog._get_overridden_method(ctx.cog.cog_command_error) is not None:
       # return
 
-    delete = self.bot.get_guild_delete_commands(ctx.guild)
+    delete = self.get_guild_delete_commands(ctx.guild)
     error_text = getattr(error, 'original', error)
     if isinstance(error, commands.NotOwner):
       print("Someone found a dev command")

@@ -2,10 +2,14 @@ from discord.ext import commands
 from discord_slash import SlashContext, cog_ext
 
 from functions import get_reddit_post
+from typing_extensions import TYPE_CHECKING
+
+if TYPE_CHECKING:
+  from index import Friday as Bot
 
 
 class Meme(commands.Cog):
-  def __init__(self, bot):
+  def __init__(self, bot: "Bot"):
     self.bot = bot
     self.subs = ["dankmemes", "memes", "wholesomememes"]
     self.posted = {}
