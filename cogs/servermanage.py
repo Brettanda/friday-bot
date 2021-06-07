@@ -541,6 +541,35 @@ class ServerManage(commands.Cog):
     if slash:
       return await ctx.send(embed=e)
     return await ctx.reply(embed=e)
+  @commands.command(name="mute", description="Mute a member from text channels")
+  @commands.guild_only()
+  @commands.has_guild_permissions(manage_channels=True)
+  @commands.bot_has_guild_permissions(manage_channels=True)
+  async def norm_mute(self, ctx, *, member: discord.Member):
+    async with ctx.typing():
+      x = 0
+      for channel in ctx.guild.text_channels:
+        perms = channel.overwrites_for(member)
+        if perms.send_messages is False:
+          x += 1
+        perms.send_messages = False
+        await channel.set_permissions(member, reason="Muted!", overwrite=perms)
+    if x >= len(ctx.guild.text_channels):
+      return await ctx.reply(embed=embed(title=f"{member} has already been muted", color=MessageColors.ERROR))
+    await ctx.reply(embed=embed(title=f"{member} has been muted."))
+
+  @commands.command(name="unmute", description="Unmute a member from text channels")
+  @commands.guild_only()
+  @commands.has_guild_permissions(manage_channels=True)
+  @commands.bot_has_guild_permissions(manage_channels=True)
+  async def unmute(self, ctx, *, member: discord.Member):
+    async with ctx.typing():
+      for channel in ctx.guild.text_channels:
+        perms = channel.overwrites_for(member)
+        perms.send_messages = None
+        await channel.set_permissions(member, reason="Unmuted!", overwrite=perms if perms._values != {} else None)
+    await ctx.reply(embed=embed(title=f"{member} has been unmuted."))
+
   @commands.command(name="language", aliases=["lang"], description="Change the language that I will speak")
   # @commands.cooldown(1, 3600, commands.BucketType.guild)
   @commands.has_guild_permissions(administrator=True)
