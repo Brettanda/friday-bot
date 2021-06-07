@@ -541,6 +541,7 @@ class ServerManage(commands.Cog):
     if slash:
       return await ctx.send(embed=e)
     return await ctx.reply(embed=e)
+
   @commands.command(name="mute", description="Mute a member from text channels")
   @commands.guild_only()
   @commands.has_guild_permissions(manage_channels=True)
