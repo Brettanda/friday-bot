@@ -513,7 +513,7 @@ class ServerManage(commands.Cog):
         relay_info(
             f"**Begone**\nUSER: {reference.clean_content}\nME: {message.clean_content}```{message}```",
             self.bot,
-            webhook=self.bot.log_chat
+            webhook=self.bot.log.log_chat
         ),
         message.delete(),
         ctx.reply(embed=embed(title="Message has been removed"), delete_after=20),
@@ -585,7 +585,7 @@ class ServerManage(commands.Cog):
     final_lang = new_lang.alpha_2 if new_lang is not None else lang
     final_lang_name = new_lang.name if new_lang is not None else lang
     await query(self.bot.mydb, "UPDATE servers SET lang=%s WHERE id=%s", final_lang, ctx.guild.id)
-    self.bot.change_guild_lang(ctx.guild, final_lang)
+    self.bot.log.change_guild_lang(ctx.guild, final_lang)
     return await ctx.reply(embed=embed(title=f"New language set to: `{final_lang_name}`"))
 
   # @commands.Cog.listener()
