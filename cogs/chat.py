@@ -8,6 +8,8 @@ import datetime
 
 from six.moves.html_parser import HTMLParser
 from google.cloud import translate_v2 as translate
+from functions import MessageColors, dev_guilds, embed, get_reddit_post, config, msg_reply, relay_info, checks  # , queryIntents
+
 if TYPE_CHECKING:
   from index import Friday as Bot
 

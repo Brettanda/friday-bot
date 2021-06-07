@@ -9,6 +9,7 @@ import typing
 
 import discord
 from discord.ext import commands
+from discord_slash import SlashContext  # , cog_ext
 from typing_extensions import TYPE_CHECKING
 # from discord_slash.utils.manage_commands import create_option, create_choice
 
