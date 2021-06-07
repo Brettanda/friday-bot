@@ -60,7 +60,7 @@ class ServerManage(commands.Cog):
       await ctx.reply(embed=embed(title="Can't set a prefix with more than 5 characters", color=MessageColors.ERROR))
       return
     await query(self.bot.mydb, "UPDATE servers SET prefix=%s WHERE id=%s", new_prefix, ctx.guild.id)
-    self.bot.change_guild_prefix(ctx.guild.id, new_prefix)
+    self.bot.log.change_guild_prefix(ctx.guild.id, new_prefix)
     try:
       await ctx.reply(embed=embed(title=f"My new prefix is `{new_prefix}`"))
     except discord.Forbidden:
@@ -96,11 +96,11 @@ class ServerManage(commands.Cog):
     muted = await query(self.bot.mydb, "SELECT muted FROM servers WHERE id=%s", ctx.guild.id)
     if int(muted) == 0:
       await query(self.bot.mydb, "UPDATE servers SET muted=%s WHERE id=%s", 1, ctx.guild.id)
-      self.bot.change_guild_muted(ctx.guild.id, True)
+      self.bot.log.change_guild_muted(ctx.guild.id, True)
       return dict(embed=embed(title="I will now only respond to commands"))
     else:
       await query(self.bot.mydb, "UPDATE servers SET muted=%s WHERE id=%s", 0, ctx.guild.id)
-      self.bot.change_guild_muted(ctx.guild.id, False)
+      self.bot.log.change_guild_muted(ctx.guild.id, False)
       return dict(embed=embed(title="I will now respond to chat message as well as commands"))
 
   @settings_bot.command(name="chatchannel", alias="chat", description="Set the current channel so that I will always try to respond with something")
@@ -122,11 +122,11 @@ class ServerManage(commands.Cog):
     chat_channel = await query(self.bot.mydb, "SELECT chatChannel FROM servers WHERE id=%s", ctx.guild.id)
     if chat_channel is None:
       await query(self.bot.mydb, "UPDATE servers SET chatChannel=%s WHERE id=%s", ctx.channel.id, ctx.guild.id)
-      self.bot.change_guild_chat_channel(ctx.guild.id, ctx.channel.id)
+      self.bot.log.change_guild_chat_channel(ctx.guild.id, ctx.channel.id)
       return dict(embed=embed(title="I will now (try to) respond to every message in this channel"))
     else:
       await query(self.bot.mydb, "UPDATE servers SET chatChannel=%s WHERE id=%s", None, ctx.guild.id)
-      self.bot.change_guild_chat_channel(ctx.guild.id, None)
+      self.bot.log.change_guild_chat_channel(ctx.guild.id, None)
       return dict(embed=embed(title="I will no longer (try to) respond to all messages from this channel"))
 
   @commands.command(name="musicchannel", description="Set the channel where I can join and play music. If none then I will join any VC", hidden=True)
@@ -150,7 +150,7 @@ class ServerManage(commands.Cog):
       return
     async with ctx.typing():
       await query(self.bot.mydb, "UPDATE servers SET autoDeleteMSGs=%s WHERE id=%s", time, ctx.guild.id)
-      self.bot.change_guild_delete(ctx.guild.id, time)
+      self.bot.log.change_guild_delete(ctx.guild.id, time)
     if time == 0:
       await ctx.reply(embed=embed(title="I will no longer delete command messages"))
     else:
