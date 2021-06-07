@@ -520,6 +520,27 @@ class ServerManage(commands.Cog):
         ctx.message.delete(delay=20)
     )
 
+  @commands.command(name="userinfo", description="Some information on the mentioned user")
+  @commands.guild_only()
+  async def norm_user_info(self, ctx, user: discord.Member):
+    await self.user_info(ctx, user)
+
+  @cog_ext.cog_slash(name="userinfo", description="Some information on the mentioned user", options=[create_option(name="user", description="The user to get info for", option_type=SlashCommandOptionType.USER, required=True)])
+  @checks.slash(user=True, private=False)
+  async def slash_user_info(self, ctx, user: discord.Member):
+    await self.user_info(ctx, user, True)
+
+  async def user_info(self, ctx, member: discord.Member, slash=False):
+    e = embed(
+        title=f"{member.name} - Info",
+        thumbnail=member.avatar_url,
+        fieldstitle=["Name", "Nickname", "Mention", "Role count", "Joined", "Top Role", "Pending"],
+        fieldsval=[member.name, member.nick, member.mention, len(member.roles), member.joined_at.strftime("%b %d, %Y"), member.top_role.mention, member.pending],
+        color=member.color if member.color.value != 0 else MessageColors.DEFAULT
+    )
+    if slash:
+      return await ctx.send(embed=e)
+    return await ctx.reply(embed=e)
   @commands.command(name="language", aliases=["lang"], description="Change the language that I will speak")
   # @commands.cooldown(1, 3600, commands.BucketType.guild)
   @commands.has_guild_permissions(administrator=True)
