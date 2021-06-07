@@ -4,6 +4,7 @@ import aiohttp
 import datetime
 import discord
 
+from typing import TYPE_CHECKING
 from discord.ext import commands, tasks
 from discord_slash import SlashContext, SlashCommand
 from cogs.help import cmd_help
@@ -12,6 +13,8 @@ import traceback
 
 import os
 
+if TYPE_CHECKING:
+  from index import Friday as Bot
 
 # import discord_slash
 
@@ -28,7 +31,7 @@ formatter = logging.Formatter("%(levelname)s:%(name)s: %(message)s")
 
 
 class Log(commands.Cog):
-  def __init__(self, bot):
+  def __init__(self, bot: "Bot"):
     self.bot = bot
     self.loop = bot.loop
 
@@ -255,26 +258,26 @@ class Log(commands.Cog):
 
     await self.bot.invoke(ctx)
 
-  def get_prefixes(self):
+  def get_prefixes(self) -> [int]:
     return [g["prefix"] for g in self.bot.saved_guilds.values()] + ["/", "!", "%", ">", "?", "-", "(", ")"]
 
-  def get_guild_prefix(self, bot, message):
+  def get_guild_prefix(self, bot, message) -> str:
     if not message.guild or message.guild.id == 707441352367013899:
       return commands.when_mentioned_or(config.defaultPrefix)(bot, message)
     return commands.when_mentioned_or(self.bot.saved_guilds[message.guild.id]["prefix"] or config.defaultPrefix)(bot, message)
 
-  def get_guild_delete_commands(self, guild: discord.Guild or int):
+  def get_guild_delete_commands(self, guild: discord.Guild or int) -> int:
     if guild is not None:
       delete = self.bot.saved_guilds[guild.id if isinstance(guild, discord.Guild) else guild]["autoDeleteMSGs"]
       return delete if delete != 0 else None
 
-  def get_guild_muted(self, guild: discord.Guild or int):
+  def get_guild_muted(self, guild: discord.Guild or int) -> bool:
     if guild is not None:
       if guild.id if isinstance(guild, discord.Guild) else guild not in [int(item.id) for item in self.bot.guilds]:
         return False
       return bool(self.bot.saved_guilds[guild.id if isinstance(guild, discord.Guild) else guild]["muted"])
 
-  def get_guild_chat_channel(self, guild: discord.Guild or int):
+  def get_guild_chat_channel(self, guild: discord.Guild or int) -> int:
     if guild is None:
       return False
     guild_id = guild.id if isinstance(guild, discord.Guild) else guild
@@ -282,7 +285,7 @@ class Log(commands.Cog):
       return None
     return self.bot.saved_guilds[guild.id if isinstance(guild, discord.Guild) else guild]["chatChannel"]
 
-  def get_guild_tier(self, guild: discord.Guild or int):
+  def get_guild_tier(self, guild: discord.Guild or int) -> str:
     if guild is not None:
       guild = self.bot.saved_guilds.get(guild.id if isinstance(guild, discord.Guild) else guild, None)
       return guild.get("tier", "free") if guild is not None else "free"
@@ -309,7 +312,7 @@ class Log(commands.Cog):
         x += 1
       return final_tier if final_tier is not None else None
 
-  def get_guild_lang(self, guild: discord.Guild or int):
+  def get_guild_lang(self, guild: discord.Guild or int) -> str:
     if guild is not None:
       guild = self.bot.saved_guilds.get(guild.id if isinstance(guild, discord.Guild) else guild, None)
       lang = guild.get("lang", None) if guild is not None else None
@@ -371,27 +374,27 @@ class Log(commands.Cog):
     return guilds
 
   @discord.utils.cached_property
-  def log_spam(self):
+  def log_spam(self) -> discord.Webhook:
     return discord.Webhook.from_url(os.environ.get("WEBHOOKSPAM"), adapter=discord.AsyncWebhookAdapter(self.bot.session))
 
   @discord.utils.cached_property
-  def log_chat(self):
+  def log_chat(self) -> discord.Webhook:
     return discord.Webhook.from_url(os.environ.get("WEBHOOKCHAT"), adapter=discord.AsyncWebhookAdapter(self.bot.session))
 
   @discord.utils.cached_property
-  def log_info(self):
+  def log_info(self) -> discord.Webhook:
     return discord.Webhook.from_url(os.environ.get("WEBHOOKINFO"), adapter=discord.AsyncWebhookAdapter(self.bot.session))
 
   @discord.utils.cached_property
-  def log_issues(self):
+  def log_issues(self) -> discord.Webhook:
     return discord.Webhook.from_url(os.environ.get("WEBHOOKISSUES"), adapter=discord.AsyncWebhookAdapter(self.bot.session))
 
   @discord.utils.cached_property
-  def log_errors(self):
+  def log_errors(self) -> discord.Webhook:
     return discord.Webhook.from_url(os.environ.get("WEBHOOKERRORS"), adapter=discord.AsyncWebhookAdapter(self.bot.session))
 
   @discord.utils.cached_property
-  def log_join(self):
+  def log_join(self) -> discord.Webhook:
     return discord.Webhook.from_url(os.environ.get("WEBHOOKJOIN"), adapter=discord.AsyncWebhookAdapter(self.bot.session))
 
   async def log_spammer(self, ctx, message, retry_after, *, autoblock=False):

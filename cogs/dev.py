@@ -9,17 +9,20 @@ import typing
 
 import discord
 from discord.ext import commands
-from discord_slash import SlashContext  # , cog_ext
+from typing_extensions import TYPE_CHECKING
 # from discord_slash.utils.manage_commands import create_option, create_choice
 
 from cogs.help import cmd_help, syntax
 from functions import embed  # , MessageColors
 
+if TYPE_CHECKING:
+  from index import Friday as Bot
+
 
 class Dev(commands.Cog, command_attrs=dict(hidden=True)):
   """Commands used by and for the developer"""
 
-  def __init__(self, bot):
+  def __init__(self, bot: "Bot"):
     self.bot = bot
 
   def cog_check(self, ctx):

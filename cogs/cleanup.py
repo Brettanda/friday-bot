@@ -4,6 +4,10 @@ import asyncio
 from discord.ext import commands
 
 from functions import embed, query
+from typing_extensions import TYPE_CHECKING
+
+if TYPE_CHECKING:
+  from index import Friday as Bot
 
 
 async def get_delete_time(ctx: commands.Context = None, guild_id: int = None):
@@ -21,7 +25,7 @@ async def get_delete_time(ctx: commands.Context = None, guild_id: int = None):
 
 
 class CleanUp(commands.Cog):
-  def __init__(self, bot):
+  def __init__(self, bot: "Bot"):
     self.bot = bot
   #   # self.exlusions = ["meme","issue","reactionrole"]
 

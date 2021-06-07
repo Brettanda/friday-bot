@@ -5,10 +5,14 @@ from discord.ext import commands
 
 # from cogs.cleanup import get_delete_time
 from functions import embed
+from typing_extensions import TYPE_CHECKING
+
+if TYPE_CHECKING:
+  from index import Friday as Bot
 
 
 class ReactionRole(commands.Cog):
-  def __init__(self, bot):
+  def __init__(self, bot: "Bot"):
     self.bot = bot
     self.msgs = {}
 

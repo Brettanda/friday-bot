@@ -6,6 +6,11 @@ from discord.ext.commands import Cog
 from discord.ext import commands
 
 from discord_slash import cog_ext  # , SlashContext
+from typing_extensions import TYPE_CHECKING
+
+if TYPE_CHECKING:
+  from index import Friday as Bot
+
 
 import youtube_dl
 # import json
@@ -58,7 +63,7 @@ ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
 
 
 class Music(commands.Cog):
-  def __init__(self, bot):
+  def __init__(self, bot: "Bot"):
     self.bot = bot
 
   async def tryagain(self, ctx):

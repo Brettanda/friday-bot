@@ -8,15 +8,19 @@ import discord
 from discord.ext import commands
 from discord_slash import SlashContext, cog_ext, SlashCommandOptionType
 from discord_slash.utils.manage_commands import create_option
+from typing_extensions import TYPE_CHECKING
 
 from cogs.help import cmd_help
 from functions import MessageColors, embed, query, checks, relay_info, config
+
+if TYPE_CHECKING:
+  from index import Friday as Bot
 
 
 class ServerManage(commands.Cog):
   """Commands for managing Friday on your server"""
 
-  def __init__(self, bot):
+  def __init__(self, bot: "Bot"):
     self.bot = bot
 
   def cog_check(self, ctx):

@@ -5,9 +5,14 @@ import discord
 from discord.ext import tasks, commands
 from functions import config
 
+from typing_extensions import TYPE_CHECKING
+
+if TYPE_CHECKING:
+  from index import Friday as Bot
+
 
 class ChooseGame(commands.Cog):
-  def __init__(self, bot):
+  def __init__(self, bot: "Bot"):
     self.bot = bot
     self.choose_game.start()
 

@@ -5,13 +5,17 @@ from discord.ext import commands
 
 from cogs.music import can_play
 from functions import MessageColors, embed, exceptions, query
+from typing_extensions import TYPE_CHECKING
+
+if TYPE_CHECKING:
+  from index import Friday as Bot
 
 
 # TODO: make slash commands for this cog
 class CustomMusic(commands.Cog):
   """Asign music urls to a command so you dont have to find the url everytime you want to play `bruh 2`"""
 
-  def __init__(self, bot):
+  def __init__(self, bot: "Bot"):
     self.bot = bot
 
   def cog_check(self, ctx):

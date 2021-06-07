@@ -2,12 +2,16 @@ import os
 
 import dbl
 from discord.ext import commands, tasks
+from typing_extensions import TYPE_CHECKING
+
+if TYPE_CHECKING:
+  from index import Friday as Bot
 
 
 class TopGG(commands.Cog):
   """Handles interactions with the top.gg API"""
 
-  def __init__(self, bot):
+  def __init__(self, bot: "Bot"):
     self.bot = bot
     self.token = os.getenv("TOKENDBL")
     self.dblpy = dbl.DBLClient(self.bot, self.token, autopost=False)

@@ -5,10 +5,14 @@ from .help import cmd_help
 from functions import checks, query, MessageColors, embed
 
 # import discord
+from typing_extensions import TYPE_CHECKING
+
+if TYPE_CHECKING:
+  from index import Friday as Bot
 
 
 class Patreons(commands.Cog):
-  def __init__(self, bot):
+  def __init__(self, bot: "Bot"):
     self.bot = bot
 
   @commands.group(name="patreon", invoke_without_command=True)

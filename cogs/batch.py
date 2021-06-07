@@ -1,10 +1,14 @@
 from discord.ext import commands  # , tasks
 import asyncio
 # from functions import query
+from typing_extensions import TYPE_CHECKING
+
+if TYPE_CHECKING:
+  from index import Friday as Bot
 
 
 class BatchUpdates(commands.Cog):
-  def __init__(self, bot):
+  def __init__(self, bot: "Bot"):
     self.bot = bot
 
     if not hasattr(self.bot, "_updates"):

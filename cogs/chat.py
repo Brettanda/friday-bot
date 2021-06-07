@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands
+from typing import TYPE_CHECKING
 
 from numpy import random
 import validators
@@ -7,11 +8,12 @@ import datetime
 
 from six.moves.html_parser import HTMLParser
 from google.cloud import translate_v2 as translate
-from functions import MessageColors, dev_guilds, embed, get_reddit_post, config, msg_reply, relay_info, queryIntents, checks
+if TYPE_CHECKING:
+  from index import Friday as Bot
 
 
 class Chat(commands.Cog):
-  def __init__(self, bot):
+  def __init__(self, bot: "Bot"):
     self.bot = bot
     if not hasattr(self, "translate_client"):
       self.translate_client = translate.Client()

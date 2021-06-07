@@ -7,12 +7,17 @@ from datetime import date
 from discord.ext import tasks, commands
 
 # from functions import embed
+from typing_extensions import TYPE_CHECKING
+
+if TYPE_CHECKING:
+  from index import Friday as Bot
+
 
 original_image = "assets\\friday-logo.png"
 
 
 class DatedEvents(commands.Cog):
-  def __init__(self, bot):
+  def __init__(self, bot: "Bot"):
     self.bot = bot
     self.dated_events.start()
     # self.events = bot.loop.create_task(self.dated_events(),name="Dated events")

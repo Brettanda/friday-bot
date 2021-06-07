@@ -5,8 +5,16 @@ from functions import embed
 
 # import discord
 
+from typing_extensions import TYPE_CHECKING
+
+if TYPE_CHECKING:
+  from index import Friday as Bot
+
 
 class Ping(commands.Cog):
+  def __init__(self, bot: "Bot"):
+    self.bot = bot
+
   @commands.command(name="ping", description="Pong!")
   async def norm_ping(self, ctx):
     # view = discord.ui.View()

@@ -5,11 +5,15 @@ import sys
 from importlib import reload
 
 import discord
+from typing import TYPE_CHECKING
 from discord.ext import commands
 from dotenv import load_dotenv
 
 import cogs
 import functions
+
+if TYPE_CHECKING:
+  from .cogs.log import Log
 
 load_dotenv()
 
@@ -61,14 +65,14 @@ class Friday(commands.AutoShardedBot):
       self.run(kwargs["token"])
 
   @property
-  def log(self):
+  def log(self) -> "Log":
     return self.get_cog(functions.config.reloadable_bot)
 
   @property
   def logger(self):
-    return self.get_cog(functions.config.reloadable_bot).logger
+    return self.log.logger
 
-  async def get_context(self, message, *, cls=None):
+  async def get_context(self, message, *, cls=None) -> functions.MyContext:
     return await super().get_context(message, cls=functions.MyContext)
 
   def load_cogs(self):
