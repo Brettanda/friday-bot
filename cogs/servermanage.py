@@ -554,7 +554,10 @@ class ServerManage(commands.Cog):
         if perms.send_messages is False:
           x += 1
         perms.send_messages = False
-        await channel.set_permissions(member, reason="Muted!", overwrite=perms)
+        try:
+          await channel.set_permissions(member, reason="Muted!", overwrite=perms)
+        except discord.Forbidden:
+          pass
     if x >= len(ctx.guild.text_channels):
       return await ctx.reply(embed=embed(title=f"{member} has already been muted", color=MessageColors.ERROR))
     await ctx.reply(embed=embed(title=f"{member} has been muted."))
@@ -568,7 +571,10 @@ class ServerManage(commands.Cog):
       for channel in ctx.guild.text_channels:
         perms = channel.overwrites_for(member)
         perms.send_messages = None
-        await channel.set_permissions(member, reason="Unmuted!", overwrite=perms if perms._values != {} else None)
+        try:
+          await channel.set_permissions(member, reason="Unmuted!", overwrite=perms if perms._values != {} else None)
+        except discord.Forbidden:
+          pass
     await ctx.reply(embed=embed(title=f"{member} has been unmuted."))
 
   @commands.command(name="language", aliases=["lang"], description="Change the language that I will speak")

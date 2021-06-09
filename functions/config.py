@@ -10,6 +10,7 @@ support_server_id = 707441352367013899
 
 invite_permissions = discord.Permissions(
     manage_roles=True,
+    manage_channels=True,
     kick_members=True,
     ban_members=True,
     send_messages=True,
