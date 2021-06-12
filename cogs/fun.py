@@ -353,7 +353,11 @@ class Fun(commands.Cog):
       return
     if payload.emoji.name not in self.POLLEMOTES.values():
       return
-    message = await (self.bot.get_channel(payload.channel_id)).fetch_message(payload.message_id)
+    message = None
+    try:
+      message = await (self.bot.get_channel(payload.channel_id)).fetch_message(payload.message_id)
+    except Exception:
+      pass
     if message.author != self.bot.user:
       return
     if len(message.embeds) == 0:
