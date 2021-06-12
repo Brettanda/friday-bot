@@ -32,10 +32,10 @@ class CustomMusic(commands.Cog):
       async with ctx.typing():
         sounds = await query(self.bot.mydb, "SELECT customSounds FROM servers WHERE id=%s", ctx.guild.id)
         sounds = json.loads(sounds)
-    except KeyError:
-      await ctx.reply(embed=embed(title=f"Could not find the custom command `{name}`", color=MessageColors.ERROR))
+    except Exception:
+      await ctx.reply(embed=embed(title=f"The custom sound `{name}` has not been set, please add it with `{ctx.prefix}custom|c add <name> <url>`", color=MessageColors.ERROR))
     else:
-      if name in sounds:
+      if sounds is not None and name in sounds:
         await ctx.invoke(self.bot.get_command("play"), query=sounds[name])
       else:
         await ctx.reply(embed=embed(title=f"The sound `{name}` has not been added, please check the `custom list` command", color=MessageColors.ERROR))
@@ -55,7 +55,7 @@ class CustomMusic(commands.Cog):
 
     async with ctx.typing():
       name = "".join(name.split(" ")).lower()
-      sounds = await query(self.bot.mydb, "SELECT tier,customSounds FROM servers WHERE id=%s", ctx.guild.id)[0][1:]
+      sounds = (await query(self.bot.mydb, "SELECT customSounds FROM servers WHERE id=%s", ctx.guild.id))
       if sounds == "" or sounds is None:
         sounds = r"{}"
       sounds = json.loads(sounds)
