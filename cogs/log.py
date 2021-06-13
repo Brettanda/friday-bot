@@ -16,6 +16,8 @@ import os
 if TYPE_CHECKING:
   from index import Friday as Bot
 
+GENERAL_CHANNEL_NAMES = {"welcome", "general", "lounge", "chat", "talk", "main"}
+
 # import discord_slash
 
 
@@ -109,45 +111,60 @@ class Log(commands.Cog):
     #
     # FIXME: I think this could delete some of the db with more than one cluster
     #
-    await relay_info(f"Apart of {len(self.bot.guilds)} guilds", self.bot, logger=self.logger)
-    database_guilds = await query(self.bot.mydb, "SELECT id FROM servers")
-    if len(database_guilds) != len(self.bot.guilds):
-      current_guilds = [guild.id for guild in self.bot.guilds]
-      x = 0
-      for guild in database_guilds:
-        database_guilds[x] = guild[0]
-        x = x + 1
-      difference = list(set(database_guilds).symmetric_difference(set(current_guilds)))
-      if len(difference) > 0:
-        # now = datetime.now()
-        if len(database_guilds) < len(current_guilds):
-          for guild_id in difference:
-            guild = self.bot.get_guild(guild_id)
-            if guild is not None:
-              owner = guild.owner.id if hasattr(guild, "owner") and hasattr(guild.owner, "id") else 0
-              await query(self.bot.mydb, "INSERT INTO servers (id,owner,name,muted,lang) VALUES (%s,%s,%s,%s,%s)", guild.id, owner, guild.name, 0, guild.preferred_locale.split("-")[0])
-              if guild.system_channel is not None:
-                prefix = config.defaultPrefix
-                try:
-                  await guild.system_channel.send(
-                      f"Thank you for inviting me to your server. My name is Friday, and I like to party. I will respond to some chats directed towards me and commands. To get started with commands type `{prefix}help`.\nAn example of something I will respond to is `Hello Friday` or `{self.bot.user.name} hello`. At my current stage of development I am very chaotic, so if I do something I shouldn't have, please use the Issues channel in Friday's Development server. I am a chatbot so if i become annoying, you stop me with the command `!bot mute`. If something goes terribly wrong and you want it to stop, talk to my creator https://discord.gg/NTRuFjU"
-                  )
-                except discord.Forbidden:
-                  pass
-            else:
-              self.logger.warning(f"HELP guild could not be found {guild_id}")
-        elif len(database_guilds) > len(current_guilds):
-          for guild_id in difference:
-            await query(self.bot.mydb, "DELETE FROM servers WHERE id=%s", guild_id)
-        else:
-          self.logger.warning("Could not sync guilds")
-          return
-        self.logger.info("Synced guilds with database")
-    else:
-      for guild_id in database_guilds:
-        guild = self.bot.get_guild(guild_id[0])
-        await query(self.bot.mydb, "UPDATE servers SET name=%s WHERE id=%s", guild.name, guild_id[0])
+    if self.bot.cluster_idx == 0:
+      await query(self.bot.mydb, """CREATE TABLE IF NOT EXISTS servers
+                                  (id bigint UNIQUE NOT NULL,
+                                  name varchar(255) NULL,
+                                  tier tinytext NULL,
+                                  prefix varchar(5) NOT NULL DEFAULT '!',
+                                  patreon_user bigint NULL DEFAULT NULL,
+                                  muted text NOT NULL,
+                                  lang varchar(2) NULL DEFAULT NULL,
+                                  autoDeleteMSGs tinyint NOT NULL DEFAULT 0,
+                                  max_mentions int NULL DEFAULT NULL,
+                                  max_messages text NULL,
+                                  defaultRole bigint NULL DEFAULT NULL,
+                                  reactionRole text NULL,
+                                  customJoinLeave text NULL,
+                                  botMasterRole bigint NULL DEFAULT NULL,
+                                  chatChannel bigint NULL DEFAULT NULL,
+                                  musicChannel bigint NULL DEFAULT NULL,
+                                  greeting varchar(255) NULL DEFAULT NULL,
+                                  customSounds longtext NULL)""")
+      await query(self.bot.mydb, """CREATE TABLE IF NOT EXISTS votes
+                                  (id bigint UNIQUE NOT NULL,
+                                  remind tinyint NULL DEFAULT 1,
+                                  voted_time timestamp NULL DEFAULT CURRENT_TIMESTAMP)""")
+      database_guilds = await query(self.bot.mydb, "SELECT id FROM servers")
+      if len(database_guilds) != len(self.bot.guilds):
+        current_guilds = [guild.id for guild in self.bot.guilds]
+        x = 0
+        for guild in database_guilds:
+          database_guilds[x] = guild[0]
+          x = x + 1
+        difference = list(set(database_guilds).symmetric_difference(set(current_guilds)))
+        if len(difference) > 0:
+          # now = datetime.now()
+          if len(database_guilds) < len(current_guilds):
+            for guild_id in difference:
+              guild = self.bot.get_guild(guild_id)
+              if guild is not None and not guild.unavailable:
+                await self.on_guild_join(guild)
+              else:
+                self.logger.warning(f"HELP guild could not be found {guild_id}")
+          elif len(database_guilds) > len(current_guilds):
+            for guild_id in difference:
+              await query(self.bot.mydb, "DELETE FROM servers WHERE id=%s", guild_id)
+          else:
+            self.logger.warning("Could not sync guilds")
+            return
+          self.logger.info("Synced guilds with database")
+      else:
+        for guild_id in database_guilds:
+          guild = self.bot.get_guild(guild_id[0])
+          await query(self.bot.mydb, "UPDATE servers SET name=%s WHERE id=%s", guild.name, guild_id[0])
     await self.set_all_guilds()
+    await relay_info(f"Apart of {len(self.bot.guilds)} guilds", self.bot, logger=self.logger)
     self.bot.ready = True
 
   @commands.Cog.listener()
@@ -167,32 +184,34 @@ class Log(commands.Cog):
     await relay_info(f"Shard #{shard_id} has resumed", self.bot, logger=self.logger)
 
   @commands.Cog.listener()
-  async def on_guild_join(self, guild):
-    await relay_info(f"I have joined a new guild, making the total **{len(self.bot.guilds)}**", self.bot, short=f"I have joined a new guild, making the total {len(self.bot.guilds)}", webhook=self.bot.log_join, logger=self.bot.logger)
-    owner = guild.owner.id if hasattr(guild, "owner") and hasattr(guild.owner, "id") else 0
-    await query(self.bot.mydb, "INSERT INTO servers (id,owner,name,muted,lang) VALUES (%s,%s,%s,%s,%s)", guild.id, owner, guild.name, 0, guild.preferred_locale.split("-")[0])
-    if guild.system_channel is not None:
-      prefix = config.defaultPrefix
-      try:
-        await guild.system_channel.send(
-            f"Thank you for inviting me to your server. My name is {self.bot.user.name}, and I like to party."
-            f"I will respond to some chats directed towards me and commands. To get started with commands type `{prefix}help`.\n"
-            f"An example of something I will respond to is `Hello {self.bot.user.name}` or `{self.bot.user.name} hello`. "
-            "At my current stage of development I am very chaotic, so if I do something I shouldn't have please use send a message Issues channel in Friday's Development server. "
-            "If something goes terribly wrong and you want it to stop, talk to my creator https://discord.gg/NTRuFjU\n"
-            f"\t- To change my prefix use the `{prefix}prefix` command.\n"
-            f"\t- If I start bothering people with messages use the `{prefix}bot mute` command.\n"
-            f"\t- Four ways that I will respond to messages are: when mentioned eg.`@Friday`, your message contains 'Friday' or 'friday', you reply to one of my messages, or your message is one of the following two messages after a message from me. 😊"
-        )
-      except discord.Forbidden:
-        pass
+  async def on_guild_join(self, guild: discord.Guild):
+    await relay_info(f"I have joined a new guild, making the total **{len(self.bot.guilds)}**", self.bot, short=f"I have joined a new guild, making the total {len(self.bot.guilds)}", webhook=self.log_join, logger=self.logger)
+    await query(self.bot.mydb, "INSERT INTO servers (id,name,muted,lang) VALUES (%s,%s,%s,%s)", guild.id, guild.name, 0, guild.preferred_locale.split("-")[0])
+    priority_channels = []
+    channels = []
+    for channel in guild.text_channels:
+      if channel == guild.system_channel or any(x in channel.name for x in GENERAL_CHANNEL_NAMES):
+        priority_channels.append(channel)
+      else:
+        channels.append(channel)
+    channels = priority_channels + channels
+    try:
+      channel = next(
+          x
+          for x in channels
+          if isinstance(x, discord.TextChannel) and guild.me.permissions_in(x).send_messages
+      )
+    except StopIteration:
+      return
+
+    await channel.send(config.welcome_message(self.bot))
     self.set_guild(guild.id)
 
   @commands.Cog.listener()
   async def on_guild_remove(self, guild):
     await relay_info(f"I have been removed from a guild, making the total **{len(self.bot.guilds)}**", self.bot, short=f"I have been removed from a guild, making the total {len(self.bot.guilds)}", webhook=self.log_join, logger=self.logger)
     await query(self.bot.mydb, "DELETE FROM servers WHERE id=%s", guild.id)
-    self.bot.remove_guild(guild.id)
+    self.remove_guild(guild.id)
 
   @commands.Cog.listener()
   async def on_member_join(self, member):
@@ -357,10 +376,33 @@ class Log(commands.Cog):
     if guild is not None:
       self.bot.saved_guilds[guild.id if isinstance(guild, discord.Guild) else guild]["lang"] = lang if lang is not None else guild.preferred_locale.split("-")[0] if isinstance(guild, discord.Guild) else "en"
 
-  def set_guild(self, guild: discord.Guild or int, prefix: str = config.defaultPrefix, tier: int = 0, autoDeleteMSG: int = None, muted: bool = False, chatChannel: int = None, lang: str = None):
+  def set_guild(
+          self,
+          guild: discord.Guild or int,
+          prefix: str = config.defaultPrefix,
+          tier: int = 0,
+          patreon_user: int = None,
+          autoDeleteMSG: int = None,
+          max_mentions: int = None,
+          max_messages: [int] = None,
+          muted: bool = False,
+          chatChannel: int = None,
+          lang: str = None):
     if guild is not None:
       guild = guild if isinstance(guild, discord.Guild) else self.bot.get_guild(guild)
-      self.bot.saved_guilds.update({guild.id if isinstance(guild, discord.Guild) else guild: {"prefix": prefix, "tier": tier, "autoDeleteMSGs": autoDeleteMSG, "muted": muted, "chatChannel": chatChannel if chatChannel is not None else None, "lang": lang if lang is not None else guild.preferred_locale.split("-")[0]}})
+      self.bot.saved_guilds.update(
+          {guild.id if isinstance(guild, discord.Guild) else guild: {
+              "prefix": prefix,
+              "tier": tier,
+              "patreon_user": patreon_user,
+              "autoDeleteMSGs": autoDeleteMSG,
+              "max_mentions": max_mentions,
+              "max_messages": max_messages,
+              "muted": muted,
+              "chatChannel": chatChannel if chatChannel is not None else None,
+              "lang": lang if lang is not None else guild.preferred_locale.split("-")[0]
+          }
+          })
 
   def remove_guild(self, guild: discord.Guild or int):
     if guild is None:
@@ -379,27 +421,27 @@ class Log(commands.Cog):
 
   @discord.utils.cached_property
   def log_spam(self) -> discord.Webhook:
-    return discord.Webhook.from_url(os.environ.get("WEBHOOKSPAM"), adapter=discord.AsyncWebhookAdapter(self.bot.session))
+    return discord.Webhook.from_url(os.environ.get("WEBHOOKSPAM"), session=aiohttp.ClientSession(loop=self.loop))
 
   @discord.utils.cached_property
   def log_chat(self) -> discord.Webhook:
-    return discord.Webhook.from_url(os.environ.get("WEBHOOKCHAT"), adapter=discord.AsyncWebhookAdapter(self.bot.session))
+    return discord.Webhook.from_url(os.environ.get("WEBHOOKCHAT"), session=aiohttp.ClientSession(loop=self.loop))
 
   @discord.utils.cached_property
   def log_info(self) -> discord.Webhook:
-    return discord.Webhook.from_url(os.environ.get("WEBHOOKINFO"), adapter=discord.AsyncWebhookAdapter(self.bot.session))
+    return discord.Webhook.from_url(os.environ.get("WEBHOOKINFO"), session=aiohttp.ClientSession(loop=self.loop))
 
   @discord.utils.cached_property
   def log_issues(self) -> discord.Webhook:
-    return discord.Webhook.from_url(os.environ.get("WEBHOOKISSUES"), adapter=discord.AsyncWebhookAdapter(self.bot.session))
+    return discord.Webhook.from_url(os.environ.get("WEBHOOKISSUES"), session=aiohttp.ClientSession(loop=self.loop))
 
   @discord.utils.cached_property
   def log_errors(self) -> discord.Webhook:
-    return discord.Webhook.from_url(os.environ.get("WEBHOOKERRORS"), adapter=discord.AsyncWebhookAdapter(self.bot.session))
+    return discord.Webhook.from_url(os.environ.get("WEBHOOKERRORS"), session=aiohttp.ClientSession(loop=self.loop))
 
   @discord.utils.cached_property
   def log_join(self) -> discord.Webhook:
-    return discord.Webhook.from_url(os.environ.get("WEBHOOKJOIN"), adapter=discord.AsyncWebhookAdapter(self.bot.session))
+    return discord.Webhook.from_url(os.environ.get("WEBHOOKJOIN"), session=aiohttp.ClientSession(loop=self.loop))
 
   async def log_spammer(self, ctx, message, retry_after, *, autoblock=False):
     guild_name = getattr(ctx.guild, "name", "No Guild/ DM Channel")
