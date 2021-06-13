@@ -175,7 +175,7 @@ class Chat(commands.Cog):
             title="Here is sum soup, just for you",
             color=MessageColors.SOUPTIME,
             description="I hope you enjoy!",
-            image=random.choice(config['soups'])
+            image=random.choice(config.soups)
         ))
 
       elif intent == "Stop":
@@ -185,7 +185,7 @@ class Chat(commands.Cog):
         return await ctx.channel.send(
             embed=embed(
                 title="No u!",
-                image=random.choice(config["unoCards"]),
+                image=random.choice(config.unoCards),
                 color=MessageColors.NOU))
 
       elif intent in ("Memes", "Memes - Another"):

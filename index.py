@@ -25,7 +25,7 @@ dead_nodes_sent = False
 
 async def get_prefix(bot, message):
   if hasattr(bot.log, "get_guild_prefix"):
-    return bot.log.get_guild_prefix(bot, message)
+    return await bot.log.get_guild_prefix(bot, message)
   return functions.config.defaultPrefix
 
 

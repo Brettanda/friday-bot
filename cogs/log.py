@@ -261,10 +261,14 @@ class Log(commands.Cog):
   def get_prefixes(self) -> [int]:
     return [g["prefix"] for g in self.bot.saved_guilds.values()] + ["/", "!", "%", ">", "?", "-", "(", ")"]
 
-  def get_guild_prefix(self, bot, message) -> str:
+  async def get_guild_prefix(self, bot, message) -> str:
     if not message.guild or message.guild.id == 707441352367013899:
       return commands.when_mentioned_or(config.defaultPrefix)(bot, message)
-    return commands.when_mentioned_or(self.bot.saved_guilds[message.guild.id]["prefix"] or config.defaultPrefix)(bot, message)
+    try:
+      return commands.when_mentioned_or(self.bot.saved_guilds[message.guild.id]["prefix"] or config.defaultPrefix)(bot, message)
+    except KeyError:
+      await self.on_guild_join(message.guild)
+      return commands.when_mentioned_or(self.bot.saved_guilds[message.guild.id]["prefix"] or config.defaultPrefix)(bot, message)
 
   def get_guild_delete_commands(self, guild: discord.Guild or int) -> int:
     if guild is not None:
