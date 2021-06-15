@@ -12,6 +12,7 @@ reloadable_bot = "Log"
 
 support_server_id = 707441352367013899
 
+
 def welcome_message(bot: "Bot", prefix=defaultPrefix) -> str:
   return (f"Thank you for inviting me to your server. My name is {bot.user.name}, and I like to party."
           f"I will respond to some chats directed towards me and commands. To get started with commands type `{prefix}help`.\n"
