@@ -236,7 +236,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     for command in commands:
       if command.hidden is False and command.enabled is True and command.cog_name not in cogs:
         cogs.append(command.cog_name)
-    with open("commands.md", "w") as f:
+    with open("docs/commands.md", "w") as f:
       f.write("# Commands\n\n")
       for cog in cogs:
         f.write(f"## {cog}\n\n")
@@ -255,7 +255,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       seperator = "\\\\"
     else:
       seperator = "/"
-    await ctx.reply(file=discord.File(fp=f"{thispath}{seperator}commands.md", filename="commands.md"))
+    await ctx.reply(file=discord.File(fp=f"{thispath}{seperator}docs{seperator}commands.md", filename="commands.md"))
 
   @norm_dev.command(name="html")
   async def html(self, ctx):

@@ -1,5 +1,7 @@
 # Commands
 
+All of the commands for Friday
+
 ## Music
 
 ### `!resume`
