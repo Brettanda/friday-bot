@@ -1,0 +1,19 @@
+name: ci
+on:
+  push:
+    branches:
+      - master
+      - canary
+      - dev
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+      - run: pip install mkdocs-material
+      - run: python build_docs.py
+      - run: mkdocs gh-deploy --force
