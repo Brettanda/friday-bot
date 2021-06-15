@@ -1,0 +1,65 @@
+# https://squidfunk.github.io/mkdocs-material/setup/setting-up-navigation/
+
+site_name: Friday Bot Docs
+site_url: https://docs.friday-bot.com
+repo_url: https://github.com/Brettanda/friday-discord-python
+repo_name: brettanda/friday-discord-python
+edit_uri: ''
+copyright: Copyright &copy; 2020 Brett Anda
+theme:
+  name: material
+  locale: en
+  highlightjs: true
+  language: en
+  logo: images/friday-logo-circle-150.png
+  favicon: images/friday-logo-circle-32.ico 
+  icon:
+    repo: fontawesome/brands/github
+  palette:
+    - scheme: default
+      media: "(prefers-color-scheme: light)"
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to dark mode
+    - scheme: slate
+      media: "(prefers-color-scheme: dark)"
+      toggle:
+        icon: material/weather-night
+        name: Switch to light mode
+  features:
+    - navigation.top
+    - navigation.instant
+    - navigation.sections
+    # - navigation.indexes
+    - search.suggest
+    - search.highlight
+  shortcuts:
+    help: 191    # ?
+    next: 78     # n
+    previous: 80 # p
+    search: 83   # s
+plugins:
+  - search
+  - git-revision-date-localized:
+      type: timeago
+markdown_extensions:
+  - toc:
+      permalink: true
+  - pymdownx.highlight
+  - pymdownx.superfences
+extra_javascript:
+  - https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.2/highlight.min.js
+  # - javascripts/config.js
+extra_css:
+  - stylesheets/extra.css
+  - https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.2/styles/default.min.css
+extra:
+  analytics:
+    provider: google
+    property: G-41TXJVRWT0
+  version:
+    default: DEV
+    provider: mike
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/Brettanda

@@ -1,12 +1,26 @@
 # Home
 
-Friday is a Discord chat bot that wants to be friends with everyone she meets.
+<a href="https://www.patreon.com/bePatron?u=42649008" data-patreon-widget-type="become-patron-button">Become a Patron!</a><script async src="https://c6.patreon.com/becomePatronButton.bundle.js"></script>
 
-## Features
+## How do commands
 
-### Moderation
+### Prefix
 
-## Chat
+The default prefix for Friday's commands is `!`, and for commands to execute every command needs this prefix or the custom prefix that you can set with the [prefix](/commands/server_moderation/#prefix) command.
+
+### How to read the commands
+
+## Languages
+
+Friday can speak every language available to Google translate, but can only speak one language at a time per server. To change which language Friday will respond in and to simply use the following command.
+
+```md
+!lang <language>
+
+eg.
+!lang spanish
+!lang es
+```
 
 <!-- For full documentation visit [mkdocs.org](https://www.mkdocs.org).
 
