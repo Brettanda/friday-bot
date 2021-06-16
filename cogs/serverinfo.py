@@ -9,7 +9,7 @@ if TYPE_CHECKING:
   from index import Friday as Bot
 
 
-class ServerInfo(commands.Cog):
+class ServerInfo(commands.Cog, name="Server Info"):
   def __init__(self, bot: "Bot"):
     self.bot = bot
 

@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 
 # TODO: make slash commands for this cog
-class CustomMusic(commands.Cog):
+class CustomMusic(commands.Cog, name="Custom Music"):
   """Asign music urls to a command so you dont have to find the url everytime you want to play `bruh 2`"""
 
   def __init__(self, bot: "Bot"):

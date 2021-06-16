@@ -37,8 +37,8 @@ async def build(bot: "Friday", prefix: str = "!"):
           usage = '\n'.join(syntax(com, quotes=False).split('\n'))
           # usage = discord.utils.escape_markdown(usage)  # .replace("<", "\\<")
           f.write(f"{com.description or ''}\n\n")
-          f.write(f"""Usage:\n\n```none\n{usage}\n```\n\n""")
-          f.write("Aliases:\n\n```none\n" + (f'{prefix}' + f",{prefix}".join(com.aliases) if len(com.aliases) > 0 else 'None') + "\n```\n\n")
+          f.write(f"""Usage:\n\n```md\n{usage}\n```\n\n""")
+          f.write("Aliases:\n\n```md\n" + (",".join(com.aliases) if len(com.aliases) > 0 else 'None') + "\n```\n\n")
           if hasattr(com, "commands"):
             # This is a command group
             for c in com.commands:
@@ -47,7 +47,7 @@ async def build(bot: "Friday", prefix: str = "!"):
               # usage = discord.utils.escape_markdown(usage)  # .replace("<", "\\<")
               f.write(f"{c.description or ''}\n")
               f.write(f"""Usage:\n\n```none\n{usage}\n```\n\n""")
-              f.write("Aliases:\n\n```none\n" + (f'{prefix}' + f",{prefix}".join(c.aliases) if len(c.aliases) > 0 else 'None') + "\n```\n\n")
+              f.write("Aliases:\n\n```none\n" + (",".join(c.aliases) if len(c.aliases) > 0 else 'None') + "\n```\n\n")
       f.close()
 
 

@@ -8,7 +8,7 @@ if TYPE_CHECKING:
   from index import Friday as Bot
 
 
-class TopGG(commands.Cog):
+class TopGG(commands.Cog, name="Top.gg"):
   """Handles interactions with the top.gg API"""
 
   def __init__(self, bot: "Bot"):

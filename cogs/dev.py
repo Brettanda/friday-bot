@@ -13,6 +13,7 @@ from discord_slash import SlashContext  # , cog_ext
 from typing_extensions import TYPE_CHECKING
 # from discord_slash.utils.manage_commands import create_option, create_choice
 
+from build_docs import build
 from cogs.help import cmd_help, syntax
 from functions import embed  # , MessageColors
 
@@ -231,31 +232,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
 
   @norm_dev.command(name="markdown", aliases=["md"])
   async def markdown(self, ctx):
-    commands = self.bot.commands
-    cogs = []
-    for command in commands:
-      if command.hidden is False and command.enabled is True and command.cog_name not in cogs:
-        cogs.append(command.cog_name)
-    with open("docs/commands.md", "w") as f:
-      f.write("# Commands\n\n")
-      for cog in cogs:
-        f.write(f"## {cog}\n\n")
-        for com in commands:
-          if com.hidden is False and com.enabled is True and com.cog_name == cog:
-            # f.write(f"""### {ctx.prefix}{com.name}\n{(f'Aliases: `{ctx.prefix}'+f", {ctx.prefix}".join(com.aliases)+'`') if len(com.aliases) > 0 else ''}\n{f'Description: {com.description}' if com.description != '' else ''}\n""")
-            f.write(f"### `{ctx.prefix}{com.name}`\n\n")
-            usage = '\n  '.join(syntax(com, quotes=False).split('\n'))
-            usage = discord.utils.escape_markdown(usage).replace("<", "\\<")
-            f.write(f"Usage:\n\n  {usage}\n\n")
-            f.write("Aliases: ```" + (f'{ctx.prefix}' + f",{ctx.prefix}".join(com.aliases) if len(com.aliases) > 0 else 'None') + "```\n\n")
-            f.write(f"Description: ```{com.description or 'None'}```\n\n")
-      f.close()
-    thispath = os.getcwd()
-    if "\\" in thispath:
-      seperator = "\\\\"
-    else:
-      seperator = "/"
-    await ctx.reply(file=discord.File(fp=f"{thispath}{seperator}docs{seperator}commands.md", filename="commands.md"))
+    await build(self.bot)
 
   @norm_dev.command(name="html")
   async def html(self, ctx):

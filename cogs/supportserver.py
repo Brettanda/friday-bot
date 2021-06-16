@@ -9,8 +9,9 @@ if TYPE_CHECKING:
 
 # import discord
 
+class SupportServer(commands.Cog, name="Support Server"):
+  """Every thing related to the [Friday development server](https://discord.gg/XP4avQ449V)"""
 
-class SupportServer(commands.Cog):
   def __init__(self, bot: "Bot"):
     self.bot = bot
     self.server_id = config.support_server_id

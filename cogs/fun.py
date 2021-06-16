@@ -21,6 +21,8 @@ with open('./config.json') as f:
 
 
 class Fun(commands.Cog):
+  """Fun things like games"""
+
   def __init__(self, bot: "Bot"):
     self.bot = bot
     self.rpsoptions = ["rock", "paper", "scissors"]

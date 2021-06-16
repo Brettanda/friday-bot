@@ -9,6 +9,8 @@ if TYPE_CHECKING:
 
 
 class Meme(commands.Cog):
+  """Memes"""
+
   def __init__(self, bot: "Bot"):
     self.bot = bot
     self.subs = ["dankmemes", "memes", "wholesomememes"]

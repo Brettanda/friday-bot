@@ -17,8 +17,8 @@ if TYPE_CHECKING:
   from index import Friday as Bot
 
 
-class ServerManage(commands.Cog):
-  """Commands for managing Friday on your server"""
+class ServerManage(commands.Cog, name="Server Moderation"):
+  """Manage your server with these commands"""
 
   def __init__(self, bot: "Bot"):
     self.bot = bot
