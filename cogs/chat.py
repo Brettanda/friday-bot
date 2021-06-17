@@ -4,15 +4,15 @@ import openai
 from discord.ext import commands
 from typing import TYPE_CHECKING
 
-from numpy import random
+# from numpy import random
 import validators
 import datetime
 
 from profanity import profanity
 from six.moves.html_parser import HTMLParser
 from google.cloud import translate_v2 as translate
-from functions import MessageColors, dev_guilds, embed, get_reddit_post, config, msg_reply, relay_info, checks  # , queryIntents
-
+from functions import relay_info, checks  # , queryIntents
+# MessageColors, dev_guilds, get_reddit_post, embed, config, msg_reply,
 if TYPE_CHECKING:
   from index import Friday as Bot
 
@@ -214,7 +214,7 @@ class Chat(commands.Cog):
       return
     lang = self.bot.log.get_guild_lang(msg.guild)
     tier = self.bot.log.get_guild_tier(msg.guild)
-    voted = await checks.user_voted(self.bot, msg.author)
+    # voted = await checks.user_voted(self.bot, msg.author)
 
     min_guild_one_guild = await checks.guild_is_min_tier(self.bot, msg.guild, "one_guild")
     min_user_one_guild = await checks.user_is_min_tier(self.bot, msg.author, "one_guild")

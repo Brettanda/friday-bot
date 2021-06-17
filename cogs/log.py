@@ -51,7 +51,7 @@ class Log(commands.Cog):
 
     if not hasattr(self, "super_spam_control"):
       self.super_spam_control = commands.CooldownMapping.from_cooldown(5, 60, commands.BucketType.user)
-    
+
     self.super_spam_counter = None
 
     if not hasattr(self, "_auto_spam_count"):
