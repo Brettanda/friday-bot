@@ -20,20 +20,6 @@ Aliases:
 None
 ```
 
-### Test
-
-Usage:
-
-```none
-patreon test 
-```
-
-Aliases:
-
-```none
-None
-```
-
 ### Server
 
 Usage:
