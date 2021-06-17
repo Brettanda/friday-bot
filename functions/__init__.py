@@ -1,7 +1,7 @@
 import os
 
 from .messagecolors import MessageColors
-from . import exceptions, checks, config, queryIntents, queryGen
+from .mysql_connection import mydb_connect, query
 from .myembed import embed
 
 from .custom_contexts import MyContext, MySlashContext
