@@ -25,18 +25,18 @@ dead_nodes_sent = False
 
 async def get_prefix(bot, message):
   if hasattr(bot.log, "get_guild_prefix"):
-    return bot.log.get_guild_prefix(bot, message)
+    return await bot.log.get_guild_prefix(bot, message)
   return functions.config.defaultPrefix
 
 
 class Friday(commands.AutoShardedBot):
   def __init__(self, **kwargs):
-    self.cluster_name = kwargs.get("cluster_name", "MAIN")
-    self.cluster_ids = kwargs.get("cluster_idx", None)
+    self.cluster_name = kwargs.get("cluster_name", None)
+    self.cluster_idx = kwargs.get("cluster_idx", 0)
     self.should_start = kwargs.get("start", False)
 
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
+    self.loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(self.loop)
     super().__init__(
         command_prefix=get_prefix or functions.config.defaultPrefix,
         strip_after_prefix=True,
@@ -46,10 +46,10 @@ class Friday(commands.AutoShardedBot):
         owner_id=215227961048170496,
         description=functions.config.description,
         # member_cache_flags=discord.MemberCacheFlags.voice(),
-        # fetch_offline_members=False,
+        fetch_offline_members=False,
         allowed_mentions=functions.config.allowed_mentions,
         # heartbeat_timeout=150.0,
-        **kwargs, loop=loop
+        loop=self.loop, **kwargs
     )
 
     self.restartPending = False
@@ -57,10 +57,11 @@ class Friday(commands.AutoShardedBot):
     self.songqueue = {}
     self.prod = True if len(sys.argv) > 1 and (sys.argv[1] == "--prod" or sys.argv[1] == "--production") else False
     self.canary = True if len(sys.argv) > 1 and (sys.argv[1] == "--canary") else False
+    self.ready = False
 
     self.load_extension("cogs.log")
     self.load_cogs()
-    self.logger.info(f"[CLUSTER #{self.cluster_name}] {kwargs.get('shard_ids', None)}, {kwargs.get('shard_count', 1)}")
+    self.logger.info(f"Cluster Starting {kwargs.get('shard_ids', None)}, {kwargs.get('shard_count', 1)}")
     if self.should_start:
       self.run(kwargs["token"])
 
@@ -83,6 +84,7 @@ class Friday(commands.AutoShardedBot):
         self.logger.error(f"Failed to load extenstion {cog} with \n {e}")
 
   async def reload_cogs(self):
+    self.ready = False
     reload(cogs)
     reload(functions)
 
@@ -92,8 +94,12 @@ class Friday(commands.AutoShardedBot):
 
     for i in cogs.default:
       self.reload_extension(f"cogs.{i}")
+    self.ready = True
 
   async def on_message(self, ctx):
+    if not self.ready:
+      return
+
     if ctx.author.bot:
       return
 

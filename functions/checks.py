@@ -61,14 +61,15 @@ async def guild_is_min_tier(bot: "Bot", guild: discord.Guild, tier: str) -> bool
 async def user_is_min_tier(bot: "Bot", user: discord.User, tier: str) -> bool:
   """ Checks if a user has at least patreon 'tier' """
 
-  if user.guild and user.guild.id != config.support_server_id:
-    user = None
+  if hasattr(user, "guild") and user.guild.id != config.support_server_id or not hasattr(user, "guild"):
+    member = None
     try:
-      user = await bot.get_guild(config.support_server_id).fetch_member(user.id)
+      member = await bot.get_guild(config.support_server_id).fetch_member(user.id)
     except Exception:
       return False
-  if not hasattr(user, "guild"):
-    return False
+    user = member
+  # if not hasattr(user, "guild"):
+  #   return False
   roles = [role.id for role in user.roles]
   if config.patreon_supporting_role not in roles:
     return False

@@ -9,6 +9,8 @@ if TYPE_CHECKING:
 
 
 class Invite(commands.Cog):
+  """Invite Friday to your server"""
+
   def __init__(self, bot: "Bot"):
     self.bot = bot
     self.id = 476303446547365891 if self.bot.prod else 760615464300445726 if self.bot.canary else 751680714948214855

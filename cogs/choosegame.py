@@ -19,30 +19,32 @@ class ChooseGame(commands.Cog):
   @tasks.loop(minutes=10.0)
   async def choose_game(self):
     # This might run per shard
-    for shard_id in self.bot.shards:
-      if random.random() < 0.6:
-        gm = random.choice(config.games)
+    # for shard_id in self.bot.shards:
+    shard_id = self.bot.shard_id
+    if random.random() < 0.6:
+      gm = random.choice(config.games)
 
-        if isinstance(gm, str):
-          await self.bot.change_presence(
-              activity=discord.Activity(
-                  type=discord.ActivityType.playing,
-                  name=gm
-              ),
-              shard_id=shard_id,
-          )
-        elif gm.get("stats", None) is True:
-          self.status_updates.start(shard_id)
-        else:
-          await self.bot.change_presence(
-              activity=discord.Activity(
-                  type=gm.get("type", discord.ActivityType.playing),
-                  name=gm["content"]
-              ),
-              shard_id=shard_id
-          )
+      if isinstance(gm, str):
+        await self.bot.change_presence(
+            activity=discord.Activity(
+                type=discord.ActivityType.playing,
+                name=gm
+            ),
+            shard_id=shard_id,
+        )
+      elif gm.get("stats", None) is True:
+        self.status_updates.start(shard_id)
       else:
-        await self.bot.change_presence(activity=None, shard_id=shard_id)
+        await self.bot.change_presence(
+            activity=discord.Activity(
+                type=gm.get("type", discord.ActivityType.playing),
+                name=gm["content"]
+            ),
+            shard_id=shard_id
+        )
+    else:
+      await self.bot.change_presence(activity=None, shard_id=shard_id)
+
     await asyncio.sleep(float(random.randint(5, 45)) * 60)
     if self.status_updates.is_running():
       self.status_updates.cancel()
@@ -58,12 +60,15 @@ class ChooseGame(commands.Cog):
   async def before_choose_game(self):
     await self.bot.wait_until_ready()
 
-  @tasks.loop(seconds=5)
+  @tasks.loop(minutes=1)
   async def status_updates(self, shard_id: int):
+    member_count = 0
+    for guild in self.bot.guilds:
+      member_count += guild.member_count
     await self.bot.change_presence(
         activity=discord.Activity(
             type=discord.ActivityType.watching,
-            name=f"{len(self.bot.guilds)} servers"
+            name=f"{len(self.bot.guilds)} servers with {member_count} members"
         ),
         shard_id=shard_id
     )
