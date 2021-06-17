@@ -114,14 +114,17 @@ class Support(commands.Cog, name="Support"):
     if self.bot.cluster_idx != 0:
       return
 
-    if invite is not None:
-      if hasattr(invite, "guild") and hasattr(invite.guild, "id") and invite.guild.id != self.server_id:
-        return
+    try:
+      if invite is not None:
+        if hasattr(invite, "guild") and hasattr(invite.guild, "id") and invite.guild.id != self.server_id:
+          return
 
-    if self.bot.get_guild(self.server_id) is not None:
-      for invite in await self.bot.get_guild(self.server_id).invites():
-        if invite.max_age == 0 and invite.max_uses == 0 and invite.inviter.id == self.bot.owner_id:
-          self.bot.invite_tracking.update({invite.code: invite.uses})
+      if self.bot.get_guild(self.server_id) is not None:
+        for invite in await self.bot.get_guild(self.server_id).invites():
+          if invite.max_age == 0 and invite.max_uses == 0 and invite.inviter.id == self.bot.owner_id:
+            self.bot.invite_tracking.update({invite.code: invite.uses})
+    except discord.Forbidden:
+      pass
 
   @commands.Cog.listener()
   async def on_member_join(self, member: discord.Member):
