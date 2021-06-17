@@ -13,13 +13,14 @@ if TYPE_CHECKING:
 
 
 import youtube_dl
-# import json
+import json
+import validators
 import asyncio
 import datetime
 import time
 # from cogs.cleanup import get_delete_time
 
-from functions import embed, MessageColors, exceptions, checks  # , relay_info
+from functions import embed, MessageColors, exceptions, checks, query  # , relay_info
 
 
 def can_play(ctx: commands.Context):
