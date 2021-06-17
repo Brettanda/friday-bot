@@ -57,6 +57,7 @@ class Friday(commands.AutoShardedBot):
     self.songqueue = {}
     self.prod = True if len(sys.argv) > 1 and (sys.argv[1] == "--prod" or sys.argv[1] == "--production") else False
     self.canary = True if len(sys.argv) > 1 and (sys.argv[1] == "--canary") else False
+    self.ready = False
 
     self.load_extension("cogs.log")
     self.load_cogs()
@@ -83,6 +84,7 @@ class Friday(commands.AutoShardedBot):
         self.logger.error(f"Failed to load extenstion {cog} with \n {e}")
 
   async def reload_cogs(self):
+    self.ready = False
     reload(cogs)
     reload(functions)
 
@@ -92,8 +94,12 @@ class Friday(commands.AutoShardedBot):
 
     for i in cogs.default:
       self.reload_extension(f"cogs.{i}")
+    self.ready = True
 
   async def on_message(self, ctx):
+    if not self.ready:
+      return
+
     if ctx.author.bot:
       return
 
