@@ -41,4 +41,4 @@ jobs:
           CLIENT_ID: ${{ secrets.CLIENT_ID }}
           CLIENT_CERT_URL: ${{ secrets.CLIENT_CERT_URL }}
           GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
-      - run: mkdocs gh-deploy --force
+      - run: mkdocs gh-deploy
