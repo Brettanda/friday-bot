@@ -39,7 +39,8 @@ class TopGG(commands.Cog):
 
   @tasks.loop(minutes=30.0)
   async def update_stats(self):
-    await self.bot.wait_until_ready()
+    if not self.bot.ready:
+      return
     self.bot.logger.info("Updating DBL stats")
     try:
       await self.topgg.post_guild_count(guild_count=len(self.bot.guilds), shard_count=self.bot.shard_count)
@@ -49,7 +50,8 @@ class TopGG(commands.Cog):
 
   @tasks.loop(minutes=1.0)
   async def update_votes(self):
-    await self.bot.wait_until_ready()
+    if not self.bot.ready:
+      return
     reset_time, notify_time = datetime.datetime.utcnow() - datetime.timedelta(hours=48), datetime.datetime.utcnow() - datetime.timedelta(hours=12)
     reset_time_formated, notify_time_formated = f"{reset_time.year}-{'0' if reset_time.month < 10 else ''}{reset_time.month}-{'0' if reset_time.day < 10 else ''}{reset_time.day} {'0' if reset_time.hour < 10 else ''}{reset_time.hour}:{'0' if reset_time.minute < 10 else ''}{reset_time.minute}:{'0' if reset_time.second < 10 else ''}{reset_time.second}", f"{notify_time.year}-{'0' if notify_time.month < 10 else ''}{notify_time.month}-{'0' if notify_time.day < 10 else ''}{notify_time.day} {'0' if notify_time.hour < 10 else ''}{notify_time.hour}:{'0' if notify_time.minute < 10 else ''}{notify_time.minute}:{'0' if notify_time.second < 10 else ''}{notify_time.second}"
     votes = await query(self.bot.mydb, f"SELECT id FROM votes WHERE voted_time < timestamp('{reset_time_formated}')")
