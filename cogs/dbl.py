@@ -1,7 +1,7 @@
 import os
-import discord
+# import discord
 import topgg
-import asyncio
+# import asyncio
 import datetime
 from discord.ext import commands, tasks
 from typing_extensions import TYPE_CHECKING

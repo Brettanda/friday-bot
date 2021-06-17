@@ -6,7 +6,7 @@ from slugify import slugify
 import pycountry
 
 import discord
-import datetime
+# import datetime
 
 # from PIL import Image, ImageDraw
 # https://code-maven.com/create-images-with-python-pil-pillow
