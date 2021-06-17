@@ -90,4 +90,5 @@ spacy==3.0.6
 google-cloud-translate==2.0.1
 pycountry==20.7.3
 pyspellchecker==0.6.2
+openai==0.6.3
 python-slugify==5.0.2
