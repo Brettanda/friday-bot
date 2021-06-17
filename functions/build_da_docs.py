@@ -37,10 +37,11 @@ def build(bot: "Friday", prefix: str = "!"):
           if hasattr(com, "commands"):
             # This is a command group
             for c in com.commands:
-              f.write(f"### {c.name.capitalize()}\n")
-              usage = '\n'.join(syntax(c, quotes=False).split('\n'))
-              # usage = discord.utils.escape_markdown(usage)  # .replace("<", "\\<")
-              f.write(f"{c.help or ''}\n")
-              f.write(f"""Usage:\n\n```none\n{usage}\n```\n\n""")
-              f.write("Aliases:\n\n```none\n" + (",".join(c.aliases) if len(c.aliases) > 0 else 'None') + "\n```\n\n")
+              if c.hidden is False and c.enabled is True:
+                f.write(f"### {c.name.capitalize()}\n")
+                usage = '\n'.join(syntax(c, quotes=False).split('\n'))
+                # usage = discord.utils.escape_markdown(usage)  # .replace("<", "\\<")
+                f.write(f"{c.help or ''}\n")
+                f.write(f"""Usage:\n\n```none\n{usage}\n```\n\n""")
+                f.write("Aliases:\n\n```none\n" + (",".join(c.aliases) if len(c.aliases) > 0 else 'None') + "\n```\n\n")
       f.close()
