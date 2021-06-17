@@ -250,6 +250,7 @@ class Chat(commands.Cog):
     await self.bot.wait_until_ready()
     if content_filter != 2:
       await msg.reply(content=response if content_filter == 0 else f"{self.possible_sensitive_message}{response}||", allowed_mentions=discord.AllowedMentions.none(), mention_author=False)
+      await relay_info(f"{msg.author}:{msg.clean_content}\nMe:{response}", self.bot, webhook=self.bot.log.log_chat)
     elif content_filter == 2:
       await msg.reply(content=self.possible_offensive_message, mention_author=False)
       await relay_info(f"Possible offensive message: {response}", self.bot, webhook=self.bot.log.log_chat)
