@@ -5,7 +5,7 @@ import signal
 import time
 import multiprocessing
 import logging
-
+import discord
 import requests
 
 from index import Friday
@@ -19,9 +19,9 @@ logger = logging.getLogger("Cluster#Launcher")
 # )
 logger.setLevel(logging.INFO)
 hdlr = logging.StreamHandler()
-hdlr.setFormatter(logging.Formatter("%(asctime)s:%(name)s:%(levelname)-8s%(message)s"))
+hdlr.setFormatter(logging.Formatter("%(levelname)s:%(name)s: %(message)s"))
 fhdlr = logging.FileHandler("logging.log", encoding="utf-8")
-fhdlr.setFormatter(logging.Formatter("%(asctime)s:%(name)s:%(levelname)-8s%(message)s"))
+fhdlr.setFormatter(logging.Formatter("%(asctime)s:%(levelname)s:%(name)s: %(message)s"))
 logger.handlers = [hdlr, fhdlr]
 
 CLUSER_NAMES = (
@@ -42,7 +42,7 @@ if len(sys.argv) > 1:
 
 
 class Launcher:
-  def __init__(self, loop):
+  def __init__(self, loop: asyncio.AbstractEventLoop):
     self.cluster_queue = []
     self.clusters = []
 
@@ -57,8 +57,8 @@ class Launcher:
     data = requests.get(
         "https://discord.com/api/v9/gateway/bot",
         headers={
-            "Authorization": f"Bot {TOKEN}",
-            "User-Agent": 'DiscordBot (https://github.com/Rapptz/discord.py 1.7.2) Python/3.8 aiohttp/3.7.4'
+            "Authorization": f"Bot {os.environ.get('TOKEN')}",
+            "User-Agent": f'DiscordBot (https://github.com/Rapptz/discord.py {discord.__version__}) Python/{sys.version_info.major}.{sys.version_info.minor} requests/{requests.__version__}'
         }
     )
     data.raise_for_status()
@@ -78,7 +78,10 @@ class Launcher:
 
   def cleanup(self):
     self.loop.stop()
-    self.loop.close()
+    try:
+      self.loop.close()
+    except Exception:
+      pass
 
   def task_complete(self, task):
     if task.exception():
@@ -88,7 +91,8 @@ class Launcher:
 
   async def startup(self):
     shards = list(range(self.get_shard_count()))
-    size = [shards[x:x + 4] for x in range(0, len(shards), 4)]
+    max_shards = 5
+    size = [shards[x:x + max_shards] for x in range(0, len(shards), max_shards)]
     logger.info(f"Preparing {len(size)} clusters")
     for shard_ids in size:
       self.cluster_queue.append(Cluster(self, next(NAMES), shard_ids, len(shards)))
@@ -110,13 +114,21 @@ class Launcher:
   async def rebooter(self):
     while self.alive:
       if not self.clusters:
-        logger.info("All clusters appear to be dead")
+        logger.warning("All clusters appear to be dead")
         asyncio.ensure_future(self.shutdown())
+      to_remove = []
       for cluster in self.clusters:
         if not cluster.process.is_alive():
-          logger.info(f"CLUSTER #{cluster.name} exited with code {cluster.process.exitcode}")
-          logger.info(f"Restarting cluster #{cluster.name}")
-          await cluster.start()
+          if cluster.process.exitcode != 0:
+            logger.info(f"CLUSTER #{cluster.name} exited with code {cluster.process.exitcode}")
+            logger.info(f"Restarting cluster #{cluster.name}")
+            await cluster.start()
+          else:
+            logger.info(f"CLUSTER #{cluster.name} is dead")
+            to_remove.append(cluster)
+            cluster.stop()
+      for rem in to_remove:
+        self.clusters.remove(rem)
       await asyncio.sleep(5)
 
   async def start_cluster(self):
@@ -143,20 +155,19 @@ class Cluster:
     self.logger = logging.getLogger(f"Cluster#{name}")
     self.logger.setLevel(logging.INFO)
     hdlr = logging.StreamHandler()
-    hdlr.setFormatter(logging.Formatter("%(asctime)s:%(name)s:%(levelname)-8s%(message)s"))
+    hdlr.setFormatter(logging.Formatter("%(levelname)s:%(name)s: %(message)s"))
     fhdlr = logging.FileHandler("logging.log", encoding="utf-8")
-    fhdlr.setFormatter(logging.Formatter("%(asctime)s:%(name)s:%(levelname)-8s%(message)s"))
+    fhdlr.setFormatter(logging.Formatter("%(asctime)s:%(levelname)s:%(name)s: %(message)s"))
     self.logger.handlers = [hdlr, fhdlr]
     self.logger.info(f"Initialized with shard ids {shard_ids}, total shards {max_shards}")
 
-  def wait_close(self):
-    return self.process.join()
+  # def wait_close(self):
+  #   return self.process.join()
 
   async def start(self, *, force=False):
     if self.process and self.process.is_alive():
       if not force:
-        self.logger.info("Start called with already running cluster, pass `force=True` to override")
-        return
+        return self.logger.warning("Start called with already running cluster, pass `force=True` to override")
       self.logger.info("Terminating existing process")
       self.process.terminate()
       self.process.close()
