@@ -2,22 +2,6 @@
 
 Fun things like games
 
-## Souptime
-
-Soup Time
-
-Usage:
-
-```md
-souptime 
-```
-
-Aliases:
-
-```md
-None
-```
-
 ## Rockpaperscissors
 
 Play Rock Paper Scissors with Friday
@@ -112,5 +96,21 @@ Aliases:
 
 ```md
 cd
+```
+
+## Souptime
+
+Soup Time
+
+Usage:
+
+```md
+souptime 
+```
+
+Aliases:
+
+```md
+None
 ```
 
