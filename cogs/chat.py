@@ -96,9 +96,9 @@ class Chat(commands.Cog):
         content = self.saved_translations[message.clean_content] if self.saved_translations.get(message.clean_content, None) is not None else message.clean_content
         # content = message.clean_content  # profanity.censor(message.clean_content)
         if self.possible_sensitive_message in content:
-          content.replace(self.possible_sensitive_message, "").replace("||", "")
+          content = content.replace(self.possible_sensitive_message, "").replace("||", "")
         if self.possible_offensive_message in content:
-          content.replace(self.possible_offensive_message, "")
+          content = content.replace(self.possible_offensive_message, "")
         if message.author == msg.author and message.clean_content not in prompt:
           prompt = f"{member_name}: {content}\n" + prompt
           x += 1
