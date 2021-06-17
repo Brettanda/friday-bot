@@ -5,8 +5,8 @@
 # Required
 version: 2
 
-mkdocs:
-  configuration: mkdocs.yml
+# mkdocs:
+#   configuration: mkdocs.yml
 
 # Optionally build your docs in additional formats such as PDF
 formats: []
@@ -16,8 +16,8 @@ formats: []
   
 
 # Optionally set the version of Python and requirements required to build your docs
-python:
-   version: 3.8
-   install:
-    - requirements: docs/requirements.txt
-    - requirements: requirements.txt
+# python:
+#    version: 3.8
+#    install:
+#     - requirements: docs/requirements.txt
+#     - requirements: requirements.txt
