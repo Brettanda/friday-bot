@@ -20,6 +20,7 @@ openai.api_key = os.environ.get("OPENAI")
 # profanity.set_censor_characters("😡")
 profanity.get_words
 
+
 class Chat(commands.Cog):
   def __init__(self, bot: "Bot"):
     self.bot = bot
@@ -219,6 +220,9 @@ class Chat(commands.Cog):
     min_guild_one_guild = await checks.guild_is_min_tier(self.bot, msg.guild, "one_guild")
     min_user_one_guild = await checks.user_is_min_tier(self.bot, msg.author, "one_guild")
 
+    # if not self.bot.canary:
+    #   if not voted and not min_guild_one_guild and not min_user_one_guild:
+    #     return await self.free_model(msg, lang=lang, tier=tier, voted=voted)
 
     min_guild_tier_two_one_guild = await checks.guild_is_min_tier(self.bot, msg.guild, "tier_two_one_guild")
     min_user_tier_two_one_guild = await checks.user_is_min_tier(self.bot, msg.author, "tier_two_one_guild")
