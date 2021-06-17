@@ -11,6 +11,7 @@ from cogs.help import cmd_help
 from functions import MessageColors, embed, mydb_connect, query, relay_info, exceptions, config  # ,choosegame
 import traceback
 
+from discord import AsyncWebhookAdapter
 import os
 
 if TYPE_CHECKING:
@@ -39,8 +40,6 @@ class Log(commands.Cog):
 
     # self.bot.add_check(is_enabled)
 
-    if not hasattr(self.bot, "session"):
-      self.bot.session = aiohttp.ClientSession(loop=self.loop)
 
     if not hasattr(self.bot, "spam_control"):
       self.bot.spam_control = commands.CooldownMapping.from_cooldown(5, 15.0, commands.BucketType.user)
