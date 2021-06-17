@@ -2,22 +2,6 @@
 
 
 
-## Join
-
-Join a voice channel
-
-Usage:
-
-```md
-join <channel>
-```
-
-Aliases:
-
-```md
-None
-```
-
 ## Skip
 
 Skips the current song
@@ -82,6 +66,22 @@ Aliases:
 None
 ```
 
+## Join
+
+Join a voice channel
+
+Usage:
+
+```md
+join <channel>
+```
+
+Aliases:
+
+```md
+None
+```
+
 ## Pause
 
 Pause the current track
@@ -122,30 +122,16 @@ Usage:
 
 ```md
 custom|c <name>
-custom|c change <name> <url>
 custom|c remove <name>
 custom|c add <name> <url>
 custom|c list 
+custom|c change <name> <url>
 ```
 
 Aliases:
 
 ```md
 c
-```
-
-### Change
-
-Usage:
-
-```none
-custom change|replace <name> <url>
-```
-
-Aliases:
-
-```none
-replace
 ```
 
 ### Remove
@@ -188,5 +174,19 @@ Aliases:
 
 ```none
 None
+```
+
+### Change
+
+Usage:
+
+```none
+custom change|replace <name> <url>
+```
+
+Aliases:
+
+```none
+replace
 ```
 

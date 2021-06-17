@@ -2,52 +2,20 @@
 
 Fun things like games
 
-## Countdown
+## Souptime
 
-Start a countdown
-
-Usage:
-
-```md
-countdown|cd <title> <hours> <minutes> <seconds>
-```
-
-Aliases:
-
-```md
-cd
-```
-
-## Gametime
-
-Ping a role that is attached to a game and see who wants to play
+Soup Time
 
 Usage:
 
 ```md
-gametime <role> <message>
+souptime 
 ```
 
 Aliases:
 
 ```md
 None
-```
-
-## Minesweeper
-
-Play minesweeper
-
-Usage:
-
-```md
-minesweeper|ms [size=5] [bomb_count=6]
-```
-
-Aliases:
-
-```md
-ms
 ```
 
 ## Rockpaperscissors
@@ -66,6 +34,22 @@ Aliases:
 rps
 ```
 
+## Minesweeper
+
+Play minesweeper
+
+Usage:
+
+```md
+minesweeper|ms [size=5] [bomb_count=6]
+```
+
+Aliases:
+
+```md
+ms
+```
+
 ## Poll
 
 Make a poll. Seperate the options with `;;`
@@ -74,22 +58,6 @@ Usage:
 
 ```md
 poll <title> <options>
-```
-
-Aliases:
-
-```md
-None
-```
-
-## Souptime
-
-Soup Time
-
-Usage:
-
-```md
-souptime 
 ```
 
 Aliases:
@@ -112,5 +80,37 @@ Aliases:
 
 ```md
 coin
+```
+
+## Gametime
+
+Ping a role that is attached to a game and see who wants to play
+
+Usage:
+
+```md
+gametime <role> <message>
+```
+
+Aliases:
+
+```md
+None
+```
+
+## Countdown
+
+Start a countdown
+
+Usage:
+
+```md
+countdown|cd <title> <hours> <minutes> <seconds>
+```
+
+Aliases:
+
+```md
+cd
 ```
 
