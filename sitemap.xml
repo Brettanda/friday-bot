@@ -11,6 +11,16 @@
          <changefreq>daily</changefreq>
     </url>
     <url>
+         <loc>https://docs.friday-bot.com/patreon/</loc>
+         <lastmod>2021-06-17</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
+         <loc>https://docs.friday-bot.com/commands/chat/</loc>
+         <lastmod>2021-06-17</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
          <loc>https://docs.friday-bot.com/commands/dice/</loc>
          <lastmod>2021-06-17</lastmod>
          <changefreq>daily</changefreq>
