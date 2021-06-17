@@ -15,7 +15,7 @@ class Info(commands.Cog):
   def __init__(self, bot: "Bot"):
     self.bot = bot
 
-  @commands.group(name="info", description="Displays some information about myself :)")
+  @commands.group(name="info", aliases=["about"], help="Displays some information about myself :)")
   async def norm_info(self, ctx):
     await ctx.reply(**await self.info(ctx))
 

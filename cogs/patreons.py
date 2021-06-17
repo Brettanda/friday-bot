@@ -38,11 +38,11 @@ class Patreons(commands.Cog):
   async def norm_patreon_server_true(self, ctx):
     guild_id, tier, patreon_user = (await query(self.bot.mydb, "SELECT id,tier,patreon_user FROM servers WHERE id=%s", ctx.guild.id))[0]
     if tier is None or patreon_user is None:
-      user_tier = await self.bot.fetch_user_tier(ctx.author)
+      user_tier = await self.bot.log.fetch_user_tier(ctx.author)
       if user_tier == "one_guild" and len(await query(self.bot.mydb, "SELECT id,tier,patreon_user FROM servers WHERE patreon_user=%s", ctx.author.id)) >= 1:
         return await ctx.reply(embed=embed(title="You have already used your patronage on another server", color=MessageColors.ERROR))
       await query(self.bot.mydb, "UPDATE servers SET tier=%s, patreon_user=%s WHERE id=%s", str(user_tier), int(ctx.author.id), int(ctx.guild.id))
-      self.bot.change_guild_tier(ctx.guild.id, user_tier)
+      self.bot.log.change_guild_tier(ctx.guild.id, user_tier)
       await ctx.reply(embed=embed(title="New server activated"))
     elif patreon_user == ctx.author.id:
       await ctx.reply(embed=embed(title="You have already activated this server"))

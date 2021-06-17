@@ -40,7 +40,7 @@ class Chat(commands.Cog):
     # if not hasattr(self, "chat_spam_control"):
     #   self.chat_spam_control = commands.CooldownMapping.from_cooldown(5, 15.0, commands.BucketType.channel)
 
-  @commands.command(name="say", aliases=["repeat"], description="Make Friday say what ever you want")
+  @commands.command(name="say", aliases=["repeat"], help="Make Friday say what ever you want")
   async def say(self, ctx, content: str):
     if content == ("im stupid", "i'm stupid", "i am dumb", "im dumb"):
       return await ctx.reply("yeah we know", allowed_mentions=discord.AllowedMentions(roles=False, everyone=False, users=False))

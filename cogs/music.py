@@ -194,9 +194,9 @@ class Music(commands.Cog):
     else:
       await ctx.guild.voice_client.disconnect()
       # if looping:
-      return await ctx.send(embed=embed(title="Finished the queue", color=MessageColors.MUSIC), delete_after=self.bot.get_guild_delete_commands(ctx.guild))
+      return await ctx.send(embed=embed(title="Finished the queue", color=MessageColors.MUSIC), delete_after=self.bot.log.get_guild_delete_commands(ctx.guild))
 
-  @commands.command(name="play", aliases=['p', 'add'], usage="<url/title>", description="Follow this command with the title of a song to search for it or just paste the Youtube/SoundCloud url if the search gives and undesirable result")
+  @commands.command(name="play", aliases=['p', 'add'], usage="<url/title>", help="Follow this command with the title of a song to search for it or just paste the Youtube/SoundCloud url if the search gives and undesirable result")
   @commands.guild_only()
   @commands.max_concurrency(1, commands.BucketType.guild, wait=True)
   @commands.bot_has_permissions(send_messages=True, embed_links=True, read_messages=True)
@@ -288,7 +288,7 @@ class Music(commands.Cog):
     # except:
     # await self.tryagain(ctx)
 
-  @commands.command(name="stop", aliases=["disconnect"])
+  @commands.command(name="stop", aliases=["disconnect"], help="Stops the currently playing music", brief="Stops the music")
   @commands.guild_only()
   async def norm_stop(self, ctx):
     await self.stop(ctx)
@@ -330,12 +330,12 @@ class Music(commands.Cog):
         return await ctx.send(**await self.tryagain(ctx))
       return await ctx.reply(**await self.tryagain(ctx))
 
-  @commands.command(name="skip")
+  @commands.command(name="skip", help="Skips the current song")
   @commands.guild_only()
   @commands.bot_has_permissions(send_messages=True, embed_links=True, read_messages=True)
   async def norm_skip(self, ctx):
     try:
-      await ctx.message.delete(delay=self.bot.get_guild_delete_commands(ctx.guild))
+      await ctx.message.delete(delay=self.bot.log.get_guild_delete_commands(ctx.guild))
     except discord.NotFound:
       pass
     await self.skip(ctx)
@@ -376,7 +376,7 @@ class Music(commands.Cog):
                   thumbnail=thumbnail,
                   fieldstitle=["Duration", "Total songs in queue"],
                   fieldsval=[duration, songsinqueue]
-              ), delete_after=self.bot.get_guild_delete_commands(ctx.guild)
+              ), delete_after=self.bot.log.get_guild_delete_commands(ctx.guild)
           )
       else:
         voice = discord.utils.get(self.bot.voice_clients, guild=ctx.guild)
@@ -401,7 +401,7 @@ class Music(commands.Cog):
   # async def shuffle(self,ctx):
 
   # TODO: Check for queue length so discord message is less than max message character count
-  @commands.command(name="queue")
+  @commands.command(name="queue", help="shows the song queue")
   @commands.guild_only()
   async def norm_queue(self, ctx):
     await self.queue(ctx)
@@ -443,7 +443,7 @@ class Music(commands.Cog):
         return await ctx.send(**await self.tryagain(ctx))
       return await ctx.reply(**await self.tryagain(ctx))
 
-  @commands.command(name="pause")
+  @commands.command(name="pause", help="Pause the current track")
   @commands.guild_only()
   async def norm_pause(self, ctx):
     await self.pause(ctx)
@@ -476,7 +476,7 @@ class Music(commands.Cog):
         return await ctx.send(**await self.tryagain(ctx))
       return await ctx.reply(**await self.tryagain(ctx))
 
-  @commands.command(name="resume")
+  @commands.command(name="resume", help="Resume the current track")
   @commands.guild_only()
   async def norm_resume(self, ctx):
     await self.resume(ctx)

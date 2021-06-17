@@ -15,7 +15,7 @@ class Ping(commands.Cog):
   def __init__(self, bot: "Bot"):
     self.bot = bot
 
-  @commands.command(name="ping", description="Pong!")
+  @commands.command(name="ping", help="Pong!")
   async def norm_ping(self, ctx):
     # view = discord.ui.View()
     # message = await ctx.channel.send(**await self.ping(ctx))
