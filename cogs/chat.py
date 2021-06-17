@@ -26,7 +26,7 @@ class Chat(commands.Cog):
     self.bot = bot
     if not hasattr(self, "translate_client"):
      self.translate_client = translate.Client()  # _http=self.bot.http)
-   self.h = HTMLParser()
+    self.h = HTMLParser()
     if not hasattr(self, "saved_translations"):
       self.saved_translations = {}
 
