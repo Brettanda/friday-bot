@@ -11,7 +11,10 @@ from cogs.help import cmd_help
 from functions import MessageColors, embed, mydb_connect, query, relay_info, exceptions, config  # ,choosegame
 import traceback
 
-from discord import AsyncWebhookAdapter
+if discord.__version__ == "1.7.3":
+  from discord import AsyncWebhookAdapter
+else:
+  from discord.webhook.async_ import AsyncWebhookAdapter
 import os
 
 if TYPE_CHECKING:
@@ -420,23 +423,39 @@ class Log(commands.Cog):
 
   @discord.utils.cached_property
   def log_spam(self) -> discord.Webhook:
+    if discord.__version__ == "1.7.3":
+      return discord.Webhook.from_url(os.environ.get("WEBHOOKSPAM"), adapter=AsyncWebhookAdapter(aiohttp.ClientSession(loop=self.loop)))
     return discord.Webhook.from_url(os.environ.get("WEBHOOKSPAM"), session=aiohttp.ClientSession(loop=self.loop))
 
   @discord.utils.cached_property
   def log_chat(self) -> discord.Webhook:
+    if discord.__version__ == "1.7.3":
+      return discord.Webhook.from_url(os.environ.get("WEBHOOKCHAT"), adapter=AsyncWebhookAdapter(aiohttp.ClientSession(loop=self.loop)))
     return discord.Webhook.from_url(os.environ.get("WEBHOOKCHAT"), session=aiohttp.ClientSession(loop=self.loop))
 
   @discord.utils.cached_property
   def log_info(self) -> discord.Webhook:
+    if discord.__version__ == "1.7.3":
+      return discord.Webhook.from_url(os.environ.get("WEBHOOKINFO"), adapter=AsyncWebhookAdapter(aiohttp.ClientSession(loop=self.loop)))
     return discord.Webhook.from_url(os.environ.get("WEBHOOKINFO"), session=aiohttp.ClientSession(loop=self.loop))
 
   @discord.utils.cached_property
   def log_issues(self) -> discord.Webhook:
+    if discord.__version__ == "1.7.3":
+      return discord.Webhook.from_url(os.environ.get("WEBHOOKISSUES"), adapter=AsyncWebhookAdapter(aiohttp.ClientSession(loop=self.loop)))
     return discord.Webhook.from_url(os.environ.get("WEBHOOKISSUES"), session=aiohttp.ClientSession(loop=self.loop))
 
   @discord.utils.cached_property
   def log_errors(self) -> discord.Webhook:
+    if discord.__version__ == "1.7.3":
+      return discord.Webhook.from_url(os.environ.get("WEBHOOKERRORS"), adapter=AsyncWebhookAdapter(aiohttp.ClientSession(loop=self.loop)))
     return discord.Webhook.from_url(os.environ.get("WEBHOOKERRORS"), session=aiohttp.ClientSession(loop=self.loop))
+
+  @discord.utils.cached_property
+  def log_bumps(self) -> discord.Webhook:
+    if discord.__version__ == "1.7.3":
+      return discord.Webhook.from_url(os.environ.get("WEBHOOKBUMPS"), adapter=AsyncWebhookAdapter(aiohttp.ClientSession(loop=self.loop)))
+    return discord.Webhook.from_url(os.environ.get("WEBHOOKBUMPS"), session=aiohttp.ClientSession(loop=self.loop))
 
   @discord.utils.cached_property
   def log_join(self) -> discord.Webhook:
