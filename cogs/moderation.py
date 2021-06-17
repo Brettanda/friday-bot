@@ -2,6 +2,7 @@ import asyncio
 import typing
 # import datetime
 # import validators
+from slugify import slugify
 import pycountry
 
 import discord
@@ -42,6 +43,14 @@ class Moderation(commands.Cog):
       raise commands.NoPrivateMessage("This command can only be used within a guild")
     return True
 
+  @commands.Cog.listener()
+  async def on_ready(self):
+    blacklists = await query(self.bot.mydb, "SELECT * FROM blacklist")
+    for server, word in blacklists:
+      if server not in self.blacklist:
+        self.blacklist[int(server)] = [word]
+      else:
+        self.blacklist[int(server)].append(word)
 
   @commands.command(name="defaultrole", hidden=True, help="Set the role that is given to new members when they join the server")
   @commands.is_owner()
@@ -202,6 +211,79 @@ class Moderation(commands.Cog):
   #   async for message in ctx.channel.history():
   #     if message.author == self.bot.user:
   #       print("")
+
+  def do_slugify(self, string):
+    string = slugify(string).replace("-", "")
+    for old, new in (("4", "a"), ("@", "a"), ("3", "e"), ("1", "i"), ("0", "o"), ("7", "t"), ("5", "s")):
+      string = string.replace(old, new)
+
+    return string.lower()
+
+  async def check_blacklist(self, msg: discord.Message):
+    bypass = msg.author.guild_permissions.manage_guild
+    if bypass:
+      return
+    cleansed_msg = self.do_slugify(msg.clean_content)
+    try:
+      if msg.guild.id in self.blacklist:
+        for blacklisted_word in self.blacklist[msg.guild.id]:
+          if blacklisted_word in cleansed_msg:
+            try:
+              await msg.delete()
+              return await msg.author.send(f"""Your message `{msg.content}` was removed for containing the blacklisted word `{blacklisted_word}`""")
+            except Exception as e:
+              await relay_info(f"Error when trying to remove message {type(e).__name__}: {e}")
+    except Exception as e:
+      await relay_info(f"Error when trying to remove message (big) {type(e).__name__}: {e}")
+
+  @commands.group(name="blacklist", aliases=["bl"], invoke_without_command=True, case_insensitive=True)
+  @commands.guild_only()
+  @commands.has_guild_permissions(manage_guild=True)
+  async def _blacklist(self, ctx: commands.Context):
+    await ctx.send_help(ctx.command)
+    # await cmd_help(ctx, ctx.command)
+
+  @_blacklist.command(name="add", aliases=["+"])
+  @commands.guild_only()
+  @commands.has_guild_permissions(manage_guild=True)
+  async def _blacklist_add_word(self, ctx, *, word: str):
+    cleansed_word = self.do_slugify(word)
+    await query(self.bot.mydb, "INSERT IGNORE INTO blacklist VALUES (%s,%s)", ctx.guild.id, cleansed_word)
+    try:
+      self.blacklist[ctx.guild.id].append(cleansed_word)
+    except KeyError:
+      self.blacklist[ctx.guild.id] = [cleansed_word]
+    word = word
+    await ctx.reply(embed=embed(title=f"Added `{word}` to the blacklist"))
+
+  @_blacklist.command(name="remove", aliases=["-"])
+  @commands.guild_only()
+  @commands.has_guild_permissions(manage_guild=True)
+  async def _blacklist_remove_word(self, ctx, *, word: str):
+    cleansed_word = word
+    if cleansed_word not in self.blacklist[ctx.guild.id]:
+      return await ctx.reply(embed=embed(title="You don't seem to blacklisting that word"))
+    await query(self.bot.mydb, "DELETE FROM blacklist WHERE (id=%s AND word=%s)", ctx.guild.id, cleansed_word)
+    self.blacklist[ctx.guild.id].remove(cleansed_word)
+    word = word
+    await ctx.reply(embed=embed(title=f"Removed `{word}` from the blacklist"))
+
+  @_blacklist.command(name="display", aliases=["list", "show"])
+  @commands.guild_only()
+  @commands.has_guild_permissions(manage_guild=True)
+  async def _blacklist_display_words(self, ctx):
+    words = await query(self.bot.mydb, "SELECT word FROM blacklist WHERE id=%s", ctx.guild.id, rlist=True)
+    if words == [] or words is None:
+      return await ctx.reply(embed=embed(title=f"No blacklisted words yet, use `{ctx.prefix}blacklist add <word>` to get started"))
+    await ctx.reply(embed=embed(title="Blocked words", description='\n'.join(x[0] for x in words)))
+
+  @_blacklist.command(name="clear")
+  @commands.guild_only()
+  @commands.has_guild_permissions(manage_guild=True)
+  async def _blacklist_clear(self, ctx):
+    await query("DELETE FROM blacklist WHERE id=%s", ctx.guid.id)
+    self.blacklist[ctx.guild.id] = []
+    await ctx.reply(embed=embed(title="Removed all blacklisted words"))
 
   @commands.command(name="kick")
   @commands.bot_has_guild_permissions(kick_members=True)
@@ -557,6 +639,26 @@ class Moderation(commands.Cog):
         ctx.reply(embed=embed(title="Message has been removed"), delete_after=20),
         ctx.message.delete(delay=20)
     )
+
+  @commands.Cog.listener()
+  async def on_message_edit(self, before, after):
+    if before.guild is None:
+      return
+    if before.author.bot:
+      return
+    bypass = before.author.guild_permissions.manage_guild
+    if bypass:
+      return
+    await self.check_blacklist(after)
+
+  @commands.Cog.listener()
+  async def on_message(self, msg: discord.Message):
+    if not msg.guild or msg.author.bot:
+      return
+    bypass = msg.author.guild_permissions.manage_guild if isinstance(msg.author, discord.Member) else False
+    if bypass:
+      return
+    await self.check_blacklist(msg)
 
   @commands.command(name="mute", help="Mute a member from text channels")
   @commands.guild_only()
