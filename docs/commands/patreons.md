@@ -10,8 +10,8 @@ Usage:
 
 ```md
 patreon 
-patreon server 
 patreon test 
+patreon server 
 ```
 
 Aliases:
@@ -26,22 +26,8 @@ Usage:
 
 ```none
 patreon server 
-patreon server true 
 patreon server false 
-```
-
-Aliases:
-
-```none
-None
-```
-
-### Test
-
-Usage:
-
-```none
-patreon test 
+patreon server true 
 ```
 
 Aliases:

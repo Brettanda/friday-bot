@@ -4,7 +4,7 @@
 
 ## Say
 
-
+Make Friday say what ever you want
 
 Usage:
 

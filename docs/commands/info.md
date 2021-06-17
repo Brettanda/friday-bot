@@ -2,22 +2,6 @@
 
 
 
-## Info
-
-Displays some information about myself :)
-
-Usage:
-
-```md
-info|about 
-```
-
-Aliases:
-
-```md
-about
-```
-
 ## Serverinfo
 
 Shows information about the server
@@ -32,6 +16,22 @@ Aliases:
 
 ```md
 None
+```
+
+## Info
+
+Displays some information about myself :)
+
+Usage:
+
+```md
+info|about 
+```
+
+Aliases:
+
+```md
+about
 ```
 
 ## Userinfo

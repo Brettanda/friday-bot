@@ -2,36 +2,20 @@
 
 Fun things like games
 
-## Countdown
+## Rockpaperscissors
 
-Start a countdown
+Play Rock Paper Scissors with Friday
 
 Usage:
 
 ```md
-countdown|cd <title> <hours> <minutes> <seconds>
+rockpaperscissors|rps <rock, paper or scissors>
 ```
 
 Aliases:
 
 ```md
-cd
-```
-
-## Gametime
-
-Ping a role that is attached to a game and see who wants to play
-
-Usage:
-
-```md
-gametime <role> <message>
-```
-
-Aliases:
-
-```md
-None
+rps
 ```
 
 ## Minesweeper
@@ -50,22 +34,6 @@ Aliases:
 ms
 ```
 
-## Rockpaperscissors
-
-Play Rock Paper Scissors with Friday
-
-Usage:
-
-```md
-rockpaperscissors|rps <rock, paper or scissors>
-```
-
-Aliases:
-
-```md
-rps
-```
-
 ## Poll
 
 Make a poll. Seperate the options with `;;`
@@ -74,22 +42,6 @@ Usage:
 
 ```md
 poll <title> <options>
-```
-
-Aliases:
-
-```md
-None
-```
-
-## Souptime
-
-Soup Time
-
-Usage:
-
-```md
-souptime 
 ```
 
 Aliases:
@@ -112,5 +64,53 @@ Aliases:
 
 ```md
 coin
+```
+
+## Gametime
+
+Ping a role that is attached to a game and see who wants to play
+
+Usage:
+
+```md
+gametime <role> <message>
+```
+
+Aliases:
+
+```md
+None
+```
+
+## Countdown
+
+Start a countdown
+
+Usage:
+
+```md
+countdown|cd <title> <hours> <minutes> <seconds>
+```
+
+Aliases:
+
+```md
+cd
+```
+
+## Souptime
+
+Soup Time
+
+Usage:
+
+```md
+souptime 
+```
+
+Aliases:
+
+```md
+None
 ```
 

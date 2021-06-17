@@ -30,9 +30,13 @@ and
 !rockpaperscissors <choice>
 ```
 
+### Arguments
+
+
+
 ## Languages
 
-Friday can speak every language available to Google translate, but can only speak one language at a time per server. To change which language Friday will respond in and to, simply use the following the [language command](commands/server_moderation/#language).
+Friday can speak every language available to Google translate, but can only speak one language at a time per server. To change which language Friday will respond in and to, simply use the following the [language command](commands/moderation/#language).
 
 <!-- [^1]: Lorem ipsum dolor sit amet, consectetur adipiscing elit. -->
 
