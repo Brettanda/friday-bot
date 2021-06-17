@@ -1,7 +1,10 @@
+import discord
 from discord.ext import commands
 from discord_slash import cog_ext
+from discord_slash.model import SlashCommandOptionType
+from discord_slash.utils.manage_commands import create_option
 
-from functions import embed
+from functions import embed, query, MessageColors, checks
 from typing_extensions import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -23,13 +26,15 @@ class Info(commands.Cog):
 
   async def info(self, ctx):
     activity = ctx.guild.me.activity.name if ctx.guild is not None and ctx.guild.me.activity is not None else self.bot.activity.name if self.bot.activity is not None else None
+    appinfo = await self.bot.application_info()
+    owner = appinfo.team.members[0].mention
     return dict(
         embed=embed(
             title=f"{self.bot.user.name} - Info",
             thumbnail=self.bot.user.avatar_url,
             description="Some information about me, Friday ;)",
-            fieldstitle=["Username", "Guilds joined", "Status", "Latency", "Shards", "Loving Life", "Existed since"],
-            fieldsval=[self.bot.user.name, len(self.bot.guilds), activity, f"{(self.bot.get_shard(ctx.guild.shard_id).latency if ctx.guild else self.bot.latency)*1000:,.0f} ms", self.bot.shard_count, "True", self.bot.user.created_at.strftime("%b %d, %Y")]
+            fieldstitle=["Username", "Owner", "Guilds joined", "Status", "Latency", "Shards", "Loving Life", "Existed since"],
+            fieldsval=[self.bot.user.name, owner, len(self.bot.guilds), activity, f"{(self.bot.get_shard(ctx.guild.shard_id).latency if ctx.guild else self.bot.latency)*1000:,.0f} ms", self.bot.shard_count, "True", self.bot.user.created_at.strftime("%b %d, %Y")]
             # fieldstitle=["Username","Guilds joined","Status","Latency","Shards","Audio Nodes","Loving Life","Existed since"],
             # fieldsval=[self.bot.user.name,len(self.bot.guilds),ctx.guild.me.activity.name if ctx.guild.me.activity is not None else None,f"{self.bot.latency*1000:,.0f} ms",self.bot.shard_count,len(self.bot.wavelink.nodes),"True",self.bot.user.created_at]
         )
