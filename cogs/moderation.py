@@ -5,8 +5,13 @@ import typing
 import pycountry
 
 import discord
+import datetime
+
+# from PIL import Image, ImageDraw
+# https://code-maven.com/create-images-with-python-pil-pillow
 from discord.ext import commands
-from discord_slash import SlashContext, cog_ext, SlashCommandOptionType
+from discord_slash import SlashContext, cog_ext
+from discord_slash.model import SlashCommandOptionType
 from discord_slash.utils.manage_commands import create_option
 from typing_extensions import TYPE_CHECKING
 
@@ -17,27 +22,60 @@ if TYPE_CHECKING:
   from index import Friday as Bot
 
 
-class ServerManage(commands.Cog, name="Server Moderation"):
+class Moderation(commands.Cog):
   """Manage your server with these commands"""
 
   def __init__(self, bot: "Bot"):
     self.bot = bot
+
+    if not hasattr(self, "message_spam_control"):
+      self.message_spam_control = {}
+
+    if not hasattr(self, "message_spam_control_counter"):
+      self.message_spam_control_counter = {}
+
+    if not hasattr(self, "blacklist"):
+      self.blacklist = {}
 
   def cog_check(self, ctx):
     if ctx.guild is None:
       raise commands.NoPrivateMessage("This command can only be used within a guild")
     return True
 
-  @commands.command(name="defaultrole", hidden=True)
+
+  @commands.command(name="defaultrole", hidden=True, help="Set the role that is given to new members when they join the server")
   @commands.is_owner()
   @commands.has_guild_permissions(manage_roles=True)
-  async def _defaultrole(self, ctx, role: discord.Role):
+  @commands.bot_has_guild_permissions(manage_roles=True)
+  async def _defaultrole(self, ctx, role: typing.Optional[discord.Role] = None):
     # TODO: Need the members intent so assign the role
-    await query(self.bot.mydb, "UPDATE servers SET defaultRole=%s WHERE id=%s", role.id, ctx.guild.id)
-    try:
-      await ctx.reply(embed=embed(title=f"The new default role for new members is `{role}`"))
-    except discord.Forbidden:
-      await ctx.reply(f"The new default role for new members is `{role}`")
+    role_id = role.id if role is not None else None
+    await query(self.bot.mydb, "UPDATE servers SET defaultRole=%s WHERE id=%s", role_id, ctx.guild.id)
+    await ctx.reply(embed=embed(title=f"The new default role for new members is `{role}`"))
+
+  @commands.Cog.listener()
+  async def on_member_join(self, member: discord.Member):
+    if member.pending:
+      return
+    await self.add_defaultrole(member)
+
+  @commands.Cog.listener()
+  async def on_member_update(self, before: discord.Member, after: discord.Member):
+    if before.pending is not True or after.pending is not False:
+      return
+    await self.add_defaultrole(after)
+
+  async def add_defaultrole(self, member: discord.Member):
+    role_id = await query(self.bot.mydb, "SELECT defaultRole FROM servers WHERE id=%s", member.guild.id)
+    if role_id == 0 or role_id is None or str(role_id).lower() == "null":
+      return
+    else:
+      role = member.guild.get_role(role_id)
+      if role is None:
+        # await member.guild.owner.send(f"The default role that was chosen for me to add to members when they join yours server \"{member.guild.name}\" could not be found, please update the default role at https://friday-self.bot.com")
+        await query(self.bot.mydb, "UPDATE servers SET defaultRole=NULL WHERE id=%s", member.guild.id)
+      else:
+        await member.add_roles(role, reason="Default Role")
 
   # @commands.command(name="mute")
   # @commands.is_owner()
@@ -52,7 +90,7 @@ class ServerManage(commands.Cog, name="Server Moderation"):
   #       await query(self.bot.mydb,"UPDATE servers SET muted=%s WHERE id=%s",0,ctx.guild.id)
   #       await ctx.reply(embed=embed(title="I will now respond to chat message as well as commands"))
 
-  @commands.command(name="prefix")
+  @commands.command(name="prefix", help="Sets the prefix for Fridays commands")
   @commands.has_guild_permissions(administrator=True)
   async def _prefix(self, ctx, new_prefix: typing.Optional[str] = config.defaultPrefix):
     new_prefix = new_prefix.lower()
@@ -66,7 +104,7 @@ class ServerManage(commands.Cog, name="Server Moderation"):
     except discord.Forbidden:
       await ctx.reply(f"My new prefix is `{new_prefix}`")
 
-  @commands.group(name="bot", invoke_without_command=True)
+  @commands.group(name="set", aliases=["bot"], invoke_without_command=True, case_insensitive=True)
   @commands.guild_only()
   @commands.has_guild_permissions(manage_channels=True)
   async def settings_bot(self, ctx):
@@ -85,7 +123,7 @@ class ServerManage(commands.Cog, name="Server Moderation"):
     post = await self.settings_bot_mute(ctx)
     await ctx.reply(**post)
 
-  @cog_ext.cog_subcommand(base="bot", base_description="Bot settings", name="mute", description="Stop me from responding to non-command messages or not")
+  @cog_ext.cog_subcommand(base="set", base_description="Bot settings", name="mute", description="Stop me from responding to non-command messages or not")
   @commands.has_guild_permissions(manage_channels=True)
   @checks.slash(user=True, private=False)
   async def slash_settings_bot_mute(self, ctx):
@@ -103,14 +141,14 @@ class ServerManage(commands.Cog, name="Server Moderation"):
       self.bot.log.change_guild_muted(ctx.guild.id, False)
       return dict(embed=embed(title="I will now respond to chat message as well as commands"))
 
-  @settings_bot.command(name="chatchannel", alias="chat", description="Set the current channel so that I will always try to respond with something")
+  @settings_bot.command(name="chatchannel", alias="chat", help="Set the current channel so that I will always try to respond with something")
   @commands.guild_only()
   @commands.has_guild_permissions(manage_channels=True)
   async def norm_settings_bot_chat_channel(self, ctx):
     post = await self.settings_bot_chat_channel(ctx)
     await ctx.reply(**post)
 
-  @cog_ext.cog_subcommand(base="bot", base_description="Bot settings", name="chatchannel", description="Set the current text channel so that I will always try to respond")
+  @cog_ext.cog_subcommand(base="set", base_description="Bot settings", name="chatchannel", description="Set the current text channel so that I will always try to respond")
   @commands.has_guild_permissions(manage_channels=True)
   @checks.slash(user=True, private=False)
   async def slash_settings_bot_chat_channel(self, ctx):
@@ -129,7 +167,7 @@ class ServerManage(commands.Cog, name="Server Moderation"):
       self.bot.log.change_guild_chat_channel(ctx.guild.id, None)
       return dict(embed=embed(title="I will no longer (try to) respond to all messages from this channel"))
 
-  @commands.command(name="musicchannel", description="Set the channel where I can join and play music. If none then I will join any VC", hidden=True)
+  @settings_bot.command(name="musicchannel", help="Set the channel where I can join and play music. If none then I will join any VC", hidden=True)
   @commands.is_owner()
   @commands.has_guild_permissions(manage_channels=True)
   async def music_channel(self, ctx, voicechannel: typing.Optional[discord.VoiceChannel] = None):
@@ -140,7 +178,7 @@ class ServerManage(commands.Cog, name="Server Moderation"):
     else:
       await ctx.reply(embed=embed(title=f"`{voicechannel}` is now my music channel"))
 
-  @commands.command(name="deletecommandsafter", aliases=["deleteafter", "delcoms"], description="Set the time in seconds for how long to wait before deleting command messages")
+  @settings_bot.command(name="deletecommandsafter", aliases=["deleteafter", "delcoms"], help="Set the time in seconds for how long to wait before deleting command messages")
   @commands.guild_only()
   @commands.has_guild_permissions(manage_channels=True)
   @commands.bot_has_permissions(manage_messages=True)
@@ -330,7 +368,7 @@ class ServerManage(commands.Cog, name="Server Moderation"):
       await member.ban(delete_message_days=delete_message_days, reason=f"{ctx.author}: {reason}")
     return dict(embed=embed(title=f"Banned `{', '.join(toban)}`{(' with `'+str(delete_message_days)+'` messages deleted') if delete_message_days > 0 else ''}{(' for reason `'+reason+'`') if reason is not None else ''}"))
 
-  @commands.command(name="rolecall", aliases=["rc"], description="Moves everyone with a specific role to a voicechannel. Objects that can be exluded are voicechannels,roles,and members")
+  @commands.command(name="rolecall", aliases=["rc"], help="Moves everyone with a specific role to a voicechannel. Objects that can be exluded are voicechannels,roles,and members")
   @commands.guild_only()
   @commands.has_guild_permissions(move_members=True)
   @commands.bot_has_guild_permissions(move_members=True)
@@ -379,7 +417,7 @@ class ServerManage(commands.Cog, name="Server Moderation"):
 
     return dict(embed=embed(title=f"Moved {moved} members with the role `{role}` to `{voicechannel}`"))
 
-  @commands.command(name="massmove", aliases=["move"])
+  @commands.command(name="massmove", aliases=["move"], help="Move everyone from one voice channel to another")
   @commands.guild_only()
   @commands.has_guild_permissions(move_members=True)
   @commands.bot_has_guild_permissions(move_members=True)
@@ -451,7 +489,7 @@ class ServerManage(commands.Cog, name="Server Moderation"):
     #   return dict(content=f"Successfully moved {memberCount} member(s)")
     return dict(embed=embed(title=f"Successfully moved {memberCount} member(s)"))
 
-  @commands.command(name="lock", description="Sets your voice channels user limit to the current number of occupants", hidden=True)
+  @commands.command(name="lock", help="Sets your voice channels user limit to the current number of occupants", hidden=True)
   @commands.guild_only()
   # @commands.is_owner()
   @commands.has_guild_permissions(manage_channels=True)
@@ -493,7 +531,7 @@ class ServerManage(commands.Cog, name="Server Moderation"):
         return dict(content=f"Locked `{voicechannel}`")
       return dict(embed=embed(title=f"Locked `{voicechannel}`"))
 
-  @commands.command(name="begone", description="Delete unwanted message that I send")
+  @commands.command(name="begone", help="Delete unwanted message that I send")
   @commands.bot_has_permissions(manage_messages=True)
   async def begone(self, ctx, message: typing.Optional[discord.Message] = None):
     if message is not None and ctx.message.reference is not None:
@@ -520,67 +558,83 @@ class ServerManage(commands.Cog, name="Server Moderation"):
         ctx.message.delete(delay=20)
     )
 
-  @commands.command(name="userinfo", description="Some information on the mentioned user")
-  @commands.guild_only()
-  async def norm_user_info(self, ctx, user: discord.Member):
-    await self.user_info(ctx, user)
-
-  @cog_ext.cog_slash(name="userinfo", description="Some information on the mentioned user", options=[create_option(name="user", description="The user to get info for", option_type=SlashCommandOptionType.USER, required=True)])
-  @checks.slash(user=True, private=False)
-  async def slash_user_info(self, ctx, user: discord.Member):
-    await self.user_info(ctx, user, True)
-
-  async def user_info(self, ctx, member: discord.Member, slash=False):
-    e = embed(
-        title=f"{member.name} - Info",
-        thumbnail=member.avatar_url,
-        fieldstitle=["Name", "Nickname", "Mention", "Role count", "Joined", "Top Role", "Pending"],
-        fieldsval=[member.name, member.nick, member.mention, len(member.roles), member.joined_at.strftime("%b %d, %Y"), member.top_role.mention, member.pending],
-        color=member.color if member.color.value != 0 else MessageColors.DEFAULT
-    )
-    if slash:
-      return await ctx.send(embed=e)
-    return await ctx.reply(embed=e)
-
-  @commands.command(name="mute", description="Mute a member from text channels")
+  @commands.command(name="mute", help="Mute a member from text channels")
   @commands.guild_only()
   @commands.has_guild_permissions(manage_channels=True)
   @commands.bot_has_guild_permissions(manage_channels=True)
   async def norm_mute(self, ctx, *, member: discord.Member):
     async with ctx.typing():
-      x = 0
-      for channel in ctx.guild.text_channels:
-        perms = channel.overwrites_for(member)
-        if perms.send_messages is False:
-          x += 1
-        perms.send_messages = False
-        try:
-          await channel.set_permissions(member, reason="Muted!", overwrite=perms)
-        except discord.Forbidden:
-          pass
-    if x >= len(ctx.guild.text_channels):
-      return await ctx.reply(embed=embed(title=f"{member} has already been muted", color=MessageColors.ERROR))
-    await ctx.reply(embed=embed(title=f"{member} has been muted."))
+      await self.mute(ctx, member=member)
 
-  @commands.command(name="unmute", description="Unmute a member from text channels")
+  @cog_ext.cog_slash(
+      name="mute",
+      description="Mute a member from text channels",
+      options=[
+          create_option(name="member", description="The member to mute", option_type=SlashCommandOptionType.USER, required=True)
+      ]
+  )
+  @commands.has_guild_permissions(manage_channels=True)
+  @checks.bot_has_guild_permissions(manage_channels=True)
+  @checks.slash(user=True, private=False)
+  async def slash_mute(self, ctx, member: discord.Member):
+    await ctx.defer()
+    await self.mute(ctx, member=member, slash=True)
+
+  async def mute(self, ctx, *, member: discord.Member, slash: False):
+    x = 0
+    for channel in ctx.guild.text_channels:
+      perms = channel.overwrites_for(member)
+      if perms.send_messages is False:
+        x += 1
+      perms.send_messages = False
+      try:
+        await channel.set_permissions(member, reason="Muted!", overwrite=perms)
+      except discord.Forbidden:
+        pass
+    if x >= len(ctx.guild.text_channels):
+      if slash:
+        return await ctx.send(embed=embed(title=f"`{member.name}` has already been muted", color=MessageColors.ERROR))
+      return await ctx.reply(embed=embed(title=f"`{member.name}` has already been muted", color=MessageColors.ERROR))
+    if slash:
+      return await ctx.send(embed=embed(title=f"`{member.name}` has been muted."))
+    await ctx.reply(embed=embed(title=f"`{member.name}` has been muted."))
+
+  @commands.command(name="unmute", help="Unmute a member from text channels")
   @commands.guild_only()
   @commands.has_guild_permissions(manage_channels=True)
   @commands.bot_has_guild_permissions(manage_channels=True)
-  async def unmute(self, ctx, *, member: discord.Member):
+  async def norm_unmute(self, ctx, *, member: discord.Member):
     async with ctx.typing():
-      for channel in ctx.guild.text_channels:
-        perms = channel.overwrites_for(member)
-        perms.send_messages = None
-        try:
-          await channel.set_permissions(member, reason="Unmuted!", overwrite=perms if perms._values != {} else None)
-        except discord.Forbidden:
-          pass
-    await ctx.reply(embed=embed(title=f"{member} has been unmuted."))
+      await self.unmute(ctx, member=member)
 
-  @commands.command(name="language", aliases=["lang"], description="Change the language that I will speak")
+  @cog_ext.cog_slash(
+      name="unmute",
+      description="Unmute a member from text channels",
+      options=[
+          create_option(name="member", description="The member to unmute", option_type=SlashCommandOptionType.USER, required=True)
+      ]
+  )
+  @checks.slash(user=True, private=False)
+  async def slash_unmute(self, ctx, member: discord.Member):
+    await ctx.defer()
+    await self.unmute(ctx, member=member, slash=True)
+
+  async def unmute(self, ctx, *, member: discord.Member, slash: False):
+    for channel in ctx.guild.text_channels:
+      perms = channel.overwrites_for(member)
+      perms.send_messages = None
+      try:
+        await channel.set_permissions(member, reason="Unmuted!", overwrite=perms if perms._values != {} else None)
+      except discord.Forbidden:
+        pass
+    if slash:
+      return await ctx.send(embed=embed(title=f"`{member.name}` has been unmuted."))
+    await ctx.reply(embed=embed(title=f"`{member.name}` has been unmuted."))
+
+  @settings_bot.command(name="language", aliases=["lang"], help="Change the language that I will speak")
   # @commands.cooldown(1, 3600, commands.BucketType.guild)
   @commands.has_guild_permissions(administrator=True)
-  async def language(self, ctx, language: str = None):
+  async def language(self, ctx, language: typing.Optional[str] = None):
     lang = ctx.guild.preferred_locale.split("-")[0]
     if language is None and ctx.guild is not None:
       language = lang
@@ -625,4 +679,4 @@ class ServerManage(commands.Cog, name="Server Moderation"):
 
 
 def setup(bot):
-  bot.add_cog(ServerManage(bot))
+  bot.add_cog(Moderation(bot))
