@@ -16,7 +16,7 @@ class Issue(commands.Cog):
   def __init__(self, bot: "Bot"):
     self.bot = bot
 
-  @commands.command(name="issue", aliases=["problem"], description="If you have an issue or noticed a bug with Friday, this will send a message to the developer.", usage="<Description of issue and steps to recreate the issue>")
+  @commands.command(name="issue", aliases=["problem", "feedback"], help="If you have an issue or noticed a bug with Friday, this will send a message to the developer.", usage="<Description of issue and steps to recreate the issue>")
   @commands.cooldown(1, 30, commands.BucketType.channel)
   async def norm_feedback(self, ctx, *, issue: str):
     await self.feedback(ctx, issue)

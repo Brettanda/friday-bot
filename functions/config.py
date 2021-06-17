@@ -37,7 +37,6 @@ invite_permissions = discord.Permissions(
     attach_files=True,
     read_message_history=True,
     add_reactions=True,
-    use_slash_commands=True,
     connect=True,
     speak=True,
     move_members=True,
@@ -51,6 +50,7 @@ intents = discord.Intents(
     reactions=True,
     # Members intent required for giving roles appon a member
     # joining a guild, and for reaction roles that will come soon
+    # invites=True,
     # members=True
 )
 
@@ -61,14 +61,12 @@ patreon_supporting_role = 843941723041300480
 
 premium_tiers = {
     "free": 0,
-    # "supporting": 843941723041300480,
-    # "friends": 763916955388084246,
-    # "early": 761492640268943380,
-    # "one_guild": 844090257221222401
-    # "supporting": 1,
     "one_guild": 1,
-    "early": 2,
-    "friends": 3
+    "three_guilds": 2,
+    "early": 3,
+    "tier_two_one_guild": 4,
+    "tier_two_three_guilds": 5,
+    "friends": 6
 }
 
 premium_roles = {
@@ -76,22 +74,17 @@ premium_roles = {
     # premium_tiers["supporting"]: 843941723041300480,
     "one_guild": 844090257221222401,
     premium_tiers["one_guild"]: 844090257221222401,
+    "three_guilds": 849440438598238218,
+    premium_tiers["three_guilds"]: 849440438598238218,
     "early": 761492640268943380,
     premium_tiers["early"]: 761492640268943380,
     "friends": 763916955388084246,
     premium_tiers["friends"]: 763916955388084246,
+    "tier_two_one_guild": 851980183962910720,
+    premium_tiers["tier_two_one_guild"]: 851980183962910720,
+    "tier_two_three_guilds": 851980649920331798,
+    premium_tiers["tier_two_three_guilds"]: 851980649920331798,
 }
-
-# class PremiumTiers():
-#   BASIC = 0
-#   ALLPOWERFULL = 1
-#   EARLY = 2
-#   ONE_GUILD = 3
-
-# class PremiumRoles():
-#   EARLY = 761492640268943380
-#   SUPPORTING = 843941723041300480
-#   ONE_GUILD = 844090257221222401
 
 
 allowed_mentions = discord.AllowedMentions(roles=False, everyone=False, users=True)

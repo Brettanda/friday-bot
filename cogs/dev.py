@@ -136,7 +136,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     try:
       wait = 5
       while wait > 0:
-        stat.edit(embed=embed(title=f"Restarting in {wait} seconds"))
+        await stat.edit(embed=embed(title=f"Restarting in {wait} seconds"))
         await asyncio.sleep(1)
         wait = wait - 1
     finally:

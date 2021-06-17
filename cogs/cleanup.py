@@ -29,7 +29,7 @@ class CleanUp(commands.Cog):
     self.bot = bot
   #   # self.exlusions = ["meme","issue","reactionrole"]
 
-  @commands.command(name="clear", description="Deletes the bots commands ignoring anything that is not a command", hidden=True)
+  @commands.command(name="clear", help="Deletes the bots commands ignoring anything that is not a command", hidden=True)
   @commands.is_owner()
   @commands.has_permissions(manage_channels=True)
   @commands.bot_has_permissions(manage_channels=True)

@@ -33,7 +33,8 @@ class ChooseGame(commands.Cog):
             shard_id=shard_id,
         )
       elif gm.get("stats", None) is True:
-        self.status_updates.start(shard_id)
+        if self.bot.canary or self.bot.prod:
+          self.status_updates.start(shard_id)
       else:
         await self.bot.change_presence(
             activity=discord.Activity(
