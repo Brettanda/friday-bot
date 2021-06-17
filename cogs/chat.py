@@ -250,10 +250,8 @@ class Chat(commands.Cog):
       await msg.reply(content=self.possible_offensive_message, mention_author=False)
       await relay_info(f"Possible offensive message: {response}", self.bot, webhook=self.bot.log.log_chat)
 
+  async def free_model(self, ctx: commands.Context, *, lang, tier, voted: bool):
     dynamic = False
-
-    lang = self.bot.log.get_guild_lang(ctx.guild)
-    tier = self.bot.log.get_guild_tier(ctx.guild)
 
     if ctx.author.bot and ctx.channel.id != 827656054728818718:
       return
