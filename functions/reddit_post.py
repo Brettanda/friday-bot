@@ -1,14 +1,15 @@
 # import json
 import random
 import asyncio
+import sys
 
 import aiohttp
-# import discord
+import discord
 from discord.ext import commands
 
 from discord_slash import SlashContext
 
-from functions import MessageColors, embed
+from . import MessageColors, embed
 
 posted = {}
 
@@ -21,7 +22,7 @@ async def request(url):
         url,
         headers={
             'User-Agent':
-            'DiscordBot (https://github.com/Rapptz/discord.py 1.7.2) Python/3.8 aiohttp/3.7.4'
+            f'DiscordBot (https://github.com/Rapptz/discord.py {discord.__version__}) Python/{sys.version_info.major}.{sys.version_info.minor} aiohttp/{aiohttp.__version__}'
         }
     ) as r:
       if r.status == 200:
@@ -46,12 +47,14 @@ async def get_reddit_post(ctx: commands.Context or SlashContext, sub_reddits: st
     # else:
     return dict(embed=embed(title="Something went wrong, please try again.", color=MessageColors.ERROR))
 
-  if str(ctx.channel.type) == "private":
+  if ctx.channel is not None and str(ctx.channel.type) == "private":
     thisposted = ctx.channel.id
-  else:
+  elif ctx.guild is not None:
     thisposted = ctx.guild.id
+  elif ctx.channel is None and hasattr(ctx, "channel_id"):
+    thisposted = ctx.channel_id
 
-  if str(ctx.channel.type) == "private" or ctx.channel.nsfw:
+  if ctx.channel is not None and str(ctx.channel.type) == "private" or ctx.channel is not None and ctx.channel.nsfw:
     allowed = body["data"]["children"]
   else:
     allowed = []

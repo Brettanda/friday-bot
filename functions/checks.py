@@ -3,7 +3,7 @@ import discord
 from typing import TYPE_CHECKING
 from discord.ext import commands
 from discord_slash import SlashContext
-from functions import exceptions, config
+from . import exceptions, config, query
 
 if TYPE_CHECKING:
   from discord.ext.commands.core import _CheckDecorator
@@ -104,6 +104,23 @@ async def user_is_supporter(bot: "Bot", user: discord.User) -> bool:
   if config.patreon_supporting_role not in roles:
     raise exceptions.NotSupporter()
   return True
+
+
+def is_supporter_or_voted() -> "_CheckDecorator":
+  async def predicate(ctx) -> bool:
+    member = await ctx.bot.get_guild(config.support_server_id).fetch_member(ctx.author.id)
+    if await user_is_supporter(ctx.bot, member):
+      return True
+    elif await user_voted(ctx.bot, member):
+      return True
+    else:
+      raise exceptions.NotSupporter()
+  return commands.check(predicate)
+
+
+async def user_voted(bot: "Bot", user: discord.User) -> bool:
+  user_id = await query(bot.mydb, "SELECT id FROM votes WHERE id=%s", user.id)
+  return True if user_id is not None else False
 
 
 def bot_has_guild_permissions(**perms) -> "_CheckDecorator":

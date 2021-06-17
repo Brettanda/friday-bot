@@ -1,7 +1,7 @@
 from discord.ext import commands
 from discord_slash import SlashContext, cog_ext
 
-from functions import get_reddit_post
+from functions import get_reddit_post, checks
 from typing_extensions import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -25,6 +25,7 @@ class Meme(commands.Cog):
     await ctx.reply(**post)
 
   @cog_ext.cog_slash(name="meme", description="Meme time")
+  @checks.slash(user=True, private=True)
   async def slash_meme(self, ctx: SlashContext):
     await ctx.send(**await get_reddit_post(ctx, self.subs))
 

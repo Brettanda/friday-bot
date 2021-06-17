@@ -15,6 +15,9 @@ if discord.__version__ == "1.7.3":
   from discord import AsyncWebhookAdapter
 else:
   from discord.webhook.async_ import AsyncWebhookAdapter
+
+from collections import Counter
+
 import os
 
 if TYPE_CHECKING:
@@ -37,18 +40,22 @@ formatter = logging.Formatter("%(levelname)s:%(name)s: %(message)s")
 
 
 class Log(commands.Cog):
+  """Everything that is required for the bot to run but can also be reloaded without restarting the bot"""
+
   def __init__(self, bot: "Bot"):
     self.bot = bot
     self.loop = bot.loop
 
-    # self.bot.add_check(is_enabled)
+    if not hasattr(self, "spam_control"):
+      self.spam_control = commands.CooldownMapping.from_cooldown(5, 15.0, commands.BucketType.user)
 
+    if not hasattr(self, "super_spam_control"):
+      self.super_spam_control = commands.CooldownMapping.from_cooldown(5, 60, commands.BucketType.user)
+    
+    self.super_spam_counter = None
 
-    if not hasattr(self.bot, "spam_control"):
-      self.bot.spam_control = commands.CooldownMapping.from_cooldown(5, 15.0, commands.BucketType.user)
-
-    # if not hasattr(self.bot, "super_spam_control"):
-    #   self.bot.super_spam_control = commands.CooldownMapping.from_cooldown()
+    if not hasattr(self, "_auto_spam_count"):
+      self._auto_spam_count = Counter()
 
     if not hasattr(self.bot, "slash"):
       self.bot.slash = SlashCommand(self.bot, sync_on_cog_reload=True, sync_commands=True)
@@ -137,34 +144,11 @@ class Log(commands.Cog):
                                   (id bigint UNIQUE NOT NULL,
                                   remind tinyint NULL DEFAULT 1,
                                   voted_time timestamp NULL DEFAULT CURRENT_TIMESTAMP)""")
-      database_guilds = await query(self.bot.mydb, "SELECT id FROM servers")
-      if len(database_guilds) != len(self.bot.guilds):
-        current_guilds = [guild.id for guild in self.bot.guilds]
-        x = 0
-        for guild in database_guilds:
-          database_guilds[x] = guild[0]
-          x = x + 1
-        difference = list(set(database_guilds).symmetric_difference(set(current_guilds)))
-        if len(difference) > 0:
-          # now = datetime.now()
-          if len(database_guilds) < len(current_guilds):
-            for guild_id in difference:
-              guild = self.bot.get_guild(guild_id)
-              if guild is not None and not guild.unavailable:
-                await self.on_guild_join(guild)
-              else:
-                self.logger.warning(f"HELP guild could not be found {guild_id}")
-          elif len(database_guilds) > len(current_guilds):
-            for guild_id in difference:
-              await query(self.bot.mydb, "DELETE FROM servers WHERE id=%s", guild_id)
-          else:
-            self.logger.warning("Could not sync guilds")
-            return
-          self.logger.info("Synced guilds with database")
-      else:
-        for guild_id in database_guilds:
-          guild = self.bot.get_guild(guild_id[0])
-          await query(self.bot.mydb, "UPDATE servers SET name=%s WHERE id=%s", guild.name, guild_id[0])
+      await query(self.bot.mydb, """CREATE TABLE IF NOT EXISTS blacklist
+                                  (id bigint,
+                                  word text)""")
+      for guild in self.bot.guilds:
+        await query(self.bot.mydb, "INSERT IGNORE INTO servers (id,name,muted,lang) VALUES (%s,%s,%s,%s)", guild.id, guild.name, 0, guild.preferred_locale.split("-")[0])
     await self.set_all_guilds()
     await relay_info(f"Apart of {len(self.bot.guilds)} guilds", self.bot, logger=self.logger)
     self.bot.ready = True
@@ -188,7 +172,7 @@ class Log(commands.Cog):
   @commands.Cog.listener()
   async def on_guild_join(self, guild: discord.Guild):
     await relay_info(f"I have joined a new guild, making the total **{len(self.bot.guilds)}**", self.bot, short=f"I have joined a new guild, making the total {len(self.bot.guilds)}", webhook=self.log_join, logger=self.logger)
-    await query(self.bot.mydb, "INSERT INTO servers (id,name,muted,lang) VALUES (%s,%s,%s,%s)", guild.id, guild.name, 0, guild.preferred_locale.split("-")[0])
+    await query(self.bot.mydb, "INSERT IGNORE INTO servers (id,name,muted,lang) VALUES (%s,%s,%s,%s)", guild.id, guild.name, 0, guild.preferred_locale.split("-")[0])
     priority_channels = []
     channels = []
     for channel in guild.text_channels:
@@ -216,19 +200,6 @@ class Log(commands.Cog):
     self.remove_guild(guild.id)
 
   @commands.Cog.listener()
-  async def on_member_join(self, member):
-    role_id = await query(self.bot.mydb, "SELECT defaultRole FROM servers WHERE id=%s", member.guild.id)
-    if role_id == 0 or role_id is None or str(role_id).lower() == "null":
-      return
-    else:
-      role = member.guild.get_role(role_id)
-      if role is None:
-        # await member.guild.owner.send(f"The default role that was chosen for me to add to members when they join yours server \"{member.guild.name}\" could not be found, please update the default role at https://friday-self.bot.com")
-        await query(self.bot.mydb, "UPDATE servers SET defaultRole=NULL WHERE id=%s", member.guild.id)
-      else:
-        await member.add_roles(role, reason="Default Role")
-
-  @commands.Cog.listener()
   async def on_message_edit(self, before, after):
     if after.author.bot or before.content == after.content:
       return
@@ -253,12 +224,8 @@ class Log(commands.Cog):
         discord.NotFound,
         commands.MissingPermissions,
         commands.BotMissingPermissions,
-        commands.MaxConcurrencyReached,
-        exceptions.UserNotInVoiceChannel,
-        exceptions.NoCustomSoundsFound,
-        exceptions.CantSeeNewVoiceChannelType,
-        exceptions.OnlySlashCommands,
-        exceptions.ArgumentTooLarge)
+        commands.NoPrivateMessage,
+        commands.MaxConcurrencyReached) or (hasattr(ex, "log") and ex.log is True)
     ):
       # print(ex)
       # logging.error(ex)
@@ -270,12 +237,29 @@ class Log(commands.Cog):
     if ctx.command is None:
       return
 
-    bucket = self.bot.spam_control.get_bucket(message)
+    bucket = self.spam_control.get_bucket(message)
     current = message.created_at.replace(tzinfo=datetime.timezone.utc).timestamp()
     retry_after = bucket.update_rate_limit(current)
     author_id = message.author.id
+
+    super_bucket = self.super_spam_control.get_bucket(message)
+    super_retry_after = super_bucket.get_retry_after(current)
+
     if retry_after and author_id != self.bot.owner_id:
-      return await self.bot.log_spammer(ctx, message, retry_after)
+      self._auto_spam_count[author_id] += 1
+      super_retry_after = super_bucket.update_rate_limit(current)
+      if super_retry_after and self._auto_spam_count[author_id] == 5:
+        await self.log_spammer(ctx, message, retry_after, notify=True)
+      elif self._auto_spam_count[author_id] > 5:
+        del self._auto_spam_count[author_id]
+      else:
+        await self.log_spammer(ctx, message, retry_after)
+      return
+    else:
+      self._auto_spam_count.pop(author_id, None)
+
+    if super_retry_after:
+      return
 
     await self.bot.invoke(ctx)
 
@@ -459,16 +443,18 @@ class Log(commands.Cog):
 
   @discord.utils.cached_property
   def log_join(self) -> discord.Webhook:
+    if discord.__version__ == "1.7.3":
+      return discord.Webhook.from_url(os.environ.get("WEBHOOKJOIN"), adapter=AsyncWebhookAdapter(aiohttp.ClientSession(loop=self.loop)))
     return discord.Webhook.from_url(os.environ.get("WEBHOOKJOIN"), session=aiohttp.ClientSession(loop=self.loop))
 
-  async def log_spammer(self, ctx, message, retry_after, *, autoblock=False):
+  async def log_spammer(self, ctx, message, retry_after, *, notify=False):
     guild_name = getattr(ctx.guild, "name", "No Guild/ DM Channel")
     guild_id = getattr(ctx.guild, "id", None)
     fmt = 'User %s (ID %s) in guild %r (ID %s) spamming, retry_after: %.2fs'
     logging.warning(fmt, message.author, message.author.id, guild_name, guild_id, retry_after)
 
-    # if not autoblock:
-    #   return
+    if not notify:
+      return
 
     return await self.log_spam.send(
         username=self.bot.user.name,
