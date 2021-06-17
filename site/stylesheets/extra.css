@@ -1,0 +1,23 @@
+:root {
+  --md-primary-fg-color: #be2b2b;
+  --md-primary-fg-color--light: #be2b2b;
+  --md-primary-fg-color--dark: #be2b2b;
+
+  --md-button--patreon: #ff424d;
+}
+
+.md-typeset .md-button--patreon {
+  background-color: var(--md-button--patreon);
+  border-color: var(--md-button--patreon);
+  transition: transform .2s;
+}
+
+.md-typeset .md-button--patreon:focus,
+.md-typeset .md-button--patreon:hover {
+  background-color: var(--md-button--patreon);
+  border-color: var(--md-button--patreon);
+}
+
+.md-typeset .md-button--patreon:active {
+  transform: scale(0.975);
+}
