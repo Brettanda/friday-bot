@@ -281,7 +281,7 @@ class Moderation(commands.Cog):
   @commands.guild_only()
   @commands.has_guild_permissions(manage_guild=True)
   async def _blacklist_clear(self, ctx):
-    await query("DELETE FROM blacklist WHERE id=%s", ctx.guid.id)
+    await query(self.bot.mydb, "DELETE FROM blacklist WHERE id=%s", ctx.guild.id)
     self.blacklist[ctx.guild.id] = []
     await ctx.reply(embed=embed(title="Removed all blacklisted words"))
 
