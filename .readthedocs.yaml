@@ -11,8 +11,8 @@ mkdocs:
 # Optionally build your docs in additional formats such as PDF
 formats: []
 
-build:
-  image: latest
+# build:
+#   image: latest
   
 
 # Optionally set the version of Python and requirements required to build your docs

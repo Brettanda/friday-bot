@@ -8,13 +8,45 @@ Displays some information about myself :)
 
 Usage:
 
-```none
+```md
 info|about 
 ```
 
 Aliases:
 
-```none
-!about
+```md
+about
+```
+
+## Serverinfo
+
+Shows information about the server
+
+Usage:
+
+```md
+serverinfo 
+```
+
+Aliases:
+
+```md
+None
+```
+
+## Userinfo
+
+Some information on the mentioned user
+
+Usage:
+
+```md
+userinfo <user>
+```
+
+Aliases:
+
+```md
+None
 ```
 

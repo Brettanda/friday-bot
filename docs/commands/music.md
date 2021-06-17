@@ -2,20 +2,36 @@
 
 
 
-## Stop
+## Join
 
-
+Join a voice channel
 
 Usage:
 
-```none
-stop|disconnect 
+```md
+join <channel>
 ```
 
 Aliases:
 
-```none
-!disconnect
+```md
+None
+```
+
+## Skip
+
+Skips the current song
+
+Usage:
+
+```md
+skip 
+```
+
+Aliases:
+
+```md
+None
 ```
 
 ## Play
@@ -24,72 +40,134 @@ Follow this command with the title of a song to search for it or just paste the 
 
 Usage:
 
-```none
+```md
 play|p|add <url/title>
 ```
 
 Aliases:
 
-```none
-!p,!add
+```md
+p,add
 ```
 
-## Skip
+## Stop
 
-
+Stops the currently playing music
 
 Usage:
 
-```none
-skip 
+```md
+stop|disconnect 
 ```
 
 Aliases:
 
-```none
-None
+```md
+disconnect
 ```
 
 ## Queue
 
-
+shows the song queue
 
 Usage:
 
-```none
+```md
 queue 
 ```
 
 Aliases:
 
-```none
+```md
 None
 ```
 
 ## Pause
 
-
+Pause the current track
 
 Usage:
 
-```none
+```md
 pause 
 ```
 
 Aliases:
 
-```none
+```md
 None
 ```
 
 ## Resume
 
+Resume the current track
 
+Usage:
+
+```md
+resume 
+```
+
+Aliases:
+
+```md
+None
+```
+
+## Custom
+
+Play sounds/songs without looking for the url everytime
+
+Usage:
+
+```md
+custom|c <name>
+custom|c change <name> <url>
+custom|c remove <name>
+custom|c add <name> <url>
+custom|c list 
+```
+
+Aliases:
+
+```md
+c
+```
+
+### Change
 
 Usage:
 
 ```none
-resume 
+custom change|replace <name> <url>
+```
+
+Aliases:
+
+```none
+replace
+```
+
+### Remove
+
+Usage:
+
+```none
+custom remove|del <name>
+```
+
+Aliases:
+
+```none
+del
+```
+
+### Add
+
+Usage:
+
+```none
+custom add <name> <url>
 ```
 
 Aliases:
@@ -98,14 +176,12 @@ Aliases:
 None
 ```
 
-## Join
-
-Join a voice channel
+### List
 
 Usage:
 
 ```none
-join <channel>
+custom list 
 ```
 
 Aliases:

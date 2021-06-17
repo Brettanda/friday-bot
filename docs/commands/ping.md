@@ -8,13 +8,13 @@ Pong!
 
 Usage:
 
-```none
+```md
 ping 
 ```
 
 Aliases:
 
-```none
+```md
 None
 ```
 

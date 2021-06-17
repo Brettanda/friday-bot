@@ -27,12 +27,12 @@ theme:
         icon: material/weather-night
         name: Switch to light mode
   features:
-    - navigation.top
+    # - navigation.top
     - navigation.instant
     - navigation.sections
     # - navigation.indexes
     - search.suggest
-    - search.highlight
+    # - search.highlight
   shortcuts:
     help: 191    # ?
     next: 78     # n
@@ -42,11 +42,19 @@ plugins:
   - search
   - git-revision-date-localized:
       type: timeago
+  - macros
 markdown_extensions:
   - toc:
       permalink: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:materialx.emoji.twemoji
+      emoji_generator: !!python/name:materialx.emoji.to_svg
+  - admonition
+  - pymdownx.details
   - pymdownx.highlight
   - pymdownx.superfences
+  # - footnotes
+  - attr_list
 extra_javascript:
   - https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.2/highlight.min.js
   # - javascripts/config.js
@@ -54,12 +62,21 @@ extra_css:
   - stylesheets/extra.css
   - https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.2/styles/default.min.css
 extra:
+  # homepage: //friday-bot.com
   analytics:
     provider: google
     property: G-41TXJVRWT0
   version:
-    default: DEV
+    default: dev
     provider: mike
+  # alternate:
+  #   - name: English
+  #     link: /en/
+  #     lang: en
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/Brettanda
+      link: //github.com/Brettanda
+    - icon: fontawesome/brands/discord
+      link: //discord.gg/XP4avQ449V
+    - icon: fontawesome/brands/patreon
+      link: //www.patreon.com/fridaybot

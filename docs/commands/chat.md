@@ -4,17 +4,17 @@
 
 ## Say
 
-Make Friday say what ever you want
+
 
 Usage:
 
-```none
+```md
 say|repeat <content>
 ```
 
 Aliases:
 
-```none
-!repeat
+```md
+repeat
 ```
 

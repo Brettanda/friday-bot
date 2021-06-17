@@ -1,6 +1,6 @@
 # Meme
 
-
+Memes
 
 ## Meme
 
@@ -8,13 +8,13 @@ Meme time
 
 Usage:
 
-```none
+```md
 meme|shitpost 
 ```
 
 Aliases:
 
-```none
-!shitpost
+```md
+shitpost
 ```
 

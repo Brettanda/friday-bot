@@ -1,20 +1,20 @@
 # Dice
 
-
+Roll some dice
 
 ## Dice
 
-
+D&D dice rolling
 
 Usage:
 
-```none
+```md
 dice|d|r|roll <roll>
 ```
 
 Aliases:
 
-```none
-!d,!r,!roll
+```md
+d,r,roll
 ```
 

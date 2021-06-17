@@ -1,21 +1,53 @@
 # Fun
 
+Fun things like games
 
+## Countdown
 
-## Minesweeper
-
-
+Start a countdown
 
 Usage:
 
-```none
+```md
+countdown|cd <title> <hours> <minutes> <seconds>
+```
+
+Aliases:
+
+```md
+cd
+```
+
+## Gametime
+
+Ping a role that is attached to a game and see who wants to play
+
+Usage:
+
+```md
+gametime <role> <message>
+```
+
+Aliases:
+
+```md
+None
+```
+
+## Minesweeper
+
+Play minesweeper
+
+Usage:
+
+```md
 minesweeper|ms [size=5] [bomb_count=6]
 ```
 
 Aliases:
 
-```none
-!ms
+```md
+ms
 ```
 
 ## Rockpaperscissors
@@ -24,30 +56,14 @@ Play Rock Paper Scissors with Friday
 
 Usage:
 
-```none
+```md
 rockpaperscissors|rps <rock, paper or scissors>
 ```
 
 Aliases:
 
-```none
-!rps
-```
-
-## Souptime
-
-
-
-Usage:
-
-```none
-souptime 
-```
-
-Aliases:
-
-```none
-None
+```md
+rps
 ```
 
 ## Poll
@@ -56,13 +72,29 @@ Make a poll. Seperate the options with `;;`
 
 Usage:
 
-```none
+```md
 poll <title> <options>
 ```
 
 Aliases:
 
-```none
+```md
+None
+```
+
+## Souptime
+
+Soup Time
+
+Usage:
+
+```md
+souptime 
+```
+
+Aliases:
+
+```md
 None
 ```
 
@@ -72,45 +104,13 @@ Flip a coin
 
 Usage:
 
-```none
+```md
 coinflip|coin 
 ```
 
 Aliases:
 
-```none
-!coin
-```
-
-## Gametime
-
-Ping a role that is attached to a game and see who wants to play
-
-Usage:
-
-```none
-gametime <role> <message>
-```
-
-Aliases:
-
-```none
-None
-```
-
-## Countdown
-
-Start a countdown
-
-Usage:
-
-```none
-countdown|cd <title> <hours> <minutes> <seconds>
-```
-
-Aliases:
-
-```none
-!cd
+```md
+coin
 ```
 

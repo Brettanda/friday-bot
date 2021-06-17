@@ -8,10 +8,26 @@
 
 Usage:
 
-```none
+```md
 patreon 
-patreon test 
 patreon server 
+patreon test 
+```
+
+Aliases:
+
+```md
+None
+```
+
+### Server
+
+Usage:
+
+```none
+patreon server 
+patreon server true 
+patreon server false 
 ```
 
 Aliases:
@@ -26,22 +42,6 @@ Usage:
 
 ```none
 patreon test 
-```
-
-Aliases:
-
-```none
-None
-```
-
-### Server
-Activate the server that you would like to apply your patronage to
-Usage:
-
-```none
-patreon server 
-patreon server true 
-patreon server false 
 ```
 
 Aliases:
