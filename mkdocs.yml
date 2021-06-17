@@ -29,7 +29,7 @@ theme:
         name: Switch to light mode
   features:
     # - navigation.top
-    - navigation.instant
+    # - navigation.instant # caches everything on live site
     - navigation.sections
     # - navigation.indexes
     - search.suggest
