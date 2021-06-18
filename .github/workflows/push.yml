@@ -62,6 +62,7 @@ jobs:
         TOKENTEST: ${{ secrets.TOKENTEST }}
         DATABASE: ${{ secrets.DATABASE }}
         DATABASETEST: ${{ secrets.DATABASETEST }}
+        DBLWEBHOOKPASS: ${{ secrets.DBLWEBHOOKPASS }}
         DBUSER: ${{ secrets.DBUSER }}
         DBPASS: ${{ secrets.DBPASS }}
         DBHOST: ${{ secrets.DBHOST }}

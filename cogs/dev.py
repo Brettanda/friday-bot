@@ -6,27 +6,28 @@ import typing
 # import traceback
 # import io
 # import textwrap
-
 import discord
 from discord.ext import commands
-from discord_slash import SlashContext  # , cog_ext
+# from discord_slash import SlashContext  # , cog_ext
+from typing_extensions import TYPE_CHECKING
 # from discord_slash.utils.manage_commands import create_option, create_choice
 
 from cogs.help import cmd_help, syntax
-from functions import embed  # , MessageColors
+from functions import embed, build_docs  # , MessageColors
+
+if TYPE_CHECKING:
+  from index import Friday as Bot
 
 
 class Dev(commands.Cog, command_attrs=dict(hidden=True)):
   """Commands used by and for the developer"""
 
-  def __init__(self, bot):
+  def __init__(self, bot: "Bot"):
     self.bot = bot
 
   def cog_check(self, ctx):
     if self.bot.owner_id == ctx.author.id:
       return True
-    if isinstance(ctx, SlashContext):
-      return commands.NotOwner("You do not own this bot and cannot use this command")
     raise commands.NotOwner("You do not own this bot and cannot use this command")
 
   @commands.group(name="dev", invoke_without_command=True)
@@ -109,6 +110,9 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     print("")
 
   @norm_dev.command(name="restart")
+  #
+  # This could not work when clusters
+  #
   async def restart(self, ctx, force: bool = False):
     # global restartPending,songqueue
     if self.bot.restartPending is True and force is False:
@@ -132,7 +136,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     try:
       wait = 5
       while wait > 0:
-        stat.edit(embed=embed(title=f"Restarting in {wait} seconds"))
+        await stat.edit(embed=embed(title=f"Restarting in {wait} seconds"))
         await asyncio.sleep(1)
         wait = wait - 1
     finally:
@@ -143,28 +147,49 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       subprocess.Popen([f"{thispath}{seperator}restart.sh"], stdin=subprocess.PIPE)
 
   @norm_dev.group(name="reload", invoke_without_command=True)
+  #
+  # This could not work when clusters
+  #
   async def reload(self, ctx, command: str):
     async with ctx.typing():
       com = self.bot.get_command(command)
-      if com is not None:
+      if com is not None and com.cog_name is not None:
         command = com.cog_name
-      self.bot.reload_extension(f"cogs.{command.lower()}")
+      self.bot.reload_extension(f"cogs.{command.lower() if command is not None else None}")
     await ctx.reply(embed=embed(title=f"Cog *{command}* has been reloaded"))
 
   @reload.command(name="all")
+  #
+  # This could not work when clusters
+  #
   async def reload_all(self, ctx):
     async with ctx.typing():
       await self.bot.reload_cogs()
-      await self.bot.get_cog("Log").set_all_guilds()
+      await self.bot.log.set_all_guilds()
     await ctx.reply(embed=embed(title="All cogs have been reloaded"))
 
+  @reload.command(name="slash")
+  #
+  # This could not work when clusters
+  #
+  async def reload_slash(self, ctx):
+    async with ctx.typing():
+      await self.bot.slash.sync_all_commands()
+    await ctx.reply(embed=embed(title="Slash commands synced"))
+
   @norm_dev.command(name="load")
+  #
+  # This could not work when clusters
+  #
   async def load(self, ctx, command: str):
     async with ctx.typing():
       self.bot.load_extension(f"cogs.{command.lower()}")
     await ctx.reply(embed=embed(title=f"Cog *{command}* has been loaded"))
 
   @norm_dev.command(name="unload")
+  #
+  # This could not work when clusters
+  #
   async def unload(self, ctx, command: str):
     async with ctx.typing():
       self.bot.unload_extension(f"cogs.{command.lower()}")
@@ -180,6 +205,9 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
   #     self.bot.logger.error(error)
 
   @norm_dev.command(name="update")
+  #
+  # This could not work when clusters
+  #
   async def update(self, ctx):
     message = await ctx.reply(embed=embed(title="Updating..."))
     thispath = os.getcwd()
@@ -187,7 +215,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       seperator = "\\\\"
     else:
       seperator = "/"
-    if self.bot.prod:
+    if self.bot.prod or self.bot.canary:
       subprocess.Popen([f"{thispath}{seperator}update{'' if not self.bot.canary else '_canary'}.sh"], stdin=subprocess.PIPE)
     subprocess.Popen([f"{thispath}{seperator}install.sh"], stdin=subprocess.PIPE)
     await message.edit(embed=embed(title="Update complete!"))
@@ -209,31 +237,23 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
 
   @norm_dev.command(name="markdown", aliases=["md"])
   async def markdown(self, ctx):
-    commands = self.bot.commands
-    cogs = []
-    for command in commands:
-      if command.hidden is False and command.enabled is True and command.cog_name not in cogs:
-        cogs.append(command.cog_name)
-    with open("commands.md", "w") as f:
-      f.write("# Commands\n\n")
-      for cog in cogs:
-        f.write(f"## {cog}\n\n")
-        for com in commands:
-          if com.hidden is False and com.enabled is True and com.cog_name == cog:
-            # f.write(f"""### {ctx.prefix}{com.name}\n{(f'Aliases: `{ctx.prefix}'+f", {ctx.prefix}".join(com.aliases)+'`') if len(com.aliases) > 0 else ''}\n{f'Description: {com.description}' if com.description != '' else ''}\n""")
-            f.write(f"### `{ctx.prefix}{com.name}`\n\n")
-            usage = '\n  '.join(syntax(com, quotes=False).split('\n'))
-            usage = discord.utils.escape_markdown(usage).replace("<", "\\<")
-            f.write(f"Usage:\n\n  {usage}\n\n")
-            f.write("Aliases: ```" + (f'{ctx.prefix}' + f",{ctx.prefix}".join(com.aliases) if len(com.aliases) > 0 else 'None') + "```\n\n")
-            f.write(f"Description: ```{com.description or 'None'}```\n\n")
-      f.close()
-    thispath = os.getcwd()
-    if "\\" in thispath:
-      seperator = "\\\\"
-    else:
-      seperator = "/"
-    await ctx.reply(file=discord.File(fp=f"{thispath}{seperator}commands.md", filename="commands.md"))
+    build_docs(self.bot)
+    await ctx.reply(embed=embed(title="Commands loaded"))
+    # with open("docs/commands.md", "w") as f:
+    #   f.write("# Commands\n\n")
+    #   for cog in cogs:
+    #     f.write(f"## {cog}\n\n")
+    #     for com in commands:
+    #       if com.hidden is False and com.enabled is True and com.cog_name == cog:
+    #         # f.write(f"""### {ctx.prefix}{com.name}\n{(f'Aliases: `{ctx.prefix}'+f", {ctx.prefix}".join(com.aliases)+'`') if len(com.aliases) > 0 else ''}\n{f'Description: {com.description}' if com.description != '' else ''}\n""")
+    #         f.write(f"### `{ctx.prefix}{com.name}`\n\n")
+    #         usage = '\n  '.join(syntax(com, quotes=False).split('\n'))
+    #         usage = discord.utils.escape_markdown(usage).replace("<", "\\<")
+    #         f.write(f"Usage:\n\n  {usage}\n\n")
+    #         f.write("Aliases: ```" + (f'{ctx.prefix}' + f",{ctx.prefix}".join(com.aliases) if len(com.aliases) > 0 else 'None') + "```\n\n")
+    #         f.write(f"Description: ```{com.description or 'None'}```\n\n")
+    #   f.close()
+    # await ctx.reply(file=discord.File(fp=f"{thispath}{seperator}docs{seperator}commands.md", filename="commands.md"))
 
   @norm_dev.command(name="html")
   async def html(self, ctx):

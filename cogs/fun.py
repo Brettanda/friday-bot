@@ -10,13 +10,20 @@ from discord_slash.utils.manage_commands import create_choice, create_option, Sl
 
 # sys.path.insert(1, os.path.join(sys.path[0], '..'))
 from functions import MessageColors, embed, exceptions, checks
+from typing_extensions import TYPE_CHECKING
+
+if TYPE_CHECKING:
+  from index import Friday as Bot
+
 
 with open('./config.json') as f:
   config = json.load(f)
 
 
 class Fun(commands.Cog):
-  def __init__(self, bot):
+  """Fun things like games"""
+
+  def __init__(self, bot: "Bot"):
     self.bot = bot
     self.rpsoptions = ["rock", "paper", "scissors"]
     # self.timeouter = None
@@ -54,8 +61,7 @@ class Fun(commands.Cog):
   # @commands.bot_has_permissions(send_messages = True, read_messages = True, embed_links = True)
   # @commands.has_guild_permissions(move_members = True)
 
-  @commands.command(name="rockpaperscissors", description="Play Rock Paper Scissors with Friday",
-                    aliases=["rps"], usage="<rock, paper or scissors>")
+  @commands.command(name="rockpaperscissors", help="Play Rock Paper Scissors with Friday", aliases=["rps"], usage="<rock, paper or scissors>")
   async def norm_rock_paper_scissors(self, ctx, args: str):
     async with ctx.typing():
       post = await self.rock_paper_scissors(ctx, args)
@@ -142,7 +148,7 @@ class Fun(commands.Cog):
       8: "8️⃣"
   }
 
-  @commands.command(name="minesweeper", aliases=["ms"])
+  @commands.command(name="minesweeper", aliases=["ms"], help="Play minesweeper")
   async def norm_minesweeper(self, ctx, size: typing.Optional[int] = 5, bomb_count: typing.Optional[int] = 6):
     await ctx.reply(**await self.mine_sweeper(size, bomb_count))
 
@@ -223,7 +229,7 @@ class Fun(commands.Cog):
     await ctx.reply(**self.souptime())
 
   # @commands.cooldown(1,7, commands.BucketType.user)
-  @cog_ext.cog_slash(name='souptime')
+  @cog_ext.cog_slash(name='souptime', description="Soup!")
   @checks.slash(user=False, private=True)
   async def slash_souptime(self, ctx):
     await ctx.send(**self.souptime())
@@ -236,7 +242,7 @@ class Fun(commands.Cog):
         image=random.choice(config['soups'])
     ))
 
-  @commands.command(name="coinflip", aliases=["coin"], description="Flip a coin")
+  @commands.command(name="coinflip", aliases=["coin"], help="Flip a coin")
   async def norm_coin(self, ctx):
     await ctx.reply(embed=embed(title="The coin landed on: " + random.choice(["Heads", "Tails"])))
 
@@ -275,7 +281,7 @@ class Fun(commands.Cog):
       9: "🔟"
   }
 
-  @commands.command(name="poll", description="Make a poll. Seperate the options with `;;`")
+  @commands.command(name="poll", help="Make a poll. Seperate the options with `;;`")
   @commands.guild_only()
   @commands.bot_has_permissions(manage_messages=True)
   async def norm_poll(self, ctx, title, *, options: str = None):
@@ -348,7 +354,11 @@ class Fun(commands.Cog):
       return
     if payload.emoji.name not in self.POLLEMOTES.values():
       return
-    message = await (self.bot.get_channel(payload.channel_id)).fetch_message(payload.message_id)
+    message = None
+    try:
+      message = await (self.bot.get_channel(payload.channel_id)).fetch_message(payload.message_id)
+    except Exception:
+      pass
     if message.author != self.bot.user:
       return
     if len(message.embeds) == 0:
@@ -389,7 +399,7 @@ class Fun(commands.Cog):
 
     await message.edit(embed=embed(title=message.embeds[0].title.replace("Pole: ", "Poll: "), fieldstitle=titles, fieldsval=vals, fieldsin=ins))
 
-  @commands.command(name="gametime", description="Ping a role that is attached to a game and see who wants to play")
+  @commands.command(name="gametime", help="Ping a role that is attached to a game and see who wants to play")
   @commands.guild_only()
   async def norm_game_time(self, ctx, role: discord.Role, *, message: str = None):
     await self.game_time(ctx, role, message)

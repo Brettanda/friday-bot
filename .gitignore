@@ -114,7 +114,8 @@ venv.bak/
 .ropeproject
 
 # mkdocs documentation
-/site
+site/
+# /docs/commands
 
 # mypy
 .mypy_cache/
@@ -131,3 +132,4 @@ old_*
 .vscode
 guilds.json
 friday-trans-key.json
+*.csv

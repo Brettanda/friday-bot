@@ -3,7 +3,7 @@ import discord
 from typing import TYPE_CHECKING
 from discord.ext import commands
 from discord_slash import SlashContext
-from functions import exceptions, config
+from . import exceptions, config, query
 
 if TYPE_CHECKING:
   from discord.ext.commands.core import _CheckDecorator
@@ -49,7 +49,7 @@ async def guild_is_min_tier(bot: "Bot", guild: discord.Guild, tier: str) -> bool
   #   raise commands.NoPrivateMessage()
   if guild is None:
     return False
-  guild_tier = bot.get_guild_tier(guild)
+  guild_tier = bot.log.get_guild_tier(guild)
   tier_level = config.premium_tiers[tier]
   if guild_tier in list(config.premium_tiers)[tier_level:]:
     return True
@@ -61,14 +61,15 @@ async def guild_is_min_tier(bot: "Bot", guild: discord.Guild, tier: str) -> bool
 async def user_is_min_tier(bot: "Bot", user: discord.User, tier: str) -> bool:
   """ Checks if a user has at least patreon 'tier' """
 
-  if user.guild and user.guild.id != config.support_server_id:
-    user = None
+  if hasattr(user, "guild") and user.guild.id != config.support_server_id or not hasattr(user, "guild"):
+    member = None
     try:
-      user = await bot.get_guild(config.support_server_id).fetch_member(user.id)
+      member = await bot.get_guild(config.support_server_id).fetch_member(user.id)
     except Exception:
       return False
-  if not hasattr(user, "guild"):
-    return False
+    user = member
+  # if not hasattr(user, "guild"):
+  #   return False
   roles = [role.id for role in user.roles]
   if config.patreon_supporting_role not in roles:
     return False
@@ -103,6 +104,23 @@ async def user_is_supporter(bot: "Bot", user: discord.User) -> bool:
   if config.patreon_supporting_role not in roles:
     raise exceptions.NotSupporter()
   return True
+
+
+def is_supporter_or_voted() -> "_CheckDecorator":
+  async def predicate(ctx) -> bool:
+    member = await ctx.bot.get_guild(config.support_server_id).fetch_member(ctx.author.id)
+    if await user_is_supporter(ctx.bot, member):
+      return True
+    elif await user_voted(ctx.bot, member):
+      return True
+    else:
+      raise exceptions.NotSupporter()
+  return commands.check(predicate)
+
+
+async def user_voted(bot: "Bot", user: discord.User) -> bool:
+  user_id = await query(bot.mydb, "SELECT id FROM votes WHERE id=%s", user.id)
+  return True if user_id is not None else False
 
 
 def bot_has_guild_permissions(**perms) -> "_CheckDecorator":

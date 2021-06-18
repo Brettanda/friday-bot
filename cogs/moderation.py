@@ -2,38 +2,89 @@ import asyncio
 import typing
 # import datetime
 # import validators
+from slugify import slugify
 import pycountry
 
 import discord
+# import datetime
+
+# from PIL import Image, ImageDraw
+# https://code-maven.com/create-images-with-python-pil-pillow
 from discord.ext import commands
-from discord_slash import SlashContext, cog_ext, SlashCommandOptionType
+from discord_slash import SlashContext, cog_ext
+from discord_slash.model import SlashCommandOptionType
 from discord_slash.utils.manage_commands import create_option
+from typing_extensions import TYPE_CHECKING
 
 from cogs.help import cmd_help
 from functions import MessageColors, embed, query, checks, relay_info, config
 
+if TYPE_CHECKING:
+  from index import Friday as Bot
 
-class ServerManage(commands.Cog):
-  """Commands for managing Friday on your server"""
 
-  def __init__(self, bot):
+class Moderation(commands.Cog):
+  """Manage your server with these commands"""
+
+  def __init__(self, bot: "Bot"):
     self.bot = bot
+
+    if not hasattr(self, "message_spam_control"):
+      self.message_spam_control = {}
+
+    if not hasattr(self, "message_spam_control_counter"):
+      self.message_spam_control_counter = {}
+
+    if not hasattr(self, "blacklist"):
+      self.blacklist = {}
 
   def cog_check(self, ctx):
     if ctx.guild is None:
       raise commands.NoPrivateMessage("This command can only be used within a guild")
     return True
 
-  @commands.command(name="defaultrole", hidden=True)
+  @commands.Cog.listener()
+  async def on_ready(self):
+    blacklists = await query(self.bot.mydb, "SELECT * FROM blacklist")
+    for server, word in blacklists:
+      if server not in self.blacklist:
+        self.blacklist[int(server)] = [word]
+      else:
+        self.blacklist[int(server)].append(word)
+
+  @commands.command(name="defaultrole", hidden=True, help="Set the role that is given to new members when they join the server")
   @commands.is_owner()
   @commands.has_guild_permissions(manage_roles=True)
-  async def _defaultrole(self, ctx, role: discord.Role):
+  @commands.bot_has_guild_permissions(manage_roles=True)
+  async def _defaultrole(self, ctx, role: typing.Optional[discord.Role] = None):
     # TODO: Need the members intent so assign the role
-    await query(self.bot.mydb, "UPDATE servers SET defaultRole=%s WHERE id=%s", role.id, ctx.guild.id)
-    try:
-      await ctx.reply(embed=embed(title=f"The new default role for new members is `{role}`"))
-    except discord.Forbidden:
-      await ctx.reply(f"The new default role for new members is `{role}`")
+    role_id = role.id if role is not None else None
+    await query(self.bot.mydb, "UPDATE servers SET defaultRole=%s WHERE id=%s", role_id, ctx.guild.id)
+    await ctx.reply(embed=embed(title=f"The new default role for new members is `{role}`"))
+
+  @commands.Cog.listener()
+  async def on_member_join(self, member: discord.Member):
+    if member.pending:
+      return
+    await self.add_defaultrole(member)
+
+  @commands.Cog.listener()
+  async def on_member_update(self, before: discord.Member, after: discord.Member):
+    if before.pending is not True or after.pending is not False:
+      return
+    await self.add_defaultrole(after)
+
+  async def add_defaultrole(self, member: discord.Member):
+    role_id = await query(self.bot.mydb, "SELECT defaultRole FROM servers WHERE id=%s", member.guild.id)
+    if role_id == 0 or role_id is None or str(role_id).lower() == "null":
+      return
+    else:
+      role = member.guild.get_role(role_id)
+      if role is None:
+        # await member.guild.owner.send(f"The default role that was chosen for me to add to members when they join yours server \"{member.guild.name}\" could not be found, please update the default role at https://friday-self.bot.com")
+        await query(self.bot.mydb, "UPDATE servers SET defaultRole=NULL WHERE id=%s", member.guild.id)
+      else:
+        await member.add_roles(role, reason="Default Role")
 
   # @commands.command(name="mute")
   # @commands.is_owner()
@@ -48,7 +99,7 @@ class ServerManage(commands.Cog):
   #       await query(self.bot.mydb,"UPDATE servers SET muted=%s WHERE id=%s",0,ctx.guild.id)
   #       await ctx.reply(embed=embed(title="I will now respond to chat message as well as commands"))
 
-  @commands.command(name="prefix")
+  @commands.command(name="prefix", help="Sets the prefix for Fridays commands")
   @commands.has_guild_permissions(administrator=True)
   async def _prefix(self, ctx, new_prefix: typing.Optional[str] = config.defaultPrefix):
     new_prefix = new_prefix.lower()
@@ -56,13 +107,13 @@ class ServerManage(commands.Cog):
       await ctx.reply(embed=embed(title="Can't set a prefix with more than 5 characters", color=MessageColors.ERROR))
       return
     await query(self.bot.mydb, "UPDATE servers SET prefix=%s WHERE id=%s", new_prefix, ctx.guild.id)
-    self.bot.change_guild_prefix(ctx.guild.id, new_prefix)
+    self.bot.log.change_guild_prefix(ctx.guild.id, new_prefix)
     try:
       await ctx.reply(embed=embed(title=f"My new prefix is `{new_prefix}`"))
     except discord.Forbidden:
       await ctx.reply(f"My new prefix is `{new_prefix}`")
 
-  @commands.group(name="bot", invoke_without_command=True)
+  @commands.group(name="set", aliases=["bot"], invoke_without_command=True, case_insensitive=True)
   @commands.guild_only()
   @commands.has_guild_permissions(manage_channels=True)
   async def settings_bot(self, ctx):
@@ -81,7 +132,7 @@ class ServerManage(commands.Cog):
     post = await self.settings_bot_mute(ctx)
     await ctx.reply(**post)
 
-  @cog_ext.cog_subcommand(base="bot", base_description="Bot settings", name="mute", description="Stop me from responding to non-command messages or not")
+  @cog_ext.cog_subcommand(base="set", base_description="Bot settings", name="mute", description="Stop me from responding to non-command messages or not")
   @commands.has_guild_permissions(manage_channels=True)
   @checks.slash(user=True, private=False)
   async def slash_settings_bot_mute(self, ctx):
@@ -92,21 +143,21 @@ class ServerManage(commands.Cog):
     muted = await query(self.bot.mydb, "SELECT muted FROM servers WHERE id=%s", ctx.guild.id)
     if int(muted) == 0:
       await query(self.bot.mydb, "UPDATE servers SET muted=%s WHERE id=%s", 1, ctx.guild.id)
-      self.bot.change_guild_muted(ctx.guild.id, True)
+      self.bot.log.change_guild_muted(ctx.guild.id, True)
       return dict(embed=embed(title="I will now only respond to commands"))
     else:
       await query(self.bot.mydb, "UPDATE servers SET muted=%s WHERE id=%s", 0, ctx.guild.id)
-      self.bot.change_guild_muted(ctx.guild.id, False)
+      self.bot.log.change_guild_muted(ctx.guild.id, False)
       return dict(embed=embed(title="I will now respond to chat message as well as commands"))
 
-  @settings_bot.command(name="chatchannel", alias="chat", description="Set the current channel so that I will always try to respond with something")
+  @settings_bot.command(name="chatchannel", alias="chat", help="Set the current channel so that I will always try to respond with something")
   @commands.guild_only()
   @commands.has_guild_permissions(manage_channels=True)
   async def norm_settings_bot_chat_channel(self, ctx):
     post = await self.settings_bot_chat_channel(ctx)
     await ctx.reply(**post)
 
-  @cog_ext.cog_subcommand(base="bot", base_description="Bot settings", name="chatchannel", description="Set the current text channel so that I will always try to respond")
+  @cog_ext.cog_subcommand(base="set", base_description="Bot settings", name="chatchannel", description="Set the current text channel so that I will always try to respond")
   @commands.has_guild_permissions(manage_channels=True)
   @checks.slash(user=True, private=False)
   async def slash_settings_bot_chat_channel(self, ctx):
@@ -118,14 +169,14 @@ class ServerManage(commands.Cog):
     chat_channel = await query(self.bot.mydb, "SELECT chatChannel FROM servers WHERE id=%s", ctx.guild.id)
     if chat_channel is None:
       await query(self.bot.mydb, "UPDATE servers SET chatChannel=%s WHERE id=%s", ctx.channel.id, ctx.guild.id)
-      self.bot.change_guild_chat_channel(ctx.guild.id, ctx.channel.id)
+      self.bot.log.change_guild_chat_channel(ctx.guild.id, ctx.channel.id)
       return dict(embed=embed(title="I will now (try to) respond to every message in this channel"))
     else:
       await query(self.bot.mydb, "UPDATE servers SET chatChannel=%s WHERE id=%s", None, ctx.guild.id)
-      self.bot.change_guild_chat_channel(ctx.guild.id, None)
+      self.bot.log.change_guild_chat_channel(ctx.guild.id, None)
       return dict(embed=embed(title="I will no longer (try to) respond to all messages from this channel"))
 
-  @commands.command(name="musicchannel", description="Set the channel where I can join and play music. If none then I will join any VC", hidden=True)
+  @settings_bot.command(name="musicchannel", help="Set the channel where I can join and play music. If none then I will join any VC", hidden=True)
   @commands.is_owner()
   @commands.has_guild_permissions(manage_channels=True)
   async def music_channel(self, ctx, voicechannel: typing.Optional[discord.VoiceChannel] = None):
@@ -136,7 +187,7 @@ class ServerManage(commands.Cog):
     else:
       await ctx.reply(embed=embed(title=f"`{voicechannel}` is now my music channel"))
 
-  @commands.command(name="deletecommandsafter", aliases=["deleteafter", "delcoms"], description="Set the time in seconds for how long to wait before deleting command messages")
+  @settings_bot.command(name="deletecommandsafter", aliases=["deleteafter", "delcoms"], help="Set the time in seconds for how long to wait before deleting command messages")
   @commands.guild_only()
   @commands.has_guild_permissions(manage_channels=True)
   @commands.bot_has_permissions(manage_messages=True)
@@ -146,7 +197,7 @@ class ServerManage(commands.Cog):
       return
     async with ctx.typing():
       await query(self.bot.mydb, "UPDATE servers SET autoDeleteMSGs=%s WHERE id=%s", time, ctx.guild.id)
-      self.bot.change_guild_delete(ctx.guild.id, time)
+      self.bot.log.change_guild_delete(ctx.guild.id, time)
     if time == 0:
       await ctx.reply(embed=embed(title="I will no longer delete command messages"))
     else:
@@ -160,6 +211,79 @@ class ServerManage(commands.Cog):
   #   async for message in ctx.channel.history():
   #     if message.author == self.bot.user:
   #       print("")
+
+  def do_slugify(self, string):
+    string = slugify(string).replace("-", "")
+    for old, new in (("4", "a"), ("@", "a"), ("3", "e"), ("1", "i"), ("0", "o"), ("7", "t"), ("5", "s")):
+      string = string.replace(old, new)
+
+    return string.lower()
+
+  async def check_blacklist(self, msg: discord.Message):
+    bypass = msg.author.guild_permissions.manage_guild
+    if bypass:
+      return
+    cleansed_msg = self.do_slugify(msg.clean_content)
+    try:
+      if msg.guild.id in self.blacklist:
+        for blacklisted_word in self.blacklist[msg.guild.id]:
+          if blacklisted_word in cleansed_msg:
+            try:
+              await msg.delete()
+              return await msg.author.send(f"""Your message `{msg.content}` was removed for containing the blacklisted word `{blacklisted_word}`""")
+            except Exception as e:
+              await relay_info(f"Error when trying to remove message {type(e).__name__}: {e}")
+    except Exception as e:
+      await relay_info(f"Error when trying to remove message (big) {type(e).__name__}: {e}")
+
+  @commands.group(name="blacklist", aliases=["bl"], invoke_without_command=True, case_insensitive=True)
+  @commands.guild_only()
+  @commands.has_guild_permissions(manage_guild=True)
+  async def _blacklist(self, ctx: commands.Context):
+    await ctx.send_help(ctx.command)
+    # await cmd_help(ctx, ctx.command)
+
+  @_blacklist.command(name="add", aliases=["+"])
+  @commands.guild_only()
+  @commands.has_guild_permissions(manage_guild=True)
+  async def _blacklist_add_word(self, ctx, *, word: str):
+    cleansed_word = self.do_slugify(word)
+    await query(self.bot.mydb, "INSERT IGNORE INTO blacklist VALUES (%s,%s)", ctx.guild.id, cleansed_word)
+    try:
+      self.blacklist[ctx.guild.id].append(cleansed_word)
+    except KeyError:
+      self.blacklist[ctx.guild.id] = [cleansed_word]
+    word = word
+    await ctx.reply(embed=embed(title=f"Added `{word}` to the blacklist"))
+
+  @_blacklist.command(name="remove", aliases=["-"])
+  @commands.guild_only()
+  @commands.has_guild_permissions(manage_guild=True)
+  async def _blacklist_remove_word(self, ctx, *, word: str):
+    cleansed_word = word
+    if cleansed_word not in self.blacklist[ctx.guild.id]:
+      return await ctx.reply(embed=embed(title="You don't seem to blacklisting that word"))
+    await query(self.bot.mydb, "DELETE FROM blacklist WHERE (id=%s AND word=%s)", ctx.guild.id, cleansed_word)
+    self.blacklist[ctx.guild.id].remove(cleansed_word)
+    word = word
+    await ctx.reply(embed=embed(title=f"Removed `{word}` from the blacklist"))
+
+  @_blacklist.command(name="display", aliases=["list", "show"])
+  @commands.guild_only()
+  @commands.has_guild_permissions(manage_guild=True)
+  async def _blacklist_display_words(self, ctx):
+    words = await query(self.bot.mydb, "SELECT word FROM blacklist WHERE id=%s", ctx.guild.id, rlist=True)
+    if words == [] or words is None:
+      return await ctx.reply(embed=embed(title=f"No blacklisted words yet, use `{ctx.prefix}blacklist add <word>` to get started"))
+    await ctx.reply(embed=embed(title="Blocked words", description='\n'.join(x[0] for x in words)))
+
+  @_blacklist.command(name="clear")
+  @commands.guild_only()
+  @commands.has_guild_permissions(manage_guild=True)
+  async def _blacklist_clear(self, ctx):
+    await query(self.bot.mydb, "DELETE FROM blacklist WHERE id=%s", ctx.guild.id)
+    self.blacklist[ctx.guild.id] = []
+    await ctx.reply(embed=embed(title="Removed all blacklisted words"))
 
   @commands.command(name="kick")
   @commands.bot_has_guild_permissions(kick_members=True)
@@ -326,7 +450,7 @@ class ServerManage(commands.Cog):
       await member.ban(delete_message_days=delete_message_days, reason=f"{ctx.author}: {reason}")
     return dict(embed=embed(title=f"Banned `{', '.join(toban)}`{(' with `'+str(delete_message_days)+'` messages deleted') if delete_message_days > 0 else ''}{(' for reason `'+reason+'`') if reason is not None else ''}"))
 
-  @commands.command(name="rolecall", aliases=["rc"], description="Moves everyone with a specific role to a voicechannel. Objects that can be exluded are voicechannels,roles,and members")
+  @commands.command(name="rolecall", aliases=["rc"], help="Moves everyone with a specific role to a voicechannel. Objects that can be exluded are voicechannels,roles,and members")
   @commands.guild_only()
   @commands.has_guild_permissions(move_members=True)
   @commands.bot_has_guild_permissions(move_members=True)
@@ -375,7 +499,7 @@ class ServerManage(commands.Cog):
 
     return dict(embed=embed(title=f"Moved {moved} members with the role `{role}` to `{voicechannel}`"))
 
-  @commands.command(name="massmove", aliases=["move"])
+  @commands.command(name="massmove", aliases=["move"], help="Move everyone from one voice channel to another")
   @commands.guild_only()
   @commands.has_guild_permissions(move_members=True)
   @commands.bot_has_guild_permissions(move_members=True)
@@ -447,7 +571,7 @@ class ServerManage(commands.Cog):
     #   return dict(content=f"Successfully moved {memberCount} member(s)")
     return dict(embed=embed(title=f"Successfully moved {memberCount} member(s)"))
 
-  @commands.command(name="lock", description="Sets your voice channels user limit to the current number of occupants", hidden=True)
+  @commands.command(name="lock", help="Sets your voice channels user limit to the current number of occupants", hidden=True)
   @commands.guild_only()
   # @commands.is_owner()
   @commands.has_guild_permissions(manage_channels=True)
@@ -489,7 +613,7 @@ class ServerManage(commands.Cog):
         return dict(content=f"Locked `{voicechannel}`")
       return dict(embed=embed(title=f"Locked `{voicechannel}`"))
 
-  @commands.command(name="begone", description="Delete unwanted message that I send")
+  @commands.command(name="begone", help="Delete unwanted message that I send")
   @commands.bot_has_permissions(manage_messages=True)
   async def begone(self, ctx, message: typing.Optional[discord.Message] = None):
     if message is not None and ctx.message.reference is not None:
@@ -509,17 +633,110 @@ class ServerManage(commands.Cog):
         relay_info(
             f"**Begone**\nUSER: {reference.clean_content}\nME: {message.clean_content}```{message}```",
             self.bot,
-            webhook=self.bot.log_chat
+            webhook=self.bot.log.log_chat
         ),
         message.delete(),
         ctx.reply(embed=embed(title="Message has been removed"), delete_after=20),
         ctx.message.delete(delay=20)
     )
 
-  @commands.command(name="language", aliases=["lang"], description="Change the language that I will speak")
+  @commands.Cog.listener()
+  async def on_message_edit(self, before, after):
+    if before.guild is None:
+      return
+    if before.author.bot:
+      return
+    bypass = before.author.guild_permissions.manage_guild
+    if bypass:
+      return
+    await self.check_blacklist(after)
+
+  @commands.Cog.listener()
+  async def on_message(self, msg: discord.Message):
+    if not msg.guild or msg.author.bot:
+      return
+    bypass = msg.author.guild_permissions.manage_guild if isinstance(msg.author, discord.Member) else False
+    if bypass:
+      return
+    await self.check_blacklist(msg)
+
+  @commands.command(name="mute", help="Mute a member from text channels")
+  @commands.guild_only()
+  @commands.has_guild_permissions(manage_channels=True)
+  @commands.bot_has_guild_permissions(manage_channels=True)
+  async def norm_mute(self, ctx, *, member: discord.Member):
+    async with ctx.typing():
+      await self.mute(ctx, member=member)
+
+  @cog_ext.cog_slash(
+      name="mute",
+      description="Mute a member from text channels",
+      options=[
+          create_option(name="member", description="The member to mute", option_type=SlashCommandOptionType.USER, required=True)
+      ]
+  )
+  @commands.has_guild_permissions(manage_channels=True)
+  @checks.bot_has_guild_permissions(manage_channels=True)
+  @checks.slash(user=True, private=False)
+  async def slash_mute(self, ctx, member: discord.Member):
+    await ctx.defer()
+    await self.mute(ctx, member=member, slash=True)
+
+  async def mute(self, ctx, *, member: discord.Member, slash: False):
+    x = 0
+    for channel in ctx.guild.text_channels:
+      perms = channel.overwrites_for(member)
+      if perms.send_messages is False:
+        x += 1
+      perms.send_messages = False
+      try:
+        await channel.set_permissions(member, reason="Muted!", overwrite=perms)
+      except discord.Forbidden:
+        pass
+    if x >= len(ctx.guild.text_channels):
+      if slash:
+        return await ctx.send(embed=embed(title=f"`{member.name}` has already been muted", color=MessageColors.ERROR))
+      return await ctx.reply(embed=embed(title=f"`{member.name}` has already been muted", color=MessageColors.ERROR))
+    if slash:
+      return await ctx.send(embed=embed(title=f"`{member.name}` has been muted."))
+    await ctx.reply(embed=embed(title=f"`{member.name}` has been muted."))
+
+  @commands.command(name="unmute", help="Unmute a member from text channels")
+  @commands.guild_only()
+  @commands.has_guild_permissions(manage_channels=True)
+  @commands.bot_has_guild_permissions(manage_channels=True)
+  async def norm_unmute(self, ctx, *, member: discord.Member):
+    async with ctx.typing():
+      await self.unmute(ctx, member=member)
+
+  @cog_ext.cog_slash(
+      name="unmute",
+      description="Unmute a member from text channels",
+      options=[
+          create_option(name="member", description="The member to unmute", option_type=SlashCommandOptionType.USER, required=True)
+      ]
+  )
+  @checks.slash(user=True, private=False)
+  async def slash_unmute(self, ctx, member: discord.Member):
+    await ctx.defer()
+    await self.unmute(ctx, member=member, slash=True)
+
+  async def unmute(self, ctx, *, member: discord.Member, slash: False):
+    for channel in ctx.guild.text_channels:
+      perms = channel.overwrites_for(member)
+      perms.send_messages = None
+      try:
+        await channel.set_permissions(member, reason="Unmuted!", overwrite=perms if perms._values != {} else None)
+      except discord.Forbidden:
+        pass
+    if slash:
+      return await ctx.send(embed=embed(title=f"`{member.name}` has been unmuted."))
+    await ctx.reply(embed=embed(title=f"`{member.name}` has been unmuted."))
+
+  @settings_bot.command(name="language", aliases=["lang"], help="Change the language that I will speak")
   # @commands.cooldown(1, 3600, commands.BucketType.guild)
   @commands.has_guild_permissions(administrator=True)
-  async def language(self, ctx, language: str = None):
+  async def language(self, ctx, language: typing.Optional[str] = None):
     lang = ctx.guild.preferred_locale.split("-")[0]
     if language is None and ctx.guild is not None:
       language = lang
@@ -531,7 +748,7 @@ class ServerManage(commands.Cog):
     final_lang = new_lang.alpha_2 if new_lang is not None else lang
     final_lang_name = new_lang.name if new_lang is not None else lang
     await query(self.bot.mydb, "UPDATE servers SET lang=%s WHERE id=%s", final_lang, ctx.guild.id)
-    self.bot.change_guild_lang(ctx.guild, final_lang)
+    self.bot.log.change_guild_lang(ctx.guild, final_lang)
     return await ctx.reply(embed=embed(title=f"New language set to: `{final_lang_name}`"))
 
   # @commands.Cog.listener()
@@ -564,4 +781,4 @@ class ServerManage(commands.Cog):
 
 
 def setup(bot):
-  bot.add_cog(ServerManage(bot))
+  bot.add_cog(Moderation(bot))

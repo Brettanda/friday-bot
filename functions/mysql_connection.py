@@ -23,13 +23,17 @@ def mydb_connect():
   return mydb
 
 
-async def query(mydb, query: str, *params):
+async def query(mydb, query: str, *params, rlist: bool = False):
   # print(params)
   mycursor = mydb.cursor(prepared=True)
   mycursor.execute(query, params)
   if "select" in query.lower():
-    if "where" in query.lower() and "," not in query.lower():
-      result = mycursor.fetchone()[0]
+    if "where" in query.lower() and "," not in query.lower() and '>' not in query.lower().split("where")[1] and '<' not in query.lower().split("where")[1] or "limit" in query.lower():
+      if rlist is True:
+        result = mycursor.fetchall()
+      else:
+        result = mycursor.fetchone()
+        result = result[0] if result is not None else None
     else:
       result = mycursor.fetchall()
   mydb.commit()
