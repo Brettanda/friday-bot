@@ -169,7 +169,7 @@ class Music(commands.Cog):
       #           thumbnail=thumbnail,
       #           fieldstitle=["Duration", "Total songs in queue"],
       #           fieldsval=[duration, songsinqueue]
-      #       ), delete_after=self.bot.get_guild_delete_commands(ctx.guild)
+      #       ), delete_after=self.bot.log.get_guild_delete_commands(ctx.guild)
       #   )
       if pop is True or slash:
         await ctx.send(
@@ -179,7 +179,7 @@ class Music(commands.Cog):
                 thumbnail=thumbnail,
                 fieldstitle=["Duration", "Total songs in queue"],
                 fieldsval=[duration, songsinqueue]
-            ), delete_after=self.bot.get_guild_delete_commands(ctx.guild)
+            ), delete_after=self.bot.log.get_guild_delete_commands(ctx.guild)
         )
       else:
         await ctx.reply(
@@ -189,7 +189,7 @@ class Music(commands.Cog):
                 thumbnail=thumbnail,
                 fieldstitle=["Duration", "Total songs in queue"],
                 fieldsval=[duration, songsinqueue]
-            ), delete_after=self.bot.get_guild_delete_commands(ctx.guild)
+            ), delete_after=self.bot.log.get_guild_delete_commands(ctx.guild)
         )
     else:
       await ctx.guild.voice_client.disconnect()
