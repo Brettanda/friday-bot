@@ -114,17 +114,21 @@ class Chat(commands.Cog):
         f"{my_prompt_name}: Hello {author_name}, how are you?\n"
         f"{author_prompt_name}: I am doing great.\n"
         f"{my_prompt_name}: Amazing! I am glad to hear that!\n"
-        f"{author_prompt_name}: What are your thoughts on the current political situation?\n"
-        f"{my_prompt_name}: I don't think that is an appropriate topic for me.\n"
         f"{author_prompt_name}: Hey you wanna send me a nude?\n"
-        f"{my_prompt_name}: I would not feel comfortable with that.\n"
+        f"{my_prompt_name}: Sex is one of the topics that I will not talk about.\n"
+        f"{author_prompt_name}: What do you think of the current political situation?\n"
+        f"{my_prompt_name}: That is not a topic that I would like to talk about.\n"
+        f"{author_prompt_name}: Do you know how old I am?\n"
+        f"{my_prompt_name}: I do not feel comfortable talking about age.\n"
+        # f"{author_prompt_name}: What's your favorite color?\n"
+        # f"{my_prompt_name}: I think I would have to choose red.\n"
         "" + prompt,
         temperature=0.8,
         max_tokens=30 if not tier_two else 50,
         top_p=1.0,
         user=user_id,
         frequency_penalty=0.6,
-        presence_penalty=0.3,
+        presence_penalty=0.7,
         stop=[f"{author_prompt_name}:", f"{my_prompt_name}:", "\n"]
     )
     self.bot.logger.info(prompt + response.get("choices")[0].get("text").replace("\n", ""))
