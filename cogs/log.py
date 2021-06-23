@@ -272,7 +272,8 @@ class Log(commands.Cog):
     try:
       return commands.when_mentioned_or(self.bot.saved_guilds[message.guild.id]["prefix"] or config.defaultPrefix)(bot, message)
     except KeyError:
-      await self.on_guild_join(message.guild)
+      await query(self.bot.mydb, "INSERT IGNORE INTO servers (id,name,muted,lang) VALUES (%s,%s,%s,%s)", message.guild.id, message.guild.name, 0, message.guild.preferred_locale.split("-")[0])
+      self.set_guild(message.guild.id)
       return commands.when_mentioned_or(self.bot.saved_guilds[message.guild.id]["prefix"] or config.defaultPrefix)(bot, message)
 
   def get_guild_delete_commands(self, guild: discord.Guild or int) -> int:
