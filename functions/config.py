@@ -63,29 +63,29 @@ patreon_supporting_role = 843941723041300480
 
 premium_tiers = {
     "free": 0,
-    "one_guild": 1,
-    "three_guilds": 2,
+    "t1_one_guild": 1,
+    "t1_three_guilds": 2,
     "early": 3,
-    "tier_two_one_guild": 4,
-    "tier_two_three_guilds": 5,
+    "t2_one_guild": 4,
+    "t2_three_guilds": 5,
     "friends": 6
 }
 
 premium_roles = {
     # "supporting": 843941723041300480,
     # premium_tiers["supporting"]: 843941723041300480,
-    "one_guild": 844090257221222401,
-    premium_tiers["one_guild"]: 844090257221222401,
-    "three_guilds": 849440438598238218,
-    premium_tiers["three_guilds"]: 849440438598238218,
+    "t1_one_guild": 844090257221222401,
+    premium_tiers["t1_one_guild"]: 844090257221222401,
+    "t1_three_guilds": 849440438598238218,
+    premium_tiers["t1_three_guilds"]: 849440438598238218,
     "early": 761492640268943380,
     premium_tiers["early"]: 761492640268943380,
     "friends": 763916955388084246,
     premium_tiers["friends"]: 763916955388084246,
-    "tier_two_one_guild": 851980183962910720,
-    premium_tiers["tier_two_one_guild"]: 851980183962910720,
-    "tier_two_three_guilds": 851980649920331798,
-    premium_tiers["tier_two_three_guilds"]: 851980649920331798,
+    "t2_one_guild": 851980183962910720,
+    premium_tiers["t2_one_guild"]: 851980183962910720,
+    "t2_three_guilds": 851980649920331798,
+    premium_tiers["t2_three_guilds"]: 851980649920331798,
 }
 
 
