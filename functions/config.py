@@ -1,6 +1,7 @@
 import discord
 from typing_extensions import TYPE_CHECKING
 from .myembed import embed
+from discord_slash import manage_components, ButtonStyle
 
 if TYPE_CHECKING:
   from index import Friday as Bot
