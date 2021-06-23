@@ -190,7 +190,7 @@ class Log(commands.Cog):
     except StopIteration:
       return
 
-    await channel.send(config.welcome_message(self.bot))
+    await channel.send(**config.welcome_message(self.bot))
     self.set_guild(guild.id)
 
   @commands.Cog.listener()
