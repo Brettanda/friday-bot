@@ -2,7 +2,7 @@ from discord.ext import commands
 # from discord_slash import cog_ext
 
 from .help import cmd_help
-from functions import checks, query, MessageColors, embed
+from functions import checks, query, MessageColors, embed, config
 
 # import discord
 from typing_extensions import TYPE_CHECKING
@@ -21,27 +21,27 @@ class Patreons(commands.Cog):
     await cmd_help(ctx, ctx.command)
 
   @norm_patreon.command("test", hidden=True)
-  @checks.is_min_tier("one_guild")
+  @checks.is_min_tier(list(config.premium_tiers)[1])
   async def norm_test(self, ctx):
     print("something x2")
 
   @norm_patreon.group("server", description="Activate the server that you would like to apply your patronage to", invoke_without_command=True)
   @commands.guild_only()
   @checks.is_supporter()
-  @checks.is_min_tier("one_guild")
+  @checks.is_min_tier(list(config.premium_tiers)[1])
   async def norm_patreon_server(self, ctx):
     await self.norm_patreon_server_true(ctx)
 
   @norm_patreon_server.command("true")
   @commands.guild_only()
   @checks.is_supporter()
-  @checks.is_min_tier("one_guild")
+  @checks.is_min_tier(list(config.premium_tiers)[1])
   async def norm_patreon_server_true(self, ctx):
     guild_id, tier, patreon_user = (await query(self.bot.mydb, "SELECT id,tier,patreon_user FROM servers WHERE id=%s", ctx.guild.id))[0]
     if tier is None or patreon_user is None:
       user_tier = await self.bot.log.fetch_user_tier(ctx.author)
       # Probably check what server has it and remove it instead of saying the following
-      if user_tier == "one_guild" and len(await query(self.bot.mydb, "SELECT id,tier,patreon_user FROM servers WHERE patreon_user=%s", ctx.author.id)) >= 1:
+      if user_tier == list(config.premium_tiers)[1] and len(await query(self.bot.mydb, "SELECT id,tier,patreon_user FROM servers WHERE patreon_user=%s", ctx.author.id)) >= 1:
         return await ctx.reply(embed=embed(title="You have already used your patronage on another server", color=MessageColors.ERROR))
       await query(self.bot.mydb, "UPDATE servers SET tier=%s, patreon_user=%s WHERE id=%s", str(user_tier), int(ctx.author.id), int(ctx.guild.id))
       self.bot.log.change_guild_tier(ctx.guild.id, user_tier)
