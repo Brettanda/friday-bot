@@ -313,8 +313,8 @@ class Moderation(commands.Cog):
   @checks.bot_has_guild_permissions(kick_members=True)
   @commands.has_guild_permissions(kick_members=True)
   @checks.slash(user=True, private=False)
-  async def slash_kick(self, ctx, members: commands.Greedy[discord.Member], reason=None):
-    post = await self.kick(ctx, [members], reason, True)
+  async def slash_kick(self, ctx, member: discord.Member, reason=None):
+    post = await self.kick(ctx, [member], reason, True)
     await ctx.send(**post)
 
   async def kick(self, ctx, members, reason=None, slash=False):
@@ -503,8 +503,8 @@ class Moderation(commands.Cog):
   @commands.guild_only()
   @commands.has_guild_permissions(move_members=True)
   @commands.bot_has_guild_permissions(move_members=True)
-  async def norm_mass_move(self, ctx, toChannel: typing.Union[discord.VoiceChannel, discord.StageChannel] = None, fromChannel: typing.Optional[typing.Union[discord.VoiceChannel, discord.StageChannel]] = None):
-    post = await self.mass_move(ctx, toChannel, fromChannel)
+  async def norm_mass_move(self, ctx, tochannel: typing.Union[discord.VoiceChannel, discord.StageChannel] = None, fromchannel: typing.Optional[typing.Union[discord.VoiceChannel, discord.StageChannel]] = None):
+    post = await self.mass_move(ctx, tochannel, fromchannel)
     await ctx.reply(**post)
 
   @cog_ext.cog_slash(
@@ -528,8 +528,8 @@ class Moderation(commands.Cog):
   @checks.bot_has_guild_permissions(move_members=True)
   @commands.has_guild_permissions(move_members=True)
   @checks.slash(user=True, private=False)
-  async def slash_mass_move(self, ctx, toChannel, fromChannel=None):
-    post = await self.mass_move(ctx, toChannel, fromChannel)
+  async def slash_mass_move(self, ctx, tochannel, fromchannel=None):
+    post = await self.mass_move(ctx, tochannel, fromchannel)
     await ctx.send(**post)
 
   async def mass_move(self, ctx, toChannel, fromChannel=None):
