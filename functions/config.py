@@ -27,7 +27,7 @@ def welcome_message(bot: "Bot", *, prefix: str = defaultPrefix) -> dict:
       ),
       manage_components.create_button(
           style=ButtonStyle.URL,
-          url="https://patreon.com/fridaybot",
+          url="https://www.patreon.com/bePatron?u=42649008",
           label="Patreon"
       ),
       manage_components.create_button(
