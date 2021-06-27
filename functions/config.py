@@ -32,7 +32,7 @@ def welcome_message(bot: "Bot", *, prefix: str = defaultPrefix) -> dict:
       ),
       manage_components.create_button(
           style=ButtonStyle.URL,
-          url="https://docs.friday-bot.com/en/latest/",
+          url="https://docs.friday-bot.com/",
           label="Documentation"
       ),
   ])
