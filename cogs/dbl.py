@@ -54,8 +54,8 @@ class TopGG(commands.Cog):
       return
     reset_time, notify_time = datetime.datetime.utcnow() - datetime.timedelta(hours=48), datetime.datetime.utcnow() - datetime.timedelta(hours=12)
     reset_time_formated, notify_time_formated = f"{reset_time.year}-{'0' if reset_time.month < 10 else ''}{reset_time.month}-{'0' if reset_time.day < 10 else ''}{reset_time.day} {'0' if reset_time.hour < 10 else ''}{reset_time.hour}:{'0' if reset_time.minute < 10 else ''}{reset_time.minute}:{'0' if reset_time.second < 10 else ''}{reset_time.second}", f"{notify_time.year}-{'0' if notify_time.month < 10 else ''}{notify_time.month}-{'0' if notify_time.day < 10 else ''}{notify_time.day} {'0' if notify_time.hour < 10 else ''}{notify_time.hour}:{'0' if notify_time.minute < 10 else ''}{notify_time.minute}:{'0' if notify_time.second < 10 else ''}{notify_time.second}"
-    votes = await query(self.bot.mydb, f"SELECT id FROM votes WHERE voted_time < timestamp('{reset_time_formated}')")
-    reminds = await query(self.bot.mydb, f"SELECT id,remind FROM votes WHERE remind=0 AND voted_time < timestamp('{notify_time_formated}')")
+    votes = await query(self.bot.log.mydb, f"SELECT id FROM votes WHERE voted_time < timestamp('{reset_time_formated}')")
+    reminds = await query(self.bot.log.mydb, f"SELECT id,remind FROM votes WHERE remind=0 AND voted_time < timestamp('{notify_time_formated}')")
     vote_user_ids, remind_user_ids = [str(vote[0]) for vote in votes], [str(vote[0]) for vote in reminds]
     # for user_id in remind_user_ids:
     #   try:
@@ -64,9 +64,9 @@ class TopGG(commands.Cog):
     #   except Exception:
     #     pass
     if len(remind_user_ids) > 0:
-      await query(self.bot.mydb, f"UPDATE votes SET remind=0 WHERE remind=1 AND voted_time < timestamp('{notify_time_formated}')")
+      await query(self.bot.log.mydb, f"UPDATE votes SET remind=0 WHERE remind=1 AND voted_time < timestamp('{notify_time_formated}')")
     if len(vote_user_ids) > 0:
-      await query(self.bot.mydb, f"DELETE FROM votes WHERE id IN ({','.join(vote_user_ids)})")
+      await query(self.bot.log.mydb, f"DELETE FROM votes WHERE id IN ({','.join(vote_user_ids)})")
 
   @commands.Cog.listener()
   async def on_dbl_test(self, data):
@@ -77,7 +77,7 @@ class TopGG(commands.Cog):
   async def on_dbl_vote(self, data):
     self.bot.logger.info(f'Received an upvote, {data}')
     if data.get("user", None) is not None:
-      await query(self.bot.mydb, "INSERT INTO votes (id,voted_time) VALUES (%s,%s) ON DUPLICATE KEY UPDATE voted_time=%s", int(data["user"]), datetime.datetime.now(), datetime.datetime.now())
+      await query(self.bot.log.mydb, "INSERT INTO votes (id,voted_time) VALUES (%s,%s) ON DUPLICATE KEY UPDATE voted_time=%s", int(data["user"]), datetime.datetime.now(), datetime.datetime.now())
     if int(data.get("user", None)) not in (215227961048170496, 813618591878086707):
       if data.get("user", None) is not None:
         support_server = self.bot.get_guild(config.support_server_id)

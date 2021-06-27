@@ -60,8 +60,8 @@ class Log(commands.Cog):
     if not hasattr(self.bot, "slash"):
       self.bot.slash = SlashCommand(self.bot, sync_on_cog_reload=True, sync_commands=True)
 
-    if not hasattr(self.bot, "mydb"):
-      self.bot.mydb = mydb_connect()
+    if not hasattr(self, "mydb"):
+      self.mydb = mydb_connect()
 
     self.bot.process_commands = self.process_commands
     # self.bot.on_error = self.on_error
@@ -100,9 +100,11 @@ class Log(commands.Cog):
 
   @tasks.loop(seconds=10.0)
   async def check_for_mydb(self):
-    if not self.bot.mydb.is_connected():
-      self.bot.mydb.reconnect()
-      await relay_info("Reconnected to MYDB", self.bot, logger=self.logger)
+    try:
+      self.mydb.ping(reconnect=True, attempts=10, delay=1)
+    except mysql.connector.InterfaceError as e:
+      await relay_info("Disconnected from MYDB", self.bot, logger=self.logger)
+      raise e
 
   @check_for_mydb.before_loop
   async def before_check_for_mydb(self):
@@ -121,7 +123,7 @@ class Log(commands.Cog):
     # FIXME: I think this could delete some of the db with more than one cluster
     #
     if self.bot.cluster_idx == 0:
-      await query(self.bot.mydb, """CREATE TABLE IF NOT EXISTS servers
+      await query(self.mydb, """CREATE TABLE IF NOT EXISTS servers
                                   (id bigint UNIQUE NOT NULL,
                                   name varchar(255) NULL,
                                   tier tinytext NULL,
@@ -140,15 +142,16 @@ class Log(commands.Cog):
                                   musicChannel bigint NULL DEFAULT NULL,
                                   greeting varchar(255) NULL DEFAULT NULL,
                                   customSounds longtext NULL)""")
-      await query(self.bot.mydb, """CREATE TABLE IF NOT EXISTS votes
+      await query(self.mydb, """CREATE TABLE IF NOT EXISTS votes
                                   (id bigint UNIQUE NOT NULL,
                                   remind tinyint NULL DEFAULT 1,
                                   voted_time timestamp NULL DEFAULT CURRENT_TIMESTAMP)""")
-      await query(self.bot.mydb, """CREATE TABLE IF NOT EXISTS blacklist
+      await query(self.mydb, """CREATE TABLE IF NOT EXISTS blacklist
                                   (id bigint,
                                   word text)""")
       for guild in self.bot.guilds:
-        await query(self.bot.mydb, "INSERT IGNORE INTO servers (id,name,muted,lang) VALUES (%s,%s,%s,%s)", guild.id, guild.name, 0, guild.preferred_locale.split("-")[0])
+        await query(self.mydb, "INSERT IGNORE INTO servers (id,name,muted,lang) VALUES (%s,%s,%s,%s)", guild.id, guild.name, 0, guild.preferred_locale.split("-")[0])
+
     await self.set_all_guilds()
     await relay_info(f"Apart of {len(self.bot.guilds)} guilds", self.bot, logger=self.logger)
     self.bot.ready = True
@@ -172,7 +175,7 @@ class Log(commands.Cog):
   @commands.Cog.listener()
   async def on_guild_join(self, guild: discord.Guild):
     await relay_info(f"I have joined a new guild, making the total **{len(self.bot.guilds)}**", self.bot, short=f"I have joined a new guild, making the total {len(self.bot.guilds)}", webhook=self.log_join, logger=self.logger)
-    await query(self.bot.mydb, "INSERT IGNORE INTO servers (id,name,muted,lang) VALUES (%s,%s,%s,%s)", guild.id, guild.name, 0, guild.preferred_locale.split("-")[0])
+    await query(self.mydb, "INSERT IGNORE INTO servers (id,name,muted,lang) VALUES (%s,%s,%s,%s)", guild.id, guild.name, 0, guild.preferred_locale.split("-")[0])
     priority_channels = []
     channels = []
     for channel in guild.text_channels:
@@ -196,7 +199,7 @@ class Log(commands.Cog):
   @commands.Cog.listener()
   async def on_guild_remove(self, guild):
     await relay_info(f"I have been removed from a guild, making the total **{len(self.bot.guilds)}**", self.bot, short=f"I have been removed from a guild, making the total {len(self.bot.guilds)}", webhook=self.log_join, logger=self.logger)
-    await query(self.bot.mydb, "DELETE FROM servers WHERE id=%s", guild.id)
+    await query(self.mydb, "DELETE FROM servers WHERE id=%s", guild.id)
     self.remove_guild(guild.id)
 
   @commands.Cog.listener()
@@ -272,7 +275,7 @@ class Log(commands.Cog):
     try:
       return commands.when_mentioned_or(self.bot.saved_guilds[message.guild.id]["prefix"] or config.defaultPrefix)(bot, message)
     except KeyError:
-      await query(self.bot.mydb, "INSERT IGNORE INTO servers (id,name,muted,lang) VALUES (%s,%s,%s,%s)", message.guild.id, message.guild.name, 0, message.guild.preferred_locale.split("-")[0])
+      await query(self.mydb, "INSERT IGNORE INTO servers (id,name,muted,lang) VALUES (%s,%s,%s,%s)", message.guild.id, message.guild.name, 0, message.guild.preferred_locale.split("-")[0])
       self.set_guild(message.guild.id)
       return commands.when_mentioned_or(self.bot.saved_guilds[message.guild.id]["prefix"] or config.defaultPrefix)(bot, message)
 
@@ -421,7 +424,8 @@ class Log(commands.Cog):
 
   async def set_all_guilds(self):
     # if not hasattr(self.bot, "saved_guilds") or len(self.bot.saved_guilds) != len(self.bot.guilds):
-    servers = await query(self.bot.mydb, "SELECT id,prefix,tier,patreon_user,autoDeleteMSGs,muted,chatChannel,lang FROM servers")
+    servers = await query(self.mydb,
+                          "SELECT id,prefix,tier,patreon_user,autoDeleteMSGs,muted,chatChannel,lang FROM servers")
     guilds = {}
     for guild_id, prefix, tier, patreon_user, autoDeleteMSG, muted, chatChannel, lang in servers:
       guilds.update({int(guild_id): {"prefix": str(prefix), "tier": str(tier), "patreon_user": int(patreon_user) if patreon_user is not None else None, "muted": True if int(muted) == 1 else False, "autoDeleteMSGs": int(autoDeleteMSG), "chatChannel": int(chatChannel) if chatChannel is not None else None, "lang": lang}})
