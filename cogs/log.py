@@ -109,6 +109,8 @@ class Log(commands.Cog):
   @check_for_mydb.before_loop
   async def before_check_for_mydb(self):
     await self.bot.wait_until_ready()
+    while self.bot.is_closed():
+      await asyncio.sleep(0.1)
 
   def cog_unload(self):
     self.check_for_mydb.stop()
@@ -129,13 +131,13 @@ class Log(commands.Cog):
                                   tier tinytext NULL,
                                   prefix varchar(5) NOT NULL DEFAULT '!',
                                   patreon_user bigint NULL DEFAULT NULL,
-                                  muted text NOT NULL,
+                                  muted tinyint(1) NOT NULL,
                                   lang varchar(2) NULL DEFAULT NULL,
                                   autoDeleteMSGs tinyint NOT NULL DEFAULT 0,
                                   max_mentions int NULL DEFAULT NULL,
                                   max_messages text NULL,
                                   defaultRole bigint NULL DEFAULT NULL,
-                                  reactionRole text NULL,
+                                  reactionRoles text NULL,
                                   customJoinLeave text NULL,
                                   botMasterRole bigint NULL DEFAULT NULL,
                                   chatChannel bigint NULL DEFAULT NULL,
@@ -154,6 +156,8 @@ class Log(commands.Cog):
 
     await self.set_all_guilds()
     await relay_info(f"Apart of {len(self.bot.guilds)} guilds", self.bot, logger=self.logger)
+    if not hasattr(self.bot, "uptime"):
+      self.bot.uptime = datetime.datetime.utcnow()
     self.bot.ready = True
 
   @commands.Cog.listener()
@@ -174,6 +178,8 @@ class Log(commands.Cog):
 
   @commands.Cog.listener()
   async def on_guild_join(self, guild: discord.Guild):
+    while self.bot.is_closed():
+      await asyncio.sleep(0.1)
     await relay_info(f"I have joined a new guild, making the total **{len(self.bot.guilds)}**", self.bot, short=f"I have joined a new guild, making the total {len(self.bot.guilds)}", webhook=self.log_join, logger=self.logger)
     await query(self.mydb, "INSERT IGNORE INTO servers (id,name,muted,lang) VALUES (%s,%s,%s,%s)", guild.id, guild.name, 0, guild.preferred_locale.split("-")[0])
     priority_channels = []
@@ -198,6 +204,8 @@ class Log(commands.Cog):
 
   @commands.Cog.listener()
   async def on_guild_remove(self, guild):
+    while self.bot.is_closed():
+      await asyncio.sleep(0.1)
     await relay_info(f"I have been removed from a guild, making the total **{len(self.bot.guilds)}**", self.bot, short=f"I have been removed from a guild, making the total {len(self.bot.guilds)}", webhook=self.log_join, logger=self.logger)
     await query(self.mydb, "DELETE FROM servers WHERE id=%s", guild.id)
     self.remove_guild(guild.id)
