@@ -3,6 +3,8 @@ import logging
 import aiohttp
 import datetime
 import discord
+import asyncio
+import mysql.connector
 
 from typing import TYPE_CHECKING
 from discord.ext import commands, tasks
