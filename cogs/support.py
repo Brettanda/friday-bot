@@ -30,11 +30,11 @@ class Support(commands.Cog, name="Support"):
 
   @commands.command(name="donate", help="Get the Patreon link for Friday")
   async def norm_donate(self, ctx):
-    await ctx.reply("https://www.patreon.com/fridaybot")
+    await ctx.reply("https://www.patreon.com/bePatron?u=42649008")
 
   @cog_ext.cog_slash(name="donate", description="Get the Patreon link for Friday")
   async def slash_donate(self, ctx):
-    await ctx.send("https://www.patreon.com/fridaybot", hidden=True)
+    await ctx.send("https://www.patreon.com/bePatron?u=42649008", hidden=True)
 
   # @commands.Cog.listener()
   # async def on_interaction(self, interation):

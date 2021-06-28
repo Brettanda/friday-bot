@@ -3,14 +3,15 @@
 import discord
 from discord import Embed
 from discord.ext import commands, flags
-from discord.ext.menus import ListPageSource, MenuPages
+from discord.ext.menus import ListPageSource
 # from discord.utils import get
 
-from discord_slash import SlashContext  # ,cog_ext
+from discord_slash import SlashContext, cog_ext, SlashCommandOptionType
+from discord_slash.utils.manage_commands import create_option
 from typing_extensions import TYPE_CHECKING
 # from cogs.cleanup import get_delete_time
 # import typing
-from functions import MessageColors  # , checks  # , embed
+from functions import MessageColors, checks, Menu, config  # , embed
 
 if TYPE_CHECKING:
   from index import Friday as Bot
@@ -47,15 +48,6 @@ def syntax(command, quotes: bool = True):
     return f"{cmd_and_aliases} {get_params(command)}{sub_commands}"
 
 
-class Menu(MenuPages):
-  async def send_initial_message(self, ctx: commands.Context or SlashContext, channel):
-    page = await self._source.get_page(0)
-    kwargs = await self._get_kwargs_from_page(page)
-    if isinstance(ctx, SlashContext):
-      return await ctx.send(**kwargs)
-    return await ctx.reply(**kwargs)
-
-
 class HelpMenu(ListPageSource):
   def __init__(self, ctx, data):
     self.ctx = ctx
@@ -70,7 +62,7 @@ class HelpMenu(ListPageSource):
 
     embed = Embed(
         title="Friday - Help",
-        description="If you would like to make a suggestion for a command please join the [Friday's Development](https://discord.gg/NTRuFjU) and explain your suggestion.\n\n**Some commands will only show if you have the correct permissions to use them.**",
+        description="If you would like to make a suggestion for a command please join the [Friday's Development](https://discord.gg/NTRuFjU) and explain your suggestion.\n\nFor more info on how commands work and how to format them please check out [docs.friday-bot.com](https://docs.friday-bot.com/).\n\n**Some commands will only show if you have the correct permissions to use them.**",
         colour=MessageColors.DEFAULT
     )
     embed.set_thumbnail(url=self.ctx.bot.user.avatar_url)
@@ -227,7 +219,8 @@ class Help(commands.HelpCommand):
     menu = Menu(source=HelpMenu(ctx, commands),
                 delete_message_after=True,
                 clear_reactions_after=True,
-                timeout=delay if delay is not None and delay > 0 else 60)
+                timeout=delay if delay is not None and delay > 0 else 60,
+                extra_rows=[config.useful_buttons()])
     await menu.start(ctx)
 
   async def send_cog_help(self, cog):

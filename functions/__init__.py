@@ -6,6 +6,7 @@ from . import exceptions, checks, config  # , queryIntents  # , queryGen
 from .myembed import embed
 
 from .custom_contexts import MyContext, MySlashContext
+from .custom_pages import Menu
 from .reply import msg_reply
 from .time import timeit
 from .relay import relay_info

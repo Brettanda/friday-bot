@@ -256,8 +256,8 @@ class redditlink(commands.Cog):
         # name = f'{linkdata["extractor"]}-{linkdata["id"]}-{linkdata["title"]}.{linkdata["ext"]}'
         name = data["title"].split()
         if slash:
-          return await ctx.send(file=discord.File(fp=mp4file, filename=f'{"_".join(name)}.{ext}', spoiler=spoiler))
-        return await ctx.reply(file=discord.File(fp=mp4file, filename=f'{"_".join(name)}.{ext}', spoiler=spoiler), mention_author=False)
+          return await ctx.send(file=discord.File(fp=mp4file, filename=f'friday-bot.com{"_".join(name)}.{ext}', spoiler=spoiler))
+        return await ctx.reply(file=discord.File(fp=mp4file, filename=f'friday-bot.com{"_".join(name)}.{ext}', spoiler=spoiler), mention_author=False)
       except discord.HTTPException:
         if slash:
           return await ctx.send(embed=embed(title="This file is too powerful to be uploaded", description="You will have to open reddit to view this", color=MessageColors.ERROR))

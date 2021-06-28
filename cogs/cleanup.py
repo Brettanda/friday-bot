@@ -16,7 +16,7 @@ async def get_delete_time(ctx: commands.Context = None, guild_id: int = None):
   if ctx is None and guild_id is None:
     return None
   try:
-    result = await query(ctx.bot.mydb, "SELECT autoDeleteMSGs FROM servers WHERE id=%s", guild_id)
+    result = await query(ctx.bot.log.mydb, "SELECT autoDeleteMSGs FROM servers WHERE id=%s", guild_id)
     if result is None or result == 0:
       return None
     return result
