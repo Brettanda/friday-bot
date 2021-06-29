@@ -15,7 +15,6 @@ reloadable_bot = "Log"
 support_server_id = 707441352367013899
 
 
-
 def useful_buttons():
   return manage_components.create_actionrow(*[
       manage_components.create_button(
@@ -92,8 +91,8 @@ premium_tiers = {
     "t1_one_guild": 1,
     "t1_three_guilds": 2,
     "t2_one_guild": 3,
-    "t3_one_guild": 5,
-    "t4_one_guild": 7,
+    "t3_one_guild": 4,
+    "t4_one_guild": 5,
 }
 
 premium_roles = {
