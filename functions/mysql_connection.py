@@ -5,7 +5,7 @@ import mysql.connector
 from . import config
 
 
-def mydb_connect():
+def mydb_connect() -> mysql.connector.MySQLConnection():
   # https://www.mysqltutorial.org/python-connecting-mysql-databases/
   if len(sys.argv) > 1 and (sys.argv[1] == "--prod" or sys.argv[1] == "--production"):
     DATABASE = os.getenv("DATABASE")
@@ -23,7 +23,7 @@ def mydb_connect():
   return mydb
 
 
-async def query(mydb, query: str, *params, rlist: bool = False):
+async def query(mydb, query: str, *params, rlist: bool = False) -> str or list:
   # print(params)
   mycursor = mydb.cursor(prepared=True)
   mycursor.execute(query, params)
@@ -41,16 +41,16 @@ async def query(mydb, query: str, *params, rlist: bool = False):
     return result
 
 
-async def query_prefix(bot, ctx, client: bool = False):
+async def query_prefix(bot, ctx, client: bool = False) -> str:
   if str(ctx.channel.type) == "private":
     return config.defaultPrefix
 
-  mycursor = bot.mydb.cursor()
+  mycursor = bot.log.mydb.cursor()
   mycursor.execute(f"SELECT prefix FROM servers WHERE id='{ctx.guild.id}'")
 
   result = mycursor.fetchall()
   try:
-    bot.mydb.commit()
+    bot.log.mydb.commit()
   except BaseException:
     pass
 
