@@ -15,7 +15,6 @@ reloadable_bot = "Log"
 support_server_id = 707441352367013899
 
 
-
 def useful_buttons():
   return manage_components.create_actionrow(*[
       manage_components.create_button(

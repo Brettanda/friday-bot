@@ -6,12 +6,12 @@ from discord.ext import commands, flags
 from discord.ext.menus import ListPageSource
 # from discord.utils import get
 
-from discord_slash import SlashContext, cog_ext, SlashCommandOptionType
-from discord_slash.utils.manage_commands import create_option
+from discord_slash import SlashContext  # , cog_ext, SlashCommandOptionType
+# from discord_slash.utils.manage_commands import create_option
 from typing_extensions import TYPE_CHECKING
 # from cogs.cleanup import get_delete_time
 # import typing
-from functions import MessageColors, checks, Menu, config  # , embed
+from functions import MessageColors, Menu  # , config, checks  # , embed
 
 if TYPE_CHECKING:
   from index import Friday as Bot
