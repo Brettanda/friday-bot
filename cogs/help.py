@@ -11,7 +11,7 @@ from discord_slash import SlashContext  # , cog_ext, SlashCommandOptionType
 from typing_extensions import TYPE_CHECKING
 # from cogs.cleanup import get_delete_time
 # import typing
-from functions import MessageColors, Menu  # , config, checks  # , embed
+from functions import MessageColors, Menu, config  # , checks  # , embed
 
 if TYPE_CHECKING:
   from index import Friday as Bot
