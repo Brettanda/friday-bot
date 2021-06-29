@@ -43,8 +43,8 @@ class Chat(commands.Cog):
     #   self.chat_spam_control = commands.CooldownMapping.from_cooldown(5, 15.0, commands.BucketType.channel)
 
   @commands.command(name="say", aliases=["repeat"], help="Make Friday say what ever you want")
-  async def say(self, ctx, content: str):
-    if content == ("im stupid", "i'm stupid", "i am dumb", "im dumb"):
+  async def say(self, ctx, *, content: str):
+    if content in ("im stupid", "i'm stupid", "i am dumb", "im dumb"):
       return await ctx.reply("yeah we know", allowed_mentions=discord.AllowedMentions(roles=False, everyone=False, users=False))
     await ctx.reply(content, allowed_mentions=discord.AllowedMentions(roles=False, everyone=False, users=False))
 
