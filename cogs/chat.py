@@ -169,7 +169,7 @@ class Chat(commands.Cog):
 
   def translate_request(self, text: str, detect=False, from_lang=None, to_lang="en"):
     if from_lang == to_lang:
-      return None
+      return text
     try:
       return self.translate_client.translate(text, source_language=from_lang, target_language=to_lang)
     except OSError:
@@ -246,7 +246,7 @@ class Chat(commands.Cog):
     return True
 
   @commands.Cog.listener()
-  async def on_message(self, msg):
+  async def on_message(self, msg: discord.Message):
     if not self.bot.ready:
       return
     await self.bot.wait_until_ready()
@@ -288,28 +288,33 @@ class Chat(commands.Cog):
     #     return await self.free_model(msg, lang=lang, tier=tier, voted=voted)
 
     # if not await self.should_i_message(msg, tier_one=True if min_guild_tier_one_one_guild or min_user_tier_one_one_guild else False):
-    translation = {}
-    if lang not in (None, "en") or min_tiers["min_u_t1"]:
-      translation = self.translate_request(msg.clean_content, from_lang=lang if not min_tiers["min_u_t1"] else None)
-      if translation.get("translatedText", None) is not None:
-        translation["translatedText"] = self.h.unescape(translation["translatedText"])
-        self.saved_translations.update({str(msg.clean_content): translation["translatedText"]})
+    def translate(msg: discord.Message) -> dict:
+      translation = {}
+      if lang not in (None, "en") or min_tiers["min_u_t1"]:
+        translation = self.translate_request(msg.clean_content, from_lang=lang if not min_tiers["min_u_t1"] else None)
+        if translation is not None and translation.get("translatedText", None) is not None:
+          translation["translatedText"] = self.h.unescape(translation["translatedText"])
+          self.saved_translations.update({str(msg.clean_content): translation["translatedText"]})
+          return translation
+      return None
 
     if msg.guild is not None and msg.channel.name == "questions":
       if await self.check_for_answer_questions(msg, min_tiers=min_tiers):
-        async with msg.channel.typing():
-          response = await self.classify_questions(msg)
+        # async with msg.channel.typing():
+        translation = translate(msg)
+        response = await self.classify_questions(msg)
       else:
         return
     else:
       if not await self.should_i_message(msg, min_tiers=min_tiers):
         return
       if response is None:
-        async with msg.channel.typing():
-          # response = await self.openai_req(msg, str(msg.author.id), tier, tier_one=True if min_guild_tier_one_one_guild or min_user_tier_one_one_guild else False)
-          response = await self.openai_req(msg, str(msg.author.id), min_tiers)
+        # async with msg.channel.typing():
+        translation = translate(msg)
+        # response = await self.openai_req(msg, str(msg.author.id), tier, tier_one=True if min_guild_tier_one_one_guild or min_user_tier_one_one_guild else False)
+        response = await self.openai_req(msg, str(msg.author.id), min_tiers)
 
-    if translation.get("detectedSourceLanguage", lang) != "en" and response is not None and "dynamic" not in response:
+    if translation is not None and translation.get("detectedSourceLanguage", lang) != "en" and response is not None and "dynamic" not in response:
       final_translation = self.translate_request(response.replace("dynamic", ""), from_lang="en", to_lang=translation.get("detectedSourceLanguage", lang) if translation.get("translatedText") != translation.get("input") else "en")
       if final_translation is not None and final_translation.get("translatedText", None) is not None:
         final_translation["translatedText"] = self.h.unescape(final_translation["translatedText"])
