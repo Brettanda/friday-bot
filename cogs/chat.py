@@ -184,7 +184,7 @@ class Chat(commands.Cog):
     if msg.clean_content.startswith(tuple(self.bot.log.get_prefixes())):
       return False
 
-    if msg.type.name != "default":
+    if not hasattr(msg.type, "name") or msg.type.name != "default":
       return False
 
     ctx = await self.bot.get_context(msg)
