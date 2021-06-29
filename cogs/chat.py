@@ -334,7 +334,6 @@ class Chat(commands.Cog):
       await msg.reply(content=self.possible_offensive_message, mention_author=False)
       await relay_info(f"{current_tier} - **{msg.author.name}:** {msg.clean_content}\n**Me:** Possible offensive message: {response}", self.bot, webhook=self.bot.log.log_chat)
 
-
   # async def free_model(self, ctx: commands.Context, *, lang, tier, voted: bool):
   #   dynamic = False
 
