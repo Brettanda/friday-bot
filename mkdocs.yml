@@ -3,10 +3,10 @@
 site_name: Friday Bot Docs
 site_url: https://docs.friday-bot.com
 docs_dir: docs
-repo_url: https://github.com/Brettanda/friday-discord-python
-repo_name: brettanda/friday-discord-python
+repo_url: https://github.com/Brettanda/friday-bot
+repo_name: brettanda/friday-bot
 edit_uri: ''
-copyright: Copyright &copy; 2020 Brett Anda
+copyright: Copyright &copy; 2020 - 2021 Brett Anda
 theme:
   name: material
   locale: en
@@ -75,6 +75,8 @@ extra:
   #     link: /en/
   #     lang: en
   social:
+    - icon: fontawesome/solid/globe-americas
+      link: //brettanda.ca
     - icon: fontawesome/brands/github
       link: //github.com/Brettanda
     - icon: fontawesome/brands/discord

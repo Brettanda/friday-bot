@@ -2,6 +2,22 @@
 
 Fun things like games
 
+## Souptime
+
+Soup Time
+
+Usage:
+
+```md
+souptime 
+```
+
+Aliases:
+
+```md
+None
+```
+
 ## Rockpaperscissors
 
 Play Rock Paper Scissors with Friday
@@ -25,7 +41,7 @@ Play minesweeper
 Usage:
 
 ```md
-minesweeper|ms [size=5] [bomb_count=6]
+minesweeper|ms <size=5> <bomb_count=6>
 ```
 
 Aliases:
@@ -84,33 +100,17 @@ None
 
 ## Countdown
 
-Start a countdown
+Start a countdown. This command only updates every 5 seconds to avoid being ratelimited by Discord
 
 Usage:
 
 ```md
-countdown|cd <title> <hours> <minutes> <seconds>
+countdown|cd <hours=0> <minutes=0> <seconds=0> <title>
 ```
 
 Aliases:
 
 ```md
 cd
-```
-
-## Souptime
-
-Soup Time
-
-Usage:
-
-```md
-souptime 
-```
-
-Aliases:
-
-```md
-None
 ```
 
