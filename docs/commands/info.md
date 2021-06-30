@@ -2,6 +2,22 @@
 
 
 
+## Userinfo
+
+Some information on the mentioned user
+
+Usage:
+
+```md
+userinfo <user>
+```
+
+Aliases:
+
+```md
+None
+```
+
 ## Serverinfo
 
 Shows information about the server
@@ -32,21 +48,5 @@ Aliases:
 
 ```md
 about
-```
-
-## Userinfo
-
-Some information on the mentioned user
-
-Usage:
-
-```md
-userinfo <user>
-```
-
-Aliases:
-
-```md
-None
 ```
 
