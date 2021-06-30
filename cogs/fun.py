@@ -475,7 +475,7 @@ class Fun(commands.Cog):
     now = datetime.datetime.utcnow().timestamp()
     future = now + duration.seconds
     hours, minutes, sec = self.get_time(now, future)
-    message = await ctx.send(embed=embed(title=f"Countdown: {title}", description="```" + figlet_format(f"{hours}:{minutes}:{sec}") + "```"))
+    message = await ctx.send(embed=embed(title=f"Countdown: {title if title is not None else ''}", description="```" + figlet_format(f"{hours}:{minutes}:{sec}") + "```"))
     await query(self.bot.log.mydb, "INSERT IGNORE INTO countdowns (guild,channel,message,title,time) VALUES (%s,%s,%s,%s,%s)", message.guild.id if message.guild is not None else None, message.channel.id, message.id, title, future)
     self.countdowns.append((message.guild.id if message.guild is not None else None, message.channel.id, message.id, title, future))
     self.countdown_messages.append((message, title, future))
