@@ -153,6 +153,12 @@ class Log(commands.Cog):
       await query(self.mydb, """CREATE TABLE IF NOT EXISTS blacklist
                                   (id bigint,
                                   word text)""")
+      await query(self.mydb, """CREATE TABLE IF NOT EXISTS countdowns
+                                  (guild bigint NULL,
+                                  channel bigint NOT NULL,
+                                  message bigint NOT NULL,
+                                  title text NULL,
+                                  time bigint NOT NULL)""")
       for guild in self.bot.guilds:
         await query(self.mydb, "INSERT IGNORE INTO servers (id,name,muted,lang) VALUES (%s,%s,%s,%s)", guild.id, guild.name, 0, guild.preferred_locale.split("-")[0])
 
