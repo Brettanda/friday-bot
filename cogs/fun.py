@@ -460,7 +460,7 @@ class Fun(commands.Cog):
     sec = sec % 60
     return hours, minutes, sec
 
-  @commands.command(name="countdown", aliases=["cd"], help="Start a countdown")
+  @commands.command(name="countdown", aliases=["cd"], help="Start a countdown. This command only updates every 5 seconds to avoid being ratelimited by Discord")
   @commands.max_concurrency(3, commands.BucketType.guild, wait=True)
   async def countdown(self, ctx: commands.Context, hours: typing.Optional[int] = 0, minutes: typing.Optional[int] = 0, seconds: typing.Optional[int] = 0, title: str = None):
     if hours == 0 and minutes == 0 and seconds == 0:
@@ -468,6 +468,21 @@ class Fun(commands.Cog):
 
     if hours < 0 or minutes < 0 or seconds < 0:
       return await ctx.reply(embed=embed(title="Only positive numbers are accepted", color=MessageColors.ERROR))
+
+    current_countdowns = [item for item in self.countdowns if (item[0] is not None and item[0] == ctx.guild.id) or (item[0] is None and ctx.author.dm_channel is not None and item[1] == ctx.author.dm_channel.id)] if ctx.guild is not None else []
+    if len(current_countdowns) > 5:
+      if ctx.guild is not None:
+        guild_min = await checks.guild_is_min_tier(self.bot, ctx.guild, "t1_one_guild")
+        if len(current_countdowns) > 5 and not guild_min:
+          return await ctx.reply(embed=embed(title="This server can only have a max of 5 concurrent countdowns per server", description="To unlock more please check out [patreon.com/fridaybot](https://www.patreon.com/bePatron?u=42649008)", color=MessageColors.ERROR))
+        elif len(current_countdowns) > 20 and guild_min:
+          return await ctx.reply(embed=embed(title="This server can only have a max of 20 concurrent countdowns per server", color=MessageColors.ERROR))
+      if ctx.guild is None and ctx.author.dm_channel is not None:
+        user_min = await checks.user_is_min_tier(self.bot, ctx.author, "t1_one_guild")
+        if len(current_countdowns) > 5 and not user_min:
+          return await ctx.reply(embed=embed(title="You can only have a max of 5 concurrent countdowns per server", description="To unlock more please check out [patreon.com/fridaybot](https://www.patreon.com/bePatron?u=42649008)", color=MessageColors.ERROR))
+        elif len(current_countdowns) > 20 and user_min:
+          return await ctx.reply(embed=embed(title="You can only have a max of 20 concurrent countdowns per server", color=MessageColors.ERROR))
 
     duration = datetime.timedelta(hours=hours, minutes=minutes, seconds=seconds)
     if duration.days > 0:
@@ -512,6 +527,15 @@ class Fun(commands.Cog):
     if len(batch_delete_db) > 0:
       batch.append(query(self.bot.log.mydb, f"DELETE FROM countdowns WHERE message IN ({', '.join(batch_delete_db)})"))
     await asyncio.gather(*batch)
+
+  @commands.Cog.listener()
+  async def on_raw_message_delete(self, payload: discord.RawMessageDeleteEvent):
+    while self.bot.is_closed():
+      await asyncio.sleep(0.1)
+    if payload.guild_id is not None and len([item for item in self.countdowns if item[2] == payload.message_id]) > 0:
+      await query(self.bot.log.mydb, "DELETE FROM countdowns WHERE message=%s", payload.message_id)
+      self.countdown_messages.pop(self.countdown_messages.index([i for i in self.countdown_messages if i[0].id == payload.message_id][0]))
+      self.countdowns.pop(self.countdowns.index([i for i in self.countdowns if i[2] == payload.message_id][0]))
 
   @loop_countdown.before_loop
   async def before_loop_countdown(self):
