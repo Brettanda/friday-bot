@@ -170,11 +170,12 @@ class Moderation(commands.Cog):
     if chat_channel is None:
       await query(self.bot.log.mydb, "UPDATE servers SET chatChannel=%s WHERE id=%s", ctx.channel.id, ctx.guild.id)
       self.bot.log.change_guild_chat_channel(ctx.guild.id, ctx.channel.id)
-      return dict(embed=embed(title="I will now (try to) respond to every message in this channel"))
+      return dict(embed=embed(title="I will now respond to every message in this channel"))
     else:
       await query(self.bot.log.mydb, "UPDATE servers SET chatChannel=%s WHERE id=%s", None, ctx.guild.id)
       self.bot.log.change_guild_chat_channel(ctx.guild.id, None)
-      return dict(embed=embed(title="I will no longer (try to) respond to all messages from this channel"))
+      return dict(embed=embed(title="I will no longer respond to all messages from this channel"))
+
 
   @settings_bot.command(name="musicchannel", help="Set the channel where I can join and play music. If none then I will join any VC", hidden=True)
   @commands.is_owner()
@@ -289,8 +290,7 @@ class Moderation(commands.Cog):
   @commands.bot_has_guild_permissions(kick_members=True)
   @commands.has_guild_permissions(kick_members=True)
   async def norm_kick(self, ctx, members: commands.Greedy[discord.Member], *, reason: typing.Optional[str] = None):
-    post = await self.kick(ctx, members, reason)
-    await ctx.reply(post)
+    await self.kick(ctx, members, reason)
 
   @cog_ext.cog_slash(
       name="kick",
@@ -314,10 +314,9 @@ class Moderation(commands.Cog):
   @commands.has_guild_permissions(kick_members=True)
   @checks.slash(user=True, private=False)
   async def slash_kick(self, ctx, member: discord.Member, reason=None):
-    post = await self.kick(ctx, [member], reason, True)
-    await ctx.send(**post)
+    await self.kick(ctx, [member], reason, True)
 
-  async def kick(self, ctx, members, reason=None, slash=False):
+  async def kick(self, ctx, members, reason=None, slash: bool = False):
     if isinstance(members, list) and len(members) == 0 and not slash:
       await cmd_help(ctx, ctx.command)
 
@@ -328,13 +327,13 @@ class Moderation(commands.Cog):
 
     if self.bot.user in members:
       if slash:
-        return dict(hidden=True, content="But I don't want to kick myself 😭")
-      return dict(embed=embed(title="But I don't want to kick myself 😭", color=MessageColors.ERROR))
+        return await ctx.send(hidden=True, content="But I don't want to kick myself 😭")
+      return await ctx.reply(embed=embed(title="But I don't want to kick myself 😭", color=MessageColors.ERROR))
 
     if ctx.author in members:
       if slash:
-        return dict(hidden=True, content="Failed to kick yourself")
-      return dict(embed=embed(title="Failed to kick yourself", color=MessageColors.ERROR))
+        return await ctx.send(hidden=True, content="Failed to kick yourself")
+      return await ctx.reply(embed=embed(title="Failed to kick yourself", color=MessageColors.ERROR))
 
     for member in members:
       pos = ctx.guild.me.top_role.position
@@ -342,13 +341,13 @@ class Moderation(commands.Cog):
 
       if pos == uspos:
         if slash:
-          return dict(hidden=True, content="I am not able to kick a member in the same highest role as me.")
-        return dict(embed=embed(title="I am not able to kick a member in the same highest role as me.", color=MessageColors.ERROR))
+          return await ctx.send(hidden=True, content="I am not able to kick a member in the same highest role as me.")
+        return await ctx.reply(embed=embed(title="I am not able to kick a member in the same highest role as me.", color=MessageColors.ERROR))
 
       if pos < uspos:
         if slash:
-          return dict(hidden=True, content="I am not able to kick a member with a role higher than my own permissions role(s)")
-        return dict(embed=embed(title="I am not able to kick a member with a role higher than my own permissions role(s)", color=MessageColors.ERROR))
+          return await ctx.send(hidden=True, content="I am not able to kick a member with a role higher than my own permissions role(s)")
+        return await ctx.reply(embed=embed(title="I am not able to kick a member with a role higher than my own permissions role(s)", color=MessageColors.ERROR))
 
     if self.bot.user in members and not slash:
       try:
@@ -357,11 +356,15 @@ class Moderation(commands.Cog):
         pass
       return
 
+    kicks = []
     for member in members:
       tokick.append(member.name)
-      await member.kick(reason=f"{ctx.author}: {reason}")
+      kicks.append(member.kick(reason=f"{ctx.author}: {reason}"))
+    await asyncio.gather(*kicks)
 
-    return dict(embed=embed(title=f"Kicked `{', '.join(tokick)}`{(' for reason `' + reason+'`') if reason is not None else ''}"))
+    if slash:
+      return await ctx.send(embed=embed(title=f"Kicked `{', '.join(tokick)}`{(' for reason `' + reason+'`') if reason is not None else ''}"))
+    return await ctx.reply(embed=embed(title=f"Kicked `{', '.join(tokick)}`{(' for reason `' + reason+'`') if reason is not None else ''}"))
 
   @commands.command(name="ban")
   @commands.bot_has_guild_permissions(ban_members=True)

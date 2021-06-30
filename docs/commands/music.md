@@ -2,82 +2,6 @@
 
 
 
-## Custom
-
-Play sounds/songs without looking for the url everytime
-
-Usage:
-
-```md
-custom|c <name>
-custom|c change <name> <url>
-custom|c remove <name>
-custom|c add <name> <url>
-custom|c list 
-```
-
-Aliases:
-
-```md
-c
-```
-
-### Change
-
-Usage:
-
-```none
-custom change|replace <name> <url>
-```
-
-Aliases:
-
-```none
-replace
-```
-
-### Remove
-
-Usage:
-
-```none
-custom remove|del <name>
-```
-
-Aliases:
-
-```none
-del
-```
-
-### Add
-
-Usage:
-
-```none
-custom add <name> <url>
-```
-
-Aliases:
-
-```none
-None
-```
-
-### List
-
-Usage:
-
-```none
-custom list 
-```
-
-Aliases:
-
-```none
-None
-```
-
 ## Play
 
 Follow this command with the title of a song to search for it or just paste the Youtube/SoundCloud url if the search gives and undesirable result
@@ -92,22 +16,6 @@ Aliases:
 
 ```md
 p,add
-```
-
-## Skip
-
-Skips the current song
-
-Usage:
-
-```md
-skip 
-```
-
-Aliases:
-
-```md
-None
 ```
 
 ## Stop
@@ -166,6 +74,98 @@ Usage:
 
 ```md
 resume 
+```
+
+Aliases:
+
+```md
+None
+```
+
+## Custom
+
+Play sounds/songs without looking for the url everytime
+
+Usage:
+
+```md
+custom|c <name>
+custom|c add <name> <url>
+custom|c list 
+custom|c change <name> <url>
+custom|c remove <name>
+```
+
+Aliases:
+
+```md
+c
+```
+
+### Add
+
+Usage:
+
+```none
+custom add <name> <url>
+```
+
+Aliases:
+
+```none
+None
+```
+
+### List
+
+Usage:
+
+```none
+custom list 
+```
+
+Aliases:
+
+```none
+None
+```
+
+### Change
+
+Usage:
+
+```none
+custom change|replace <name> <url>
+```
+
+Aliases:
+
+```none
+replace
+```
+
+### Remove
+
+Usage:
+
+```none
+custom remove|del <name>
+```
+
+Aliases:
+
+```none
+del
+```
+
+## Skip
+
+Skips the current song
+
+Usage:
+
+```md
+skip 
 ```
 
 Aliases:
