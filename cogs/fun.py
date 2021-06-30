@@ -437,6 +437,71 @@ class Fun(commands.Cog):
     await message.add_reaction("👍")
     await message.add_reaction("👎")
 
+  def get_time(self, now: int, future: int):
+    time = datetime.timedelta(seconds=future - now)
+    sec = time.seconds
+    hours = sec // 3600
+    minutes = (sec // 60) - (hours * 60)
+    sec = sec % 60
+    return hours, minutes, sec
+
+  @commands.command(name="countdown", aliases=["cd"], help="Start a countdown")
+  @commands.max_concurrency(3, commands.BucketType.guild, wait=True)
+  async def countdown(self, ctx: commands.Context, hours: typing.Optional[int] = 0, minutes: typing.Optional[int] = 0, seconds: typing.Optional[int] = 0, title: str = None):
+    if hours == 0 and minutes == 0 and seconds == 0:
+      return await ctx.send_help(ctx.command)
+
+    if hours < 0 or minutes < 0 or seconds < 0:
+      return await ctx.reply(embed=embed(title="Only positive numbers are accepted", color=MessageColors.ERROR))
+
+    duration = datetime.timedelta(hours=hours, minutes=minutes, seconds=seconds)
+    if duration.days > 0:
+      return await ctx.reply(embed=embed(title="Countdowns can't be set to any longer than 24 hours", color=MessageColors.ERROR))
+    now = datetime.datetime.utcnow().timestamp()
+    future = now + duration.seconds
+    hours, minutes, sec = self.get_time(now, future)
+    message = await ctx.send(embed=embed(title=f"Countdown: {title}", description="```" + figlet_format(f"{hours}:{minutes}:{sec}") + "```"))
+    await query(self.bot.log.mydb, "INSERT IGNORE INTO countdowns (guild,channel,message,title,time) VALUES (%s,%s,%s,%s,%s)", message.guild.id if message.guild is not None else None, message.channel.id, message.id, title, future)
+    self.countdowns.append((message.guild.id if message.guild is not None else None, message.channel.id, message.id, title, future))
+    self.countdown_messages.append((message, title, future))
+
+  @tasks.loop(seconds=5.0)
+  async def loop_countdown(self):
+    while self.bot.is_closed():
+      await asyncio.sleep(0.1)
+    x, y, batch, batch_delete_db = 0, 0, [], []
+    if len(self.countdown_messages) == 0:
+      for guild_id, channel_id, message_id, title, time in self.countdowns:
+        try:
+          message = await (await self.bot.fetch_channel(channel_id)).fetch_message(message_id)
+        except discord.NotFound:
+          batch_delete_db.append(str(message_id))
+          try:
+            del self.countdown_messages[x]
+          except Exception:
+            pass
+        else:
+          self.countdown_messages.append((message, title, time))
+        x += 1
+    now = datetime.datetime.utcnow().timestamp()
+    for message, title, time in self.countdown_messages:
+      if time <= now:
+        batch.append(message.edit(embed=embed(title=f"Countdown: {title if title is not None else ''}", description="```" + figlet_format("Done!") + "```")))
+        batch_delete_db.append(str(message.id))
+        del self.countdown_messages[y]
+        del self.countdowns[y]
+      else:
+        hours, minutes, sec = self.get_time(now, time)
+        batch.append(message.edit(embed=embed(title=f"Countdown: {title if title is not None else ''}", description="```" + figlet_format(f"{hours}:{minutes}:{sec}") + "```")))
+      y += 1
+    if len(batch_delete_db) > 0:
+      batch.append(query(self.bot.log.mydb, f"DELETE FROM countdowns WHERE message IN ({', '.join(batch_delete_db)})"))
+    await asyncio.gather(*batch)
+
+  @loop_countdown.before_loop
+  async def before_loop_countdown(self):
+    await self.bot.wait_until_ready()
+
 
 def setup(bot):
   bot.add_cog(Fun(bot))
