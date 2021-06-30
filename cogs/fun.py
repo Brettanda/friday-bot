@@ -2,14 +2,17 @@ import json
 import random
 import typing
 import numpy as np
+import asyncio
+import datetime
 
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 from discord_slash import cog_ext
 from discord_slash.utils.manage_commands import create_choice, create_option, SlashCommandOptionType
 
 # sys.path.insert(1, os.path.join(sys.path[0], '..'))
-from functions import MessageColors, embed, exceptions, checks
+from pyfiglet import figlet_format
+from functions import MessageColors, embed, exceptions, checks, query
 from typing_extensions import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -26,8 +29,20 @@ class Fun(commands.Cog):
   def __init__(self, bot: "Bot"):
     self.bot = bot
     self.rpsoptions = ["rock", "paper", "scissors"]
+    self.countdowns = []
+    self.countdown_messages = []
+    self.loop_countdown.add_exception_type(discord.NotFound)
+    self.loop_countdown.start()
     # self.timeouter = None
     # self.timeoutCh = None
+
+  def cog_unload(self):
+    self.loop_countdown.stop()
+
+  @commands.Cog.listener()
+  async def on_ready(self):
+
+    self.countdowns = await query(self.bot.log.mydb, "SELECT * FROM countdowns")
 
   # TODO: has no way to end this command ATM
   # TODO: can only store one user total for all of friday
