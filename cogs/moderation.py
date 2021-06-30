@@ -682,7 +682,7 @@ class Moderation(commands.Cog):
     await ctx.defer()
     await self.mute(ctx, member=member, slash=True)
 
-  async def mute(self, ctx, *, member: discord.Member, slash: False):
+  async def mute(self, ctx, *, member: discord.Member, slash: bool = False):
     x = 0
     for channel in ctx.guild.text_channels:
       perms = channel.overwrites_for(member)
@@ -721,7 +721,7 @@ class Moderation(commands.Cog):
     await ctx.defer()
     await self.unmute(ctx, member=member, slash=True)
 
-  async def unmute(self, ctx, *, member: discord.Member, slash: False):
+  async def unmute(self, ctx, *, member: discord.Member, slash:bool= False):
     for channel in ctx.guild.text_channels:
       perms = channel.overwrites_for(member)
       perms.send_messages = None
