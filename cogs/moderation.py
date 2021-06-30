@@ -721,7 +721,7 @@ class Moderation(commands.Cog):
     await ctx.defer()
     await self.unmute(ctx, member=member, slash=True)
 
-  async def unmute(self, ctx, *, member: discord.Member, slash:bool= False):
+  async def unmute(self, ctx, *, member: discord.Member, slash: bool = False):
     for channel in ctx.guild.text_channels:
       perms = channel.overwrites_for(member)
       perms.send_messages = None
