@@ -2,22 +2,6 @@
 
 Manage your server with these commands
 
-## Kick
-
-
-
-Usage:
-
-```md
-kick <members> [reason]
-```
-
-Aliases:
-
-```md
-None
-```
-
 ## Prefix
 
 Sets the prefix for Fridays commands
@@ -26,6 +10,22 @@ Usage:
 
 ```md
 prefix [new_prefix='!']
+```
+
+Aliases:
+
+```md
+None
+```
+
+## Kick
+
+
+
+Usage:
+
+```md
+kick <members> [reason]
 ```
 
 Aliases:
@@ -106,14 +106,14 @@ Usage:
 
 ```md
 set|bot 
-set|bot language [language]
 set|bot musicchannel [voicechannel]
-set|bot mute 
-set|bot maxmessages <message_rate> <seconds> [max_before_mute]
+set|bot language [language]
 set|bot chatchannel 
+set|bot maxmessages <message_rate> <seconds> [max_before_mute]
+set|bot mute 
 set|bot maxmentions [count]
 set|bot deletecommandsafter [time=0]
-set|bot removeinvites <choice>
+set|bot removeinvites 
 ```
 
 Aliases:
@@ -136,12 +136,12 @@ Aliases:
 lang
 ```
 
-### Mute
-
+### Chatchannel
+Set the current channel so that I will always try to respond with something
 Usage:
 
 ```none
-set mute 
+set chatchannel 
 ```
 
 Aliases:
@@ -150,12 +150,12 @@ Aliases:
 None
 ```
 
-### Chatchannel
-Set the current channel so that I will always try to respond with something
+### Mute
+
 Usage:
 
 ```none
-set chatchannel 
+set mute 
 ```
 
 Aliases:
@@ -183,7 +183,7 @@ Automaticaly remove Discord invites from text channels
 Usage:
 
 ```none
-set removeinvites <choice>
+set removeinvites 
 ```
 
 Aliases:
@@ -200,16 +200,30 @@ Usage:
 
 ```md
 blacklist|bl 
+blacklist|bl clear 
 blacklist|bl add <word>
 blacklist|bl remove <word>
 blacklist|bl display 
-blacklist|bl clear 
 ```
 
 Aliases:
 
 ```md
 bl
+```
+
+### Clear
+
+Usage:
+
+```none
+blacklist clear 
+```
+
+Aliases:
+
+```none
+None
 ```
 
 ### Add
@@ -252,20 +266,6 @@ Aliases:
 
 ```none
 list,show
-```
-
-### Clear
-
-Usage:
-
-```none
-blacklist clear 
-```
-
-Aliases:
-
-```none
-None
 ```
 
 ## Mute
