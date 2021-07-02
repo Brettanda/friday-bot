@@ -316,9 +316,9 @@ class Chat(commands.Cog):
 
     if translation is not None and translation.get("detectedSourceLanguage", lang) != "en" and response is not None and "dynamic" not in response:
       final_translation = self.translate_request(response.replace("dynamic", ""), from_lang="en", to_lang=translation.get("detectedSourceLanguage", lang) if translation.get("translatedText") != translation.get("input") else "en")
-      if final_translation is not None and final_translation.get("translatedText", None) is not None:
+      if final_translation is not None and not isinstance(final_translation, str) and final_translation.get("translatedText", None) is not None:
         final_translation["translatedText"] = self.h.unescape(final_translation["translatedText"])
-      response = final_translation["translatedText"] if final_translation is not None else response
+      response = final_translation["translatedText"] if final_translation is not None and not isinstance(final_translation, str) else response
 
     if response is None:
       return
