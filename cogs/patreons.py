@@ -21,21 +21,21 @@ class Patreons(commands.Cog):
     await cmd_help(ctx, ctx.command)
 
   @norm_patreon.command("test", hidden=True)
-  @checks.is_min_tier(list(config.premium_tiers)[1])
+  @checks.is_min_tier()
   async def norm_test(self, ctx):
     print("something x2")
 
   @norm_patreon.group("server", description="Activate the server that you would like to apply your patronage to", invoke_without_command=True)
   @commands.guild_only()
   @checks.is_supporter()
-  @checks.is_min_tier(list(config.premium_tiers)[1])
+  @checks.is_min_tier()
   async def norm_patreon_server(self, ctx):
     await self.norm_patreon_server_true(ctx)
 
   @norm_patreon_server.command("true")
   @commands.guild_only()
   @checks.is_supporter()
-  @checks.is_min_tier(list(config.premium_tiers)[1])
+  @checks.is_min_tier()
   async def norm_patreon_server_true(self, ctx):
     guild_id, tier, patreon_user = (await query(self.bot.log.mydb, "SELECT id,tier,patreon_user FROM servers WHERE id=%s", ctx.guild.id))[0]
     if tier is None or patreon_user is None:
