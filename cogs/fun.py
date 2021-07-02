@@ -7,7 +7,7 @@ import datetime
 
 import discord
 from discord.ext import commands, tasks
-from discord_slash import cog_ext
+from discord_slash import cog_ext, SlashContext
 from discord_slash.utils.manage_commands import create_choice, create_option, SlashCommandOptionType
 
 # sys.path.insert(1, os.path.join(sys.path[0], '..'))
@@ -77,9 +77,7 @@ class Fun(commands.Cog):
 
   @commands.command(name="rockpaperscissors", help="Play Rock Paper Scissors with Friday", aliases=["rps"], usage="<rock, paper or scissors>")
   async def norm_rock_paper_scissors(self, ctx, args: str):
-    async with ctx.typing():
-      post = await self.rock_paper_scissors(ctx, args)
-    await ctx.reply(**post)
+    await self.rock_paper_scissors(ctx, args)
 
   @cog_ext.cog_slash(
       name="rockpaperscissors",
@@ -109,24 +107,15 @@ class Fun(commands.Cog):
   @checks.slash(user=False, private=True)
   async def slash_rock_paper_scissors(self, ctx, choice: str):
     await ctx.defer()
-    post = await self.rock_paper_scissors(ctx, choice)
-    await ctx.send(**post)
+    await self.rock_paper_scissors(ctx, choice)
 
-  async def rock_paper_scissors(self, ctx, args: str):
-    # args = args.split(" ")
-    # arg = args[0].lower()
+  async def rock_paper_scissors(self, ctx: commands.Context or SlashContext, args: str) -> None:
     arg = args.lower()
-    # if args not in self.options
-    #   await ctx.reply(embed=embed(title="Please only choose one of three options, Rock, Paper, or Scissors",color=MessageColors.ERROR))
-    #   return
 
     if arg not in self.rpsoptions:
-      await ctx.reply(embed=embed(title=f"`{arg}` is not Rock, Paper, Scissors. Please choose one of those three.", color=MessageColors.ERROR))
-      return
+      return await ctx.send(embed=embed(title=f"`{arg}` is not Rock, Paper, Scissors. Please choose one of those three.", color=MessageColors.ERROR))
 
-    num = random.randint(0, len(self.rpsoptions) - 1)
-
-    mychoice = self.rpsoptions[num]
+    mychoice = random.choice(self.rpsoptions)
 
     if mychoice == arg:
       conclusion = "Draw"
@@ -143,7 +132,7 @@ class Fun(commands.Cog):
     elif mychoice == "scissors" and arg == "paper":
       conclusion = self.bot.user
 
-    return dict(
+    return await ctx.send(
         embed=embed(
             title=f"Your move: {arg} VS My move: {mychoice}",
             color=MessageColors.RPS,
