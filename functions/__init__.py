@@ -1,7 +1,7 @@
 import os
 
 from .messagecolors import MessageColors
-from .mysql_connection import mydb_connect, query
+from .mysql_connection import mydb_connect, query, non_coro_query
 from . import exceptions, checks, config  # , queryIntents  # , queryGen
 from .myembed import embed
 
@@ -16,4 +16,4 @@ dev_guilds = [243159711237537802, 707441352367013899, 215346091321720832]
 
 modules = [mod[:-3] for mod in os.listdir("./functions") if mod.endswith(".py") and mod != "__init__.py" and mod != "queryGen.py" and mod != "queryIntents.py"]
 
-__all__ = ["MessageColors", "build_docs", "Menu", "config", "MyContext", "msg_reply", "MySlashContext", "timeit", "relay_info", "exceptions", "get_reddit_post", "mydb_connect", "query", "embed", "checks"]
+__all__ = ["MessageColors", "build_docs", "Menu", "config", "MyContext", "msg_reply", "MySlashContext", "timeit", "relay_info", "exceptions", "get_reddit_post", "mydb_connect", "query", "non_coro_query", "embed", "checks"]
