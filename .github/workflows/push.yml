@@ -26,7 +26,7 @@ jobs:
         cache-name: cache-friday-lint-dependencies
       with:
         path: ${{ env.pythonLocation}}/lib/python${{ matrix.python-version }}/site-packages/*
-        key: ${{ matrix.os }}-pip-${{ env.cache-name }}-${{ hashfiles('**/lint-requirments.txt') }}
+        key: ${{ matrix.os }}-pip-${{ env.cache-name }}-${{ hashfiles('lint-requirements.txt') }}
         restore-keys: |
           ${{ matrix.os }}-pip-${{ env.cache-name }}-
           ${{ matrix.os }}-pip-
@@ -63,8 +63,9 @@ jobs:
       env:
         cache-name: cache-friday-dependencies
       with:
+        # path: /usr/local/lib/python${{ matrix.python-version }}/site-packages
         path: ${{ env.pythonLocation}}/lib/python${{ matrix.python-version }}/site-packages/*
-        key: ${{ matrix.os }}-pip-${{ env.cache-name }}-${{ hashfiles('**/requirments.txt') }}
+        key: ${{ matrix.os }}-pip-${{ env.cache-name }}-${{ hashfiles('requirements.txt') }}
         restore-keys: |
           ${{ matrix.os }}-pip-${{ env.cache-name }}-
           ${{ matrix.os }}-pip-
