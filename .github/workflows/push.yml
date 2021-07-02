@@ -32,17 +32,24 @@ jobs:
           ${{ matrix.os }}-pip-${{ env.cache-name }}-
           ${{ matrix.os }}-pip-
           ${{ matrix.os }}-
-    - name: Install dependencies
+    - restore_cache: ${{ matrix.os }}-pip-${{ env.cache-name }}-${{ hashfiles('lint-requirements.txt') }}
+      name: Install dependencies
       if: steps.cache.outputs.cache-hit != 'true'
       run: |
+        python -m venv ~/venv
+        . ~/venv/bin/activate
         pip install flake8
-    - restore_cache: ${{ matrix.os }}-pip-${{ env.cache-name }}-${{ hashfiles('lint-requirements.txt') }}
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
         # exit-zero treats all errors as warnings. The Github editor is 127 chars wide
         flake8 . --count --statistics --config=./setup.cfg
+    - save_cache:
+        key: ${{ matrix.os }}-pip-${{ env.cache-name }}-${{ hashfiles('lint-requirements.txt') }}
+        paths:
+          - "${{ env.pythonLocation}}/lib/python${{ matrix.python-version }}/site-packages/*"
+          - "~/venv"
   build:
     runs-on: ${{ matrix.os }}
     name: Launch check os ${{ matrix.os }}, Python ${{ matrix.python-version }}
