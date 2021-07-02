@@ -186,7 +186,7 @@ class Moderation(commands.Cog):
   @commands.bot_has_guild_permissions(manage_messages=True)
   async def norm_remove_discord_invites(self, ctx):
     check = await query(self.bot.log.mydb, "SELECT remove_invites FROM servers WHERE id=%s", ctx.guild.id)
-    if check is True:
+    if bool(check) is True:
       await query(self.bot.log.mydb, "UPDATE servers SET remove_invites=%s WHERE id=%s", False, ctx.guild.id)
       self.to_remove_invites[ctx.guild.id] = False
       await ctx.reply(embed=embed(title="I will no longer remove invites"))
@@ -199,19 +199,22 @@ class Moderation(commands.Cog):
     if not msg.guild or msg.author.bot:
       return
 
-    if self.to_remove_invites[msg.guild.id] is True:
-      reg = re.match(self.invite_reg, msg.clean_content, re.RegexFlag.MULTILINE + re.RegexFlag.IGNORECASE)
-      check = bool(reg)
-      if check:
-        try:
-          if discord.utils.resolve_invite(reg.string) in [inv.code for inv in await msg.guild.invites()]:
-            return
-        except discord.Forbidden or discord.HTTPException:
-          pass
-        try:
-          await msg.delete()
-        except discord.Forbidden:
-          pass
+    try:
+      if self.to_remove_invites[msg.guild.id] is True:
+        reg = re.match(self.invite_reg, msg.clean_content, re.RegexFlag.MULTILINE + re.RegexFlag.IGNORECASE)
+        check = bool(reg)
+        if check:
+          try:
+            if discord.utils.resolve_invite(reg.string) in [inv.code for inv in await msg.guild.invites()]:
+              return
+          except discord.Forbidden or discord.HTTPException:
+            pass
+          try:
+            await msg.delete()
+          except discord.Forbidden:
+            pass
+    except KeyError:
+      pass
 
   @settings_bot.command(name="musicchannel", help="Set the channel where I can join and play music. If none then I will join any VC", hidden=True)
   @commands.is_owner()
