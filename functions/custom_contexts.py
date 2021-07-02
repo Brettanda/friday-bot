@@ -45,21 +45,11 @@ class MyContext(Context):
       kwargs.update({"mention_author": False})
     try:
       return await self.message.reply(content, **kwargs)
-    except discord.Forbidden as e:
-      if "Cannot reply without permission" in str(e):
-        try:
-          return await self.message.channel.send(content, **kwargs)
-        except Exception:
-          pass
-      elif "Missing Permissions" in str(e):
+    except discord.Forbidden or discord.HTTPException:
+      try:
+        return await self.message.channel.send(content, **kwargs)
+      except discord.Forbidden or discord.HTTPException:
         pass
-      else:
-        raise e
-    except discord.HTTPException as e:
-      if "Unknown message" in str(e):
-        try:
-          return await self.message.channel.send(content, **kwargs)
-        except Exception:
-          pass
-      else:
-        raise e
+
+  async def send(self, content=None, **kwargs):
+    return await self.reply(content, **kwargs)
