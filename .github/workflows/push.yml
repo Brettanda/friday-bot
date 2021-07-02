@@ -73,12 +73,14 @@ jobs:
           ${{ matrix.os }}-pip-${{ env.cache-name }}-
           ${{ matrix.os }}-pip-
           ${{ matrix.os }}-
-    - name: Install dependencies
+    - restore_cache: ${{ matrix.os }}-pip-${{ env.cache-name }}-${{ hashfiles('requirements.txt') }}
+      name: Install dependencies
       if: steps.cache.outputs.cache-hit != 'true'
       run: |
+        python -m venv ~/venv
+        . ~/venv/bin/activate
         pip install pytest
         if [ -f requirements.txt ]; then python -m pip install -r requirements.txt; fi
-    - restore_cache: ${{ matrix.os }}-pip-${{ env.cache-name }}-${{ hashfiles('requirements.txt') }}
     - name: Install google key for translations
       env:
         PROJECT_ID: ${{ secrets.PROJECT_ID }}
@@ -115,3 +117,8 @@ jobs:
       run: |
         if [ -f friday-trans-key.json ]; then printf "Google file here"; fi
         pytest
+    - save_cache:
+        key: ${{ matrix.os }}-pip-${{ env.cache-name }}-${{ hashfiles('requirements.txt') }}
+        paths:
+          - "${{ env.pythonLocation}}/lib/python${{ matrix.python-version }}/site-packages/*"
+          - "~/venv"
