@@ -31,7 +31,6 @@ jobs:
           ${{ matrix.os }}-pip-${{ env.cache-name }}-
           ${{ matrix.os }}-pip-
           ${{ matrix.os }}-
-    # - restore_cache: ${{ matrix.os }}-pip-${{ env.cache-name }}-${{ hashfiles('lint-requirements.txt') }}
     - name: Install dependencies
       if: steps.cache.outputs.cache-hit != 'true'
       run: |
@@ -46,12 +45,6 @@ jobs:
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
         # exit-zero treats all errors as warnings. The Github editor is 127 chars wide
         flake8 . --count --statistics --config=./setup.cfg
-    # - uses: actions/cache@v2
-      # save_cache:
-      #   key: ${{ matrix.os }}-pip-${{ env.cache-name }}-${{ hashfiles('lint-requirements.txt') }}
-      #   paths:
-      #     - "${{ env.pythonLocation}}/lib/python${{ matrix.python-version }}/site-packages/*"
-      #     - "~/venv"
   build:
     runs-on: ${{ matrix.os }}
     name: Launch check os ${{ matrix.os }}, Python ${{ matrix.python-version }}
@@ -72,7 +65,6 @@ jobs:
       env:
         cache-name: cache-friday-dependencies
       with:
-        # path: /usr/local/lib/python${{ matrix.python-version }}/site-packages
         path: |
           ${{ env.pythonLocation}}/lib/python${{ matrix.python-version }}/site-packages/*
           ~/venv
@@ -127,9 +119,3 @@ jobs:
         . ~/venv/bin/activate
         if [ -f friday-trans-key.json ]; then printf "Google file here"; fi
         pytest
-    # - uses: actions/cache@v2
-    #   save_cache:
-    #     key: ${{ matrix.os }}-pip-${{ env.cache-name }}-${{ hashfiles('requirements.txt') }}
-    #     paths:
-    #       - "${{ env.pythonLocation}}/lib/python${{ matrix.python-version }}/site-packages/*"
-    #       - "~/venv"
