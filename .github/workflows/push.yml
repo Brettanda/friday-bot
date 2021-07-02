@@ -45,7 +45,8 @@ jobs:
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
         # exit-zero treats all errors as warnings. The Github editor is 127 chars wide
         flake8 . --count --statistics --config=./setup.cfg
-    - save_cache:
+    - uses: actions/cache@v2
+      save_cache:
         key: ${{ matrix.os }}-pip-${{ env.cache-name }}-${{ hashfiles('lint-requirements.txt') }}
         paths:
           - "${{ env.pythonLocation}}/lib/python${{ matrix.python-version }}/site-packages/*"
@@ -124,7 +125,8 @@ jobs:
       run: |
         if [ -f friday-trans-key.json ]; then printf "Google file here"; fi
         pytest
-    - save_cache:
+    - uses: actions/cache@v2
+      save_cache:
         key: ${{ matrix.os }}-pip-${{ env.cache-name }}-${{ hashfiles('requirements.txt') }}
         paths:
           - "${{ env.pythonLocation}}/lib/python${{ matrix.python-version }}/site-packages/*"
