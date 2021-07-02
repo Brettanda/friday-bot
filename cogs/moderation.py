@@ -1,5 +1,6 @@
 import asyncio
 import typing
+import re
 # import datetime
 # import validators
 from slugify import slugify
@@ -28,6 +29,12 @@ class Moderation(commands.Cog):
 
   def __init__(self, bot: "Bot"):
     self.bot = bot
+
+    self.invite_reg = r"(https?:\/\/)?(www\.)?(discord(app|)\.(gg)(\/invite|))\/[a-zA-Z0-9\-]+"
+    if not hasattr(self, "to_remove_invites"):
+      self.to_remove_invites = {}
+      for guild_id, to_remove in non_coro_query(self.bot.log.mydb, "SELECT id,remove_invites FROM servers"):
+        self.to_remove_invites.update({int(guild_id): bool(to_remove)})
 
     if not hasattr(self, "message_spam_control"):
       self.message_spam_control = {}
@@ -172,6 +179,39 @@ class Moderation(commands.Cog):
       await query(self.bot.log.mydb, "UPDATE servers SET chatChannel=%s WHERE id=%s", None, ctx.guild.id)
       self.bot.log.change_guild_chat_channel(ctx.guild.id, None)
       return dict(embed=embed(title="I will no longer respond to all messages from this channel"))
+
+  @settings_bot.command(name="removeinvites", help="Automaticaly remove Discord invites from text channels", hidden=True)
+  @commands.guild_only()
+  @commands.has_guild_permissions(manage_channels=True)
+  @commands.bot_has_guild_permissions(manage_messages=True)
+  async def norm_remove_discord_invites(self, ctx, choice: bool = True):
+    check = await query(self.bot.log.mydb, "SELECT remove_invites FROM servers WHERE id=%s", ctx.guild.id)
+    if check is True:
+      await query(self.bot.log.mydb, "UPDATE servers SET remove_invites=%s WHERE id=%s", False, ctx.guild.id)
+      self.to_remove_invites[ctx.guild.id] = False
+      await ctx.reply(embed=embed(title="I will no longer remove invites"))
+    else:
+      await query(self.bot.log.mydb, "UPDATE servers SET remove_invites=%s WHERE id=%s", True, ctx.guild.id)
+      self.to_remove_invites[ctx.guild.id] = True
+      await ctx.reply(embed=embed(title="I will begin to remove invites"))
+
+  async def msg_remove_invites(self, msg: discord.Message):
+    if not msg.guild or msg.author.bot:
+      return
+
+    if self.to_remove_invites[msg.guild.id] is True:
+      reg = re.match(self.invite_reg, msg.clean_content, re.RegexFlag.MULTILINE + re.RegexFlag.IGNORECASE)
+      check = bool(reg)
+      if check:
+        try:
+          if discord.utils.resolve_invite(reg.string) in [inv.code for inv in await msg.guild.invites()]:
+            return
+        except discord.Forbidden or discord.HTTPException:
+          pass
+        try:
+          await msg.delete()
+        except discord.Forbidden:
+          pass
 
   @settings_bot.command(name="musicchannel", help="Set the channel where I can join and play music. If none then I will join any VC", hidden=True)
   @commands.is_owner()
@@ -648,6 +688,7 @@ class Moderation(commands.Cog):
     bypass = before.author.guild_permissions.manage_guild
     if bypass:
       return
+    await self.msg_remove_invites(after)
     await self.check_blacklist(after)
 
   @commands.Cog.listener()
@@ -657,6 +698,7 @@ class Moderation(commands.Cog):
     bypass = msg.author.guild_permissions.manage_guild if isinstance(msg.author, discord.Member) else False
     if bypass:
       return
+    await self.msg_remove_invites(msg)
     await self.check_blacklist(msg)
 
   @commands.command(name="mute", help="Mute a member from text channels")
