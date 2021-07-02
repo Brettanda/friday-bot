@@ -25,7 +25,6 @@ jobs:
       env:
         cache-name: cache-friday-lint-dependencies
       with:
-        # path: /usr/local/lib/python${{ matrix.python-version }}/site-packages
         path: .cache/pip
         key: ${{ matrix.os }}-pip-${{ env.cache-name }}-${{ hashfiles('**/lint-requirments.txt') }}
         restore-keys: |
