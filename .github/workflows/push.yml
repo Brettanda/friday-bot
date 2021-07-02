@@ -36,8 +36,7 @@ jobs:
       if: steps.cache.outputs.cache-hit != 'true'
       run: |
         pip install flake8
-    - restore_cache:
-        key: ${{ matrix.os }}-pip-${{ env.cache-name }}-${{ hashfiles('lint-requirements.txt') }}
+    - restore_cache: ${{ matrix.os }}-pip-${{ env.cache-name }}-${{ hashfiles('lint-requirements.txt') }}
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
@@ -79,8 +78,7 @@ jobs:
       run: |
         pip install pytest
         if [ -f requirements.txt ]; then python -m pip install -r requirements.txt; fi
-    - restore_cache:
-        key: ${{ matrix.os }}-pip-${{ env.cache-name }}-${{ hashfiles('requirements.txt') }}
+    - restore_cache: ${{ matrix.os }}-pip-${{ env.cache-name }}-${{ hashfiles('requirements.txt') }}
     - name: Install google key for translations
       env:
         PROJECT_ID: ${{ secrets.PROJECT_ID }}
