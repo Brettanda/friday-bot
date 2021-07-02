@@ -81,7 +81,6 @@ jobs:
           ${{ matrix.os }}-pip-${{ env.cache-name }}-
           ${{ matrix.os }}-pip-
           ${{ matrix.os }}-
-    # - restore_cache: ${{ matrix.os }}-pip-${{ env.cache-name }}-${{ hashfiles('requirements.txt') }}
     - name: Install dependencies
       if: steps.cache.outputs.cache-hit != 'true'
       run: |
