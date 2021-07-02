@@ -17,9 +17,6 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Upgrade pip
-      run: |
-        python -m pip install --upgrade pip
     - name: Cache dependencies
       id: cache
       uses: actions/cache@v2
@@ -38,6 +35,7 @@ jobs:
       run: |
         python -m venv ~/venv
         . ~/venv/bin/activate
+        python -m pip install --upgrade pip
         pip install flake8
     - name: Lint with flake8
       run: |
@@ -66,9 +64,6 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Upgrade pip
-      run: |
-        python -m pip install --upgrade pip
     - name: Cache dependencies
       id: cache
       uses: actions/cache@v2
@@ -88,6 +83,7 @@ jobs:
       run: |
         python -m venv ~/venv
         . ~/venv/bin/activate
+        python -m pip install --upgrade pip
         pip install pytest
         if [ -f requirements.txt ]; then python -m pip install -r requirements.txt; fi
     - name: Install google key for translations
