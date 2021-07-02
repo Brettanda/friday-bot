@@ -2,6 +2,22 @@
 
 Fun things like games
 
+## Gametime
+
+Ping a role that is attached to a game and see who wants to play
+
+Usage:
+
+```md
+gametime <role> <message>
+```
+
+Aliases:
+
+```md
+None
+```
+
 ## Souptime
 
 Soup Time
@@ -18,36 +34,20 @@ Aliases:
 None
 ```
 
-## Rockpaperscissors
+## Countdown
 
-Play Rock Paper Scissors with Friday
+Start a countdown. This command only updates every 5 seconds to avoid being ratelimited by Discord
 
 Usage:
 
 ```md
-rockpaperscissors|rps <rock, paper or scissors>
+countdown|cd [hours=0] [minutes=0] [seconds=0] [title]
 ```
 
 Aliases:
 
 ```md
-rps
-```
-
-## Minesweeper
-
-Play minesweeper
-
-Usage:
-
-```md
-minesweeper|ms <size=5> <bomb_count=6>
-```
-
-Aliases:
-
-```md
-ms
+cd
 ```
 
 ## Poll
@@ -66,6 +66,22 @@ Aliases:
 None
 ```
 
+## Minesweeper
+
+Play minesweeper
+
+Usage:
+
+```md
+minesweeper|ms [size=5] [bomb_count=6]
+```
+
+Aliases:
+
+```md
+ms
+```
+
 ## Coinflip
 
 Flip a coin
@@ -82,35 +98,19 @@ Aliases:
 coin
 ```
 
-## Gametime
+## Rockpaperscissors
 
-Ping a role that is attached to a game and see who wants to play
+Play Rock Paper Scissors with Friday
 
 Usage:
 
 ```md
-gametime <role> <message>
+rockpaperscissors|rps <rock, paper or scissors>
 ```
 
 Aliases:
 
 ```md
-None
-```
-
-## Countdown
-
-Start a countdown. This command only updates every 5 seconds to avoid being ratelimited by Discord
-
-Usage:
-
-```md
-countdown|cd <hours=0> <minutes=0> <seconds=0> <title>
-```
-
-Aliases:
-
-```md
-cd
+rps
 ```
 
