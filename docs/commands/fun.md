@@ -18,6 +18,38 @@ Aliases:
 None
 ```
 
+## Coinflip
+
+Flip a coin
+
+Usage:
+
+```md
+coinflip|coin 
+```
+
+Aliases:
+
+```md
+coin
+```
+
+## Minesweeper
+
+Play minesweeper
+
+Usage:
+
+```md
+minesweeper|ms [size=5] [bomb_count=6]
+```
+
+Aliases:
+
+```md
+ms
+```
+
 ## Souptime
 
 Soup Time
@@ -26,6 +58,38 @@ Usage:
 
 ```md
 souptime 
+```
+
+Aliases:
+
+```md
+None
+```
+
+## Rockpaperscissors
+
+Play Rock Paper Scissors with Friday
+
+Usage:
+
+```md
+rockpaperscissors|rps <rock, paper or scissors>
+```
+
+Aliases:
+
+```md
+rps
+```
+
+## Poll
+
+Make a poll. Seperate the options with `;;`
+
+Usage:
+
+```md
+poll <title> <options>
 ```
 
 Aliases:
@@ -48,69 +112,5 @@ Aliases:
 
 ```md
 cd
-```
-
-## Poll
-
-Make a poll. Seperate the options with `;;`
-
-Usage:
-
-```md
-poll <title> <options>
-```
-
-Aliases:
-
-```md
-None
-```
-
-## Minesweeper
-
-Play minesweeper
-
-Usage:
-
-```md
-minesweeper|ms [size=5] [bomb_count=6]
-```
-
-Aliases:
-
-```md
-ms
-```
-
-## Coinflip
-
-Flip a coin
-
-Usage:
-
-```md
-coinflip|coin 
-```
-
-Aliases:
-
-```md
-coin
-```
-
-## Rockpaperscissors
-
-Play Rock Paper Scissors with Friday
-
-Usage:
-
-```md
-rockpaperscissors|rps <rock, paper or scissors>
-```
-
-Aliases:
-
-```md
-rps
 ```
 

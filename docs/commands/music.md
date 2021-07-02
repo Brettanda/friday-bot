@@ -2,6 +2,22 @@
 
 
 
+## Play
+
+Follow this command with the title of a song to search for it or just paste the Youtube/SoundCloud url if the search gives and undesirable result
+
+Usage:
+
+```md
+play|p|add <url/title>
+```
+
+Aliases:
+
+```md
+p,add
+```
+
 ## Stop
 
 Stops the currently playing music
@@ -74,30 +90,16 @@ Usage:
 
 ```md
 custom|c <name>
-custom|c add <name> <url>
 custom|c list 
-custom|c change <name> <url>
+custom|c add <name> <url>
 custom|c remove <name>
+custom|c change <name> <url>
 ```
 
 Aliases:
 
 ```md
 c
-```
-
-### Add
-
-Usage:
-
-```none
-custom add <name> <url>
-```
-
-Aliases:
-
-```none
-None
 ```
 
 ### List
@@ -114,18 +116,18 @@ Aliases:
 None
 ```
 
-### Change
+### Add
 
 Usage:
 
 ```none
-custom change|replace <name> <url>
+custom add <name> <url>
 ```
 
 Aliases:
 
 ```none
-replace
+None
 ```
 
 ### Remove
@@ -142,20 +144,18 @@ Aliases:
 del
 ```
 
-## Play
-
-Follow this command with the title of a song to search for it or just paste the Youtube/SoundCloud url if the search gives and undesirable result
+### Change
 
 Usage:
 
-```md
-play|p|add <url/title>
+```none
+custom change|replace <name> <url>
 ```
 
 Aliases:
 
-```md
-p,add
+```none
+replace
 ```
 
 ## Skip
