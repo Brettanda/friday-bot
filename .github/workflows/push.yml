@@ -17,12 +17,30 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
+    - name: Cache dependencies
+      id: cache
+      uses: actions/cache@v2
+      env:
+        cache-name: cache-friday-lint-dependencies
+      with:
+        path: |
+          ${{ env.pythonLocation}}/lib/python${{ matrix.python-version }}/site-packages/*
+          ~/venv
+        key: ${{ matrix.os }}-pip-${{ env.cache-name }}-${{ hashfiles('lint-requirements.txt') }}
+        restore-keys: |
+          ${{ matrix.os }}-pip-${{ env.cache-name }}-
+          ${{ matrix.os }}-pip-
+          ${{ matrix.os }}-
     - name: Install dependencies
+      if: steps.cache.outputs.cache-hit != 'true'
       run: |
+        python -m venv ~/venv
+        . ~/venv/bin/activate
         python -m pip install --upgrade pip
         pip install flake8
     - name: Lint with flake8
       run: |
+        . ~/venv/bin/activate
         # stop the build if there are Python syntax errors or undefined names
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
         # exit-zero treats all errors as warnings. The Github editor is 127 chars wide
@@ -41,8 +59,25 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
+    - name: Cache dependencies
+      id: cache
+      uses: actions/cache@v2
+      env:
+        cache-name: cache-friday-dependencies
+      with:
+        path: |
+          ${{ env.pythonLocation}}/lib/python${{ matrix.python-version }}/site-packages/*
+          ~/venv
+        key: ${{ matrix.os }}-pip-${{ env.cache-name }}-${{ hashfiles('requirements.txt') }}
+        restore-keys: |
+          ${{ matrix.os }}-pip-${{ env.cache-name }}-
+          ${{ matrix.os }}-pip-
+          ${{ matrix.os }}-
     - name: Install dependencies
+      if: steps.cache.outputs.cache-hit != 'true'
       run: |
+        python -m venv ~/venv
+        . ~/venv/bin/activate
         python -m pip install --upgrade pip
         pip install pytest
         if [ -f requirements.txt ]; then python -m pip install -r requirements.txt; fi
@@ -55,6 +90,7 @@ jobs:
         CLIENT_ID: ${{ secrets.CLIENT_ID }}
         CLIENT_CERT_URL: ${{ secrets.CLIENT_CERT_URL }}
       run: |
+        . ~/venv/bin/activate
         if ! [ -f friday-trans-key.json ]; then python create_trans_key.py; fi
         if [ -f friday-trans-key.json ]; then printf "File created"; fi
     - name: Test with pytest
@@ -80,5 +116,6 @@ jobs:
         CLIENT_CERT_URL: ${{ secrets.CLIENT_CERT_URL }}
         GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
       run: |
+        . ~/venv/bin/activate
         if [ -f friday-trans-key.json ]; then printf "Google file here"; fi
         pytest

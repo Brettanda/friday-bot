@@ -1,5 +1,6 @@
 import asyncio
 import typing
+import re
 # import datetime
 # import validators
 from slugify import slugify
@@ -17,7 +18,7 @@ from discord_slash.utils.manage_commands import create_option
 from typing_extensions import TYPE_CHECKING
 
 from cogs.help import cmd_help
-from functions import MessageColors, embed, query, checks, relay_info, config
+from functions import MessageColors, embed, query, non_coro_query, checks, relay_info, config
 
 if TYPE_CHECKING:
   from index import Friday as Bot
@@ -29,6 +30,12 @@ class Moderation(commands.Cog):
   def __init__(self, bot: "Bot"):
     self.bot = bot
 
+    self.invite_reg = r"(https?:\/\/)?(www\.)?(discord(app|)\.(gg)(\/invite|))\/[a-zA-Z0-9\-]+"
+    if not hasattr(self, "to_remove_invites"):
+      self.to_remove_invites = {}
+      for guild_id, to_remove in non_coro_query(self.bot.log.mydb, "SELECT id,remove_invites FROM servers"):
+        self.to_remove_invites.update({int(guild_id): bool(to_remove)})
+
     if not hasattr(self, "message_spam_control"):
       self.message_spam_control = {}
 
@@ -36,21 +43,18 @@ class Moderation(commands.Cog):
       self.message_spam_control_counter = {}
 
     if not hasattr(self, "blacklist"):
+      blacklists = non_coro_query(self.bot.log.mydb, "SELECT * FROM blacklist")
       self.blacklist = {}
+      for server, word in blacklists:
+        if server not in self.blacklist:
+          self.blacklist[int(server)] = [word]
+        else:
+          self.blacklist[int(server)].append(word)
 
   def cog_check(self, ctx):
     if ctx.guild is None:
       raise commands.NoPrivateMessage("This command can only be used within a guild")
     return True
-
-  @commands.Cog.listener()
-  async def on_ready(self):
-    blacklists = await query(self.bot.log.mydb, "SELECT * FROM blacklist")
-    for server, word in blacklists:
-      if server not in self.blacklist:
-        self.blacklist[int(server)] = [word]
-      else:
-        self.blacklist[int(server)].append(word)
 
   @commands.command(name="defaultrole", hidden=True, help="Set the role that is given to new members when they join the server")
   @commands.is_owner()
@@ -176,6 +180,39 @@ class Moderation(commands.Cog):
       self.bot.log.change_guild_chat_channel(ctx.guild.id, None)
       return dict(embed=embed(title="I will no longer respond to all messages from this channel"))
 
+  @settings_bot.command(name="removeinvites", help="Automaticaly remove Discord invites from text channels", hidden=True)
+  @commands.guild_only()
+  @commands.has_guild_permissions(manage_channels=True)
+  @commands.bot_has_guild_permissions(manage_messages=True)
+  async def norm_remove_discord_invites(self, ctx, choice: bool = True):
+    check = await query(self.bot.log.mydb, "SELECT remove_invites FROM servers WHERE id=%s", ctx.guild.id)
+    if check is True:
+      await query(self.bot.log.mydb, "UPDATE servers SET remove_invites=%s WHERE id=%s", False, ctx.guild.id)
+      self.to_remove_invites[ctx.guild.id] = False
+      await ctx.reply(embed=embed(title="I will no longer remove invites"))
+    else:
+      await query(self.bot.log.mydb, "UPDATE servers SET remove_invites=%s WHERE id=%s", True, ctx.guild.id)
+      self.to_remove_invites[ctx.guild.id] = True
+      await ctx.reply(embed=embed(title="I will begin to remove invites"))
+
+  async def msg_remove_invites(self, msg: discord.Message):
+    if not msg.guild or msg.author.bot:
+      return
+
+    if self.to_remove_invites[msg.guild.id] is True:
+      reg = re.match(self.invite_reg, msg.clean_content, re.RegexFlag.MULTILINE + re.RegexFlag.IGNORECASE)
+      check = bool(reg)
+      if check:
+        try:
+          if discord.utils.resolve_invite(reg.string) in [inv.code for inv in await msg.guild.invites()]:
+            return
+        except discord.Forbidden or discord.HTTPException:
+          pass
+        try:
+          await msg.delete()
+        except discord.Forbidden:
+          pass
+
   @settings_bot.command(name="musicchannel", help="Set the channel where I can join and play music. If none then I will join any VC", hidden=True)
   @commands.is_owner()
   @commands.has_guild_permissions(manage_channels=True)
@@ -232,9 +269,9 @@ class Moderation(commands.Cog):
               await msg.delete()
               return await msg.author.send(f"""Your message `{msg.content}` was removed for containing the blacklisted word `{blacklisted_word}`""")
             except Exception as e:
-              await relay_info(f"Error when trying to remove message {type(e).__name__}: {e}")
+              await relay_info(f"Error when trying to remove message {type(e).__name__}: {e}", self.bot, logger=self.bot.log.log_errors)
     except Exception as e:
-      await relay_info(f"Error when trying to remove message (big) {type(e).__name__}: {e}")
+      await relay_info(f"Error when trying to remove message (big) {type(e).__name__}: {e}", self.bot, logger=self.bot.log.log_errors)
 
   @commands.group(name="blacklist", aliases=["bl"], invoke_without_command=True, case_insensitive=True)
   @commands.guild_only()
@@ -651,6 +688,7 @@ class Moderation(commands.Cog):
     bypass = before.author.guild_permissions.manage_guild
     if bypass:
       return
+    await self.msg_remove_invites(after)
     await self.check_blacklist(after)
 
   @commands.Cog.listener()
@@ -660,6 +698,7 @@ class Moderation(commands.Cog):
     bypass = msg.author.guild_permissions.manage_guild if isinstance(msg.author, discord.Member) else False
     if bypass:
       return
+    await self.msg_remove_invites(msg)
     await self.check_blacklist(msg)
 
   @commands.command(name="mute", help="Mute a member from text channels")

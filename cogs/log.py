@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING
 from discord.ext import commands, tasks
 from discord_slash import SlashContext, SlashCommand
 from cogs.help import cmd_help
-from functions import MessageColors, embed, mydb_connect, query, relay_info, exceptions, config  # ,choosegame
+from functions import MessageColors, embed, mydb_connect, query, non_coro_query, relay_info, exceptions, config  # ,choosegame
 import traceback
 
 if discord.__version__ == "1.7.3":
@@ -85,6 +85,41 @@ class Log(commands.Cog):
 
     self.bot.add_check(self.check_perms)
 
+    if self.bot.cluster_idx == 0:
+      non_coro_query(self.mydb, """CREATE TABLE IF NOT EXISTS servers
+                                (id bigint UNIQUE NOT NULL,
+                                name varchar(255) NULL,
+                                tier tinytext NULL,
+                                prefix varchar(5) NOT NULL DEFAULT '!',
+                                patreon_user bigint NULL DEFAULT NULL,
+                                muted tinyint(1) NOT NULL,
+                                lang varchar(2) NULL DEFAULT NULL,
+                                autoDeleteMSGs tinyint NOT NULL DEFAULT 0,
+                                max_mentions int NULL DEFAULT NULL,
+                                max_messages text NULL,
+                                remove_invites tinyint(1) DEFAULT 0,
+                                defaultRole bigint NULL DEFAULT NULL,
+                                reactionRoles text NULL,
+                                customJoinLeave text NULL,
+                                botMasterRole bigint NULL DEFAULT NULL,
+                                chatChannel bigint NULL DEFAULT NULL,
+                                musicChannel bigint NULL DEFAULT NULL,
+                                greeting varchar(255) NULL DEFAULT NULL,
+                                customSounds longtext NULL)""")
+      non_coro_query(self.mydb, """CREATE TABLE IF NOT EXISTS votes
+                                (id bigint UNIQUE NOT NULL,
+                                remind tinyint NULL DEFAULT 1,
+                                voted_time timestamp NULL DEFAULT CURRENT_TIMESTAMP)""")
+      non_coro_query(self.mydb, """CREATE TABLE IF NOT EXISTS blacklist
+                                (id bigint,
+                                word text)""")
+      non_coro_query(self.mydb, """CREATE TABLE IF NOT EXISTS countdowns
+                                (guild bigint NULL,
+                                channel bigint NOT NULL,
+                                message bigint NOT NULL,
+                                title text NULL,
+                                time bigint NOT NULL)""")
+
   def check_perms(self, ctx):
     if ctx.channel.type == discord.ChannelType.private:
       return True
@@ -127,38 +162,6 @@ class Log(commands.Cog):
     # FIXME: I think this could delete some of the db with more than one cluster
     #
     if self.bot.cluster_idx == 0:
-      await query(self.mydb, """CREATE TABLE IF NOT EXISTS servers
-                                  (id bigint UNIQUE NOT NULL,
-                                  name varchar(255) NULL,
-                                  tier tinytext NULL,
-                                  prefix varchar(5) NOT NULL DEFAULT '!',
-                                  patreon_user bigint NULL DEFAULT NULL,
-                                  muted tinyint(1) NOT NULL,
-                                  lang varchar(2) NULL DEFAULT NULL,
-                                  autoDeleteMSGs tinyint NOT NULL DEFAULT 0,
-                                  max_mentions int NULL DEFAULT NULL,
-                                  max_messages text NULL,
-                                  defaultRole bigint NULL DEFAULT NULL,
-                                  reactionRoles text NULL,
-                                  customJoinLeave text NULL,
-                                  botMasterRole bigint NULL DEFAULT NULL,
-                                  chatChannel bigint NULL DEFAULT NULL,
-                                  musicChannel bigint NULL DEFAULT NULL,
-                                  greeting varchar(255) NULL DEFAULT NULL,
-                                  customSounds longtext NULL)""")
-      await query(self.mydb, """CREATE TABLE IF NOT EXISTS votes
-                                  (id bigint UNIQUE NOT NULL,
-                                  remind tinyint NULL DEFAULT 1,
-                                  voted_time timestamp NULL DEFAULT CURRENT_TIMESTAMP)""")
-      await query(self.mydb, """CREATE TABLE IF NOT EXISTS blacklist
-                                  (id bigint,
-                                  word text)""")
-      await query(self.mydb, """CREATE TABLE IF NOT EXISTS countdowns
-                                  (guild bigint NULL,
-                                  channel bigint NOT NULL,
-                                  message bigint NOT NULL,
-                                  title text NULL,
-                                  time bigint NOT NULL)""")
       for guild in self.bot.guilds:
         await query(self.mydb, "INSERT IGNORE INTO servers (id,name,muted,lang) VALUES (%s,%s,%s,%s)", guild.id, guild.name, 0, guild.preferred_locale.split("-")[0])
 
