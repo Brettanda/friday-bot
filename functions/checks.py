@@ -19,7 +19,7 @@ def user_is_tier(tier: str) -> "_CheckDecorator":
   return commands.check(predicate)
 
 
-def is_min_tier(tier: str) -> "_CheckDecorator":
+def is_min_tier(tier: str = list(config.premium_tiers)[1]) -> "_CheckDecorator":
   tier_level = config.premium_tiers.get(tier, None)
   if tier_level is None:
     raise TypeError(f"Invalid tier name: {tier}")
@@ -41,7 +41,7 @@ def is_min_tier(tier: str) -> "_CheckDecorator":
   return commands.check(predicate)
 
 
-async def guild_is_min_tier(bot: "Bot", guild: discord.Guild, tier: str) -> bool:
+async def guild_is_min_tier(bot: "Bot", guild: discord.Guild, tier: str = list(config.premium_tiers)[1]) -> bool:
   """ Checks if a guild has at least patreon 'tier' """
 
   # FIXME: reee
@@ -58,7 +58,7 @@ async def guild_is_min_tier(bot: "Bot", guild: discord.Guild, tier: str) -> bool
   return True
 
 
-async def user_is_min_tier(bot: "Bot", user: discord.User, tier: str) -> bool:
+async def user_is_min_tier(bot: "Bot", user: discord.User, tier: str = list(config.premium_tiers)[1]) -> bool:
   """ Checks if a user has at least patreon 'tier' """
 
   if hasattr(user, "guild") and user.guild.id != config.support_server_id or not hasattr(user, "guild"):
@@ -81,6 +81,7 @@ async def user_is_min_tier(bot: "Bot", user: discord.User, tier: str) -> bool:
     role = bot.get_guild(config.support_server_id).get_role(config.premium_roles[i])
     if role.id in roles:
       return True
+  return False
 
 
 def is_supporter() -> "_CheckDecorator":
@@ -99,8 +100,8 @@ async def user_is_supporter(bot: "Bot", user: discord.User) -> bool:
   if user is None:
     raise exceptions.NotInSupportServer()
   roles = [role.id for role in user.roles]
-  if user.id == bot.owner_id or config.premium_roles["friends"] in roles:
-    return True
+  # if user.id == bot.owner_id or config.premium_roles["friends"] in roles:
+  #   return True
   if config.patreon_supporting_role not in roles:
     raise exceptions.NotSupporter()
   return True
@@ -119,7 +120,7 @@ def is_supporter_or_voted() -> "_CheckDecorator":
 
 
 async def user_voted(bot: "Bot", user: discord.User) -> bool:
-  user_id = await query(bot.mydb, "SELECT id FROM votes WHERE id=%s", user.id)
+  user_id = await query(bot.log.mydb, "SELECT id FROM votes WHERE id=%s", user.id)
   return True if user_id is not None else False
 
 

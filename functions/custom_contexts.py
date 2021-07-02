@@ -31,7 +31,7 @@ class MySlashContext(SlashContext):
 
 class MyContext(Context):
   async def reply(self, content=None, **kwargs):
-    ignore_coms = ["log", "help", "meme", "issue", "reactionrole", "minesweeper", "poll", "confirm", "souptime", "say"]
+    ignore_coms = ["log", "help", "meme", "issue", "reactionrole", "minesweeper", "poll", "confirm", "souptime", "say", "countdown"]
     if not hasattr(kwargs, "delete_after") and self.command is not None and self.command.name not in ignore_coms:
       if hasattr(self.bot, "get_guild_delete_commands"):
         delete = self.bot.log.get_guild_delete_commands(self.message.guild)
