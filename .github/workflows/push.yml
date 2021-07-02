@@ -17,21 +17,24 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
+    - name: Upgrade pip
+      run: |
+        python -m pip install --upgrade pip
     - name: Cache dependencies
       uses: actions/cache@v2
       env:
         cache-name: cache-friday-lint-dependencies
       with:
         path: /usr/local/lib/python${{ matrix.python-version }}/site-packages
-        key: ${{ matrix.os }}-build-${{ env.cache-name }}-${{ hashfiles('**/requirments.txt') }}
+        key: ${{ matrix.os }}-build-${{ env.cache-name }}-${{ hashfiles('**/lint-requirments.txt') }}
         restore-keys: |
           ${{ matrix.os }}-build-${{ env.cach-name }}-
           ${{ matrix.os }}-build-
           ${{ matrix.os }}-
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install flake8
+    # - name: Install dependencies
+    #   run: |
+    #     python -m pip install --upgrade pip
+    #     pip install flake8
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
@@ -52,6 +55,9 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
+    - name: Upgrade pip
+      run: |
+        python -m pip install --upgrade pip
     - name: Cache dependencies
       uses: actions/cache@v2
       env:
@@ -63,11 +69,11 @@ jobs:
           ${{ matrix.os }}-build-${{ env.cach-name }}-
           ${{ matrix.os }}-build-
           ${{ matrix.os }}-
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install pytest
-        if [ -f requirements.txt ]; then python -m pip install -r requirements.txt; fi
+    # - name: Install dependencies
+    #   run: |
+    #     python -m pip install --upgrade pip
+    #     pip install pytest
+    #     if [ -f requirements.txt ]; then python -m pip install -r requirements.txt; fi
     - name: Install google key for translations
       env:
         PROJECT_ID: ${{ secrets.PROJECT_ID }}
