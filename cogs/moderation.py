@@ -180,11 +180,11 @@ class Moderation(commands.Cog):
       self.bot.log.change_guild_chat_channel(ctx.guild.id, None)
       return dict(embed=embed(title="I will no longer respond to all messages from this channel"))
 
-  @settings_bot.command(name="removeinvites", help="Automaticaly remove Discord invites from text channels", hidden=True)
+  @settings_bot.command(name="removeinvites", help="Automaticaly remove Discord invites from text channels")
   @commands.guild_only()
   @commands.has_guild_permissions(manage_channels=True)
   @commands.bot_has_guild_permissions(manage_messages=True)
-  async def norm_remove_discord_invites(self, ctx, choice: bool = True):
+  async def norm_remove_discord_invites(self, ctx):
     check = await query(self.bot.log.mydb, "SELECT remove_invites FROM servers WHERE id=%s", ctx.guild.id)
     if check is True:
       await query(self.bot.log.mydb, "UPDATE servers SET remove_invites=%s WHERE id=%s", False, ctx.guild.id)
