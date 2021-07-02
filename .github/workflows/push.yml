@@ -63,7 +63,6 @@ jobs:
       env:
         cache-name: cache-friday-dependencies
       with:
-        # path: /usr/local/lib/python${{ matrix.python-version }}/site-packages
         path: ${{ env.pythonLocation}}/lib/python${{ matrix.python-version }}/site-packages/*
         key: ${{ matrix.os }}-pip-${{ env.cache-name }}-${{ hashfiles('**/requirments.txt') }}
         restore-keys: |
