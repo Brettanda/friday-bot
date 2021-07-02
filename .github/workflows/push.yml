@@ -21,6 +21,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
     - name: Cache dependencies
+      id: cache
       uses: actions/cache@v2
       env:
         cache-name: cache-friday-lint-dependencies
@@ -35,6 +36,8 @@ jobs:
       if: steps.cache.outputs.cache-hit != 'true'
       run: |
         pip install flake8
+    - restore_cache:
+        key: ${{ matrix.os }}-pip-${{ env.cache-name }}-${{ hashfiles('lint-requirements.txt') }}
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
@@ -59,6 +62,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
     - name: Cache dependencies
+      id: cache
       uses: actions/cache@v2
       env:
         cache-name: cache-friday-dependencies
@@ -75,6 +79,8 @@ jobs:
       run: |
         pip install pytest
         if [ -f requirements.txt ]; then python -m pip install -r requirements.txt; fi
+    - restore_cache:
+        key: ${{ matrix.os }}-pip-${{ env.cache-name }}-${{ hashfiles('requirements.txt') }}
     - name: Install google key for translations
       env:
         PROJECT_ID: ${{ secrets.PROJECT_ID }}
