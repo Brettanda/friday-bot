@@ -17,6 +17,17 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
+    - name: Cache dependencies
+      uses: actions/cache@v2
+      env:
+        cache-name: cache-friday-lint-dependencies
+      with:
+        path: /usr/local/lib/python${{ matrix.python-version }}/site-packages
+        key: ${{ matrix.os }}-build-${{ env.cache-name }}-${{ hashfiles('**/requirments.txt') }}
+        restore-keys: |
+          ${{ matrix.os }}-build-${{ env.cach-name }}-
+          ${{ matrix.os }}-build-
+          ${{ matrix.os }}-
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
