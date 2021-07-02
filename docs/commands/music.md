@@ -2,22 +2,6 @@
 
 
 
-## Play
-
-Follow this command with the title of a song to search for it or just paste the Youtube/SoundCloud url if the search gives and undesirable result
-
-Usage:
-
-```md
-play|p|add <url/title>
-```
-
-Aliases:
-
-```md
-p,add
-```
-
 ## Stop
 
 Stops the currently playing music
@@ -156,6 +140,22 @@ Aliases:
 
 ```none
 del
+```
+
+## Play
+
+Follow this command with the title of a song to search for it or just paste the Youtube/SoundCloud url if the search gives and undesirable result
+
+Usage:
+
+```md
+play|p|add <url/title>
+```
+
+Aliases:
+
+```md
+p,add
 ```
 
 ## Skip
