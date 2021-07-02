@@ -12,7 +12,7 @@ from discord_slash.utils.manage_commands import create_choice, create_option, Sl
 
 # sys.path.insert(1, os.path.join(sys.path[0], '..'))
 from pyfiglet import figlet_format
-from functions import MessageColors, embed, exceptions, checks, query
+from functions import MessageColors, embed, exceptions, checks, query, non_coro_query
 from typing_extensions import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -33,16 +33,15 @@ class Fun(commands.Cog):
     self.countdown_messages = []
     self.loop_countdown.add_exception_type(discord.NotFound)
     self.loop_countdown.start()
+    self.countdowns = non_coro_query(self.bot.log.mydb, "SELECT * FROM countdowns")
     # self.timeouter = None
     # self.timeoutCh = None
 
   def cog_unload(self):
     self.loop_countdown.stop()
 
-  @commands.Cog.listener()
-  async def on_ready(self):
-
-    self.countdowns = await query(self.bot.log.mydb, "SELECT * FROM countdowns")
+  # @commands.Cog.listener()
+  # async def on_ready(self):
 
   # TODO: has no way to end this command ATM
   # TODO: can only store one user total for all of friday

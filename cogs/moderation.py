@@ -17,7 +17,7 @@ from discord_slash.utils.manage_commands import create_option
 from typing_extensions import TYPE_CHECKING
 
 from cogs.help import cmd_help
-from functions import MessageColors, embed, query, checks, relay_info, config
+from functions import MessageColors, embed, query, non_coro_query, checks, relay_info, config
 
 if TYPE_CHECKING:
   from index import Friday as Bot
@@ -36,21 +36,18 @@ class Moderation(commands.Cog):
       self.message_spam_control_counter = {}
 
     if not hasattr(self, "blacklist"):
+      blacklists = non_coro_query(self.bot.log.mydb, "SELECT * FROM blacklist")
       self.blacklist = {}
+      for server, word in blacklists:
+        if server not in self.blacklist:
+          self.blacklist[int(server)] = [word]
+        else:
+          self.blacklist[int(server)].append(word)
 
   def cog_check(self, ctx):
     if ctx.guild is None:
       raise commands.NoPrivateMessage("This command can only be used within a guild")
     return True
-
-  @commands.Cog.listener()
-  async def on_ready(self):
-    blacklists = await query(self.bot.log.mydb, "SELECT * FROM blacklist")
-    for server, word in blacklists:
-      if server not in self.blacklist:
-        self.blacklist[int(server)] = [word]
-      else:
-        self.blacklist[int(server)].append(word)
 
   @commands.command(name="defaultrole", hidden=True, help="Set the role that is given to new members when they join the server")
   @commands.is_owner()
@@ -232,9 +229,9 @@ class Moderation(commands.Cog):
               await msg.delete()
               return await msg.author.send(f"""Your message `{msg.content}` was removed for containing the blacklisted word `{blacklisted_word}`""")
             except Exception as e:
-              await relay_info(f"Error when trying to remove message {type(e).__name__}: {e}")
+              await relay_info(f"Error when trying to remove message {type(e).__name__}: {e}", self.bot, logger=self.bot.log.log_errors)
     except Exception as e:
-      await relay_info(f"Error when trying to remove message (big) {type(e).__name__}: {e}")
+      await relay_info(f"Error when trying to remove message (big) {type(e).__name__}: {e}", self.bot, logger=self.bot.log.log_errors)
 
   @commands.group(name="blacklist", aliases=["bl"], invoke_without_command=True, case_insensitive=True)
   @commands.guild_only()
