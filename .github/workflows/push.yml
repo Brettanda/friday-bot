@@ -25,16 +25,17 @@ jobs:
       env:
         cache-name: cache-friday-lint-dependencies
       with:
-        path: /usr/local/lib/python${{ matrix.python-version }}/site-packages
-        key: ${{ matrix.os }}-build-${{ env.cache-name }}-${{ hashfiles('**/lint-requirments.txt') }}
+        # path: /usr/local/lib/python${{ matrix.python-version }}/site-packages
+        path: .cache/pip
+        key: ${{ matrix.os }}-pip-${{ env.cache-name }}-${{ hashfiles('**/lint-requirments.txt') }}
         restore-keys: |
-          ${{ matrix.os }}-build-${{ env.cach-name }}-
-          ${{ matrix.os }}-build-
+          ${{ matrix.os }}-pip-${{ env.cach-name }}-
+          ${{ matrix.os }}-pip-
           ${{ matrix.os }}-
-    # - name: Install dependencies
-    #   run: |
-    #     python -m pip install --upgrade pip
-    #     pip install flake8
+    - name: Install dependencies
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: |
+        pip install flake8
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
@@ -63,17 +64,18 @@ jobs:
       env:
         cache-name: cache-friday-dependencies
       with:
-        path: /usr/local/lib/python${{ matrix.python-version }}/site-packages
-        key: ${{ matrix.os }}-build-${{ env.cache-name }}-${{ hashfiles('**/requirments.txt') }}
+        # path: /usr/local/lib/python${{ matrix.python-version }}/site-packages
+        path: .cache/pip
+        key: ${{ matrix.os }}-pip-${{ env.cache-name }}-${{ hashfiles('**/requirments.txt') }}
         restore-keys: |
-          ${{ matrix.os }}-build-${{ env.cach-name }}-
-          ${{ matrix.os }}-build-
+          ${{ matrix.os }}-pip-${{ env.cach-name }}-
+          ${{ matrix.os }}-pip-
           ${{ matrix.os }}-
-    # - name: Install dependencies
-    #   run: |
-    #     python -m pip install --upgrade pip
-    #     pip install pytest
-    #     if [ -f requirements.txt ]; then python -m pip install -r requirements.txt; fi
+    - name: Install dependencies
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: |
+        pip install pytest
+        if [ -f requirements.txt ]; then python -m pip install -r requirements.txt; fi
     - name: Install google key for translations
       env:
         PROJECT_ID: ${{ secrets.PROJECT_ID }}
