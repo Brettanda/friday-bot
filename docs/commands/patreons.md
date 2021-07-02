@@ -26,8 +26,8 @@ Usage:
 
 ```none
 patreon server 
-patreon server false 
 patreon server true 
+patreon server false 
 ```
 
 Aliases:

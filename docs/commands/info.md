@@ -2,6 +2,22 @@
 
 
 
+## Info
+
+Displays some information about myself :)
+
+Usage:
+
+```md
+info|about 
+```
+
+Aliases:
+
+```md
+about
+```
+
 ## Userinfo
 
 Some information on the mentioned user
@@ -32,21 +48,5 @@ Aliases:
 
 ```md
 None
-```
-
-## Info
-
-Displays some information about myself :)
-
-Usage:
-
-```md
-info|about 
-```
-
-Aliases:
-
-```md
-about
 ```
 
