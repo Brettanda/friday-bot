@@ -167,7 +167,7 @@ class Fun(commands.Cog):
   async def slash_minesweeper(self, ctx, size: int = 5, bomb_count: int = 3):
     await ctx.send(**await self.mine_sweeper(size, bomb_count))
 
-  async def mine_sweeper(self, size, bomb_count):
+  async def mine_sweeper(self, size: int = 5, bomb_count: int = 3):
     """Source for this command: https://medium.com/swlh/this-is-how-to-create-a-simple-minesweeper-game-in-python-af02077a8de"""
 
     if size > 9:
@@ -179,7 +179,11 @@ class Fun(commands.Cog):
 
     # async with ctx.channel.typing():
     def get_xy():
-      return np.random.randint(0, size - 1), np.random.randint(0, size - 1)
+      try:
+        return np.random.randint(0, size - 1), np.random.randint(0, size - 1)
+      except Exception as e:
+        self.bot.logger.error("This is what caused the shutdown")
+        raise e
 
     for _ in range(bomb_count):
       x, y = get_xy()
