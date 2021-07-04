@@ -2,22 +2,6 @@
 
 Fun things like games
 
-## Gametime
-
-Ping a role that is attached to a game and see who wants to play
-
-Usage:
-
-```md
-gametime <role> <message>
-```
-
-Aliases:
-
-```md
-None
-```
-
 ## Coinflip
 
 Flip a coin
@@ -32,6 +16,38 @@ Aliases:
 
 ```md
 coin
+```
+
+## Countdown
+
+Start a countdown. This command only updates every 5 seconds to avoid being ratelimited by Discord
+
+Usage:
+
+```md
+countdown|cd [hours=0] [minutes=0] [seconds=0] [title]
+```
+
+Aliases:
+
+```md
+cd
+```
+
+## Gametime
+
+Ping a role that is attached to a game and see who wants to play
+
+Usage:
+
+```md
+gametime <role> <message>
+```
+
+Aliases:
+
+```md
+None
 ```
 
 ## Minesweeper
@@ -50,14 +66,14 @@ Aliases:
 ms
 ```
 
-## Souptime
+## Poll
 
-Soup Time
+Make a poll. Seperate the options with `;;`
 
 Usage:
 
 ```md
-souptime 
+poll <title> <options>
 ```
 
 Aliases:
@@ -82,35 +98,19 @@ Aliases:
 rps
 ```
 
-## Poll
+## Souptime
 
-Make a poll. Seperate the options with `;;`
+Soup Time
 
 Usage:
 
 ```md
-poll <title> <options>
+souptime 
 ```
 
 Aliases:
 
 ```md
 None
-```
-
-## Countdown
-
-Start a countdown. This command only updates every 5 seconds to avoid being ratelimited by Discord
-
-Usage:
-
-```md
-countdown|cd [hours=0] [minutes=0] [seconds=0] [title]
-```
-
-Aliases:
-
-```md
-cd
 ```
 
