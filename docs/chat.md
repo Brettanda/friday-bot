@@ -8,11 +8,15 @@ Friday is a chatbot so these are the ways to make sure that if Friday has a resp
 @Friday hey, how are you?
 ```
 
-- [Setting a channel to be the chat channel](/commands/moderation/#chatchannel). Friday will (try to) respond to every message in that channel as if they were directed to Friday.
+- [Setting a channel to be the chat channel](/commands/moderation/#chatchannel). Friday will respond to every message in that channel as if they were directed to Friday. Eg:
+
+```md
+hey what is it like being a bot?
+```
 
 ## Max message length
 
-By default Friday has a maximum message length that she will respond to. For free users this is set to **100 characters**.
+By default Friday has a maximum message length that she will respond to. For free users this is set to **100 characters**. To get longer message length [become a patreon](//www.patreon.com/bePatron?u=42649008&redirect_uri={{ config.site_url }})
 
 ## Rate limiting
 
