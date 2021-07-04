@@ -339,7 +339,7 @@ class Chat(commands.Cog):
         final_translation["translatedText"] = self.h.unescape(final_translation["translatedText"])
       response = final_translation["translatedText"] if final_translation is not None and not isinstance(final_translation, str) else response
 
-    if response is None:
+    if response is None or response == "":
       return
     content_filter = await self.content_filter_check(response, str(msg.author.id))
     current_tier = [item for item in min_tiers if min_tiers[item] is not False]
@@ -352,7 +352,7 @@ class Chat(commands.Cog):
       #   print(command)
       #   print(args)
       #   return await ctx.invoke(self.bot.get_command(command), query=args)
-      await msg.reply(content=response if content_filter == 0 else f"{self.possible_sensitive_message}{response}||", allowed_mentions=discord.AllowedMentions.all(), mention_author=False)
+      await msg.reply(content=response if content_filter == 0 else f"{self.possible_sensitive_message}{response}||", allowed_mentions=discord.AllowedMentions.none(), mention_author=False)
       await relay_info(f"{current_tier} - **{msg.author.name}:** {msg.clean_content}\n**Me:** {response}", self.bot, webhook=self.bot.log.log_chat)
     elif content_filter == 2:
       await msg.reply(content=self.possible_offensive_message, mention_author=False)
