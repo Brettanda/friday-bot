@@ -16,7 +16,12 @@ By default Friday has a maximum message length that she will respond to. For fre
 
 ## Rate limiting
 
-Friday has a rate limit per user to help reduce spam. Currently the rate limit is set to **6 messages every 20 seconds per user**.
+Friday has a rate limit per user to help reduce spam and keep costs low. Currently the rate limits are:
+
+- 80 messages every 12 hours per user for user that have not [voted for Friday](https://top.gg/bot/476303446547365891/vote) and not at least a tier 1 [Patreon](//www.patreon.com/bePatron?u=42649008&redirect_uri={{ config.site_url }}).
+- 200 messages every 12 hours per user for users that have [voted](https://top.gg/bot/476303446547365891/vote) or are at least a tier 1 [Patreon](//www.patreon.com/bePatron?u=42649008&redirect_uri={{ config.site_url }}).
+- 6 messages every 60 seconds per user absolute maximum.
+- 180 messages every 1 hour per user absolute maximum.
 
 ## Using a chat channel
 

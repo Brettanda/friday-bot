@@ -36,13 +36,13 @@ class Chat(commands.Cog):
 
     # The rate limit for the whole bot is approximately 600 requests per minute and 15000 tokens/min, whichever comes first. You will receive a 500 error if you hit it
     if not hasattr(self, "spam_control_absolute_minute"):
-      self.spam_control_absolute_minute = commands.CooldownMapping.from_cooldown(5, 60, commands.BucketType.user)
+      self.spam_control_absolute_minute = commands.CooldownMapping.from_cooldown(6, 60, commands.BucketType.user)
     if not hasattr(self, "spam_control_absolute_hour"):
-      self.spam_control_absolute_hour = commands.CooldownMapping.from_cooldown(160, 3600, commands.BucketType.user)
+      self.spam_control_absolute_hour = commands.CooldownMapping.from_cooldown(180, 3600, commands.BucketType.user)
     if not hasattr(self, "spam_control_free"):
       self.spam_control_free = commands.CooldownMapping.from_cooldown(80, 43200, commands.BucketType.user)
     if not hasattr(self, "spam_control_voted"):
-      self.spam_control_voted = commands.CooldownMapping.from_cooldown(160, 43200, commands.BucketType.user)
+      self.spam_control_voted = commands.CooldownMapping.from_cooldown(200, 43200, commands.BucketType.user)
 
     # if not hasattr(self, "chat_spam_control"):
     #   self.chat_spam_control = commands.CooldownMapping.from_cooldown(5, 15.0, commands.BucketType.channel)
