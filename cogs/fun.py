@@ -182,7 +182,7 @@ class Fun(commands.Cog):
       try:
         return np.random.randint(0, size - 1), np.random.randint(0, size - 1)
       except Exception as e:
-        self.bot.logger.error("This is what caused the shutdown")
+        self.bot.logger.critical("This is what caused the shutdown")
         raise e
 
     for _ in range(bomb_count):
