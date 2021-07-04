@@ -1,7 +1,7 @@
 import os
 # import discord
 import topgg
-# import asyncio
+import asyncio
 import datetime
 from discord.ext import commands, tasks
 from typing_extensions import TYPE_CHECKING
@@ -24,6 +24,7 @@ class TopGG(commands.Cog):
         self.bot.topgg_webhook.run(5000)
       self.update_votes.start()
 
+    self.vote_role = 834347369998843904
     self.vote_url = "https://top.gg/bot/476303446547365891/vote"
 
     if self.bot.prod:
@@ -67,6 +68,14 @@ class TopGG(commands.Cog):
       await query(self.bot.log.mydb, f"UPDATE votes SET remind=0 WHERE remind=1 AND voted_time < timestamp('{notify_time_formated}')")
     if len(vote_user_ids) > 0:
       await query(self.bot.log.mydb, f"DELETE FROM votes WHERE id IN ({','.join(vote_user_ids)})")
+      batch = []
+      for user_id in vote_user_ids:
+        member = await self.bot.get_guild(config.support_server_id).fetch_member(user_id)
+        if member is not None:
+          self.bot.logger.info(f"Vote expired for {user_id}")
+          batch.append(member.remove_roles(member.guild.get_role(self.vote_role), reason="Vote expired"))
+      if len(batch) > 0:
+        await asyncio.gather(*batch)
 
   @commands.Cog.listener()
   async def on_dbl_test(self, data):
@@ -78,16 +87,16 @@ class TopGG(commands.Cog):
     self.bot.logger.info(f'Received an upvote, {data}')
     if data.get("user", None) is not None:
       await query(self.bot.log.mydb, "INSERT INTO votes (id,voted_time) VALUES (%s,%s) ON DUPLICATE KEY UPDATE voted_time=%s", int(data["user"]), datetime.datetime.now(), datetime.datetime.now())
-    if int(data.get("user", None)) not in (215227961048170496, 813618591878086707):
+    if data.get("type", None) == "test" or int(data.get("user", None)) not in (215227961048170496, 813618591878086707):
       if data.get("user", None) is not None:
         support_server = self.bot.get_guild(config.support_server_id)
         member = await support_server.fetch_member(data["user"]) if support_server is not None else None
         if member is not None:
-          role = member.guild.get_role(834347369998843904)
+          role = member.guild.get_role(self.vote_role)
           await member.add_roles(role, reason="Voted on Top.gg")
       await self.bot.log.log_bumps.send(
           username=self.bot.user.name,
-          avatar_url=self.bot.user.avatar_url,
+          avatar_url=self.bot.user.avatar.url if hasattr(self.bot.user, "avatar") else self.bot.user.avatar_url if hasattr(self.bot.user, "avatar_url") else None,
           embed=embed(
               title=f"Somebody Voted - {data.get('type',None)}",
               fieldstitle=["Member", "Is week end"],
