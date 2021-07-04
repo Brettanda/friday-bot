@@ -80,18 +80,18 @@ class Chat(commands.Cog):
             f"{author_prompt_name}: Do you enjoy talking with people?\n"
             f"{my_prompt_name}: Always!\n")
 
-  def get_author_name(self, author: discord.User or discord.Member) -> str:
-    is_member = True if isinstance(author, discord.Member) else False
-    return author.nick if is_member and author.nick is not None else author.name
+  def get_user_name(self, user: discord.User or discord.Member) -> str:
+    is_member = True if isinstance(user, discord.Member) else False
+    return user.nick if is_member and user.nick is not None else user.name
 
   async def fetch_message_history(self, msg: discord.Message, *, message_limit: int = 15, min_tiers: list) -> str:
-    my_prompt_name, prompt, x = self.get_author_name(msg.guild.me) if msg.guild is not None else self.bot.user.name, "", 0
+    my_prompt_name, prompt, x = self.get_user_name(msg.guild.me) if msg.guild is not None else self.bot.user.name, "", 0
     async for message in msg.channel.history(limit=message_limit, oldest_first=False):
       message_max = 6 if not min_tiers["min_g_t1"] and not min_tiers["min_g_t1"] else 10
       if await self.was_this_appart_of_conversation(message, min_tiers) is True and x <= message_max:
         # author = message.author if isinstance(message.author, discord.Member) else (await message.guild.fetch_member(message.author.id)) if message.guild is not None and (await message.guild.fetch_member(message.author.id)) is not None else message.author
         # member_name = author.nick if hasattr(author, "nick") and author.nick is not None else author.name
-        member_name = self.get_author_name(message.author)
+        member_name = self.get_user_name(message.author)
         # member_name = "Human"
         content = self.saved_translations[message.clean_content] if self.saved_translations.get(message.clean_content, None) is not None else message.clean_content
         # content = message.clean_content  # profanity.censor(message.clean_content)
@@ -146,10 +146,10 @@ class Chat(commands.Cog):
     return int(output_label)
 
   async def openai_req(self, msg: discord.Message, user_id: str, min_tiers: list):
-    author_name = self.get_author_name(msg.author)
+    author_name = self.get_user_name(msg.author)
     # author_prompt_name, prompt, my_prompt_name, x = "Human", "", "Polite Response", 0
     author_prompt_name, prompt, my_prompt_name = author_name, "", "Friday"
-    my_name = msg.guild.me.nick if not isinstance(msg.channel, discord.DMChannel) and msg.guild.me.nick is not None else self.bot.user.name
+    my_name = self.get_user_name(msg.guild.me if msg.guild is not None else self.bot.user)
     # history = [message.clean_content for message in await msg.channel.history(limit=5, oldest_first=False).flatten() if message.author == msg.author]
     prompt = self.default_prompt(author_prompt_name, my_prompt_name, author_name, my_name) + await self.fetch_message_history(msg, min_tiers=min_tiers)
     # past = "\n".join(self.logged_messages.get(author.id, None))
