@@ -113,7 +113,7 @@ class TopGG(commands.Cog):
           await member.add_roles(role, reason="Voted on Top.gg")
       await self.bot.log.log_bumps.send(
           username=self.bot.user.name,
-          avatar_url=self.bot.user.avatar.url if hasattr(self.bot.user, "avatar") else self.bot.user.avatar_url if hasattr(self.bot.user, "avatar_url") else None,
+          avatar_url=self.bot.user.avatar.url if hasattr(self.bot.user, "avatar") and not isinstance(self.bot.user.avatar, str) else self.bot.user.avatar_url if hasattr(self.bot.user, "avatar_url") else None,
           embed=embed(
               title=f"Somebody Voted - {data.get('type',None)}",
               fieldstitle=["Member", "Is week end"],
