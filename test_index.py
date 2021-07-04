@@ -29,10 +29,11 @@ class Friday_testing(Friday):
   async def test_message(self):
     print("passed")
 
-  @tasks.loop(minutes=1, count=1)
+  @tasks.loop(seconds=1, count=1)
   async def test_stop(self):
     await self.wait_until_ready()
-    await asyncio.sleep(3)
+    while not self.bot.ready:
+      await asyncio.sleep(0.1)
     assert await super().close()
 
 
