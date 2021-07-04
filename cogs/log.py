@@ -106,19 +106,6 @@ class Log(commands.Cog):
                                 musicChannel bigint NULL DEFAULT NULL,
                                 greeting varchar(255) NULL DEFAULT NULL,
                                 customSounds longtext NULL)""")
-      non_coro_query(self.mydb, """CREATE TABLE IF NOT EXISTS votes
-                                (id bigint UNIQUE NOT NULL,
-                                remind tinyint NULL DEFAULT 1,
-                                voted_time timestamp NULL DEFAULT CURRENT_TIMESTAMP)""")
-      non_coro_query(self.mydb, """CREATE TABLE IF NOT EXISTS blacklist
-                                (id bigint,
-                                word text)""")
-      non_coro_query(self.mydb, """CREATE TABLE IF NOT EXISTS countdowns
-                                (guild bigint NULL,
-                                channel bigint NOT NULL,
-                                message bigint NOT NULL,
-                                title text NULL,
-                                time bigint NOT NULL)""")
 
   def check_perms(self, ctx):
     if ctx.channel.type == discord.ChannelType.private:

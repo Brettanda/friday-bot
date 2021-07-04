@@ -20,11 +20,11 @@ def build(bot: "Friday", prefix: str = "!"):
     seperator = "/"
   for f in glob.glob(f"{thispath}{seperator}docs{seperator}commands{seperator}*"):
     os.remove(f)
-  for cog in cogs:
+  for cog in sorted(cogs, key=lambda x: x.qualified_name):
     cog_name = cog.qualified_name
     with open(f"docs/commands/{cog_name.lower().replace(' ','_')}.md", "w") as f:
       f.write(f"# {cog_name.capitalize()}\n\n{cog.description}\n\n")
-      for com in commands:
+      for com in sorted(commands, key=lambda x: x.name):
         if com.hidden is False and com.enabled is True and com.cog_name == cog_name:
           f.write(f"## {com.name.capitalize()}\n\n")
           usage = '\n'.join(syntax(com, quotes=False).split('\n'))

@@ -54,6 +54,8 @@
     !kick 123456789 987654321
     ```
 
+    An argument wrapped with `[` or `]` just means that the argument is optional. For example with the 
+
 ## How to commands
 
 ### Prefix

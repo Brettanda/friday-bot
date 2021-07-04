@@ -12,7 +12,7 @@ import datetime
 from profanity import profanity
 from six.moves.html_parser import HTMLParser
 from google.cloud import translate_v2 as translate
-from functions import relay_info, checks  # , queryIntents
+from functions import relay_info, checks, embed, MessageColors  # , queryIntents
 # MessageColors, dev_guilds, get_reddit_post, embed, config, msg_reply,
 if TYPE_CHECKING:
   from index import Friday as Bot
@@ -34,10 +34,15 @@ class Chat(commands.Cog):
     self.possible_sensitive_message = "*Possibly sensitive:* ||"
     self.possible_offensive_message = "**I failed to respond because my message might have been offensive, please choose another topic or try again**"
 
-    if not hasattr(self, "spam_control_minute"):
-      self.spam_control_minute = commands.CooldownMapping.from_cooldown(6, 20, commands.BucketType.user)
-    if not hasattr(self, "spam_control_hour"):
-      self.spam_control_hour = commands.CooldownMapping.from_cooldown(180, 3600, commands.BucketType.user)
+    # The rate limit for the whole bot is approximately 600 requests per minute and 15000 tokens/min, whichever comes first. You will receive a 500 error if you hit it
+    if not hasattr(self, "spam_control_absolute_minute"):
+      self.spam_control_absolute_minute = commands.CooldownMapping.from_cooldown(6, 60, commands.BucketType.user)
+    if not hasattr(self, "spam_control_absolute_hour"):
+      self.spam_control_absolute_hour = commands.CooldownMapping.from_cooldown(180, 3600, commands.BucketType.user)
+    if not hasattr(self, "spam_control_free"):
+      self.spam_control_free = commands.CooldownMapping.from_cooldown(80, 43200, commands.BucketType.user)
+    if not hasattr(self, "spam_control_voted"):
+      self.spam_control_voted = commands.CooldownMapping.from_cooldown(200, 43200, commands.BucketType.user)
 
     # if not hasattr(self, "chat_spam_control"):
     #   self.chat_spam_control = commands.CooldownMapping.from_cooldown(5, 15.0, commands.BucketType.channel)
@@ -75,18 +80,18 @@ class Chat(commands.Cog):
             f"{author_prompt_name}: Do you enjoy talking with people?\n"
             f"{my_prompt_name}: Always!\n")
 
-  def get_author_name(self, author: discord.User or discord.Member) -> str:
-    is_member = True if isinstance(author, discord.Member) else False
-    return author.nick if is_member and author.nick is not None else author.name
+  def get_user_name(self, user: discord.User or discord.Member) -> str:
+    is_member = True if isinstance(user, discord.Member) else False
+    return user.nick if is_member and user.nick is not None else user.name
 
   async def fetch_message_history(self, msg: discord.Message, *, message_limit: int = 15, min_tiers: list) -> str:
-    my_prompt_name, prompt, x = self.get_author_name(msg.guild.me) if msg.guild is not None else self.bot.user.name, "", 0
+    my_prompt_name, prompt, x = self.get_user_name(msg.guild.me) if msg.guild is not None else self.bot.user.name, "", 0
     async for message in msg.channel.history(limit=message_limit, oldest_first=False):
       message_max = 6 if not min_tiers["min_g_t1"] and not min_tiers["min_g_t1"] else 10
       if await self.was_this_appart_of_conversation(message, min_tiers) is True and x <= message_max:
         # author = message.author if isinstance(message.author, discord.Member) else (await message.guild.fetch_member(message.author.id)) if message.guild is not None and (await message.guild.fetch_member(message.author.id)) is not None else message.author
         # member_name = author.nick if hasattr(author, "nick") and author.nick is not None else author.name
-        member_name = self.get_author_name(message.author)
+        member_name = self.get_user_name(message.author)
         # member_name = "Human"
         content = self.saved_translations[message.clean_content] if self.saved_translations.get(message.clean_content, None) is not None else message.clean_content
         # content = message.clean_content  # profanity.censor(message.clean_content)
@@ -103,18 +108,23 @@ class Chat(commands.Cog):
     return prompt + f"{my_prompt_name}:"
 
   async def content_filter_check(self, text: str, user_id: str):
-    response = openai.Completion.create(
-        engine="content-filter-alpha-c4",
-        prompt=f"<|endoftext|>{text}\n--\nLabel:",
-        temperature=0,
-        max_tokens=1,
-        top_p=1,
-        frequency_penalty=0,
-        presence_penalty=0,
-        user=user_id,
-        logprobs=10
-    )
+    try:
+      response = openai.Completion.create(
+          engine="content-filter-alpha-c4",
+          prompt=f"<|endoftext|>{text}\n--\nLabel:",
+          temperature=0,
+          max_tokens=1,
+          top_p=1,
+          frequency_penalty=0,
+          presence_penalty=0,
+          user=user_id,
+          logprobs=10
+      )
+    except Exception as e:
+      raise e
     # print(response)
+    if response is None:
+      return None
     toxic_therhold = -0.355
     output_label = response["choices"][0]["text"]
     if output_label == "2":
@@ -136,10 +146,10 @@ class Chat(commands.Cog):
     return int(output_label)
 
   async def openai_req(self, msg: discord.Message, user_id: str, min_tiers: list):
-    author_name = self.get_author_name(msg.author)
+    author_name = self.get_user_name(msg.author)
     # author_prompt_name, prompt, my_prompt_name, x = "Human", "", "Polite Response", 0
     author_prompt_name, prompt, my_prompt_name = author_name, "", "Friday"
-    my_name = msg.guild.me.nick if not isinstance(msg.channel, discord.DMChannel) and msg.guild.me.nick is not None else self.bot.user.name
+    my_name = self.get_user_name(msg.guild.me if msg.guild is not None else self.bot.user)
     # history = [message.clean_content for message in await msg.channel.history(limit=5, oldest_first=False).flatten() if message.author == msg.author]
     prompt = self.default_prompt(author_prompt_name, my_prompt_name, author_name, my_name) + await self.fetch_message_history(msg, min_tiers=min_tiers)
     # past = "\n".join(self.logged_messages.get(author.id, None))
@@ -150,22 +160,26 @@ class Chat(commands.Cog):
       engine = "curie"
     else:
       engine = "babbage"
-    response = openai.Completion.create(
-        engine=engine,
-        #  The following is a conversation with {my_name} and {author_name}.
-        # prompt=f"\"{my_name}\" is a Discord chatbot that will be friends with everyone. {my_name} is also always creative, clever, respectful, supportive, polite, friendly. Friday will never talk about topics relating to politics, religion, sex, sexual context, race, age, disability, wars, conflicts, homosexuality, LGBT, convicts, slurs, hate crimes, or any NSFW content.\n\n"
-        prompt="" + prompt,
-        temperature=0.6,
-        max_tokens=25 if not min_tiers["min_g_t1"] and not min_tiers["min_u_t1"] else 50,
-        top_p=0.7,
-        user=user_id,
-        frequency_penalty=0.5,
-        presence_penalty=2,
-        stop=[f"{author_prompt_name}:", f"{my_prompt_name}:", "\n"]
-    )
+    response = None
+    try:
+      response = openai.Completion.create(
+          engine=engine,
+          #  The following is a conversation with {my_name} and {author_name}.
+          # prompt=f"\"{my_name}\" is a Discord chatbot that will be friends with everyone. {my_name} is also always creative, clever, respectful, supportive, polite, friendly. Friday will never talk about topics relating to politics, religion, sex, sexual context, race, age, disability, wars, conflicts, homosexuality, LGBT, convicts, slurs, hate crimes, or any NSFW content.\n\n"
+          prompt="" + prompt,
+          temperature=0.6,
+          max_tokens=25 if not min_tiers["min_g_t1"] and not min_tiers["min_u_t1"] else 50,
+          top_p=0.7,
+          user=user_id,
+          frequency_penalty=0.5,
+          presence_penalty=2,
+          stop=[f"{author_prompt_name}:", f"{my_prompt_name}:", "\n"]
+      )
+    except Exception as e:
+      raise e
     # self.bot.logger.info(prompt + response.get("choices")[0].get("text").replace("\n", ""))
 
-    return response.get("choices")[0].get("text").replace("\n", "")
+    return response.get("choices")[0].get("text").replace("\n", "") if response is not None else None
 
   def translate_request(self, text: str, detect=False, from_lang=None, to_lang="en"):
     if from_lang == to_lang:
@@ -235,14 +249,6 @@ class Chat(commands.Cog):
     # if not await self.global_chat_checks(msg):
     #   return False
 
-    bucket_minute, bucket_hour = self.spam_control_minute.get_bucket(msg), self.spam_control_hour.get_bucket(msg)
-    current = msg.created_at.replace(tzinfo=datetime.timezone.utc).timestamp()
-    retry_after_minute, retry_after_hour = bucket_minute.update_rate_limit(current), bucket_hour.update_rate_limit(current)
-
-    if (retry_after_minute or retry_after_hour):  # and msg.author.id != self.bot.owner_id:
-      raise commands.CommandOnCooldown(bucket_minute, retry_after_minute)
-      return False
-
     return True
 
   @commands.Cog.listener()
@@ -257,7 +263,7 @@ class Chat(commands.Cog):
     # tier = self.bot.log.get_guild_tier(msg.guild)
     # if tier is None or tier == "None":
     #   tier = list(config.premium_tiers)[0]
-    # voted = await checks.user_voted(self.bot, msg.author)
+    voted = await checks.user_voted(self.bot, msg.author)
 
     if not await self.global_chat_checks(msg):
       return
@@ -282,6 +288,19 @@ class Chat(commands.Cog):
         "min_g_t4": min_g_t4,
         "min_u_t4": min_u_t4
     }
+
+    bucket_abs_min, bucket_abs_hour, bucket_free, bucket_voted = self.spam_control_absolute_minute.get_bucket(msg), self.spam_control_absolute_hour.get_bucket(msg), self.spam_control_free.get_bucket(msg), self.spam_control_voted.get_bucket(msg)
+    current = msg.created_at.replace(tzinfo=datetime.timezone.utc).timestamp()
+    ra_abs_min, ra_abs_hour, ra_free, ra_voted = bucket_abs_min.update_rate_limit(current), bucket_abs_hour.update_rate_limit(current), bucket_free.update_rate_limit(current), bucket_voted.update_rate_limit(current)
+
+    if ra_abs_min or ra_abs_hour or (ra_free and not (voted and min_g_t1 and min_u_t1)) or (ra_voted and (voted or min_g_t1 or min_u_t1)):
+      advertise = True if ra_free and not (voted and min_g_t1 and min_u_t1) else False
+      message_count = bucket_abs_min.rate if ra_abs_min else bucket_abs_hour.rate if ra_abs_hour else bucket_free.rate if ra_free else bucket_voted.rate if ra_voted else 0
+      m, s = divmod(ra_abs_min or ra_abs_hour or ra_free or ra_voted, 60)
+      h, m = divmod(m, 60)
+      retry_after = f"{h:.0f}h {m:.0f}m {s:.0f}s"
+      self.bot.logger.warning(f"Someone is being ratelimited at over {message_count} messages and can retry after {retry_after}")
+      return await msg.reply(embed=embed(title=f"You have sent me over `{message_count}` messages in that last minute and are being rate limited, try again in {retry_after}", description="If you would like to send me more messages you can get more by voting at https://top.gg/bot/476303446547365891/vote" if advertise else "", color=MessageColors.ERROR), mention_author=False)
 
     # if not self.bot.canary:
     #   if not voted and not min_guild_one_guild and not min_user_one_guild:
@@ -320,7 +339,7 @@ class Chat(commands.Cog):
         final_translation["translatedText"] = self.h.unescape(final_translation["translatedText"])
       response = final_translation["translatedText"] if final_translation is not None and not isinstance(final_translation, str) else response
 
-    if response is None:
+    if response is None or response == "":
       return
     content_filter = await self.content_filter_check(response, str(msg.author.id))
     current_tier = [item for item in min_tiers if min_tiers[item] is not False]
@@ -333,7 +352,7 @@ class Chat(commands.Cog):
       #   print(command)
       #   print(args)
       #   return await ctx.invoke(self.bot.get_command(command), query=args)
-      await msg.reply(content=response if content_filter == 0 else f"{self.possible_sensitive_message}{response}||", allowed_mentions=discord.AllowedMentions.all(), mention_author=False)
+      await msg.reply(content=response if content_filter == 0 else f"{self.possible_sensitive_message}{response}||", allowed_mentions=discord.AllowedMentions.none(), mention_author=False)
       await relay_info(f"{current_tier} - **{msg.author.name}:** {msg.clean_content}\n**Me:** {response}", self.bot, webhook=self.bot.log.log_chat)
     elif content_filter == 2:
       await msg.reply(content=self.possible_offensive_message, mention_author=False)

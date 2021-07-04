@@ -42,6 +42,11 @@ class Moderation(commands.Cog):
     if not hasattr(self, "message_spam_control_counter"):
       self.message_spam_control_counter = {}
 
+    if self.bot.cluster_idx == 0:
+      non_coro_query(self.bot.log.mydb, """CREATE TABLE IF NOT EXISTS blacklist
+                                        (id bigint,
+                                        word text)""")
+
     if not hasattr(self, "blacklist"):
       blacklists = non_coro_query(self.bot.log.mydb, "SELECT * FROM blacklist")
       self.blacklist = {}
