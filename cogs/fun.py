@@ -29,6 +29,13 @@ class Fun(commands.Cog):
   def __init__(self, bot: "Bot"):
     self.bot = bot
     self.rpsoptions = ["rock", "paper", "scissors"]
+    if self.bot.cluster_idx == 0:
+      non_coro_query(self.bot.log.mydb, """CREATE TABLE IF NOT EXISTS countdowns
+                                        (guild bigint NULL,
+                                        channel bigint NOT NULL,
+                                        message bigint NOT NULL,
+                                        title text NULL,
+                                        time bigint NOT NULL)""")
     self.countdowns = []
     self.countdown_messages = []
     self.loop_countdown.add_exception_type(discord.NotFound)

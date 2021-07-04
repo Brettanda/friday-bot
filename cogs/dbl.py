@@ -5,7 +5,7 @@ import asyncio
 import datetime
 from discord.ext import commands, tasks
 from typing_extensions import TYPE_CHECKING
-from functions import embed, config, query
+from functions import embed, config, query, non_coro_query
 
 if TYPE_CHECKING:
   from index import Friday as Bot
@@ -19,6 +19,10 @@ class TopGG(commands.Cog):
     self.token = os.getenv("TOKENDBL")
     self.topgg = topgg.DBLClient(self.bot, self.token, autopost=False)
     if self.bot.cluster_idx == 0:  # and self.bot.prod:
+      non_coro_query(self.bot.log.mydb, """CREATE TABLE IF NOT EXISTS votes
+                                        (id bigint UNIQUE NOT NULL,
+                                        remind tinyint NULL DEFAULT 1,
+                                        voted_time timestamp NULL DEFAULT CURRENT_TIMESTAMP)""")
       if not hasattr(self.bot, "topgg_webhook"):
         self.bot.topgg_webhook = topgg.WebhookManager(self.bot).dbl_webhook("/dblwebhook", os.environ["DBLWEBHOOKPASS"])
         self.bot.topgg_webhook.run(5000)
