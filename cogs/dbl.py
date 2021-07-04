@@ -21,8 +21,8 @@ class TopGG(commands.Cog):
     if self.bot.cluster_idx == 0:  # and self.bot.prod:
       non_coro_query(self.bot.log.mydb, """CREATE TABLE IF NOT EXISTS votes
                                         (id bigint UNIQUE NOT NULL,
-                                        to_remind tinyint NULL DEFAULT 0,
-                                        has_reminded tinyint NULL DEFAULT 0,
+                                        to_remind tinyint(1) NOT NULL DEFAULT 0,
+                                        has_reminded tinyint(1) NOT NULL DEFAULT 0,
                                         voted_time timestamp NULL DEFAULT NULL)""")
       if not hasattr(self.bot, "topgg_webhook"):
         self.bot.topgg_webhook = topgg.WebhookManager(self.bot).dbl_webhook("/dblwebhook", os.environ["DBLWEBHOOKPASS"])
@@ -63,11 +63,11 @@ class TopGG(commands.Cog):
     except Exception as e:
       self.bot.logger.exception('Failed to post server count\n%s: %s', type(e).__name__, e)
 
-  @tasks.loop(minutes=0.1)
+  @tasks.loop(minutes=1.0)
   async def update_votes(self):
     while not self.bot.ready:
       await asyncio.sleep(0.2)
-    reset_time, notify_time = datetime.datetime.utcnow() - datetime.timedelta(seconds=60), datetime.datetime.utcnow() - datetime.timedelta(seconds=12)
+    reset_time, notify_time = datetime.datetime.utcnow() - datetime.timedelta(hours=24), datetime.datetime.utcnow() - datetime.timedelta(hours=12)
     reset_time_formated, notify_time_formated = f"{reset_time.year}-{'0' if reset_time.month < 10 else ''}{reset_time.month}-{'0' if reset_time.day < 10 else ''}{reset_time.day} {'0' if reset_time.hour < 10 else ''}{reset_time.hour}:{'0' if reset_time.minute < 10 else ''}{reset_time.minute}:{'0' if reset_time.second < 10 else ''}{reset_time.second}", f"{notify_time.year}-{'0' if notify_time.month < 10 else ''}{notify_time.month}-{'0' if notify_time.day < 10 else ''}{notify_time.day} {'0' if notify_time.hour < 10 else ''}{notify_time.hour}:{'0' if notify_time.minute < 10 else ''}{notify_time.minute}:{'0' if notify_time.second < 10 else ''}{notify_time.second}"
     votes = await query(self.bot.log.mydb, f"SELECT id FROM votes WHERE voted_time < timestamp('{reset_time_formated}')")
     reminds = await query(self.bot.log.mydb, f"SELECT id FROM votes WHERE has_reminded=0 AND to_remind=1 AND voted_time < timestamp('{notify_time_formated}')")
