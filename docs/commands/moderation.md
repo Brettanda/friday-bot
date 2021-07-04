@@ -2,38 +2,6 @@
 
 Manage your server with these commands
 
-## Prefix
-
-Sets the prefix for Fridays commands
-
-Usage:
-
-```md
-prefix [new_prefix='!']
-```
-
-Aliases:
-
-```md
-None
-```
-
-## Kick
-
-
-
-Usage:
-
-```md
-kick <members> [reason]
-```
-
-Aliases:
-
-```md
-None
-```
-
 ## Ban
 
 
@@ -50,22 +18,6 @@ Aliases:
 None
 ```
 
-## Rolecall
-
-Moves everyone with a specific role to a voicechannel. Objects that can be exluded are voicechannels,roles,and members
-
-Usage:
-
-```md
-rolecall|rc <role> [voicechannel] <exclusions>
-```
-
-Aliases:
-
-```md
-rc
-```
-
 ## Begone
 
 Delete unwanted message that I send
@@ -79,116 +31,6 @@ begone [message]
 Aliases:
 
 ```md
-None
-```
-
-## Massmove
-
-Move everyone from one voice channel to another
-
-Usage:
-
-```md
-massmove|move <tochannel> [fromchannel]
-```
-
-Aliases:
-
-```md
-move
-```
-
-## Set
-
-
-
-Usage:
-
-```md
-set|bot 
-set|bot musicchannel [voicechannel]
-set|bot language [language]
-set|bot chatchannel 
-set|bot maxmessages <message_rate> <seconds> [max_before_mute]
-set|bot mute 
-set|bot maxmentions [count]
-set|bot deletecommandsafter [time=0]
-set|bot removeinvites 
-```
-
-Aliases:
-
-```md
-bot
-```
-
-### Language
-Change the language that I will speak
-Usage:
-
-```none
-set language|lang [language]
-```
-
-Aliases:
-
-```none
-lang
-```
-
-### Chatchannel
-Set the current channel so that I will always try to respond with something
-Usage:
-
-```none
-set chatchannel 
-```
-
-Aliases:
-
-```none
-None
-```
-
-### Mute
-
-Usage:
-
-```none
-set mute 
-```
-
-Aliases:
-
-```none
-None
-```
-
-### Deletecommandsafter
-Set the time in seconds for how long to wait before deleting command messages
-Usage:
-
-```none
-set deletecommandsafter|deleteafter|delcoms [time=0]
-```
-
-Aliases:
-
-```none
-deleteafter,delcoms
-```
-
-### Removeinvites
-Automaticaly remove Discord invites from text channels
-Usage:
-
-```none
-set removeinvites 
-```
-
-Aliases:
-
-```none
 None
 ```
 
@@ -268,6 +110,38 @@ Aliases:
 list,show
 ```
 
+## Kick
+
+
+
+Usage:
+
+```md
+kick <members> [reason]
+```
+
+Aliases:
+
+```md
+None
+```
+
+## Massmove
+
+Move everyone from one voice channel to another
+
+Usage:
+
+```md
+massmove|move <tochannel> [fromchannel]
+```
+
+Aliases:
+
+```md
+move
+```
+
 ## Mute
 
 Mute a member from text channels
@@ -281,6 +155,132 @@ mute <member>
 Aliases:
 
 ```md
+None
+```
+
+## Prefix
+
+Sets the prefix for Fridays commands
+
+Usage:
+
+```md
+prefix [new_prefix='!']
+```
+
+Aliases:
+
+```md
+None
+```
+
+## Rolecall
+
+Moves everyone with a specific role to a voicechannel. Objects that can be exluded are voicechannels,roles,and members
+
+Usage:
+
+```md
+rolecall|rc <role> [voicechannel] <exclusions>
+```
+
+Aliases:
+
+```md
+rc
+```
+
+## Set
+
+
+
+Usage:
+
+```md
+set|bot 
+set|bot language [language]
+set|bot chatchannel 
+set|bot maxmessages <message_rate> <seconds> [max_before_mute]
+set|bot deletecommandsafter [time=0]
+set|bot maxmentions [count]
+set|bot removeinvites 
+set|bot mute 
+set|bot musicchannel [voicechannel]
+```
+
+Aliases:
+
+```md
+bot
+```
+
+### Language
+Change the language that I will speak
+Usage:
+
+```none
+set language|lang [language]
+```
+
+Aliases:
+
+```none
+lang
+```
+
+### Chatchannel
+Set the current channel so that I will always try to respond with something
+Usage:
+
+```none
+set chatchannel 
+```
+
+Aliases:
+
+```none
+None
+```
+
+### Deletecommandsafter
+Set the time in seconds for how long to wait before deleting command messages
+Usage:
+
+```none
+set deletecommandsafter|deleteafter|delcoms [time=0]
+```
+
+Aliases:
+
+```none
+deleteafter,delcoms
+```
+
+### Removeinvites
+Automaticaly remove Discord invites from text channels
+Usage:
+
+```none
+set removeinvites 
+```
+
+Aliases:
+
+```none
+None
+```
+
+### Mute
+
+Usage:
+
+```none
+set mute 
+```
+
+Aliases:
+
+```none
 None
 ```
 
