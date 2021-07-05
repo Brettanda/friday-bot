@@ -32,7 +32,7 @@ class Friday_testing(Friday):
   @tasks.loop(seconds=1, count=1)
   async def test_stop(self):
     await self.wait_until_ready()
-    while not self.bot.ready:
+    while not self.ready:
       await asyncio.sleep(0.1)
     assert await super().close()
 
@@ -47,7 +47,7 @@ def test_will_it_blend():
   bot = Friday_testing()
   loop = asyncio.get_event_loop()
   try:
-    loop.run_until_complete(bot.start(TOKEN, bot=True))
+    loop.run_until_complete(bot.start(TOKEN))
   except KeyboardInterrupt:
     # mydb.close()
     logging.info("STOPED")
