@@ -257,7 +257,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
 
   @norm_dev.command(name="clear")
   async def clear(self, ctx):
-    self.bot.clear()
+    await ctx.reply(f"{len(self.bot.cached_messages)}")
 
   @norm_dev.command(name="html")
   async def html(self, ctx):
