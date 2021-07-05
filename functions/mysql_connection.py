@@ -37,9 +37,10 @@ async def query(mydb: mysql.connector.MySQLConnection(), query: str, *params, rl
         result = result[0] if result is not None else None
     else:
       result = mycursor.fetchall()
-  mydb.commit()
   if not mydb.is_connected():
     mydb.reconnect(attempts=10, delay=1)
+  mydb.commit()
+  mycursor.close()
   if "select" in query.lower():
     return result
 
@@ -62,6 +63,7 @@ def non_coro_query(mydb, query: str, *params, rlist: bool = False) -> str or lis
   if not mydb.is_connected():
     mydb.reconnect(attempts=10, delay=1)
   mydb.commit()
+  mycursor.close()
   if "select" in query.lower():
     return result
 
