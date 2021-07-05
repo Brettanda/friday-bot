@@ -255,6 +255,10 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     #   f.close()
     # await ctx.reply(file=discord.File(fp=f"{thispath}{seperator}docs{seperator}commands.md", filename="commands.md"))
 
+  @norm_dev.command(name="clear")
+  async def clear(self, ctx):
+    await ctx.reply(f"{len(self.bot.cached_messages)}")
+
   @norm_dev.command(name="html")
   async def html(self, ctx):
     commands = self.bot.commands
