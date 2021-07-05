@@ -150,7 +150,7 @@ class Log(commands.Cog):
     #
     if self.bot.cluster_idx == 0:
       for guild in self.bot.guilds:
-        await query(self.mydb, "INSERT IGNORE INTO servers (id,name,muted,lang) VALUES (%s,%s,%s,%s)", guild.id, guild.name, 0, guild.preferred_locale.split("-")[0])
+        await query(self.mydb, "INSERT IGNORE INTO servers (id,name,muted,lang) VALUES (%s,%s,%s,%s)", guild.id, guild.name, 0, guild.preferred_locale.split("-")[0] if guild.preferred_locale is not None else "en")
 
     await self.set_all_guilds()
     await relay_info(f"Apart of {len(self.bot.guilds)} guilds", self.bot, logger=self.logger)
