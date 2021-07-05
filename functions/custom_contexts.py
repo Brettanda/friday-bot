@@ -45,10 +45,10 @@ class MyContext(Context):
       kwargs.update({"mention_author": False})
     try:
       return await self.message.reply(content, **kwargs)
-    except discord.Forbidden or discord.HTTPException:
+    except (discord.Forbidden, discord.HTTPException):
       try:
         return await self.message.channel.send(content, **kwargs)
-      except discord.Forbidden or discord.HTTPException:
+      except (discord.Forbidden, discord.HTTPException):
         pass
 
   async def send(self, content=None, **kwargs):
