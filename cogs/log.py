@@ -136,7 +136,7 @@ class Log(commands.Cog):
   #   while self.bot.is_closed():
   #     await asyncio.sleep(0.1)
 
-  def cog_unload(self):
+  # def cog_unload(self):
     # self.check_for_mydb.stop()
 
   @commands.Cog.listener()
