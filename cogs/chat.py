@@ -265,6 +265,8 @@ class Chat(commands.Cog):
     #   tier = list(config.premium_tiers)[0]
     voted = await checks.user_voted(self.bot, msg.author)
 
+    ctx = await self.bot.get_context(msg)
+
     if not await self.global_chat_checks(msg):
       return
 
@@ -289,24 +291,12 @@ class Chat(commands.Cog):
         "min_u_t4": min_u_t4
     }
 
-    bucket_abs_min, bucket_abs_hour, bucket_free, bucket_voted = self.spam_control_absolute_minute.get_bucket(msg), self.spam_control_absolute_hour.get_bucket(msg), self.spam_control_free.get_bucket(msg), self.spam_control_voted.get_bucket(msg)
-    current = msg.created_at.replace(tzinfo=datetime.timezone.utc).timestamp()
-    ra_abs_min, ra_abs_hour, ra_free, ra_voted = bucket_abs_min.update_rate_limit(current), bucket_abs_hour.update_rate_limit(current), bucket_free.update_rate_limit(current), bucket_voted.update_rate_limit(current)
-
-    if ra_abs_min or ra_abs_hour or (ra_free and not (voted and min_g_t1 and min_u_t1)) or (ra_voted and (voted or min_g_t1 or min_u_t1)):
-      advertise = True if ra_free and not (voted and min_g_t1 and min_u_t1) else False
-      message_count = bucket_abs_min.rate if ra_abs_min else bucket_abs_hour.rate if ra_abs_hour else bucket_free.rate if ra_free else bucket_voted.rate if ra_voted else 0
-      m, s = divmod(ra_abs_min or ra_abs_hour or ra_free or ra_voted, 60)
-      h, m = divmod(m, 60)
-      retry_after = f"{h:.0f}h {m:.0f}m {s:.0f}s"
-      self.bot.logger.warning(f"Someone is being ratelimited at over {message_count} messages and can retry after {retry_after}")
-      return await msg.reply(embed=embed(title=f"You have sent me over `{message_count}` messages in that last minute and are being rate limited, try again in {retry_after}", description="If you would like to send me more messages you can get more by voting at https://top.gg/bot/476303446547365891/vote" if advertise else "", color=MessageColors.ERROR), mention_author=False)
-
     # if not self.bot.canary:
     #   if not voted and not min_guild_one_guild and not min_user_one_guild:
     #     return await self.free_model(msg, lang=lang, tier=tier, voted=voted)
 
     # if not await self.should_i_message(msg, tier_one=True if min_guild_tier_one_one_guild or min_user_tier_one_one_guild else False):
+
     def translate(msg: discord.Message) -> dict:
       translation = {}
       if lang not in (None, "en") or min_tiers["min_u_t1"]:
@@ -317,21 +307,39 @@ class Chat(commands.Cog):
           return translation
       return None
 
-    if msg.guild is not None and msg.channel.name == "questions":
-      if await self.check_for_answer_questions(msg, min_tiers=min_tiers):
-        # async with msg.channel.typing():
-        translation = translate(msg)
-        response = await self.classify_questions(msg)
-      else:
-        return
-    else:
-      if not await self.should_i_message(msg, min_tiers=min_tiers):
-        return
-      if response is None:
-        # async with msg.channel.typing():
-        translation = translate(msg)
-        # response = await self.openai_req(msg, str(msg.author.id), tier, tier_one=True if min_guild_tier_one_one_guild or min_user_tier_one_one_guild else False)
-        response = await self.openai_req(msg, str(msg.author.id), min_tiers)
+    # if not voted and not min_guild_t1 and not min_user_t1:
+    #   if await self.check_for_answer_questions(msg, tier=tier):
+    #     async with msg.channel.typing():
+    #       response = await self.classify_questions(msg)
+    #   # return await self.free_model(msg, lang=lang, tier=tier, voted=voted)
+    # else:
+    # if msg.guild is not None and msg.channel.name == "questions":
+    #   if await self.check_for_answer_questions(msg, min_tiers=min_tiers):
+    #     # async with msg.channel.typing():
+    #     translation = translate(msg)
+    #     response = await self.classify_questions(msg)
+    #   else:
+    #     return
+    # else:
+    if not await self.should_i_message(msg, min_tiers=min_tiers):
+      return
+    if response is None:
+      bucket_abs_min, bucket_abs_hour, bucket_free, bucket_voted = self.spam_control_absolute_minute.get_bucket(msg), self.spam_control_absolute_hour.get_bucket(msg), self.spam_control_free.get_bucket(msg), self.spam_control_voted.get_bucket(msg)
+      current = msg.created_at.replace(tzinfo=datetime.timezone.utc).timestamp()
+      ra_abs_min, ra_abs_hour, ra_free, ra_voted = bucket_abs_min.update_rate_limit(current), bucket_abs_hour.update_rate_limit(current), bucket_free.update_rate_limit(current), bucket_voted.update_rate_limit(current)
+
+      if ra_abs_min or ra_abs_hour or (ra_free and not (voted and min_g_t1 and min_u_t1)) or (ra_voted and (voted or min_g_t1 or min_u_t1)):
+        advertise = True if ra_free and not (voted and min_g_t1 and min_u_t1) else False
+        message_count = bucket_abs_min.rate if ra_abs_min else bucket_abs_hour.rate if ra_abs_hour else bucket_free.rate if ra_free else bucket_voted.rate if ra_voted else 0
+        m, s = divmod(ra_abs_min or ra_abs_hour or ra_free or ra_voted, 60)
+        h, m = divmod(m, 60)
+        retry_after = f"{h:.0f}h {m:.0f}m {s:.0f}s"
+        self.bot.logger.warning(f"Someone is being ratelimited at over {message_count} messages and can retry after {retry_after}")
+        return await ctx.reply(embed=embed(title=f"You have sent me over `{message_count}` messages in that last minute and are being rate limited, try again in {retry_after}", description="If you would like to send me more messages you can get more by voting at https://top.gg/bot/476303446547365891/vote" if advertise else "", color=MessageColors.ERROR), mention_author=False)
+      # async with msg.channel.typing():
+      translation = translate(msg)
+      # response = await self.openai_req(msg, str(msg.author.id), tier, tier_one=True if min_guild_tier_one_one_guild or min_user_tier_one_one_guild else False)
+      response = await self.openai_req(msg, str(msg.author.id), min_tiers)
 
     if translation is not None and translation.get("detectedSourceLanguage", lang) != "en" and response is not None and "dynamic" not in response:
       final_translation = self.translate_request(response.replace("dynamic", ""), from_lang="en", to_lang=translation.get("detectedSourceLanguage", lang) if translation.get("translatedText") != translation.get("input") else "en")
@@ -352,10 +360,10 @@ class Chat(commands.Cog):
       #   print(command)
       #   print(args)
       #   return await ctx.invoke(self.bot.get_command(command), query=args)
-      await msg.reply(content=response if content_filter == 0 else f"{self.possible_sensitive_message}{response}||", allowed_mentions=discord.AllowedMentions.none(), mention_author=False)
+      await ctx.reply(content=response if content_filter == 0 else f"{self.possible_sensitive_message}{response}||", allowed_mentions=discord.AllowedMentions.none(), mention_author=False)
       await relay_info(f"{current_tier} - **{msg.author.name}:** {msg.clean_content}\n**Me:** {response}", self.bot, webhook=self.bot.log.log_chat)
     elif content_filter == 2:
-      await msg.reply(content=self.possible_offensive_message, mention_author=False)
+      await ctx.reply(content=self.possible_offensive_message, mention_author=False)
       await relay_info(f"{current_tier} - **{msg.author.name}:** {msg.clean_content}\n**Me:** Possible offensive message: {response}", self.bot, webhook=self.bot.log.log_chat)
 
   # async def free_model(self, ctx: commands.Context, *, lang, tier, voted: bool):
