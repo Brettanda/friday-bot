@@ -11,13 +11,16 @@ from . import config
 def mydb_connect():  # -> mysql.connector.pooling.MySQLConnectionPool():
   # https://www.mysqltutorial.org/python-connecting-mysql-databases/
   if len(sys.argv) > 1 and (sys.argv[1] == "--prod" or sys.argv[1] == "--production"):
+    POOLNAME = "PROD"
     DATABASE = os.getenv("DATABASE")
   elif len(sys.argv) > 1 and sys.argv[1] == "--canary":
+    POOLNAME = "CAN"
     DATABASE = os.getenv("DATABASECANARY")
   else:
+    POOLNAME = "TEST"
     DATABASE = os.getenv("DATABASETEST")
   mydb = mysql.connector.pooling.MySQLConnectionPool(
-      pool_name="mypool",
+      pool_name=POOLNAME,
       pool_size=20,
       pool_reset_session=True,
       host=os.getenv("DBHOST"),
