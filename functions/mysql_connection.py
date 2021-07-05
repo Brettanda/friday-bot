@@ -24,8 +24,9 @@ def mydb_connect() -> mysql.connector.MySQLConnection():
 
 
 async def query(mydb: mysql.connector.MySQLConnection(), query: str, *params, rlist: bool = False) -> str or list:
-  if not mydb.is_connected():
-    mydb.reconnect(attempts=2, delay=0.1)
+  mydb = mydb_connect()
+  # if not mydb.is_connected():
+  #   mydb.reconnect(attempts=2, delay=0.1)
   mycursor = mydb.cursor(prepared=True)
   mycursor.execute(query, params)
   if "select" in query.lower():
