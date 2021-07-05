@@ -7,7 +7,7 @@ import asyncio
 # import mysql.connector
 
 from typing import TYPE_CHECKING
-from discord.ext import commands, tasks
+from discord.ext import commands#, tasks
 from discord_slash import SlashContext, SlashCommand
 from cogs.help import cmd_help
 from functions import MessageColors, embed, mydb_connect, query, non_coro_query, relay_info, exceptions, config  # ,choosegame
