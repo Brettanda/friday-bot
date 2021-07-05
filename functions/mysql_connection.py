@@ -25,7 +25,7 @@ def mydb_connect() -> mysql.connector.MySQLConnection():
 
 async def query(mydb: mysql.connector.MySQLConnection(), query: str, *params, rlist: bool = False) -> str or list:
   if not mydb.is_connected():
-    mysql.reconnect(attempts=10, delay=1)
+    mydb.reconnect(attempts=10, delay=1)
   mycursor = mydb.cursor(prepared=True)
   mycursor.execute(query, params)
   if "select" in query.lower():
@@ -39,13 +39,15 @@ async def query(mydb: mysql.connector.MySQLConnection(), query: str, *params, rl
       result = mycursor.fetchall()
   mydb.commit()
   if not mydb.is_connected():
-    mysql.reconnect(attempts=10, delay=1)
+    mydb.reconnect(attempts=10, delay=1)
   if "select" in query.lower():
     return result
 
 
 def non_coro_query(mydb, query: str, *params, rlist: bool = False) -> str or list:
   """Meant to placed in __init__() of cogs"""
+  if not mydb.is_connected():
+    mydb.reconnect(attempts=10, delay=1)
   mycursor = mydb.cursor(prepared=True)
   mycursor.execute(query, params)
   if "select" in query.lower():
@@ -57,6 +59,8 @@ def non_coro_query(mydb, query: str, *params, rlist: bool = False) -> str or lis
         result = result[0] if result is not None else None
     else:
       result = mycursor.fetchall()
+  if not mydb.is_connected():
+    mydb.reconnect(attempts=10, delay=1)
   mydb.commit()
   if "select" in query.lower():
     return result
