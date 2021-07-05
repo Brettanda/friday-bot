@@ -21,7 +21,7 @@ def mydb_connect():  # -> mysql.connector.pooling.MySQLConnectionPool():
     DATABASE = os.getenv("DATABASETEST")
   mydb = mysql.connector.pooling.MySQLConnectionPool(
       pool_name=POOLNAME,
-      pool_size=20,
+      pool_size=5,
       pool_reset_session=True,
       host=os.getenv("DBHOST"),
       user=os.getenv("DBUSER"),
@@ -52,13 +52,14 @@ async def query(mydb, query: str, *params, rlist: bool = False) -> str or list:
     # if not mydb.is_connected():
     #   mydb.reconnect(attempts=2, delay=0.1)
     mydb.commit()
-    # mycursor.close()
     if "select" in query.lower():
       return result
   except errors.Error as e:
-    print(e)
+    print("MySQL Error ", e)
   finally:
-    mydb.close()
+    if mydb.is_connected():
+      mycursor.close()
+      mydb.close()
 
 
 def non_coro_query(mydb, query: str, *params, rlist: bool = False) -> str or list:
@@ -78,16 +79,18 @@ def non_coro_query(mydb, query: str, *params, rlist: bool = False) -> str or lis
           result = result[0] if result is not None else None
       else:
         result = mycursor.fetchall()
-    if not mydb.is_connected():
-      mydb.reconnect(attempts=2, delay=0.1)
+    # if not mydb.is_connected():
+    #   mydb.reconnect(attempts=2, delay=0.1)
     mydb.commit()
     # mycursor.close()
     if "select" in query.lower():
       return result
   except errors.Error as e:
-    print(e)
+    print("MySQL Error ", e)
   finally:
-    mydb.close()
+    if mydb.is_connected():
+      mycursor.close()
+      mydb.close()
 
 
 async def query_prefix(bot, ctx, client: bool = False) -> str:
