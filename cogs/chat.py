@@ -367,16 +367,16 @@ class Chat(commands.Cog):
       #   print(command)
       #   print(args)
       #   return await ctx.invoke(self.bot.get_command(command), query=args)
-      if ctx.message.type == discord.MessageType.thread_starter_message:
-        await ctx.channel.send(content=response if content_filter == 0 else f"{self.possible_sensitive_message}{response}||", allowed_mentions=discord.AllowedMentions.none(), mention_author=False)
-      else:
-        await ctx.reply(content=response if content_filter == 0 else f"{self.possible_sensitive_message}{response}||", allowed_mentions=discord.AllowedMentions.none(), mention_author=False)
+      # if ctx.message.type == discord.MessageType.thread_starter_message:
+      #   await ctx.channel.send(content=response if content_filter == 0 else f"{self.possible_sensitive_message}{response}||", allowed_mentions=discord.AllowedMentions.none(), mention_author=False)
+      # else:
+      await ctx.reply(content=response if content_filter == 0 else f"{self.possible_sensitive_message}{response}||", allowed_mentions=discord.AllowedMentions.none(), mention_author=False)
       await relay_info(f"{current_tier} - **{ctx.author.name}:** {ctx.message.clean_content}\n**Me:** {response}", self.bot, webhook=self.bot.log.log_chat)
     elif content_filter == 2:
-      if ctx.message.type == discord.MessageType.thread_starter_message:
-        await ctx.channel.send(content=self.possible_offensive_message, mention_author=False)
-      else:
-        await ctx.reply(content=self.possible_offensive_message, mention_author=False)
+      # if ctx.message.type == discord.MessageType.thread_starter_message:
+      #   await ctx.channel.send(content=self.possible_offensive_message, mention_author=False)
+      # else:
+      await ctx.reply(content=self.possible_offensive_message, mention_author=False)
       await relay_info(f"{current_tier} - **{ctx.author.name}:** {ctx.message.clean_content}\n**Me:** Possible offensive message: {response}", self.bot, webhook=self.bot.log.log_chat)
 
   # async def free_model(self, ctx: commands.Context, *, lang, tier, voted: bool):
