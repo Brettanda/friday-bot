@@ -45,7 +45,7 @@ class Friday(commands.AutoShardedBot):
         status=discord.Status.idle,
         owner_id=215227961048170496,
         description=functions.config.description,
-        # member_cache_flags=discord.MemberCacheFlags.voice(),
+        member_cache_flags=functions.config.member_cache,
         fetch_offline_members=False,
         allowed_mentions=functions.config.allowed_mentions,
         # heartbeat_timeout=150.0,
