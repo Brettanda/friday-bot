@@ -20,7 +20,7 @@ class TopGG(commands.Cog):
     self.topgg = topgg.DBLClient(self.bot, self.token, autopost=False)
     if self.bot.cluster_idx == 0:  # and self.bot.prod:
       non_coro_query(self.bot.log.mydb, """CREATE TABLE IF NOT EXISTS votes
-                                        (id bigint UNIQUE NOT NULL,
+                                        (id bigint PRIMARY KEY NOT NULL,
                                         to_remind tinyint(1) NOT NULL DEFAULT 0,
                                         has_reminded tinyint(1) NOT NULL DEFAULT 0,
                                         voted_time timestamp NULL DEFAULT NULL)""")

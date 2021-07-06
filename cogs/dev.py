@@ -257,8 +257,9 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
 
   @norm_dev.command(name="mysql")
   async def mysql(self, ctx, *, string: str):
-    response = await query(self.bot.log.mydb, string)
-    await ctx.reply(response)
+    async with ctx.channel.typing():
+      response = await query(self.bot.log.mydb, string)
+    await ctx.reply(response if response is not None else "failed")
 
   @norm_dev.command(name="html")
   async def html(self, ctx):
