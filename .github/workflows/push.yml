@@ -98,7 +98,7 @@ jobs:
         DB_FILE: ${{ secrets.DB_FILE }}
       run: |
         . ~/venv/bin/activate
-        sudo apt install sqlite3 -y
+        sudo apt-get -y install sqlite3
         python create_db_for_workflow_step_one.py        
         ./mysqltosqlite.sh friday.sql | sqlite friday.sqlite
         python create_db_for_workflow_step_two.py        
