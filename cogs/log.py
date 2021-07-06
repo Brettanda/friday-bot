@@ -150,7 +150,7 @@ class Log(commands.Cog):
     #
     if self.bot.cluster_idx == 0:
       for guild in self.bot.guilds:
-        await query(self.mydb, "INSERT OR IGNORE INTO servers (id,name,muted,lang) VALUES (?,?,?,?)", guild.id, guild.name, 0, guild.preferred_locale.split("-")[0] if guild.preferred_locale is not None else "en")
+        await query(self.mydb, "INSERT OR IGNORE INTO servers (id,muted,lang) VALUES (?,?,?)", guild.id, 0, guild.preferred_locale.split("-")[0] if guild.preferred_locale is not None else "en")
 
     await self.set_all_guilds()
     await relay_info(f"Apart of {len(self.bot.guilds)} guilds", self.bot, logger=self.logger)
@@ -179,7 +179,7 @@ class Log(commands.Cog):
     while self.bot.is_closed():
       await asyncio.sleep(0.1)
     await relay_info(f"I have joined a new guild, making the total **{len(self.bot.guilds)}**", self.bot, short=f"I have joined a new guild, making the total {len(self.bot.guilds)}", webhook=self.log_join, logger=self.logger)
-    await query(self.mydb, "INSERT OR IGNORE INTO servers (id,name,muted,lang) VALUES (?,?,?,?)", guild.id, guild.name, 0, guild.preferred_locale.split("-")[0])
+    await query(self.mydb, "INSERT OR IGNORE INTO servers (id,muted,lang) VALUES (?,?,?)", guild.id, 0, guild.preferred_locale.split("-")[0])
     priority_channels = []
     channels = []
     for channel in guild.text_channels:
@@ -281,7 +281,7 @@ class Log(commands.Cog):
     try:
       return commands.when_mentioned_or(self.bot.saved_guilds[message.guild.id]["prefix"] or config.defaultPrefix)(bot, message)
     except KeyError:
-      await query(self.mydb, "INSERT OR IGNORE INTO servers (id,name,muted,lang) VALUES (?,?,?,?)", message.guild.id, message.guild.name, 0, message.guild.preferred_locale.split("-")[0])
+      await query(self.mydb, "INSERT OR IGNORE INTO servers (id,muted,lang) VALUES (?,?,?)", message.guild.id, 0, message.guild.preferred_locale.split("-")[0])
       self.set_guild(message.guild.id)
       return commands.when_mentioned_or(self.bot.saved_guilds[message.guild.id]["prefix"] or config.defaultPrefix)(bot, message)
 
