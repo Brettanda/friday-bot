@@ -100,7 +100,7 @@ jobs:
         . ~/venv/bin/activate
         sudo apt install sqlite3 -y
         python create_db_for_workflow_step_one.py        
-        sudo ./mysqltosqlite.sh friday.sql | sqlite friday.sqlite
+        ./mysqltosqlite.sh friday.sql | sqlite friday.sqlite
         python create_db_for_workflow_step_two.py        
         if [ -f friday.db ]; then printf "File created"; fi
     - name: Test with pytest
