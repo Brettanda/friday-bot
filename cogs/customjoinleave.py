@@ -21,7 +21,7 @@ class CustomJoinLeave(commands.Cog):
   async def custom_join(self, ctx, url: typing.Optional[str] = None):
     async with ctx.typing():
 
-      reactions = await query(self.bot.log.mydb, "SELECT customJoinLeave FROM servers WHERE id=%s", ctx.guild.id)
+      reactions = await query(self.bot.log.mydb, "SELECT customJoinLeave FROM servers WHERE id=?", ctx.guild.id)
       if reactions is None:
         reactions = r"{}"
       reactions = json.loads(reactions)
@@ -31,7 +31,7 @@ class CustomJoinLeave(commands.Cog):
         reactions.update({str(ctx.author.id): {"join": None, "leave": None}})
         reactions[str(ctx.author.id)]["join"] = url if url is not None else None
 
-      await query(self.bot.log.mydb, "UPDATE servers SET customJoinLeave=%s WHERE id=%s", json.dumps(reactions), ctx.guild.id)
+      await query(self.bot.log.mydb, "UPDATE servers SET customJoinLeave=? WHERE id=?", json.dumps(reactions), ctx.guild.id)
     await ctx.reply(embed=embed(title=f"The new join sound for `{ctx.author}` is now `{url}`"))
 
   @commands.command(name="customleave", aliases=["cleave"], description="To remove your sound call this command with no arguments", hidden=True)
@@ -39,7 +39,7 @@ class CustomJoinLeave(commands.Cog):
   async def custom_leave(self, ctx, url: typing.Optional[str] = None):
     async with ctx.typing():
 
-      reactions = await query(self.bot.log.mydb, "SELECT customJoinLeave FROM servers WHERE id=%s", ctx.guild.id)
+      reactions = await query(self.bot.log.mydb, "SELECT customJoinLeave FROM servers WHERE id=?", ctx.guild.id)
       if reactions is None:
         reactions = r"{}"
       reactions = json.loads(reactions)
@@ -49,7 +49,7 @@ class CustomJoinLeave(commands.Cog):
         reactions.update({str(ctx.author.id): {"join": None, "leave": None}})
         reactions[str(ctx.author.id)]["leave"] = url if url is not None else None
 
-      await query(self.bot.log.mydb, "UPDATE servers SET customJoinLeave=%s WHERE id=%s", json.dumps(reactions), ctx.guild.id)
+      await query(self.bot.log.mydb, "UPDATE servers SET customJoinLeave=? WHERE id=?", json.dumps(reactions), ctx.guild.id)
     await ctx.reply(embed=embed(title=f"The new leave sound for `{ctx.author}` is now `{url}`"))
 
   # @commands.Cog.listener()
@@ -59,7 +59,7 @@ class CustomJoinLeave(commands.Cog):
   #   if before.channel is not None:
   #     return
 
-  #   reactions = await query(self.bot.log.mydb,"SELECT customJoinLeave FROM servers WHERE id=%s",member.guild.id)
+  #   reactions = await query(self.bot.log.mydb,"SELECT customJoinLeave FROM servers WHERE id=?",member.guild.id)
   #   reactions = json.loads(reactions)
   #   if str(member.id) in reactions:
   #     print(reactions[str(member.id)]["join"])

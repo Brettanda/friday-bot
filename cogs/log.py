@@ -150,7 +150,7 @@ class Log(commands.Cog):
     #
     if self.bot.cluster_idx == 0:
       for guild in self.bot.guilds:
-        await query(self.mydb, "INSERT IGNORE INTO servers (id,name,muted,lang) VALUES (%s,%s,%s,%s)", guild.id, guild.name, 0, guild.preferred_locale.split("-")[0] if guild.preferred_locale is not None else "en")
+        await query(self.mydb, "INSERT OR IGNORE INTO servers (id,name,muted,lang) VALUES (?,?,?,?)", guild.id, guild.name, 0, guild.preferred_locale.split("-")[0] if guild.preferred_locale is not None else "en")
 
     await self.set_all_guilds()
     await relay_info(f"Apart of {len(self.bot.guilds)} guilds", self.bot, logger=self.logger)
@@ -179,7 +179,7 @@ class Log(commands.Cog):
     while self.bot.is_closed():
       await asyncio.sleep(0.1)
     await relay_info(f"I have joined a new guild, making the total **{len(self.bot.guilds)}**", self.bot, short=f"I have joined a new guild, making the total {len(self.bot.guilds)}", webhook=self.log_join, logger=self.logger)
-    await query(self.mydb, "INSERT IGNORE INTO servers (id,name,muted,lang) VALUES (%s,%s,%s,%s)", guild.id, guild.name, 0, guild.preferred_locale.split("-")[0])
+    await query(self.mydb, "INSERT OR IGNORE INTO servers (id,name,muted,lang) VALUES (?,?,?,?)", guild.id, guild.name, 0, guild.preferred_locale.split("-")[0])
     priority_channels = []
     channels = []
     for channel in guild.text_channels:
@@ -205,7 +205,7 @@ class Log(commands.Cog):
     while self.bot.is_closed():
       await asyncio.sleep(0.1)
     await relay_info(f"I have been removed from a guild, making the total **{len(self.bot.guilds)}**", self.bot, short=f"I have been removed from a guild, making the total {len(self.bot.guilds)}", webhook=self.log_join, logger=self.logger)
-    await query(self.mydb, "DELETE FROM servers WHERE id=%s", guild.id)
+    await query(self.mydb, "DELETE FROM servers WHERE id=?", guild.id)
     self.remove_guild(guild.id)
 
   @commands.Cog.listener()
@@ -281,7 +281,7 @@ class Log(commands.Cog):
     try:
       return commands.when_mentioned_or(self.bot.saved_guilds[message.guild.id]["prefix"] or config.defaultPrefix)(bot, message)
     except KeyError:
-      await query(self.mydb, "INSERT IGNORE INTO servers (id,name,muted,lang) VALUES (%s,%s,%s,%s)", message.guild.id, message.guild.name, 0, message.guild.preferred_locale.split("-")[0])
+      await query(self.mydb, "INSERT OR IGNORE INTO servers (id,name,muted,lang) VALUES (?,?,?,?)", message.guild.id, message.guild.name, 0, message.guild.preferred_locale.split("-")[0])
       self.set_guild(message.guild.id)
       return commands.when_mentioned_or(self.bot.saved_guilds[message.guild.id]["prefix"] or config.defaultPrefix)(bot, message)
 
@@ -483,7 +483,7 @@ class Log(commands.Cog):
   async def log_spammer(self, ctx, message, retry_after, *, notify=False):
     guild_name = getattr(ctx.guild, "name", "No Guild/ DM Channel")
     guild_id = getattr(ctx.guild, "id", None)
-    fmt = 'User %s (ID %s) in guild %r (ID %s) spamming, retry_after: %.2fs'
+    fmt = 'User ? (ID ?) in guild %r (ID ?) spamming, retry_after: %.2fs'
     logging.warning(fmt, message.author, message.author.id, guild_name, guild_id, retry_after)
 
     if not notify:
