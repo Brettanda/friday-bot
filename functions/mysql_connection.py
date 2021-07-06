@@ -64,10 +64,10 @@ def non_coro_query(mydb: sqlite3.Connection, query: str, *params, rlist: bool = 
       return result
   except errors.Error as e:
     print("MySQL Error ", e)
-  finally:
-    if mydb.is_connected():
-      mycursor.close()
-      mydb.close()
+  # finally:
+  #   if mydb.is_connected():
+  #     mycursor.close()
+  #     mydb.close()
 
 
 async def query_prefix(bot, ctx, client: bool = False) -> str:
