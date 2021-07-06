@@ -23,7 +23,7 @@ class BatchUpdates(commands.Cog):
   #     changes_to_make = len(self.bot._updates)
   #     for guild_id, changes in self.bot._updates:
   #       args = [f"{change}={val}" for change, val in changes]
-  #       query(self.bot.log.mydb, "UPDATE servers SET %s WHERE id=%s", ", ".join(args), guild_id)
+  #       query(self.bot.log.mydb, "UPDATE servers SET ? WHERE id=?", ", ".join(args), guild_id)
   #       self.bot._updates.pop(guild_id)
   #     print(f"Updated DB with {changes_to_make} changes")
   #     self.bot.logger.info(f"Updated DB with {changes_to_make} changes")

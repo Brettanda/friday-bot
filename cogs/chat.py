@@ -258,27 +258,25 @@ class Chat(commands.Cog):
     await self.bot.wait_until_ready()
     while self.bot.is_closed():
       await asyncio.sleep(0.1)
-    response = None
-    lang = self.bot.log.get_guild_lang(msg.guild)
     # tier = self.bot.log.get_guild_tier(msg.guild)
     # if tier is None or tier == "None":
     #   tier = list(config.premium_tiers)[0]
-    voted = await checks.user_voted(self.bot, msg.author)
 
     ctx = await self.bot.get_context(msg)
 
     if not await self.global_chat_checks(msg):
       return
 
-    min_g_t1, min_u_t1, min_g_t2, min_u_t2, min_g_t3, min_u_t3, min_g_t4, min_u_t4 = await asyncio.gather(checks.guild_is_min_tier(self.bot, msg.guild, "t1_one_guild"),
-                                                                                                          checks.user_is_min_tier(self.bot, msg.author, "t1_one_guild"),
-                                                                                                          checks.guild_is_min_tier(self.bot, msg.guild, "t2_one_guild"),
-                                                                                                          checks.user_is_min_tier(self.bot, msg.author, "t2_one_guild"),
-                                                                                                          checks.guild_is_min_tier(self.bot, msg.guild, "t3_one_guild"),
-                                                                                                          checks.user_is_min_tier(self.bot, msg.author, "t3_one_guild"),
-                                                                                                          checks.guild_is_min_tier(self.bot, msg.guild, "t4_one_guild"),
-                                                                                                          checks.user_is_min_tier(self.bot, msg.author, "t4_one_guild")
-                                                                                                          )
+    voted, min_g_t1, min_u_t1, min_g_t2, min_u_t2, min_g_t3, min_u_t3, min_g_t4, min_u_t4 = await asyncio.gather(checks.user_voted(self.bot, ctx.author),
+                                                                                                                 checks.guild_is_min_tier(self.bot, msg.guild, "t1_one_guild"),
+                                                                                                                 checks.user_is_min_tier(self.bot, msg.author, "t1_one_guild"),
+                                                                                                                 checks.guild_is_min_tier(self.bot, msg.guild, "t2_one_guild"),
+                                                                                                                 checks.user_is_min_tier(self.bot, msg.author, "t2_one_guild"),
+                                                                                                                 checks.guild_is_min_tier(self.bot, msg.guild, "t3_one_guild"),
+                                                                                                                 checks.user_is_min_tier(self.bot, msg.author, "t3_one_guild"),
+                                                                                                                 checks.guild_is_min_tier(self.bot, msg.guild, "t4_one_guild"),
+                                                                                                                 checks.user_is_min_tier(self.bot, msg.author, "t4_one_guild")
+                                                                                                                 )
 
     min_tiers = {
         "min_g_t1": min_g_t1,
@@ -297,15 +295,7 @@ class Chat(commands.Cog):
 
     # if not await self.should_i_message(msg, tier_one=True if min_guild_tier_one_one_guild or min_user_tier_one_one_guild else False):
 
-    def translate(msg: discord.Message) -> dict:
-      translation = {}
-      if lang not in (None, "en") or min_tiers["min_u_t1"]:
-        translation = self.translate_request(msg.clean_content, from_lang=lang if not min_tiers["min_u_t1"] else None)
-        if translation is not None and translation.get("translatedText", None) is not None:
-          translation["translatedText"] = self.h.unescape(translation["translatedText"])
-          self.saved_translations.update({str(msg.clean_content): translation["translatedText"]})
-          return translation
-      return None
+    # original_text = msg.clean_content
 
     # if not voted and not min_guild_t1 and not min_user_t1:
     #   if await self.check_for_answer_questions(msg, tier=tier):
@@ -323,33 +313,50 @@ class Chat(commands.Cog):
     # else:
     if not await self.should_i_message(msg, min_tiers=min_tiers):
       return
+    # Anything to do with sending messages needs to be below the above check
+    self.bot.dispatch("message_to_me", ctx, voted, min_tiers)
+
+  @commands.Cog.listener()
+  async def on_message_to_me(self, ctx: commands.Context, voted: bool, min_tiers):
+    response = None
+    lang = self.bot.log.get_guild_lang(ctx.guild)
+
+    async def translate(msg: discord.Message) -> dict:
+      translation = {}
+      if lang not in (None, "en") or min_tiers["min_u_t1"]:
+        translation = self.translate_request(msg.clean_content, from_lang=lang if not min_tiers["min_u_t1"] else None)
+        if translation is not None and translation.get("translatedText", None) is not None:
+          translation["translatedText"] = self.h.unescape(translation["translatedText"])
+          # self.saved_translations.update({str(ctx.clean_content): translation["translatedText"]})
+          return translation
+      return None
     if response is None:
-      bucket_abs_min, bucket_abs_hour, bucket_free, bucket_voted = self.spam_control_absolute_minute.get_bucket(msg), self.spam_control_absolute_hour.get_bucket(msg), self.spam_control_free.get_bucket(msg), self.spam_control_voted.get_bucket(msg)
-      current = msg.created_at.replace(tzinfo=datetime.timezone.utc).timestamp()
+      bucket_abs_min, bucket_abs_hour, bucket_free, bucket_voted = self.spam_control_absolute_minute.get_bucket(ctx), self.spam_control_absolute_hour.get_bucket(ctx), self.spam_control_free.get_bucket(ctx), self.spam_control_voted.get_bucket(ctx)
+      current = ctx.message.created_at.replace(tzinfo=datetime.timezone.utc).timestamp()
       ra_abs_min, ra_abs_hour, ra_free, ra_voted = bucket_abs_min.update_rate_limit(current), bucket_abs_hour.update_rate_limit(current), bucket_free.update_rate_limit(current), bucket_voted.update_rate_limit(current)
 
-      if ra_abs_min or ra_abs_hour or (ra_free and not (voted and min_g_t1 and min_u_t1)) or (ra_voted and (voted or min_g_t1 or min_u_t1)):
-        advertise = True if ra_free and not (voted and min_g_t1 and min_u_t1) else False
+      if ra_abs_min or ra_abs_hour or (ra_free and not (voted and min_tiers["min_g_t1"] and min_tiers["min_u_t1"])) or (ra_voted and (voted or min_tiers["min_g_t1"] or min_tiers["min_u_t1"])):
+        advertise = True if ra_free and not (voted and min_tiers["min_g_t1"] and min_tiers["min_u_t1"]) else False
         message_count = bucket_abs_min.rate if ra_abs_min else bucket_abs_hour.rate if ra_abs_hour else bucket_free.rate if ra_free else bucket_voted.rate if ra_voted else 0
         m, s = divmod(ra_abs_min or ra_abs_hour or ra_free or ra_voted, 60)
         h, m = divmod(m, 60)
         retry_after = f"{h:.0f}h {m:.0f}m {s:.0f}s"
         self.bot.logger.warning(f"Someone is being ratelimited at over {message_count} messages and can retry after {retry_after}")
         return await ctx.reply(embed=embed(title=f"You have sent me over `{message_count}` messages in that last minute and are being rate limited, try again in {retry_after}", description="If you would like to send me more messages you can get more by voting at https://top.gg/bot/476303446547365891/vote" if advertise else "", color=MessageColors.ERROR), mention_author=False)
-      # async with msg.channel.typing():
-      translation = translate(msg)
-      # response = await self.openai_req(msg, str(msg.author.id), tier, tier_one=True if min_guild_tier_one_one_guild or min_user_tier_one_one_guild else False)
-      response = await self.openai_req(msg, str(msg.author.id), min_tiers)
+      async with ctx.channel.typing():
+        # translation = await translate(ctx)
+        # response = await self.openai_req(msg, str(msg.author.id), tier, tier_one=True if min_guild_tier_one_one_guild or min_user_tier_one_one_guild else False)
+        response = await self.openai_req(ctx, str(ctx.author.id), min_tiers)
 
-    if translation is not None and translation.get("detectedSourceLanguage", lang) != "en" and response is not None and "dynamic" not in response:
-      final_translation = self.translate_request(response.replace("dynamic", ""), from_lang="en", to_lang=translation.get("detectedSourceLanguage", lang) if translation.get("translatedText") != translation.get("input") else "en")
-      if final_translation is not None and not isinstance(final_translation, str) and final_translation.get("translatedText", None) is not None:
-        final_translation["translatedText"] = self.h.unescape(final_translation["translatedText"])
-      response = final_translation["translatedText"] if final_translation is not None and not isinstance(final_translation, str) else response
+    # if translation is not None and translation.get("detectedSourceLanguage", lang) != "en" and response is not None and "dynamic" not in response:
+    #   final_translation = self.translate_request(response.replace("dynamic", ""), from_lang="en", to_lang=translation.get("detectedSourceLanguage", lang) if translation.get("translatedText") != translation.get("input") else "en")
+    #   if final_translation is not None and not isinstance(final_translation, str) and final_translation.get("translatedText", None) is not None:
+    #     final_translation["translatedText"] = self.h.unescape(final_translation["translatedText"])
+    #   response = final_translation["translatedText"] if final_translation is not None and not isinstance(final_translation, str) else response
 
     if response is None or response == "":
       return
-    content_filter = await self.content_filter_check(response, str(msg.author.id))
+    content_filter = await self.content_filter_check(response, str(ctx.author.id))
     current_tier = [item for item in min_tiers if min_tiers[item] is not False]
     current_tier = current_tier[0] if len(current_tier) > 0 else "free"
     if content_filter != 2:
@@ -360,11 +367,17 @@ class Chat(commands.Cog):
       #   print(command)
       #   print(args)
       #   return await ctx.invoke(self.bot.get_command(command), query=args)
+      # if ctx.message.type == discord.MessageType.thread_starter_message:
+      #   await ctx.channel.send(content=response if content_filter == 0 else f"{self.possible_sensitive_message}{response}||", allowed_mentions=discord.AllowedMentions.none(), mention_author=False)
+      # else:
       await ctx.reply(content=response if content_filter == 0 else f"{self.possible_sensitive_message}{response}||", allowed_mentions=discord.AllowedMentions.none(), mention_author=False)
-      await relay_info(f"{current_tier} - **{msg.author.name}:** {msg.clean_content}\n**Me:** {response}", self.bot, webhook=self.bot.log.log_chat)
+      await relay_info(f"{current_tier} - **{ctx.author.name}:** {ctx.message.clean_content}\n**Me:** {response}", self.bot, webhook=self.bot.log.log_chat)
     elif content_filter == 2:
+      # if ctx.message.type == discord.MessageType.thread_starter_message:
+      #   await ctx.channel.send(content=self.possible_offensive_message, mention_author=False)
+      # else:
       await ctx.reply(content=self.possible_offensive_message, mention_author=False)
-      await relay_info(f"{current_tier} - **{msg.author.name}:** {msg.clean_content}\n**Me:** Possible offensive message: {response}", self.bot, webhook=self.bot.log.log_chat)
+      await relay_info(f"{current_tier} - **{ctx.author.name}:** {ctx.message.clean_content}\n**Me:** Possible offensive message: {response}", self.bot, webhook=self.bot.log.log_chat)
 
   # async def free_model(self, ctx: commands.Context, *, lang, tier, voted: bool):
   #   dynamic = False
