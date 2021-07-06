@@ -4,49 +4,21 @@ import sys
 import mysql.connector
 from mysql.connector import errors
 import mysql.connector.pooling
+import sqlite3
 from . import config
 
 
 # def mydb_connect() -> mysql.connector.MySQLConnection():
-def mydb_connect():  # -> mysql.connector.pooling.MySQLConnectionPool():
+def mydb_connect() -> sqlite3.Connection:  # -> mysql.connector.pooling.MySQLConnectionPool():
   # https://www.mysqltutorial.org/python-connecting-mysql-databases/
-  if len(sys.argv) > 1 and (sys.argv[1] == "--prod" or sys.argv[1] == "--production"):
-    # POOLNAME = "PROD"
-    HOST = "127.0.0.1"
-    USERNAME = os.getenv("DBUSERPROD")
-    PASSWORD = os.getenv("DBPASSPROD")
-    DATABASE = os.getenv("DATABASE")
-  elif len(sys.argv) > 1 and sys.argv[1] == "--canary":
-    # POOLNAME = "CAN"
-    HOST = os.getenv("DBHOST")
-    USERNAME = os.getenv("DBUSER")
-    PASSWORD = os.getenv("DBPASS")
-    DATABASE = os.getenv("DATABASECANARY")
-  else:
-    # POOLNAME = "TEST"
-    HOST = os.getenv("DBHOST")
-    USERNAME = os.getenv("DBUSER")
-    PASSWORD = os.getenv("DBPASS")
-    DATABASE = os.getenv("DATABASETEST")
-  mydb = mysql.connector.MySQLConnection(
-      # pool_name=POOLNAME,
-      # pool_size=5,
-      # pool_reset_session=True,
-      host=HOST,
-      user=USERNAME,
-      password=PASSWORD,
-      database=DATABASE
-  )
+  mydb = sqlite3.connect("friday.db")
 
   return mydb
 
 
 # async def query(mydb: mysql.connector.MySQLConnection(), query: str, *params, rlist: bool = False) -> str or list:
-async def query(mydb, query: str, *params, rlist: bool = False) -> str or list:
+async def query(mydb: sqlite3.Connection, query: str, *params, rlist: bool = False) -> str or list:
   try:
-    mydb = mydb_connect()
-    # if not mydb.is_connected():
-    #   mydb.reconnect(attempts=2, delay=0.1)
     mycursor = mydb.cursor()
     mycursor.execute(query, params)
     if "select" in query.lower():
@@ -65,13 +37,13 @@ async def query(mydb, query: str, *params, rlist: bool = False) -> str or list:
       return result
   except errors.Error as e:
     print("MySQL Error ", e)
-  finally:
-    if mydb.is_connected():
-      mycursor.close()
-      mydb.close()
+  # finally:
+  #   if mydb.is_connected():
+  #     mycursor.close()
+  #     mydb.close()
 
 
-def non_coro_query(mydb, query: str, *params, rlist: bool = False) -> str or list:
+def non_coro_query(mydb: sqlite3.Connection, query: str, *params, rlist: bool = False) -> str or list:
   """Meant to placed in __init__() of cogs"""
   try:
     mydb = mydb_connect()

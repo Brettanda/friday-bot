@@ -68,7 +68,7 @@ class Moderation(commands.Cog):
   async def _defaultrole(self, ctx, role: typing.Optional[discord.Role] = None):
     # TODO: Need the members intent so assign the role
     role_id = role.id if role is not None else None
-    await query(self.bot.log.mydb, "UPDATE servers SET defaultRole=%s WHERE id=%s", role_id, ctx.guild.id)
+    await query(self.bot.log.mydb, "UPDATE servers SET defaultRole=? WHERE id=?", role_id, ctx.guild.id)
     await ctx.reply(embed=embed(title=f"The new default role for new members is `{role}`"))
 
   @commands.Cog.listener()
@@ -84,14 +84,14 @@ class Moderation(commands.Cog):
     await self.add_defaultrole(after)
 
   async def add_defaultrole(self, member: discord.Member):
-    role_id = await query(self.bot.log.mydb, "SELECT defaultRole FROM servers WHERE id=%s", member.guild.id)
+    role_id = await query(self.bot.log.mydb, "SELECT defaultRole FROM servers WHERE id=?", member.guild.id)
     if role_id == 0 or role_id is None or str(role_id).lower() == "null":
       return
     else:
       role = member.guild.get_role(role_id)
       if role is None:
         # await member.guild.owner.send(f"The default role that was chosen for me to add to members when they join yours server \"{member.guild.name}\" could not be found, please update the default role at https://friday-self.bot.com")
-        await query(self.bot.log.mydb, "UPDATE servers SET defaultRole=NULL WHERE id=%s", member.guild.id)
+        await query(self.bot.log.mydb, "UPDATE servers SET defaultRole=NULL WHERE id=?", member.guild.id)
       else:
         await member.add_roles(role, reason="Default Role")
 
@@ -100,12 +100,12 @@ class Moderation(commands.Cog):
   # @commands.has_guild_permissions(manage_roles=True)
   # async def mute(self,ctx,members:commands.Greedy[discord.Member]=None):
   #   if self.bot.user in members:
-  #     muted = await query(self.bot.log.mydb,"SELECT muted FROM servers WHERE id=%s",ctx.guild.id)
+  #     muted = await query(self.bot.log.mydb,"SELECT muted FROM servers WHERE id=?",ctx.guild.id)
   #     if muted == 0:
-  #       await query(self.bot.log.mydb,"UPDATE servers SET muted=%s WHERE id=%s",1,ctx.guild.id)
+  #       await query(self.bot.log.mydb,"UPDATE servers SET muted=? WHERE id=?",1,ctx.guild.id)
   #       await ctx.reply(embed=embed(title="I will now only respond to commands"))
   #     else:
-  #       await query(self.bot.log.mydb,"UPDATE servers SET muted=%s WHERE id=%s",0,ctx.guild.id)
+  #       await query(self.bot.log.mydb,"UPDATE servers SET muted=? WHERE id=?",0,ctx.guild.id)
   #       await ctx.reply(embed=embed(title="I will now respond to chat message as well as commands"))
 
   @commands.command(name="prefix", help="Sets the prefix for Fridays commands")
@@ -115,7 +115,7 @@ class Moderation(commands.Cog):
     if len(new_prefix) > 5:
       await ctx.reply(embed=embed(title="Can't set a prefix with more than 5 characters", color=MessageColors.ERROR))
       return
-    await query(self.bot.log.mydb, "UPDATE servers SET prefix=%s WHERE id=%s", new_prefix, ctx.guild.id)
+    await query(self.bot.log.mydb, "UPDATE servers SET prefix=? WHERE id=?", new_prefix, ctx.guild.id)
     self.bot.log.change_guild_prefix(ctx.guild.id, new_prefix)
     try:
       await ctx.reply(embed=embed(title=f"My new prefix is `{new_prefix}`"))
@@ -175,13 +175,13 @@ class Moderation(commands.Cog):
     await ctx.send(**post)
 
   async def settings_bot_chat_channel(self, ctx):
-    chat_channel = await query(self.bot.log.mydb, "SELECT chatChannel FROM servers WHERE id=%s", ctx.guild.id)
+    chat_channel = await query(self.bot.log.mydb, "SELECT chatChannel FROM servers WHERE id=?", ctx.guild.id)
     if chat_channel is None:
-      await query(self.bot.log.mydb, "UPDATE servers SET chatChannel=%s WHERE id=%s", ctx.channel.id, ctx.guild.id)
+      await query(self.bot.log.mydb, "UPDATE servers SET chatChannel=? WHERE id=?", ctx.channel.id, ctx.guild.id)
       self.bot.log.change_guild_chat_channel(ctx.guild.id, ctx.channel.id)
       return dict(embed=embed(title="I will now respond to every message in this channel"))
     else:
-      await query(self.bot.log.mydb, "UPDATE servers SET chatChannel=%s WHERE id=%s", None, ctx.guild.id)
+      await query(self.bot.log.mydb, "UPDATE servers SET chatChannel=? WHERE id=?", None, ctx.guild.id)
       self.bot.log.change_guild_chat_channel(ctx.guild.id, None)
       return dict(embed=embed(title="I will no longer respond to all messages from this channel"))
 
@@ -190,13 +190,13 @@ class Moderation(commands.Cog):
   @commands.has_guild_permissions(manage_channels=True)
   @commands.bot_has_guild_permissions(manage_messages=True)
   async def norm_remove_discord_invites(self, ctx):
-    check = await query(self.bot.log.mydb, "SELECT remove_invites FROM servers WHERE id=%s", ctx.guild.id)
+    check = await query(self.bot.log.mydb, "SELECT remove_invites FROM servers WHERE id=?", ctx.guild.id)
     if bool(check) is True:
-      await query(self.bot.log.mydb, "UPDATE servers SET remove_invites=%s WHERE id=%s", False, ctx.guild.id)
+      await query(self.bot.log.mydb, "UPDATE servers SET remove_invites=? WHERE id=?", False, ctx.guild.id)
       self.to_remove_invites[ctx.guild.id] = False
       await ctx.reply(embed=embed(title="I will no longer remove invites"))
     else:
-      await query(self.bot.log.mydb, "UPDATE servers SET remove_invites=%s WHERE id=%s", True, ctx.guild.id)
+      await query(self.bot.log.mydb, "UPDATE servers SET remove_invites=? WHERE id=?", True, ctx.guild.id)
       self.to_remove_invites[ctx.guild.id] = True
       await ctx.reply(embed=embed(title="I will begin to remove invites"))
 
@@ -226,7 +226,7 @@ class Moderation(commands.Cog):
   @commands.has_guild_permissions(manage_channels=True)
   async def music_channel(self, ctx, voicechannel: typing.Optional[discord.VoiceChannel] = None):
     async with ctx.typing():
-      await query(self.bot.log.mydb, "UPDATE servers SET musicChannel=%s WHERE id=%s", voicechannel.id if voicechannel is not None else None, ctx.guild.id)
+      await query(self.bot.log.mydb, "UPDATE servers SET musicChannel=? WHERE id=?", voicechannel.id if voicechannel is not None else None, ctx.guild.id)
     if voicechannel is None:
       await ctx.reply(embed=embed(title="All the voice channels are my music channels 😈 (jk)"))
     else:
@@ -241,7 +241,7 @@ class Moderation(commands.Cog):
       await ctx.reply(embed=embed(title="time has to be above 0"))
       return
     async with ctx.typing():
-      await query(self.bot.log.mydb, "UPDATE servers SET autoDeleteMSGs=%s WHERE id=%s", time, ctx.guild.id)
+      await query(self.bot.log.mydb, "UPDATE servers SET autoDeleteMSGs=? WHERE id=?", time, ctx.guild.id)
       self.bot.log.change_guild_delete(ctx.guild.id, time)
     if time == 0:
       await ctx.reply(embed=embed(title="I will no longer delete command messages"))
@@ -293,7 +293,7 @@ class Moderation(commands.Cog):
   @commands.has_guild_permissions(manage_guild=True)
   async def _blacklist_add_word(self, ctx, *, word: str):
     cleansed_word = self.do_slugify(word)
-    await query(self.bot.log.mydb, "INSERT IGNORE INTO blacklist VALUES (%s,%s)", ctx.guild.id, cleansed_word)
+    await query(self.bot.log.mydb, "INSERT OR IGNORE INTO blacklist VALUES (?,?)", ctx.guild.id, cleansed_word)
     try:
       self.blacklist[ctx.guild.id].append(cleansed_word)
     except KeyError:
@@ -308,7 +308,7 @@ class Moderation(commands.Cog):
     cleansed_word = word
     if cleansed_word not in self.blacklist[ctx.guild.id]:
       return await ctx.reply(embed=embed(title="You don't seem to blacklisting that word"))
-    await query(self.bot.log.mydb, "DELETE FROM blacklist WHERE (id=%s AND word=%s)", ctx.guild.id, cleansed_word)
+    await query(self.bot.log.mydb, "DELETE FROM blacklist WHERE (id=? AND word=?)", ctx.guild.id, cleansed_word)
     self.blacklist[ctx.guild.id].remove(cleansed_word)
     word = word
     await ctx.reply(embed=embed(title=f"Removed `{word}` from the blacklist"))
@@ -317,7 +317,7 @@ class Moderation(commands.Cog):
   @commands.guild_only()
   @commands.has_guild_permissions(manage_guild=True)
   async def _blacklist_display_words(self, ctx):
-    words = await query(self.bot.log.mydb, "SELECT word FROM blacklist WHERE id=%s", ctx.guild.id, rlist=True)
+    words = await query(self.bot.log.mydb, "SELECT word FROM blacklist WHERE id=?", ctx.guild.id, rlist=True)
     if words == [] or words is None:
       return await ctx.reply(embed=embed(title=f"No blacklisted words yet, use `{ctx.prefix}blacklist add <word>` to get started"))
     await ctx.reply(embed=embed(title="Blocked words", description='\n'.join(x[0] for x in words)))
@@ -326,7 +326,7 @@ class Moderation(commands.Cog):
   @commands.guild_only()
   @commands.has_guild_permissions(manage_guild=True)
   async def _blacklist_clear(self, ctx):
-    await query(self.bot.log.mydb, "DELETE FROM blacklist WHERE id=%s", ctx.guild.id)
+    await query(self.bot.log.mydb, "DELETE FROM blacklist WHERE id=?", ctx.guild.id)
     self.blacklist[ctx.guild.id] = []
     await ctx.reply(embed=embed(title="Removed all blacklisted words"))
 
@@ -796,7 +796,7 @@ class Moderation(commands.Cog):
 
     final_lang = new_lang.alpha_2 if new_lang is not None else lang
     final_lang_name = new_lang.name if new_lang is not None else lang
-    await query(self.bot.log.mydb, "UPDATE servers SET lang=%s WHERE id=%s", final_lang, ctx.guild.id)
+    await query(self.bot.log.mydb, "UPDATE servers SET lang=? WHERE id=?", final_lang, ctx.guild.id)
     self.bot.log.change_guild_lang(ctx.guild, final_lang)
     return await ctx.reply(embed=embed(title=f"New language set to: `{final_lang_name}`"))
 

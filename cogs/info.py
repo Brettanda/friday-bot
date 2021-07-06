@@ -61,7 +61,7 @@ class Info(commands.Cog):
 
   async def server_info(self, ctx):
     # async with ctx.typing() if ctx.typing is not None else ctx.defer():
-    prefix, delete_after, musicchannel, defaultRole = (await query(self.bot.log.mydb, "SELECT prefix,autoDeleteMSGs,musicChannel,defaultRole FROM servers WHERE id=%s", ctx.guild.id))[0]
+    prefix, delete_after, musicchannel, defaultRole = (await query(self.bot.log.mydb, "SELECT prefix,autoDeleteMSGs,musicChannel,defaultRole FROM servers WHERE id=?", ctx.guild.id))[0]
     return dict(
         embed=embed(
             title=ctx.guild.name + " - Info",

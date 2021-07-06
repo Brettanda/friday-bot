@@ -45,8 +45,8 @@ class TopGG(commands.Cog):
 
   @vote.command(name="remind", help="Whether or not to remind you of the next time that you can vote")
   async def vote_remind(self, ctx: commands.Context):
-    current_reminder = bool(await query(self.bot.log.mydb, "SELECT to_remind FROM votes WHERE id=%s", ctx.author.id))
-    await query(self.bot.log.mydb, "INSERT INTO votes (id,to_remind) VALUES (%s,%s) ON DUPLICATE KEY UPDATE to_remind=%s", ctx.author.id, not current_reminder, not current_reminder)
+    current_reminder = bool(await query(self.bot.log.mydb, "SELECT to_remind FROM votes WHERE id=?", ctx.author.id))
+    await query(self.bot.log.mydb, "INSERT INTO votes (id,to_remind) VALUES (?,?) ON DUPLICATE KEY UPDATE to_remind=?", ctx.author.id, not current_reminder, not current_reminder)
     if current_reminder is not True:
       await ctx.reply(embed=embed(title="I will now DM you every 12 hours after you vote for when you can vote again"))
     elif current_reminder is True:
@@ -61,7 +61,7 @@ class TopGG(commands.Cog):
       await self.topgg.post_guild_count(guild_count=len(self.bot.guilds), shard_count=self.bot.shard_count)
       self.bot.logger.info("Server count posted successfully")
     except Exception as e:
-      self.bot.logger.exception('Failed to post server count\n%s: %s', type(e).__name__, e)
+      self.bot.logger.exception('Failed to post server count\n?: ?', type(e).__name__, e)
 
   @tasks.loop(minutes=1.0)
   async def update_votes(self):
@@ -69,8 +69,8 @@ class TopGG(commands.Cog):
       await asyncio.sleep(0.2)
     reset_time, notify_time = datetime.datetime.utcnow() - datetime.timedelta(hours=24), datetime.datetime.utcnow() - datetime.timedelta(hours=12)
     reset_time_formated, notify_time_formated = f"{reset_time.year}-{'0' if reset_time.month < 10 else ''}{reset_time.month}-{'0' if reset_time.day < 10 else ''}{reset_time.day} {'0' if reset_time.hour < 10 else ''}{reset_time.hour}:{'0' if reset_time.minute < 10 else ''}{reset_time.minute}:{'0' if reset_time.second < 10 else ''}{reset_time.second}", f"{notify_time.year}-{'0' if notify_time.month < 10 else ''}{notify_time.month}-{'0' if notify_time.day < 10 else ''}{notify_time.day} {'0' if notify_time.hour < 10 else ''}{notify_time.hour}:{'0' if notify_time.minute < 10 else ''}{notify_time.minute}:{'0' if notify_time.second < 10 else ''}{notify_time.second}"
-    votes = await query(self.bot.log.mydb, f"SELECT id FROM votes WHERE voted_time < timestamp('{reset_time_formated}')")
-    reminds = await query(self.bot.log.mydb, f"SELECT id FROM votes WHERE has_reminded=0 AND to_remind=1 AND voted_time < timestamp('{notify_time_formated}')")
+    votes = await query(self.bot.log.mydb, f"SELECT id FROM votes WHERE voted_time < datetime('{reset_time_formated}')")
+    reminds = await query(self.bot.log.mydb, f"SELECT id FROM votes WHERE has_reminded=0 AND to_remind=1 AND voted_time < datetime('{notify_time_formated}')")
     vote_user_ids, remind_user_ids = [str(vote[0]) for vote in votes], [str(vote[0]) for vote in reminds]
     for user_id in remind_user_ids:
       try:
@@ -78,8 +78,8 @@ class TopGG(commands.Cog):
         await self.bot.http.send_message(private["id"], f"Your vote time has refreshed. You can now vote again! {self.vote_url}")
       except Exception:
         pass
-    await query(self.bot.log.mydb, f"UPDATE votes SET has_reminded=1 WHERE has_reminded=0 AND voted_time < timestamp('{notify_time_formated}')")
-    await query(self.bot.log.mydb, f"DELETE FROM votes WHERE to_remind=0 AND (voted_time IS NULL OR voted_time < timestamp('{notify_time_formated}'))")
+    await query(self.bot.log.mydb, f"UPDATE votes SET has_reminded=1 WHERE has_reminded=0 AND voted_time < datetime('{notify_time_formated}')")
+    await query(self.bot.log.mydb, f"DELETE FROM votes WHERE to_remind=0 AND (voted_time IS NULL OR voted_time < datetime('{notify_time_formated}'))")
     if len(remind_user_ids) > 0:
       self.bot.logger.info(f"Reminded {len(remind_user_ids)} users")
     if len(vote_user_ids) > 0:
@@ -103,7 +103,7 @@ class TopGG(commands.Cog):
   async def on_dbl_vote(self, data):
     self.bot.logger.info(f'Received an upvote, {data}')
     if data.get("user", None) is not None:
-      await query(self.bot.log.mydb, "INSERT INTO votes (id,voted_time) VALUES (%s,%s) ON DUPLICATE KEY UPDATE has_reminded=0,voted_time=%s", int(data["user"]), datetime.datetime.now(), datetime.datetime.now())
+      await query(self.bot.log.mydb, "INSERT INTO votes (id,voted_time) VALUES (?,?) ON DUPLICATE KEY UPDATE has_reminded=0,voted_time=?", int(data["user"]), datetime.datetime.now(), datetime.datetime.now())
     if data.get("type", None) == "test" or int(data.get("user", None)) not in (215227961048170496, 813618591878086707):
       if data.get("user", None) is not None:
         support_server = self.bot.get_guild(config.support_server_id)
