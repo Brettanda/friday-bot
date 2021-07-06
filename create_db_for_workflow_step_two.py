@@ -16,8 +16,8 @@ def run():
     db.commit()
   except Exception:
     pass
-  for row in cur.execute("SELECT * FROM servers LIMIT 10"):
-    print(row)
+  # for row in cur.execute("SELECT * FROM servers LIMIT 10"):
+  #   print(row)
   cur.close()
   db.close()
 
