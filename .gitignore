@@ -133,3 +133,6 @@ old_*
 guilds.json
 friday-trans-key.json
 *.csv
+*.db
+*.sql
+*.sqlite
