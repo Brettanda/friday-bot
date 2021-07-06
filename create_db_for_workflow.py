@@ -1,5 +1,6 @@
 import os
 import sqlite3
+import subprocess
 
 from dotenv import load_dotenv
 
@@ -10,8 +11,11 @@ def run():
   with open("friday.sql", "w") as f:
     f.write(os.environ.get("DB_FILE"))
     f.close()
-  db = sqlite3.connect(":memory:")
-  sql_file = open("friday.sql")
+  process = subprocess.Popen("./mysqltosqlite.sh friday.sql | sqlite friday.sqlite", shell=True, stdout=subprocess.PIPE)
+  process.wait()
+  db = sqlite3.connect("friday.db")
+  sql_file = open("friday.sqlite")
+  print(sql_file)
   cur = db.cursor()
   try:
     string = sql_file.read()
