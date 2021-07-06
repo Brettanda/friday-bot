@@ -13,7 +13,7 @@ from typing_extensions import TYPE_CHECKING
 # from discord_slash.utils.manage_commands import create_option, create_choice
 
 from cogs.help import cmd_help, syntax
-from functions import embed, build_docs  # , MessageColors
+from functions import embed, build_docs, query  # , MessageColors
 
 if TYPE_CHECKING:
   from index import Friday as Bot
@@ -255,9 +255,10 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     #   f.close()
     # await ctx.reply(file=discord.File(fp=f"{thispath}{seperator}docs{seperator}commands.md", filename="commands.md"))
 
-  @norm_dev.command(name="clear")
-  async def clear(self, ctx):
-    await ctx.reply(f"{len(self.bot.cached_messages)}")
+  @norm_dev.command(name="mysql")
+  async def mysql(self, ctx, *, string: str):
+    response = await query(self.bot.log.mydb, string)
+    await ctx.reply(response)
 
   @norm_dev.command(name="html")
   async def html(self, ctx):
