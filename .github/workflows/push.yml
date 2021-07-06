@@ -98,8 +98,10 @@ jobs:
         DB_FILE: ${{ secrets.DB_FILE }}
       run: |
         . ~/venv/bin/activate
-        python create_db_for_workflow.py        
-        if [ -f create_db_for_workflow.py ]; then printf "File created"; fi
+        python create_db_for_workflow_step_one.py        
+        ./mysqltosqlite.sh friday.sql | sqlite friday.sqlite
+        python create_db_for_workflow_step_two.py        
+        if [ -f friday.db ]; then printf "File created"; fi
     - name: Test with pytest
       env:
         TOKENTEST: ${{ secrets.TOKENTEST }}
