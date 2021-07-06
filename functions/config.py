@@ -81,6 +81,8 @@ intents = discord.Intents(
     # members=True
 )
 
+member_cache = discord.MemberCacheFlags.none()
+member_cache.voice = True
 
 # all_support_ranks = [item for item in support_ranks]
 
