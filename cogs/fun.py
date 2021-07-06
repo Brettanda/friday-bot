@@ -490,7 +490,7 @@ class Fun(commands.Cog):
     future = now + duration.seconds
     hours, minutes, sec = self.get_time(now, future)
     message = await ctx.send(embed=embed(title=f"Countdown: {title if title is not None else ''}", description="```" + figlet_format(f"{hours}:{minutes}:{sec}") + "```"))
-    await query(self.bot.log.mydb, "INSERT IGNORE INTO countdowns (guild,channel,message,title,time) VALUES (%s,%s,%s,%s,%s)", message.guild.id if message.guild is not None else None, message.channel.id, message.id, title, future)
+    await query(self.bot.log.mydb, "INSERT OR IGNORE INTO countdowns (guild,channel,message,title,time) VALUES (?,?,?,?,?)", message.guild.id if message.guild is not None else None, message.channel.id, message.id, title, future)
     self.countdowns.append((message.guild.id if message.guild is not None else None, message.channel.id, message.id, title, future))
     self.countdown_messages.append((message, title, future))
 
@@ -532,7 +532,7 @@ class Fun(commands.Cog):
     while self.bot.is_closed():
       await asyncio.sleep(0.1)
     if payload.guild_id is not None and len([item for item in self.countdowns if item[2] == payload.message_id]) > 0:
-      await query(self.bot.log.mydb, "DELETE FROM countdowns WHERE message=%s", payload.message_id)
+      await query(self.bot.log.mydb, "DELETE FROM countdowns WHERE message=?", payload.message_id)
       self.countdown_messages.pop(self.countdown_messages.index([i for i in self.countdown_messages if i[0].id == payload.message_id][0]))
       self.countdowns.pop(self.countdowns.index([i for i in self.countdowns if i[2] == payload.message_id][0]))
 
