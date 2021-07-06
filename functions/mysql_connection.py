@@ -1,9 +1,5 @@
-import os
-import sys
 
-import mysql.connector
 from mysql.connector import errors
-import mysql.connector.pooling
 import sqlite3
 from . import config
 

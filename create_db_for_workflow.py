@@ -13,7 +13,10 @@ def run():
   db = sqlite3.connect("friday.db")
   sql_file = open("friday.sql")
   cur = db.cursor()
-  cur.executescript(sql_file.read())
+  try:
+    cur.executescript(sql_file.read())
+  except Exception:
+    pass
   for row in cur.execute("SELECT * FROM servers LIMIT 10"):
     print(row)
   cur.close()
