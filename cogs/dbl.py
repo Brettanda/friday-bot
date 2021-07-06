@@ -46,7 +46,7 @@ class TopGG(commands.Cog):
   @vote.command(name="remind", help="Whether or not to remind you of the next time that you can vote")
   async def vote_remind(self, ctx: commands.Context):
     current_reminder = bool(await query(self.bot.log.mydb, "SELECT to_remind FROM votes WHERE id=?", ctx.author.id))
-    await query(self.bot.log.mydb, "INSERT INTO votes (id,to_remind) VALUES (?,?) ON DUPLICATE KEY UPDATE to_remind=?", ctx.author.id, not current_reminder, not current_reminder)
+    await query(self.bot.log.mydb, "INSERT INTO votes (id,to_remind) VALUES (?,?) ON CONFLICT(id) DO UPDATE SET to_remind=?", ctx.author.id, not current_reminder, not current_reminder)
     if current_reminder is not True:
       await ctx.reply(embed=embed(title="I will now DM you every 12 hours after you vote for when you can vote again"))
     elif current_reminder is True:
@@ -103,7 +103,7 @@ class TopGG(commands.Cog):
   async def on_dbl_vote(self, data):
     self.bot.logger.info(f'Received an upvote, {data}')
     if data.get("user", None) is not None:
-      await query(self.bot.log.mydb, "INSERT INTO votes (id,voted_time) VALUES (?,?) ON DUPLICATE KEY UPDATE has_reminded=0,voted_time=?", int(data["user"]), datetime.datetime.now(), datetime.datetime.now())
+      await query(self.bot.log.mydb, "INSERT INTO votes (id,voted_time) VALUES (?,?) ON CONFLICT(id) DO UPDATE SET has_reminded=0,voted_time=?", int(data["user"]), datetime.datetime.now(), datetime.datetime.now())
     if data.get("type", None) == "test" or int(data.get("user", None)) not in (215227961048170496, 813618591878086707):
       if data.get("user", None) is not None:
         support_server = self.bot.get_guild(config.support_server_id)
