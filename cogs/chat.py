@@ -2,6 +2,7 @@ import discord
 import os
 import openai
 import asyncio
+from pympler import summary, muppy
 from discord.ext import commands
 from typing import TYPE_CHECKING
 
@@ -49,6 +50,9 @@ class Chat(commands.Cog):
 
   @commands.command(name="say", aliases=["repeat"], help="Make Friday say what ever you want")
   async def say(self, ctx, *, content: str):
+    allobjects = muppy.get_objects()
+    sums = summary.summarize(allobjects)
+    summary.print_(sums)
     if content in ("im stupid", "i'm stupid", "i am dumb", "im dumb"):
       return await ctx.reply("yeah we know", allowed_mentions=discord.AllowedMentions(roles=False, everyone=False, users=False))
     await ctx.reply(content, allowed_mentions=discord.AllowedMentions(roles=False, everyone=False, users=False))
