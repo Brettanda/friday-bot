@@ -16,8 +16,7 @@ def mydb_connect() -> sqlite3.Connection:  # -> mysql.connector.pooling.MySQLCon
 # async def query(mydb: mysql.connector.MySQLConnection(), query: str, *params, rlist: bool = False) -> str or list:
 async def query(mydb: sqlite3.Connection, query: str, *params, rlist: bool = False) -> str or list:
   try:
-    mydb = sqlite3.connect("friday.db")
-    mydb = mydb_connect()
+    mydb = sqlite3.connect("friday.db", 30.0)
     mycursor = mydb.cursor()
     mycursor.execute(query, params)
     if "select" in query.lower():
@@ -45,7 +44,7 @@ async def query(mydb: sqlite3.Connection, query: str, *params, rlist: bool = Fal
 def non_coro_query(mydb: sqlite3.Connection, query: str, *params, rlist: bool = False) -> str or list:
   """Meant to placed in __init__() of cogs"""
   try:
-    mydb = sqlite3.connect("friday.db")
+    mydb = sqlite3.connect("friday.db", 30.0)
     # if not mydb.is_connected():
     #   mydb.reconnect(attempts=2, delay=0.1)
     mycursor = mydb.cursor()
