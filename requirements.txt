@@ -95,3 +95,4 @@ python-slugify==5.0.2
 profanity==1.1
 pyfiglet==0.8.post1
 pysqlite3
+pympler==0.9
