@@ -134,31 +134,6 @@ class Moderation(commands.Cog):
   # async def slash_settings_bot(self, ctx):
   #   print("askjdhla")
 
-  @settings_bot.command(name="mute")
-  @commands.guild_only()
-  @commands.has_guild_permissions(manage_channels=True)
-  async def norm_settings_bot_mute(self, ctx):
-    post = await self.settings_bot_mute(ctx)
-    await ctx.reply(**post)
-
-  @cog_ext.cog_subcommand(base="set", base_description="Bot settings", name="mute", description="Stop me from responding to non-command messages or not")
-  @commands.has_guild_permissions(manage_channels=True)
-  @checks.slash(user=True, private=False)
-  async def slash_settings_bot_mute(self, ctx):
-    post = await self.settings_bot_mute(ctx)
-    await ctx.send(**post)
-
-  async def settings_bot_mute(self, ctx):
-    muted = await query(self.bot.log.mydb, "SELECT muted FROM servers WHERE id=%s", ctx.guild.id)
-    if int(muted) == 0:
-      await query(self.bot.log.mydb, "UPDATE servers SET muted=%s WHERE id=%s", 1, ctx.guild.id)
-      self.bot.log.change_guild_muted(ctx.guild.id, True)
-      return dict(embed=embed(title="I will now only respond to commands"))
-    else:
-      await query(self.bot.log.mydb, "UPDATE servers SET muted=%s WHERE id=%s", 0, ctx.guild.id)
-      self.bot.log.change_guild_muted(ctx.guild.id, False)
-      return dict(embed=embed(title="I will now respond to chat message as well as commands"))
-
   @settings_bot.command(name="chatchannel", alias="chat", help="Set the current channel so that I will always try to respond with something")
   @commands.guild_only()
   @commands.has_guild_permissions(manage_channels=True)

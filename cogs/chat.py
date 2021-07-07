@@ -241,11 +241,6 @@ class Chat(commands.Cog):
         if msg.guild.me not in msg.mentions:
           return False
 
-    if msg.guild is not None:
-      muted = self.bot.log.get_guild_muted(msg.guild)
-      if muted == 1 or muted is True:
-        return False
-
     # if not await self.global_chat_checks(msg):
     #   return False
 
