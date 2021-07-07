@@ -15,6 +15,7 @@ def mydb_connect() -> sqlite3.Connection:  # -> mysql.connector.pooling.MySQLCon
 # async def query(mydb: mysql.connector.MySQLConnection(), query: str, *params, rlist: bool = False) -> str or list:
 async def query(mydb: sqlite3.Connection, query: str, *params, rlist: bool = False) -> str or list:
   try:
+    mydb = mydb_connect()
     mycursor = mydb.cursor()
     mycursor.execute(query, params)
     if "select" in query.lower():
@@ -33,7 +34,9 @@ async def query(mydb: sqlite3.Connection, query: str, *params, rlist: bool = Fal
       return result
   except errors.Error as e:
     print("MySQL Error ", e)
-  # finally:
+  finally:
+    mycursor.close()
+    mydb.close()
   #   if mydb.is_connected():
   #     mycursor.close()
   #     mydb.close()
@@ -64,10 +67,10 @@ def non_coro_query(mydb: sqlite3.Connection, query: str, *params, rlist: bool = 
       return result
   except errors.Error as e:
     print("MySQL Error ", e)
-  # finally:
+  finally:
+    mycursor.close()
+    mydb.close()
   #   if mydb.is_connected():
-  #     mycursor.close()
-  #     mydb.close()
 
 
 async def query_prefix(bot, ctx, client: bool = False) -> str:
