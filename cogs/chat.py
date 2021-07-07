@@ -12,7 +12,7 @@ import datetime
 from profanity import profanity
 from six.moves.html_parser import HTMLParser
 from google.cloud import translate_v2 as translate
-from functions import relay_info, checks, embed, MessageColors  # , queryIntents
+from functions import relay_info, checks, embed, MessageColors, query  # , queryIntents
 # MessageColors, dev_guilds, get_reddit_post, embed, config, msg_reply,
 if TYPE_CHECKING:
   from index import Friday as Bot
@@ -237,14 +237,9 @@ class Chat(commands.Cog):
       return False
 
     if msg.guild is not None:
-      if self.bot.log.get_guild_chat_channel(msg.guild) != msg.channel.id:
+      if (await query(self.bot.log.mydb, "SELECT chatChannel FROM servers WHERE id=?", msg.guild.id)) != msg.channel.id:
         if msg.guild.me not in msg.mentions:
           return False
-
-    if msg.guild is not None:
-      muted = self.bot.log.get_guild_muted(msg.guild)
-      if muted == 1 or muted is True:
-        return False
 
     # if not await self.global_chat_checks(msg):
     #   return False
