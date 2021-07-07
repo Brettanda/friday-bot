@@ -224,7 +224,7 @@ class Chat(commands.Cog):
       return False
 
     if msg.guild is not None and msg.author.id != self.bot.user.id:
-      if self.bot.log.get_guild_chat_channel(msg.guild) != msg.channel.id:
+      if (await query(self.bot.log.mydb, "SELECT chatChannel FROM servers WHERE id=?", msg.guild.id)) != msg.channel.id:
         if msg.guild.me not in msg.mentions:
           return False
 
@@ -233,11 +233,8 @@ class Chat(commands.Cog):
 
     return False
 
-  async def should_i_message(self, msg: discord.Message, min_tiers: list) -> bool:
+  async def should_i_message(self, msg: discord.Message) -> bool:
     if msg.author.bot:
-      return False
-
-    if (len(msg.clean_content) > 100 and not min_tiers["min_g_t1"]) or (len(msg.clean_content) > 200 and min_tiers["min_g_t1"]):
       return False
 
     if msg.guild is not None:
@@ -252,21 +249,21 @@ class Chat(commands.Cog):
 
   @commands.Cog.listener()
   async def on_message(self, msg: discord.Message):
-    if not self.bot.ready:
+    if not self.bot.ready or self.bot.is_closed():
       return
-    await self.bot.wait_until_ready()
-    while self.bot.is_closed():
-      await asyncio.sleep(0.1)
     # tier = self.bot.log.get_guild_tier(msg.guild)
     # if tier is None or tier == "None":
     #   tier = list(config.premium_tiers)[0]
 
-    ctx = await self.bot.get_context(msg)
-
     if not await self.global_chat_checks(msg):
       return
 
-    voted, min_g_t1, min_u_t1, min_g_t2, min_u_t2, min_g_t3, min_u_t3, min_g_t4, min_u_t4 = await asyncio.gather(checks.user_voted(self.bot, ctx.author),
+    if not await self.should_i_message(msg):
+      return
+
+    ctx = await self.bot.get_context(msg)
+
+    voted, min_g_t1, min_u_t1, min_g_t2, min_u_t2, min_g_t3, min_u_t3, min_g_t4, min_u_t4 = await asyncio.gather(checks.user_voted(self.bot, msg.author),
                                                                                                                  checks.guild_is_min_tier(self.bot, msg.guild, "t1_one_guild"),
                                                                                                                  checks.user_is_min_tier(self.bot, msg.author, "t1_one_guild"),
                                                                                                                  checks.guild_is_min_tier(self.bot, msg.guild, "t2_one_guild"),
@@ -288,6 +285,8 @@ class Chat(commands.Cog):
         "min_u_t4": min_u_t4
     }
 
+    if (len(msg.clean_content) > 100 and not min_tiers["min_g_t1"]) or (len(msg.clean_content) > 200 and min_tiers["min_g_t1"]):
+      return
     # if not self.bot.canary:
     #   if not voted and not min_guild_one_guild and not min_user_one_guild:
     #     return await self.free_model(msg, lang=lang, tier=tier, voted=voted)
@@ -310,8 +309,6 @@ class Chat(commands.Cog):
     #   else:
     #     return
     # else:
-    if not await self.should_i_message(msg, min_tiers=min_tiers):
-      return
     # Anything to do with sending messages needs to be below the above check
     self.bot.dispatch("message_to_me", ctx, voted, min_tiers)
 
@@ -345,7 +342,7 @@ class Chat(commands.Cog):
       async with ctx.channel.typing():
         # translation = await translate(ctx)
         # response = await self.openai_req(msg, str(msg.author.id), tier, tier_one=True if min_guild_tier_one_one_guild or min_user_tier_one_one_guild else False)
-        response = await self.openai_req(ctx, str(ctx.author.id), min_tiers)
+        response = await self.openai_req(ctx.message, str(ctx.author.id), min_tiers)
 
     # if translation is not None and translation.get("detectedSourceLanguage", lang) != "en" and response is not None and "dynamic" not in response:
     #   final_translation = self.translate_request(response.replace("dynamic", ""), from_lang="en", to_lang=translation.get("detectedSourceLanguage", lang) if translation.get("translatedText") != translation.get("input") else "en")
