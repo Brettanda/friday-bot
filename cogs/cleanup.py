@@ -3,7 +3,7 @@ import asyncio
 # import discord
 from discord.ext import commands
 
-from functions import embed, query
+from functions import query  # , embed
 from typing_extensions import TYPE_CHECKING
 
 if TYPE_CHECKING:
