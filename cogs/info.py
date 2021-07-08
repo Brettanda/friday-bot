@@ -5,7 +5,7 @@ from discord_slash import cog_ext
 from discord_slash.model import SlashCommandOptionType
 from discord_slash.utils.manage_commands import create_option
 
-from functions import embed, query, MessageColors, checks, config
+from functions import embed, MessageColors, checks, config
 from typing_extensions import TYPE_CHECKING
 
 if TYPE_CHECKING:
