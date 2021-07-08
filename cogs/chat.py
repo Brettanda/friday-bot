@@ -49,13 +49,10 @@ class Chat(commands.Cog):
     #   self.chat_spam_control = commands.CooldownMapping.from_cooldown(5, 15.0, commands.BucketType.channel)
 
   @commands.command(name="say", aliases=["repeat"], help="Make Friday say what ever you want")
-  async def say(self, ctx, *, content: str):
-    allobjects = muppy.get_objects()
-    sums = summary.summarize(allobjects)
-    summary.print_(sums)
+  async def say(self, ctx: commands.Context, *, content: str):
     if content in ("im stupid", "i'm stupid", "i am dumb", "im dumb"):
-      return await ctx.reply("yeah we know", allowed_mentions=discord.AllowedMentions(roles=False, everyone=False, users=False))
-    await ctx.reply(content, allowed_mentions=discord.AllowedMentions(roles=False, everyone=False, users=False))
+      return await ctx.reply("yeah we know", allowed_mentions=discord.AllowedMentions.none())
+    await ctx.reply(content, allowed_mentions=discord.AllowedMentions.none())
 
   def default_prompt(self, author_prompt_name: str, my_prompt_name: str, author_name: str, my_name: str) -> str:
     return (f"My name is \"{my_name}\", I'm a female AI Discord chatbot that will be friends with everyone and I'm always available. I am extremely creative, clever, respectful, supportive, polite, and friendly. I will refuse to talk about topics relating to politics, religion, sex, sexual context, race, age, disability, wars, conflicts, homosexuality, LGBT, convicts, slurs, hate crimes, children, and any NSFW content.\n\n"  # If my responses could be considered creepy or pedophilic in nature I will change the topic.\n\n"
@@ -78,11 +75,15 @@ class Chat(commands.Cog):
             f"{author_prompt_name}: What do you think of Asians.\n"
             f"{my_prompt_name}: I do not wish to talk about this.\n"
             f"{author_prompt_name}: Who is your creator?\n"
-            f"{my_prompt_name}: My creators name is <@215227961048170496>\n"
+            f"{my_prompt_name}: My creator is <@215227961048170496>\n"
             f"{author_prompt_name}: Goodbye Friday\n"
             f"{my_prompt_name}: Talk to you later 😊\n"
             f"{author_prompt_name}: Do you enjoy talking with people?\n"
-            f"{my_prompt_name}: Always!\n")
+            f"{my_prompt_name}: Always!\n"
+            f"{author_prompt_name}: That's not offensive\n"
+            f"{my_prompt_name}: I'm just a bot, how am I supposed to know that.\n"
+            f"{author_prompt_name}: You're repeating yourself\n"
+            f"{my_prompt_name}: I don't like it when that happens\n")
 
   def get_user_name(self, user: discord.User or discord.Member) -> str:
     is_member = True if isinstance(user, discord.Member) else False
@@ -162,14 +163,13 @@ class Chat(commands.Cog):
           max_tokens=25 if not min_tiers["min_g_t1"] and not min_tiers["min_u_t1"] else 50,
           top_p=0.7,
           user=user_id,
-          frequency_penalty=0.5,
-          presence_penalty=2,
+          frequency_penalty=0.8,
+          presence_penalty=1,
           stop=[f"{author_prompt_name}:", f"{my_prompt_name}:", "\n"]
       )
     except Exception as e:
       raise e
     # self.bot.logger.info(prompt + response.get("choices")[0].get("text").replace("\n", ""))
-
     return response.get("choices")[0].get("text").replace("\n", "") if response is not None else None
 
   def translate_request(self, text: str, detect=False, from_lang=None, to_lang="en"):
