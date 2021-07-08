@@ -1,6 +1,6 @@
 import glob
 import os
-from cogs.help import syntax, get_params, get_examples
+from cogs.help import syntax, get_examples
 from typing_extensions import TYPE_CHECKING
 
 if TYPE_CHECKING:
