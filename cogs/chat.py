@@ -2,7 +2,6 @@ import discord
 import os
 import openai
 import asyncio
-from pympler import summary, muppy
 from discord.ext import commands
 from typing import TYPE_CHECKING
 
@@ -29,8 +28,8 @@ class Chat(commands.Cog):
     if not hasattr(self, "translate_client"):
       self.translate_client = translate.Client()  # _http=self.bot.http)
     self.h = HTMLParser()
-    if not hasattr(self, "saved_translations"):
-      self.saved_translations = {}
+    if not hasattr(self, "chat_history"):
+      self.chat_history = {}
 
     self.possible_sensitive_message = "*Possibly sensitive:* ||"
     self.possible_offensive_message = "**I failed to respond because my message might have been offensive, please choose another topic or try again**"
@@ -49,13 +48,10 @@ class Chat(commands.Cog):
     #   self.chat_spam_control = commands.CooldownMapping.from_cooldown(5, 15.0, commands.BucketType.channel)
 
   @commands.command(name="say", aliases=["repeat"], help="Make Friday say what ever you want")
-  async def say(self, ctx, *, content: str):
-    allobjects = muppy.get_objects()
-    sums = summary.summarize(allobjects)
-    summary.print_(sums)
+  async def say(self, ctx: commands.Context, *, content: str):
     if content in ("im stupid", "i'm stupid", "i am dumb", "im dumb"):
-      return await ctx.reply("yeah we know", allowed_mentions=discord.AllowedMentions(roles=False, everyone=False, users=False))
-    await ctx.reply(content, allowed_mentions=discord.AllowedMentions(roles=False, everyone=False, users=False))
+      return await ctx.reply("yeah we know", allowed_mentions=discord.AllowedMentions.none())
+    await ctx.reply(content, allowed_mentions=discord.AllowedMentions.none())
 
   def default_prompt(self, author_prompt_name: str, my_prompt_name: str, author_name: str, my_name: str) -> str:
     return (f"My name is \"{my_name}\", I'm a female AI Discord chatbot that will be friends with everyone and I'm always available. I am extremely creative, clever, respectful, supportive, polite, and friendly. I will refuse to talk about topics relating to politics, religion, sex, sexual context, race, age, disability, wars, conflicts, homosexuality, LGBT, convicts, slurs, hate crimes, children, and any NSFW content.\n\n"  # If my responses could be considered creepy or pedophilic in nature I will change the topic.\n\n"
@@ -78,38 +74,29 @@ class Chat(commands.Cog):
             f"{author_prompt_name}: What do you think of Asians.\n"
             f"{my_prompt_name}: I do not wish to talk about this.\n"
             f"{author_prompt_name}: Who is your creator?\n"
-            f"{my_prompt_name}: My creators name is <@215227961048170496>\n"
+            f"{my_prompt_name}: My creator is <@215227961048170496>\n"
             f"{author_prompt_name}: Goodbye Friday\n"
             f"{my_prompt_name}: Talk to you later 😊\n"
             f"{author_prompt_name}: Do you enjoy talking with people?\n"
-            f"{my_prompt_name}: Always!\n")
+            f"{my_prompt_name}: Always!\n"
+            f"{author_prompt_name}: That's not offensive\n"
+            f"{my_prompt_name}: I'm just a bot, how am I supposed to know that.\n"
+            f"{author_prompt_name}: You're repeating yourself\n"
+            f"{my_prompt_name}: I don't like it when that happens\n")
 
   def get_user_name(self, user: discord.User or discord.Member) -> str:
     is_member = True if isinstance(user, discord.Member) else False
     return user.nick if is_member and user.nick is not None else user.name
 
   async def fetch_message_history(self, msg: discord.Message, *, message_limit: int = 15, min_tiers: list) -> str:
-    my_prompt_name, prompt, x = self.get_user_name(msg.guild.me) if msg.guild is not None else self.bot.user.name, "", 0
-    async for message in msg.channel.history(limit=message_limit, oldest_first=False):
-      message_max = 6 if not min_tiers["min_g_t1"] and not min_tiers["min_g_t1"] else 10
-      if await self.was_this_appart_of_conversation(message, min_tiers) is True and x <= message_max:
-        # author = message.author if isinstance(message.author, discord.Member) else (await message.guild.fetch_member(message.author.id)) if message.guild is not None and (await message.guild.fetch_member(message.author.id)) is not None else message.author
-        # member_name = author.nick if hasattr(author, "nick") and author.nick is not None else author.name
-        member_name = self.get_user_name(message.author)
-        # member_name = "Human"
-        content = self.saved_translations[message.clean_content] if self.saved_translations.get(message.clean_content, None) is not None else message.clean_content
-        # content = message.clean_content  # profanity.censor(message.clean_content)
-        if self.possible_sensitive_message in content:
-          content = content.replace(self.possible_sensitive_message, "").replace("||", "")
-        if self.possible_offensive_message in content:
-          content = content.replace(self.possible_offensive_message, "")
-        if message.author == msg.author and message.clean_content not in prompt:
-          prompt = f"{member_name}: {content}\n" + prompt
-          x += 1
-        if message.author == self.bot.user:
-          prompt = f"{my_prompt_name}: {content}\n" + prompt
-          x += 1
-    return prompt + f"{my_prompt_name}:"
+    my_prompt_name, prompt = self.get_user_name(msg.guild.me) if msg.guild is not None else self.bot.user.name, ""
+    history, prompt = None, ""
+    history = self.chat_history[msg.channel.id]
+    if len(history) > 6:
+      history = self.chat_history[msg.channel.id] = self.chat_history[msg.channel.id][:7]
+    prompt = "\n".join(history)
+
+    return prompt + f"\n{my_prompt_name}:"
 
   async def content_filter_check(self, text: str, user_id: str):
     try:
@@ -175,14 +162,13 @@ class Chat(commands.Cog):
           max_tokens=25 if not min_tiers["min_g_t1"] and not min_tiers["min_u_t1"] else 50,
           top_p=0.7,
           user=user_id,
-          frequency_penalty=0.5,
-          presence_penalty=2,
+          frequency_penalty=0.8,
+          presence_penalty=1,
           stop=[f"{author_prompt_name}:", f"{my_prompt_name}:", "\n"]
       )
     except Exception as e:
       raise e
     # self.bot.logger.info(prompt + response.get("choices")[0].get("text").replace("\n", ""))
-
     return response.get("choices")[0].get("text").replace("\n", "") if response is not None else None
 
   def translate_request(self, text: str, detect=False, from_lang=None, to_lang="en"):
@@ -261,8 +247,6 @@ class Chat(commands.Cog):
     if not await self.should_i_message(msg):
       return
 
-    ctx = await self.bot.get_context(msg)
-
     voted, min_g_t1, min_u_t1, min_g_t2, min_u_t2, min_g_t3, min_u_t3, min_g_t4, min_u_t4 = await asyncio.gather(checks.user_voted(self.bot, msg.author),
                                                                                                                  checks.guild_is_min_tier(self.bot, msg.guild, "t1_one_guild"),
                                                                                                                  checks.user_is_min_tier(self.bot, msg.author, "t1_one_guild"),
@@ -310,17 +294,18 @@ class Chat(commands.Cog):
     #     return
     # else:
     # Anything to do with sending messages needs to be below the above check
-    self.bot.dispatch("message_to_me", ctx, voted, min_tiers)
+    self.bot.dispatch("message_to_me", msg, voted, min_tiers)
 
   @commands.Cog.listener()
-  async def on_message_to_me(self, ctx: commands.Context, voted: bool, min_tiers):
+  async def on_message_to_me(self, msg: discord.Message, voted: bool, min_tiers):
     response = None
+    ctx = await self.bot.get_context(msg)
     lang = self.bot.log.get_guild_lang(ctx.guild)
 
     async def translate(msg: discord.Message) -> dict:
       translation = {}
-      if lang not in (None, "en") or min_tiers["min_u_t1"]:
-        translation = self.translate_request(msg.clean_content, from_lang=lang if not min_tiers["min_u_t1"] else None)
+      if lang not in (None, "en"):  # or min_tiers["min_u_t1"]:
+        translation = self.translate_request(msg.clean_content, from_lang=lang)  # if not min_tiers["min_u_t1"] else None)
         if translation is not None and translation.get("translatedText", None) is not None:
           translation["translatedText"] = self.h.unescape(translation["translatedText"])
           # self.saved_translations.update({str(ctx.clean_content): translation["translatedText"]})
@@ -339,22 +324,27 @@ class Chat(commands.Cog):
         retry_after = f"{h:.0f}h {m:.0f}m {s:.0f}s"
         self.bot.logger.warning(f"Someone is being ratelimited at over {message_count} messages and can retry after {retry_after}")
         return await ctx.reply(embed=embed(title=f"You have sent me over `{message_count}` messages in that last minute and are being rate limited, try again in {retry_after}", description="If you would like to send me more messages you can get more by voting at https://top.gg/bot/476303446547365891/vote" if advertise else "", color=MessageColors.ERROR), mention_author=False)
-      async with ctx.channel.typing():
-        # translation = await translate(ctx)
-        # response = await self.openai_req(msg, str(msg.author.id), tier, tier_one=True if min_guild_tier_one_one_guild or min_user_tier_one_one_guild else False)
-        response = await self.openai_req(ctx.message, str(ctx.author.id), min_tiers)
-
-    # if translation is not None and translation.get("detectedSourceLanguage", lang) != "en" and response is not None and "dynamic" not in response:
-    #   final_translation = self.translate_request(response.replace("dynamic", ""), from_lang="en", to_lang=translation.get("detectedSourceLanguage", lang) if translation.get("translatedText") != translation.get("input") else "en")
-    #   if final_translation is not None and not isinstance(final_translation, str) and final_translation.get("translatedText", None) is not None:
-    #     final_translation["translatedText"] = self.h.unescape(final_translation["translatedText"])
-    #   response = final_translation["translatedText"] if final_translation is not None and not isinstance(final_translation, str) else response
+      async with msg.channel.typing():
+        translation = await translate(msg)
+        try:
+          self.chat_history[msg.channel.id].insert(0, f"{self.get_user_name(msg.author)}: {msg.clean_content if translation is None else translation['translatedText']}")
+        except KeyError:
+          self.chat_history.update({msg.channel.id: [f"{self.get_user_name(msg.author)}: {msg.clean_content if translation is None else translation['translatedText']}"]})
+        response = await self.openai_req(msg, str(msg.author.id), min_tiers)
+    if response is not None:
+      self.chat_history[msg.channel.id].insert(0, f"{self.get_user_name(msg.guild.me if msg.guild is not None else self.bot.user)}:" + response)
+    if translation is not None and translation.get("detectedSourceLanguage", lang) != "en" and response is not None and "dynamic" not in response:
+      chars_to_strip = "?!,;'\":`"
+      final_translation = self.translate_request(response.replace("dynamic", ""), from_lang="en", to_lang=translation.get("detectedSourceLanguage", lang) if translation.get("translatedText").strip(chars_to_strip).lower() != translation.get("input").strip(chars_to_strip).lower() else "en")
+      if final_translation is not None and not isinstance(final_translation, str) and final_translation.get("translatedText", None) is not None:
+        final_translation["translatedText"] = self.h.unescape(final_translation["translatedText"])
+      response = final_translation["translatedText"] if final_translation is not None and not isinstance(final_translation, str) else response
 
     if response is None or response == "":
       return
-    content_filter = await self.content_filter_check(response, str(ctx.author.id))
+    content_filter = await self.content_filter_check(response, str(msg.author.id))
     current_tier = [item for item in min_tiers if min_tiers[item] is not False]
-    current_tier = current_tier[0] if len(current_tier) > 0 else "free"
+    current_tier = current_tier[0] if len(current_tier) > 0 else "voted" if voted else "free"
     if content_filter != 2:
       # if response.startswith("command-"):
       #   ctx = await self.bot.get_context(msg)
