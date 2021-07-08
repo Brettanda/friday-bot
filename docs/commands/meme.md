@@ -9,12 +9,18 @@ Meme time
 Usage:
 
 ```md
-meme|shitpost 
+!meme|shitpost 
 ```
 
 Aliases:
 
 ```md
 shitpost
+```
+
+Examples:
+
+```md
+None
 ```
 

@@ -9,11 +9,17 @@ Get the link to vote for me on Top.gg
 Usage:
 
 ```md
-vote 
-vote remind 
+!vote 
+!vote remind 
 ```
 
 Aliases:
+
+```md
+None
+```
+
+Examples:
 
 ```md
 None
@@ -23,13 +29,19 @@ None
 Whether or not to remind you of the next time that you can vote
 Usage:
 
-```none
-vote remind 
+```md
+!vote remind 
 ```
 
 Aliases:
 
-```none
+```md
+None
+```
+
+Examples:
+
+```md
 None
 ```
 

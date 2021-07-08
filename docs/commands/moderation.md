@@ -9,13 +9,23 @@ Manage your server with these commands
 Usage:
 
 ```md
-ban <members> [delete_message_days=0] <reason>
+!ban <members>... [delete_message_days=0] <reason>
 ```
 
 Aliases:
 
 ```md
 None
+```
+
+Examples:
+
+```md
+!ban @username @someone @someoneelse
+!ban @thisguy
+!ban 12345678910 10987654321 @someone
+!ban @someone They were annoying me
+!ban 123456789 2 Sus
 ```
 
 ## Begone
@@ -25,10 +35,16 @@ Delete unwanted message that I send
 Usage:
 
 ```md
-begone [message]
+!begone [message]
 ```
 
 Aliases:
+
+```md
+None
+```
+
+Examples:
 
 ```md
 None
@@ -41,11 +57,11 @@ None
 Usage:
 
 ```md
-blacklist|bl 
-blacklist|bl clear 
-blacklist|bl add <word>
-blacklist|bl remove <word>
-blacklist|bl display 
+!blacklist|bl 
+!blacklist|bl clear 
+!blacklist|bl add <word>
+!blacklist|bl display 
+!blacklist|bl remove <word>
 ```
 
 Aliases:
@@ -54,17 +70,9 @@ Aliases:
 bl
 ```
 
-### Clear
+Examples:
 
-Usage:
-
-```none
-blacklist clear 
-```
-
-Aliases:
-
-```none
+```md
 None
 ```
 
@@ -72,42 +80,82 @@ None
 
 Usage:
 
-```none
-blacklist add|+ <word>
+```md
+!blacklist add|+ <word>
 ```
 
 Aliases:
 
-```none
+```md
 +
 ```
 
-### Remove
+Examples:
+
+```md
+!blacklist add penis
+!bl + shit
+```
+
+### Clear
 
 Usage:
 
-```none
-blacklist remove|- <word>
+```md
+!blacklist clear 
 ```
 
 Aliases:
 
-```none
--
+```md
+None
+```
+
+Examples:
+
+```md
+None
 ```
 
 ### Display
 
 Usage:
 
-```none
-blacklist display|list|show 
+```md
+!blacklist display|list|show 
 ```
 
 Aliases:
 
-```none
+```md
 list,show
+```
+
+Examples:
+
+```md
+None
+```
+
+### Remove
+
+Usage:
+
+```md
+!blacklist remove|- <word>
+```
+
+Aliases:
+
+```md
+-
+```
+
+Examples:
+
+```md
+!blacklist remove penis
+!bl - shit
 ```
 
 ## Kick
@@ -117,13 +165,23 @@ list,show
 Usage:
 
 ```md
-kick <members> [reason]
+!kick <members>... [reason]
 ```
 
 Aliases:
 
 ```md
 None
+```
+
+Examples:
+
+```md
+!kick @username @someone @someoneelse
+!kick @thisguy
+!kick 12345678910 10987654321 @someone
+!kick @someone I just really didn't like them
+!kick @thisguy 12345678910 They were spamming general
 ```
 
 ## Massmove
@@ -133,13 +191,21 @@ Move everyone from one voice channel to another
 Usage:
 
 ```md
-massmove|move <tochannel> [fromchannel]
+!massmove|move <tochannel> [fromchannel]
 ```
 
 Aliases:
 
 ```md
 move
+```
+
+Examples:
+
+```md
+!massmove general
+!move vc-2 general
+!massmove 'long voice channel' general
 ```
 
 ## Mute
@@ -149,10 +215,16 @@ Mute a member from text channels
 Usage:
 
 ```md
-mute <member>
+!mute <member>
 ```
 
 Aliases:
+
+```md
+None
+```
+
+Examples:
 
 ```md
 None
@@ -165,10 +237,16 @@ Sets the prefix for Fridays commands
 Usage:
 
 ```md
-prefix [new_prefix='!']
+!prefix [new_prefix='!']
 ```
 
 Aliases:
+
+```md
+None
+```
+
+Examples:
 
 ```md
 None
@@ -181,13 +259,21 @@ Moves everyone with a specific role to a voicechannel. Objects that can be exlud
 Usage:
 
 ```md
-rolecall|rc <role> [voicechannel] <exclusions>
+!rolecall|rc <role> [voicechannel] <exclusions>...
 ```
 
 Aliases:
 
 ```md
 rc
+```
+
+Examples:
+
+```md
+!rolecall @mods vc-1
+!rc 123456798910 vc-2 vc-1 10987654321
+!rolecall @admins general @username @username
 ```
 
 ## Set
@@ -197,48 +283,42 @@ rc
 Usage:
 
 ```md
-set|bot 
-set|bot language [language]
-set|bot chatchannel 
-set|bot maxmessages <message_rate> <seconds> [max_before_mute]
-set|bot deletecommandsafter [time=0]
-set|bot maxmentions [count]
-set|bot removeinvites 
-set|bot mute 
-set|bot musicchannel [voicechannel]
+!set 
+!set deletecommandsafter [time=0]
+!set removeinvites 
+!set language [language]
+!set chatchannel 
 ```
 
 Aliases:
 
 ```md
-bot
+None
 ```
 
-### Language
-Change the language that I will speak
-Usage:
+Examples:
 
-```none
-set language|lang [language]
-```
-
-Aliases:
-
-```none
-lang
+```md
+None
 ```
 
 ### Chatchannel
 Set the current channel so that I will always try to respond with something
 Usage:
 
-```none
-set chatchannel 
+```md
+!set chatchannel 
 ```
 
 Aliases:
 
-```none
+```md
+None
+```
+
+Examples:
+
+```md
 None
 ```
 
@@ -246,41 +326,61 @@ None
 Set the time in seconds for how long to wait before deleting command messages
 Usage:
 
-```none
-set deletecommandsafter|deleteafter|delcoms [time=0]
+```md
+!set deletecommandsafter|deleteafter|delcoms [time=0]
 ```
 
 Aliases:
 
-```none
+```md
 deleteafter,delcoms
+```
+
+Examples:
+
+```md
+!set deletecommandsafter 0
+!set deleteafter 180
+!set delcoms 
+```
+
+### Language
+Change the language that I will speak
+Usage:
+
+```md
+!set language|lang [language]
+```
+
+Aliases:
+
+```md
+lang
+```
+
+Examples:
+
+```md
+None
 ```
 
 ### Removeinvites
 Automaticaly remove Discord invites from text channels
 Usage:
 
-```none
-set removeinvites 
+```md
+!set removeinvites 
 ```
 
 Aliases:
 
-```none
+```md
 None
 ```
 
-### Mute
+Examples:
 
-Usage:
-
-```none
-set mute 
-```
-
-Aliases:
-
-```none
+```md
 None
 ```
 
@@ -291,10 +391,16 @@ Unmute a member from text channels
 Usage:
 
 ```md
-unmute <member>
+!unmute <member>
 ```
 
 Aliases:
+
+```md
+None
+```
+
+Examples:
 
 ```md
 None
