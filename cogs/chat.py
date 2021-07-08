@@ -2,7 +2,6 @@ import discord
 import os
 import openai
 import asyncio
-from pympler import summary, muppy
 from discord.ext import commands
 from typing import TYPE_CHECKING
 
