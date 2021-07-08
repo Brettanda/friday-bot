@@ -9,11 +9,11 @@ Play sounds/songs without looking for the url everytime
 Usage:
 
 ```md
-custom|c <name>
-custom|c change <name> <url>
-custom|c add <name> <url>
-custom|c list 
-custom|c remove <name>
+!custom|c <name>
+!custom|c remove <name>
+!custom|c list 
+!custom|c change <name> <url>
+!custom|c add <name> <url>
 ```
 
 Aliases:
@@ -22,31 +22,49 @@ Aliases:
 c
 ```
 
-### Change
+Examples:
 
-Usage:
-
-```none
-custom change|replace <name> <url>
-```
-
-Aliases:
-
-```none
-replace
+```md
+None
 ```
 
 ### Add
 
 Usage:
 
-```none
-custom add <name> <url>
+```md
+!custom add <name> <url>
 ```
 
 Aliases:
 
-```none
+```md
+None
+```
+
+Examples:
+
+```md
+None
+```
+
+### Change
+
+Usage:
+
+```md
+!custom change|replace <name> <url>
+```
+
+Aliases:
+
+```md
+replace
+```
+
+Examples:
+
+```md
 None
 ```
 
@@ -54,13 +72,19 @@ None
 
 Usage:
 
-```none
-custom list 
+```md
+!custom list 
 ```
 
 Aliases:
 
-```none
+```md
+None
+```
+
+Examples:
+
+```md
 None
 ```
 
@@ -68,14 +92,20 @@ None
 
 Usage:
 
-```none
-custom remove|del <name>
+```md
+!custom remove|del <name>
 ```
 
 Aliases:
 
-```none
+```md
 del
+```
+
+Examples:
+
+```md
+None
 ```
 
 ## Pause
@@ -85,10 +115,16 @@ Pause the current track
 Usage:
 
 ```md
-pause 
+!pause 
 ```
 
 Aliases:
+
+```md
+None
+```
+
+Examples:
 
 ```md
 None
@@ -101,13 +137,19 @@ Follow this command with the title of a song to search for it or just paste the 
 Usage:
 
 ```md
-play|p|add <url/title>
+!play|p|add <url/title>
 ```
 
 Aliases:
 
 ```md
 p,add
+```
+
+Examples:
+
+```md
+None
 ```
 
 ## Queue
@@ -117,10 +159,16 @@ shows the song queue
 Usage:
 
 ```md
-queue 
+!queue 
 ```
 
 Aliases:
+
+```md
+None
+```
+
+Examples:
 
 ```md
 None
@@ -133,10 +181,16 @@ Resume the current track
 Usage:
 
 ```md
-resume 
+!resume 
 ```
 
 Aliases:
+
+```md
+None
+```
+
+Examples:
 
 ```md
 None
@@ -149,10 +203,16 @@ Skips the current song
 Usage:
 
 ```md
-skip 
+!skip 
 ```
 
 Aliases:
+
+```md
+None
+```
+
+Examples:
 
 ```md
 None
@@ -165,12 +225,18 @@ Stops the currently playing music
 Usage:
 
 ```md
-stop|disconnect 
+!stop|disconnect 
 ```
 
 Aliases:
 
 ```md
 disconnect
+```
+
+Examples:
+
+```md
+None
 ```
 

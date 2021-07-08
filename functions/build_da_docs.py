@@ -1,6 +1,6 @@
 import glob
 import os
-from cogs.help import syntax
+from cogs.help import syntax, get_examples
 from typing_extensions import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -27,21 +27,27 @@ def build(bot: "Friday", prefix: str = "!"):
       for com in sorted(commands, key=lambda x: x.name):
         if com.hidden is False and com.enabled is True and com.cog_name == cog_name:
           f.write(f"## {com.name.capitalize()}\n\n")
-          usage = '\n'.join(syntax(com, quotes=False).split('\n'))
+          usage = "!" + '\n!'.join(syntax(com, quotes=False).split('\n'))
           # usage = discord.utils.escape_markdown(usage)  # .replace("<", "\\<")
           f.write(f"{com.help or ''}\n\n")
           # f.write(f"""\n\n!!! example "Usage"\n\n    ```md\n    {usage}\n    ```\n\n""")
           # f.write("""\n\n!!! example "Aliases"\n\n    ```md\n    """ + (",".join(com.aliases) if len(com.aliases) > 0 else 'None') + """\n    ```\n\n""")
           f.write(f"""Usage:\n\n```md\n{usage}\n```\n\n""")
           f.write("Aliases:\n\n```md\n" + (",".join(com.aliases) if len(com.aliases) > 0 else 'None') + "\n```\n\n")
+          examples = get_examples(com, "!")
+          examples = "\n".join(examples) if len(examples) > 0 else None
+          f.write(f"Examples:\n\n```md\n{examples}\n```\n\n")
           if hasattr(com, "commands"):
             # This is a command group
-            for c in com.commands:
+            for c in sorted(com.commands, key=lambda x: x.name):
               if c.hidden is False and c.enabled is True:
                 f.write(f"### {c.name.capitalize()}\n")
-                usage = '\n'.join(syntax(c, quotes=False).split('\n'))
+                usage = "!" + '\n!'.join(syntax(c, quotes=False).split('\n'))
                 # usage = discord.utils.escape_markdown(usage)  # .replace("<", "\\<")
                 f.write(f"{c.help or ''}\n")
-                f.write(f"""Usage:\n\n```none\n{usage}\n```\n\n""")
-                f.write("Aliases:\n\n```none\n" + (",".join(c.aliases) if len(c.aliases) > 0 else 'None') + "\n```\n\n")
+                f.write(f"""Usage:\n\n```md\n{usage}\n```\n\n""")
+                f.write("Aliases:\n\n```md\n" + (",".join(c.aliases) if len(c.aliases) > 0 else 'None') + "\n```\n\n")
+                examples = get_examples(c, "!")
+                examples = "\n".join(examples) if len(examples) > 0 else None
+                f.write(f"Examples:\n\n```md\n{examples}\n```\n\n")
       f.close()

@@ -9,12 +9,18 @@ D&D dice rolling
 Usage:
 
 ```md
-dice|d|r|roll <roll>
+!dice|d|r|roll <roll>
 ```
 
 Aliases:
 
 ```md
 d,r,roll
+```
+
+Examples:
+
+```md
+None
 ```
 
