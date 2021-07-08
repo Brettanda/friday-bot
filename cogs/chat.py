@@ -333,6 +333,7 @@ class Chat(commands.Cog):
         response = await self.openai_req(msg, str(msg.author.id), min_tiers)
     if response is not None:
       self.chat_history[msg.channel.id].insert(0, f"{self.get_user_name(msg.guild.me if msg.guild is not None else self.bot.user)}:" + response)
+      content_filter = await self.content_filter_check(response, str(msg.author.id))
     if translation is not None and translation.get("detectedSourceLanguage", lang) != "en" and response is not None and "dynamic" not in response:
       chars_to_strip = "?!,;'\":`"
       final_translation = self.translate_request(response.replace("dynamic", ""), from_lang="en", to_lang=translation.get("detectedSourceLanguage", lang) if translation.get("translatedText").strip(chars_to_strip).lower() != translation.get("input").strip(chars_to_strip).lower() else "en")
