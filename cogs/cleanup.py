@@ -1,9 +1,9 @@
-import asyncio
+# import asyncio
 
 # import discord
 from discord.ext import commands
 
-from functions import embed, query
+from functions import query  # , embed
 from typing_extensions import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -29,35 +29,35 @@ class CleanUp(commands.Cog):
     self.bot = bot
   #   # self.exlusions = ["meme","issue","reactionrole"]
 
-  @commands.command(name="clear", help="Deletes the bots commands ignoring anything that is not a command", hidden=True)
-  @commands.is_owner()
-  @commands.has_permissions(manage_channels=True)
-  @commands.bot_has_permissions(manage_channels=True)
-  async def clear(self, ctx):
-    def _check(m):
-      try:
-        coms = []
-        if m.author == self.bot.user and m.reference.resolved is not None and m.reference.resolved.content.startswith(ctx.prefix):
-          coms.append(m.reference.resolved.id)
-          return m.author == self.bot.user or m.id in coms
-        return False
-      except AttributeError:
-        return False
+  # @commands.command(name="clear", help="Deletes the bots commands ignoring anything that is not a command", hidden=True)
+  # @commands.is_owner()
+  # @commands.has_permissions(manage_channels=True)
+  # @commands.bot_has_permissions(manage_channels=True)
+  # async def clear(self, ctx):
+  #   def _check(m):
+  #     try:
+  #       coms = []
+  #       if m.author == self.bot.user and m.reference.resolved is not None and m.reference.resolved.content.startswith(ctx.prefix):
+  #         coms.append(m.reference.resolved.id)
+  #         return m.author == self.bot.user or m.id in coms
+  #       return False
+  #     except AttributeError:
+  #       return False
 
-    # def _command_check(m):
-    #   return m.id in commands
-      # return (
-      #   r.emoji in SEARCHOPTIONS.keys()
-      #   and u == ctx.author
-      #   and r.message.id == msg.id
-      # )
+  #   # def _command_check(m):
+  #   #   return m.id in commands
+  #     # return (
+  #     #   r.emoji in SEARCHOPTIONS.keys()
+  #     #   and u == ctx.author
+  #     #   and r.message.id == msg.id
+  #     # )
 
-    deleted = await ctx.channel.purge(check=_check)
-    # deleted = deleted + await ctx.channel.purge(check=_command_check)
-    await asyncio.gather(
-        ctx.message.delete(),
-        ctx.reply(embed=embed(title=f"Deleted `{len(deleted)}` message(s)"), delete_after=10.0)
-    )
+  #   deleted = await ctx.channel.purge(check=_check)
+  #   # deleted = deleted + await ctx.channel.purge(check=_command_check)
+  #   await asyncio.gather(
+  #       ctx.message.delete(),
+  #       ctx.reply(embed=embed(title=f"Deleted `{len(deleted)}` message(s)"), delete_after=10.0)
+  #   )
 
   # @commands.Cog.listener()
   # async def on_command(self,ctx):

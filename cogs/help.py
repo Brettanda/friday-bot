@@ -135,7 +135,7 @@ class Help(commands.HelpCommand):
       signature = self.clean_prefix + command.qualified_name + " "
 
       signature += (
-          "[args...]" if isinstance(command, flags.FlagCommand) else command.signature
+          "<args...>" if isinstance(command, flags.FlagCommand) else command.signature
       )
 
       embed.add_field(
