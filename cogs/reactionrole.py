@@ -11,7 +11,7 @@ if TYPE_CHECKING:
   from index import Friday as Bot
 
 
-class ReactionRole(commands.Cog):
+class ReactionRole(commands.Cog, name="Reaction Role"):
   def __init__(self, bot: "Bot"):
     self.bot = bot
     self.msgs = {}

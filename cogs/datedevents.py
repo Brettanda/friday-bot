@@ -43,6 +43,7 @@ class DatedEvents(commands.Cog):
         f = image.read()
         await user.edit(avatar=f)
         await guild.edit(icon=f, reason="April Fools")
+        image.close()
       await asyncio.sleep(43200.0)
     elif int(month) == 4 and int(day) == 2:
       print("post-april fools")
@@ -51,6 +52,7 @@ class DatedEvents(commands.Cog):
         f = image.read()
         await guild.edit(icon=f, reason="Post-april fools")
         await user.edit(avatar=f)
+        image.close()
       await asyncio.sleep(43200.0)
 
   @dated_events.before_loop
