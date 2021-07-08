@@ -9,10 +9,16 @@ Get the Patreon link for Friday
 Usage:
 
 ```md
-donate 
+!donate 
 ```
 
 Aliases:
+
+```md
+None
+```
+
+Examples:
 
 ```md
 None
@@ -25,10 +31,16 @@ Get an invite link to my support server
 Usage:
 
 ```md
-support 
+!support 
 ```
 
 Aliases:
+
+```md
+None
+```
+
+Examples:
 
 ```md
 None

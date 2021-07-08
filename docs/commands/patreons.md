@@ -9,12 +9,17 @@
 Usage:
 
 ```md
-patreon 
-patreon test 
-patreon server 
+!patreon 
+!patreon server 
 ```
 
 Aliases:
+
+```md
+None
+```
+
+Examples:
 
 ```md
 None
@@ -24,15 +29,21 @@ None
 
 Usage:
 
-```none
-patreon server 
-patreon server true 
-patreon server false 
+```md
+!patreon server 
+!patreon server true 
+!patreon server false 
 ```
 
 Aliases:
 
-```none
+```md
+None
+```
+
+Examples:
+
+```md
 None
 ```
 

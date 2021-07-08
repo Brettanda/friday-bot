@@ -17,29 +17,47 @@ if TYPE_CHECKING:
   from index import Friday as Bot
 
 
+def get_examples(command: commands.command, prefix: str = "!") -> list:
+  if command.extras != {} and "examples" in command.extras:
+    examples, x, ay, gy = [], 0, 0, 0
+    for ex in command.extras["examples"]:
+      alias, aliases, group_aliases = None, [command.name, *command.aliases], [command.parent.name, *command.parent.aliases] if command.parent is not None else []
+      ay = divmod(x, len(aliases))
+      alias = aliases[x - (ay[0] * len(aliases))]
+      gy = divmod(x, len(group_aliases)) if command.parent is not None else 0
+      group = group_aliases[x - (gy[0] * len(group_aliases))] + " " if command.parent is not None else ""
+      examples.append(f"{prefix}{group}{alias} {ex}")
+      x += 1
+    return examples
+  return []
+
+
+def get_params(com):
+  params = []
+  for key, value in com.params.items():
+    if key not in ("self", "ctx"):
+      if com.usage is not None:
+        # params.append(f"[{command.usage}]" if "NoneType" in str(value) else f"<{command.usage}>")
+        params = f"{com.usage}" if "NoneType" in str(value) else f"{com.usage}"
+      else:
+        post_key = "..." if "Greedy" in str(value) else ""
+        equals = str(value).split(' = ')[1] if len(str(value).split(' = ')) > 1 else str(None)
+        follow_key = f"={equals}" if equals != str(None) else ""
+        # params.append(f"[{key}{follow_key}]{post_key}" if "_Greedy" in str(value) or "NoneType" in str(value) else f"<{key}>")
+        params.append(f"[{key}{follow_key}]{post_key}" if "NoneType" in str(value) else f"<{key}>{post_key}")
+  if isinstance(params, list):
+    params = " ".join(params)
+  return params
+
+
 def syntax(command, quotes: bool = True):
   cmd_and_aliases = "|".join([str(command), *command.aliases])
-
-  def get_params(com):
-    params = []
-    for key, value in com.params.items():
-      if key not in ("self", "ctx"):
-        if com.usage is not None:
-          # params.append(f"[{command.usage}]" if "NoneType" in str(value) else f"<{command.usage}>")
-          params = f"{com.usage}" if "NoneType" in str(value) else f"{com.usage}"
-        else:
-          post_key = "..." if "_Greedy" in str(value) else ""
-          equals = str(value).split(' = ')[1] if len(str(value).split(' = ')) > 1 else str(None)
-          follow_key = f"={equals}" if equals != str(None) else ""
-          params.append(f"[{key}{follow_key}]{post_key}" if "_Greedy" in str(value) or "NoneType" in str(value) else f"<{key}>")
-    if isinstance(params, list):
-      params = " ".join(params)
-    return params
 
   sub_commands = ""
   if hasattr(command, "commands"):
     for com in command.commands:
-      sub_commands += f"\n{cmd_and_aliases} {com.name} {get_params(com)}"
+      if not com.hidden and com.enabled is not False:
+        sub_commands += f"\n{cmd_and_aliases} {com.name} {get_params(com)}"
   # sub_commands = "".join(str(command.commands) if hasattr(command,"commands") else "")
 
   if quotes:
@@ -103,6 +121,9 @@ class Help(commands.HelpCommand):
   async def on_help_command_error(self, ctx, error):
     if isinstance(error, commands.CommandInvokeError):
       await ctx.reply(str(error.original))
+
+  def get_command_signature(self, command: commands.command) -> str:
+    return self.context.clean_prefix + '\n!'.join(syntax(command, quotes=False).split('\n'))
 
   def make_page_embed(self, commands, title="Friday - Help", description=discord.Embed.Empty):
     embed = Embed(color=MessageColors.DEFAULT)
@@ -268,7 +289,10 @@ class Help(commands.HelpCommand):
     else:
       embed.description = command.help or "No help found..."
 
-    embed.add_field(name="Signature", value=self.get_command_signature(command))
+    if command.extras != {} and "examples" in command.extras:
+      embed.add_field(name="Examples", value="```py\n" + "\n".join(get_examples(command, self.clean_prefix)) + "```", inline=False)
+
+    embed.add_field(name="Signature", value="```py\n" + self.get_command_signature(command) + "```", inline=False)
 
     await self.context.reply(embed=embed)
 

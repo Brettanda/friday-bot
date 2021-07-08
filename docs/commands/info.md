@@ -9,13 +9,19 @@ Displays some information about myself :)
 Usage:
 
 ```md
-info|about 
+!info|about 
 ```
 
 Aliases:
 
 ```md
 about
+```
+
+Examples:
+
+```md
+None
 ```
 
 ## Serverinfo
@@ -25,10 +31,16 @@ Shows information about the server
 Usage:
 
 ```md
-serverinfo 
+!serverinfo 
 ```
 
 Aliases:
+
+```md
+None
+```
+
+Examples:
 
 ```md
 None
@@ -41,10 +53,16 @@ Some information on the mentioned user
 Usage:
 
 ```md
-userinfo <user>
+!userinfo <user>
 ```
 
 Aliases:
+
+```md
+None
+```
+
+Examples:
 
 ```md
 None

@@ -61,16 +61,6 @@ class Moderation(commands.Cog):
       raise commands.NoPrivateMessage("This command can only be used within a guild")
     return True
 
-  @commands.command(name="defaultrole", hidden=True, help="Set the role that is given to new members when they join the server")
-  @commands.is_owner()
-  @commands.has_guild_permissions(manage_roles=True)
-  @commands.bot_has_guild_permissions(manage_roles=True)
-  async def _defaultrole(self, ctx, role: typing.Optional[discord.Role] = None):
-    # TODO: Need the members intent so assign the role
-    role_id = role.id if role is not None else None
-    await query(self.bot.log.mydb, "UPDATE servers SET defaultRole=? WHERE id=?", role_id, ctx.guild.id)
-    await ctx.reply(embed=embed(title=f"The new default role for new members is `{role}`"))
-
   @commands.Cog.listener()
   async def on_member_join(self, member: discord.Member):
     if member.pending:
@@ -122,7 +112,7 @@ class Moderation(commands.Cog):
     except discord.Forbidden:
       await ctx.reply(f"My new prefix is `{new_prefix}`")
 
-  @commands.group(name="set", aliases=["bot"], invoke_without_command=True, case_insensitive=True)
+  @commands.group(name="set", invoke_without_command=True, case_insensitive=True)
   @commands.guild_only()
   @commands.has_guild_permissions(manage_channels=True)
   async def settings_bot(self, ctx):
@@ -133,6 +123,16 @@ class Moderation(commands.Cog):
   # @checks.slash(user=True, private=False)
   # async def slash_settings_bot(self, ctx):
   #   print("askjdhla")
+
+  @settings_bot.command(name="defaultrole", hidden=True, extras={"examples": ["@default", ""]}, help="Set the role that is given to new members when they join the server")
+  @commands.is_owner()
+  @commands.has_guild_permissions(manage_roles=True)
+  @commands.bot_has_guild_permissions(manage_roles=True)
+  async def _defaultrole(self, ctx, role: typing.Optional[discord.Role] = None):
+    # TODO: Need the members intent so assign the role
+    role_id = role.id if role is not None else None
+    await query(self.bot.log.mydb, "UPDATE servers SET defaultRole=? WHERE id=?", role_id, ctx.guild.id)
+    await ctx.reply(embed=embed(title=f"The new default role for new members is `{role}`"))
 
   @settings_bot.command(name="chatchannel", alias="chat", help="Set the current channel so that I will always try to respond with something")
   @commands.guild_only()
@@ -207,7 +207,7 @@ class Moderation(commands.Cog):
     else:
       await ctx.reply(embed=embed(title=f"`{voicechannel}` is now my music channel"))
 
-  @settings_bot.command(name="deletecommandsafter", aliases=["deleteafter", "delcoms"], help="Set the time in seconds for how long to wait before deleting command messages")
+  @settings_bot.command(name="deletecommandsafter", extras={"examples": ["0", "180", ""]}, aliases=["deleteafter", "delcoms"], help="Set the time in seconds for how long to wait before deleting command messages")
   @commands.guild_only()
   @commands.has_guild_permissions(manage_channels=True)
   @commands.bot_has_permissions(manage_messages=True)
@@ -263,7 +263,7 @@ class Moderation(commands.Cog):
     await ctx.send_help(ctx.command)
     # await cmd_help(ctx, ctx.command)
 
-  @_blacklist.command(name="add", aliases=["+"])
+  @_blacklist.command(name="add", aliases=["+"], extras={"examples": ["penis", "shit"]})
   @commands.guild_only()
   @commands.has_guild_permissions(manage_guild=True)
   async def _blacklist_add_word(self, ctx, *, word: str):
@@ -276,7 +276,7 @@ class Moderation(commands.Cog):
     word = word
     await ctx.reply(embed=embed(title=f"Added `{word}` to the blacklist"))
 
-  @_blacklist.command(name="remove", aliases=["-"])
+  @_blacklist.command(name="remove", aliases=["-"], extras={"examples": ["penis", "shit"]})
   @commands.guild_only()
   @commands.has_guild_permissions(manage_guild=True)
   async def _blacklist_remove_word(self, ctx, *, word: str):
@@ -305,7 +305,7 @@ class Moderation(commands.Cog):
     self.blacklist[ctx.guild.id] = []
     await ctx.reply(embed=embed(title="Removed all blacklisted words"))
 
-  @commands.command(name="kick")
+  @commands.command(name="kick", extras={"examples": ["@username @someone @someoneelse", "@thisguy", "12345678910 10987654321 @someone", "@someone I just really didn't like them", "@thisguy 12345678910 They were spamming general"]})
   @commands.bot_has_guild_permissions(kick_members=True)
   @commands.has_guild_permissions(kick_members=True)
   async def norm_kick(self, ctx, members: commands.Greedy[discord.Member], *, reason: typing.Optional[str] = None):
@@ -385,7 +385,7 @@ class Moderation(commands.Cog):
       return await ctx.send(embed=embed(title=f"Kicked `{', '.join(tokick)}`{(' for reason `' + reason+'`') if reason is not None else ''}"))
     return await ctx.reply(embed=embed(title=f"Kicked `{', '.join(tokick)}`{(' for reason `' + reason+'`') if reason is not None else ''}"))
 
-  @commands.command(name="ban")
+  @commands.command(name="ban", extras={"examples": ["@username @someone @someoneelse", "@thisguy", "12345678910 10987654321 @someone", "@someone They were annoying me", "123456789 2 Sus"]})
   @commands.bot_has_guild_permissions(ban_members=True)
   @commands.has_guild_permissions(ban_members=True)
   async def norm_ban(self, ctx, members: commands.Greedy[discord.Member], delete_message_days: typing.Optional[int] = 0, *, reason: str = None):
@@ -472,7 +472,7 @@ class Moderation(commands.Cog):
       await member.ban(delete_message_days=delete_message_days, reason=f"{ctx.author}: {reason}")
     return dict(embed=embed(title=f"Banned `{', '.join(toban)}`{(' with `'+str(delete_message_days)+'` messages deleted') if delete_message_days > 0 else ''}{(' for reason `'+reason+'`') if reason is not None else ''}"))
 
-  @commands.command(name="rolecall", aliases=["rc"], help="Moves everyone with a specific role to a voicechannel. Objects that can be exluded are voicechannels,roles,and members")
+  @commands.command(name="rolecall", aliases=["rc"], extras={"examples": ["@mods vc-1", "123456798910 vc-2 vc-1 10987654321", "@admins general @username @username"]}, help="Moves everyone with a specific role to a voicechannel. Objects that can be exluded are voicechannels,roles,and members")
   @commands.guild_only()
   @commands.has_guild_permissions(move_members=True)
   @commands.bot_has_guild_permissions(move_members=True)
@@ -521,7 +521,7 @@ class Moderation(commands.Cog):
 
     return dict(embed=embed(title=f"Moved {moved} members with the role `{role}` to `{voicechannel}`"))
 
-  @commands.command(name="massmove", aliases=["move"], help="Move everyone from one voice channel to another")
+  @commands.command(name="massmove", aliases=["move"], extras={"examples": ["general", "vc-2 general", "'long voice channel' general"]}, help="Move everyone from one voice channel to another")
   @commands.guild_only()
   @commands.has_guild_permissions(move_members=True)
   @commands.bot_has_guild_permissions(move_members=True)

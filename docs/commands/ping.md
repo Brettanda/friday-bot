@@ -9,10 +9,16 @@ Pong!
 Usage:
 
 ```md
-ping 
+!ping 
 ```
 
 Aliases:
+
+```md
+None
+```
+
+Examples:
 
 ```md
 None
