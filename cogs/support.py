@@ -105,7 +105,13 @@ class Support(commands.Cog, name="Support"):
 
     if not msg.guild or msg.author.bot or msg.guild.id != 707441352367013899:
       return
-    print(discord.utils.resolve_invite(msg.clean_content))
+    # print(discord.utils.resolve_invite(msg.clean_content))
+
+  @commands.Cog.listener()
+  async def on_ready(self):
+    guild: discord.Guild = self.bot.get_guild(config.support_server_id)
+    if guild.large and self.bot.intents.members and not guild.chunked:
+      await guild.chunk(cache=True)
 
   @commands.Cog.listener("on_ready")
   @commands.Cog.listener("on_invite_create")

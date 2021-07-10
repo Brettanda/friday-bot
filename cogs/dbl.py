@@ -65,8 +65,8 @@ class TopGG(commands.Cog):
 
   @tasks.loop(minutes=1.0)
   async def update_votes(self):
-    while not self.bot.ready:
-      await asyncio.sleep(0.2)
+    if not self.bot.ready:
+      return
     reset_time, notify_time = datetime.datetime.utcnow() - datetime.timedelta(hours=24), datetime.datetime.utcnow() - datetime.timedelta(hours=12)
     reset_time_formated, notify_time_formated = f"{reset_time.year}-{'0' if reset_time.month < 10 else ''}{reset_time.month}-{'0' if reset_time.day < 10 else ''}{reset_time.day} {'0' if reset_time.hour < 10 else ''}{reset_time.hour}:{'0' if reset_time.minute < 10 else ''}{reset_time.minute}:{'0' if reset_time.second < 10 else ''}{reset_time.second}", f"{notify_time.year}-{'0' if notify_time.month < 10 else ''}{notify_time.month}-{'0' if notify_time.day < 10 else ''}{notify_time.day} {'0' if notify_time.hour < 10 else ''}{notify_time.hour}:{'0' if notify_time.minute < 10 else ''}{notify_time.minute}:{'0' if notify_time.second < 10 else ''}{notify_time.second}"
     votes = await query(self.bot.log.mydb, f"SELECT id FROM votes WHERE voted_time < datetime('{reset_time_formated}')")
@@ -87,7 +87,8 @@ class TopGG(commands.Cog):
       await query(self.bot.log.mydb, f"UPDATE votes SET has_reminded=0,voted_time=NULL WHERE id IN ({','.join(vote_user_ids)})")
       batch = []
       for user_id in vote_user_ids:
-        member = await self.bot.get_guild(config.support_server_id).fetch_member(user_id)
+        get_member = self.bot.get_guild(config.support_server_id).get_member(user_id)
+        member = get_member if get_member is not None else await self.bot.get_guild(config.support_server_id).fetch_member(user_id)
         if member is not None:
           self.bot.logger.info(f"Vote expired for {user_id}")
           batch.append(member.remove_roles(member.guild.get_role(self.vote_role), reason="Vote expired"))
@@ -107,7 +108,8 @@ class TopGG(commands.Cog):
     if data.get("type", None) == "test" or int(data.get("user", None)) not in (215227961048170496, 813618591878086707):
       if data.get("user", None) is not None:
         support_server = self.bot.get_guild(config.support_server_id)
-        member = await support_server.fetch_member(data["user"]) if support_server is not None else None
+        get_member = support_server.get_member(data["user"]) if support_server is not None else None
+        member = get_member if get_member is not None else await support_server.fetch_member(data["user"]) if support_server is not None else None
         if member is not None:
           role = member.guild.get_role(self.vote_role)
           await member.add_roles(role, reason="Voted on Top.gg")

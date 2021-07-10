@@ -29,12 +29,11 @@ def is_min_tier(tier: str = list(config.premium_tiers)[1]) -> "_CheckDecorator":
       return True
     member = None
     try:
-      member = await ctx.bot.get_guild(config.support_server_id).fetch_member(ctx.author.id)
+      guild = ctx.bot.get_guild(config.support_server_id)
+      member = guild.get_member(ctx.author.id) if guild.get_member(ctx.author.id) is not None else await guild.fetch_member(ctx.author.id)
     except discord.HTTPException:
       raise exceptions.NotInSupportServer()
-    if await user_is_min_tier(ctx.bot, member, tier):
-      return True
-    elif await guild_is_min_tier(ctx.bot, ctx.guild, tier):
+    if await user_is_min_tier(ctx.bot, member, tier) or await guild_is_min_tier(ctx.bot, ctx.guild, tier):
       return True
     else:
       raise exceptions.RequiredTier()
@@ -64,7 +63,8 @@ async def user_is_min_tier(bot: "Bot", user: discord.User, tier: str = list(conf
   if hasattr(user, "guild") and user.guild.id != config.support_server_id or not hasattr(user, "guild"):
     member = None
     try:
-      member = await bot.get_guild(config.support_server_id).fetch_member(user.id)
+      guild = bot.get_guild(config.support_server_id)
+      member = guild.get_member(user.id) if guild.get_member(user.id) is not None else await guild.fetch_member(user.id)
     except Exception:
       return False
     user = member
