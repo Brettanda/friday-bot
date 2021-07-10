@@ -94,7 +94,7 @@ class Chat(commands.Cog):
     history = self.chat_history[msg.channel.id]
     if len(history) > 6:
       history = self.chat_history[msg.channel.id] = self.chat_history[msg.channel.id][:7]
-    prompt = "\n".join(history)
+    prompt = "\n".join(reversed(history))
 
     return prompt + f"\n{my_prompt_name}:"
 
