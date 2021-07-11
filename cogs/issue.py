@@ -50,7 +50,7 @@ class Issue(commands.Cog):
       await confirm.edit(content="", embed=embed(title="Canceled"), mention_author=False)
     else:
       await confirm.edit(content="", embed=embed(title="Sent. For a follow up to this issue please join the support server https://discord.gg/NTRuFjU"), mention_author=False)
-      await relay_info("", embed=embed(title="Issue", description=f"{issue}", ctx=ctx), bot=self.bot, webhook=self.bot.log_issues)
+      await relay_info("", embed=embed(title="Issue", description=f"{issue}", ctx=ctx), bot=self.bot, webhook=self.bot.log.log_issues)
     finally:
       if not slash:
         await confirm.delete(delay=delay if delay is not None else 30)
