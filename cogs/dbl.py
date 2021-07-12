@@ -92,15 +92,21 @@ class TopGG(commands.Cog):
     if len(remind_user_ids) > 0:
       self.bot.logger.info(f"Reminded {len(remind_user_ids)} users")
     if len(vote_user_ids) > 0:
-      await query(self.bot.log.mydb, f"DELETE FROM votes WHERE to_remind=0 AND id IN ({','.join(vote_user_ids)})")
+      batch, to_purge = [], []
       await query(self.bot.log.mydb, f"UPDATE votes SET has_reminded=0,voted_time=NULL WHERE id IN ({','.join(vote_user_ids)})")
-      batch = []
       for user_id in vote_user_ids:
         get_member = self.bot.get_guild(config.support_server_id).get_member(user_id)
         member = get_member if get_member is not None else await self.bot.get_guild(config.support_server_id).fetch_member(user_id)
         if member is not None:
           self.bot.logger.info(f"Vote expired for {user_id}")
-          batch.append(member.remove_roles(member.guild.get_role(self.vote_role), reason="Vote expired"))
+          try:
+            await member.remove_roles(member.guild.get_role(self.vote_role), reason="Vote expired")
+          except Exception:
+            pass
+          else:
+            to_purge.append(user_id)
+      if len(to_purge) > 0:
+        await query(self.bot.log.mydb, f"DELETE FROM votes WHERE to_remind=0 AND id IN ({','.join(to_purge)})")
       if len(batch) > 0:
         await asyncio.gather(*batch)
 
