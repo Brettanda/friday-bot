@@ -48,7 +48,7 @@ class Support(commands.Cog, name="Support"):
   #   return
 
   @commands.Cog.listener()
-  async def on_raw_reaction_add(self, payload):
+  async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
     member = payload.member
 
     if not self.bot.prod or not payload.guild_id:
@@ -73,7 +73,7 @@ class Support(commands.Cog, name="Support"):
     await member.add_roles(role, reason="Updates!")
 
   @commands.Cog.listener()
-  async def on_raw_reaction_remove(self, payload):
+  async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent):
     member = payload.member
 
     if not self.bot.prod or not payload.guild_id:
