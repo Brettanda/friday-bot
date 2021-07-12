@@ -185,10 +185,10 @@ class Chat(commands.Cog):
     if msg.clean_content == "" or msg.activity is not None:
       return False
 
-    if msg.clean_content.startswith(tuple(self.bot.log.get_prefixes())):
+    if msg.clean_content.lower().startswith(tuple(self.bot.log.get_prefixes())):
       return False
 
-    if not hasattr(msg.type, "name") or msg.type.name != "default":
+    if not hasattr(msg.type, "name") or (msg.type.name != "default" and msg.type.name != "reply"):
       return False
 
     ctx = await self.bot.get_context(msg)
