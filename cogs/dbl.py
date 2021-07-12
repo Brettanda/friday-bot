@@ -4,6 +4,8 @@ import topgg
 import asyncio
 import datetime
 from discord.ext import commands, tasks
+from discord_slash import ButtonStyle
+from discord_slash.utils.manage_components import create_button, create_actionrow
 from typing_extensions import TYPE_CHECKING
 from functions import embed, config, query, non_coro_query
 
@@ -41,7 +43,14 @@ class TopGG(commands.Cog):
 
   @commands.group(name="vote", help="Get the link to vote for me on Top.gg", invoke_without_command=True)
   async def vote(self, ctx: commands.Context):
-    await ctx.reply(embed=embed(title="Vote link!", description=self.vote_url))
+    links = [
+        create_button(
+            style=ButtonStyle.URL,
+            label="Vote link",
+            url=self.vote_url
+        )
+    ]
+    await ctx.reply(embed=embed(title="Voting", description="When you vote you get:", fieldstitle=["Better rate limiting"], fieldsval=["200 messages/12 hours instead of 80 messages/12 hours."], footer="To get voting reminders use the command `!vote remind`"), components=[create_actionrow(*links)])
 
   @vote.command(name="remind", help="Whether or not to remind you of the next time that you can vote")
   async def vote_remind(self, ctx: commands.Context):

@@ -60,7 +60,7 @@ class Log(commands.Cog):
       self._auto_spam_count = Counter()
 
     if not hasattr(self.bot, "slash"):
-      self.bot.slash = SlashCommand(self.bot, sync_on_cog_reload=True, sync_commands=True)
+      self.bot.slash = SlashCommand(self.bot, sync_commands=True, sync_on_cog_reload=True)
 
     if not hasattr(self, "mydb"):
       self.mydb = mydb_connect()
@@ -87,7 +87,7 @@ class Log(commands.Cog):
 
     if self.bot.cluster_idx == 0:
       non_coro_query(self.mydb, """CREATE TABLE IF NOT EXISTS servers
-                                (id bigint UNIQUE NOT NULL,
+                                (id bigint PRIMARY KEY NOT NULL,
                                 name varchar(255) NULL,
                                 tier tinytext NULL,
                                 prefix varchar(5) NOT NULL DEFAULT '!',
@@ -192,7 +192,7 @@ class Log(commands.Cog):
       channel = next(
           x
           for x in channels
-          if isinstance(x, discord.TextChannel) and guild.me.permissions_in(x).send_messages
+          if isinstance(x, discord.TextChannel) and x.permissions_for(guild.me).send_messages
       )
     except StopIteration:
       return
@@ -215,8 +215,12 @@ class Log(commands.Cog):
     await self.bot.process_commands(after)
 
   @commands.Cog.listener()
-  async def on_command(self, ctx):
+  async def on_command(self, ctx: commands.Context):
     self.logger.info(f"Command: {ctx.message.clean_content.encode('unicode_escape')}")
+
+  @commands.Cog.listener()
+  async def on_command_completion(self, ctx: commands.Context):
+    self.logger.debug(f"Finished Command: {ctx.message.clean_content.encode('unicode_escape')}")
 
   @commands.Cog.listener()
   async def on_slash_command(self, ctx):
