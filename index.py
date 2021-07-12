@@ -51,7 +51,7 @@ class Friday(commands.AutoShardedBot):
         owner_id=215227961048170496,
         description=functions.config.description,
         member_cache_flags=functions.config.member_cache,
-        chunk_guilds_at_startup=True,
+        chunk_guilds_at_startup=False,
         allowed_mentions=functions.config.allowed_mentions,
         # heartbeat_timeout=150.0,
         loop=self.loop, **kwargs
