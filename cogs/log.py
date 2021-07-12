@@ -275,15 +275,19 @@ class Log(commands.Cog):
   def get_prefixes(self) -> [int]:
     return [g["prefix"] for g in self.bot.saved_guilds.values()] + ["/", "!", "%", ">", "?", "-", "(", ")"]
 
-  async def get_guild_prefix(self, bot, message) -> str:
+  async def get_guild_prefix(self, bot: "Bot", message: discord.Message) -> str:
     if not message.guild or message.guild.id == 707441352367013899:
-      return commands.when_mentioned_or(config.defaultPrefix)(bot, message)
+      return config.defaultPrefix
     try:
-      return commands.when_mentioned_or(self.bot.saved_guilds[message.guild.id]["prefix"] or config.defaultPrefix)(bot, message)
+      return bot.prefixes[message.guild.id]
     except KeyError:
-      await query(self.mydb, "INSERT OR IGNORE INTO servers (id,muted,lang) VALUES (?,?,?)", message.guild.id, 0, message.guild.preferred_locale.split("-")[0])
-      self.set_guild(message.guild.id)
-      return commands.when_mentioned_or(self.bot.saved_guilds[message.guild.id]["prefix"] or config.defaultPrefix)(bot, message)
+      current = await query(self.mydb, "SELECT prefix FROM servers WHERE id=?", message.guild.id)
+      await self.set_guild_prefix(message.guild, str(current))
+      return bot.prefixes.get(message.guild.id, config.defaultPrefix)
+
+  async def set_guild_prefix(self, guild: discord.Guild, prefix: str) -> None:
+    await query(self.mydb, "UPDATE servers SET prefix=? WHERE id=?", str(prefix), int(guild.id))
+    self.bot.prefixes[guild.id] = str(prefix)
 
   def get_guild_delete_commands(self, guild: discord.Guild or int) -> int:
     try:
@@ -369,10 +373,6 @@ class Log(commands.Cog):
   #         chat_channel: int = None):
   #   if guild is None or :
   #     return False
-
-  def change_guild_prefix(self, guild: discord.Guild or int, prefix: str = config.defaultPrefix):
-    if guild is not None:
-      self.bot.saved_guilds[guild.id if isinstance(guild, discord.Guild) else guild]["prefix"] = prefix
 
   def change_guild_delete(self, guild: discord.Guild or int, delete: int = 0):
     if guild is not None:

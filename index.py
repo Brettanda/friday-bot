@@ -8,6 +8,7 @@ import discord
 from typing import TYPE_CHECKING
 from discord.ext import commands
 from dotenv import load_dotenv
+import sqlite3
 
 import cogs
 import functions
@@ -23,10 +24,14 @@ songqueue = {}
 dead_nodes_sent = False
 
 
+conn = sqlite3.connect("friday.db")
+c = conn.cursor()
+
+
 async def get_prefix(bot, message):
   if hasattr(bot.log, "get_guild_prefix"):
-    return await bot.log.get_guild_prefix(bot, message)
-  return functions.config.defaultPrefix
+    return commands.when_mentioned_or(await bot.log.get_guild_prefix(bot, message))(bot, message)
+  return commands.when_mentioned_or(functions.config.defaultPrefix)
 
 
 class Friday(commands.AutoShardedBot):
@@ -38,7 +43,7 @@ class Friday(commands.AutoShardedBot):
     self.loop = asyncio.new_event_loop()
     asyncio.set_event_loop(self.loop)
     super().__init__(
-        command_prefix=get_prefix or functions.config.defaultPrefix,
+        command_prefix=get_prefix,
         strip_after_prefix=True,
         case_insensitive=True,
         intents=functions.config.intents,
@@ -55,6 +60,10 @@ class Friday(commands.AutoShardedBot):
     self.restartPending = False
     self.saved_guilds = {}
     self.songqueue = {}
+    c.execute("SELECT id,prefix FROM servers WHERE 1")
+    self.prefixes = {}
+    for i, p in c.fetchall():
+      self.prefixes.update({int(i): str(p)})
     self.prod = True if len(sys.argv) > 1 and (sys.argv[1] == "--prod" or sys.argv[1] == "--production") else False
     self.canary = True if len(sys.argv) > 1 and (sys.argv[1] == "--canary") else False
     self.ready = False
