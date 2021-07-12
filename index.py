@@ -60,15 +60,15 @@ class Friday(commands.AutoShardedBot):
     self.restartPending = False
     self.saved_guilds = {}
     self.songqueue = {}
-    c.execute("SELECT id,prefix FROM servers WHERE 1")
-    self.prefixes = {}
-    for i, p in c.fetchall():
-      self.prefixes.update({int(i): str(p)})
     self.prod = True if len(sys.argv) > 1 and (sys.argv[1] == "--prod" or sys.argv[1] == "--production") else False
     self.canary = True if len(sys.argv) > 1 and (sys.argv[1] == "--canary") else False
     self.ready = False
 
     self.load_extension("cogs.log")
+    c.execute("SELECT id,prefix FROM servers WHERE 1")
+    self.prefixes = {}
+    for i, p in c.fetchall():
+      self.prefixes.update({int(i): str(p)})
     self.load_cogs()
     self.logger.info(f"Cluster Starting {kwargs.get('shard_ids', None)}, {kwargs.get('shard_count', 1)}")
     if self.should_start:
