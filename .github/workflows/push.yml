@@ -94,6 +94,7 @@ jobs:
         if ! [ -f friday-trans-key.json ]; then python create_trans_key.py; fi
         if [ -f friday-trans-key.json ]; then printf "File created"; fi
     # - name: Install Database
+    # 
     #   env:
     #     DB_FILE: ${{ secrets.DB_FILE }}
     #   run: |
