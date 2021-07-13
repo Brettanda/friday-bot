@@ -1,4 +1,4 @@
 [submodule "friday-docs"]
   path = "docs/"
   url = "git@github.com:Brettanda/friday-docs.git"
-	master = master
+	branch = master
