@@ -234,14 +234,32 @@ class Log(commands.Cog):
       else:
         await ctx.send(embed=embed(title=str(ex) or "An error has occured, try again later.", color=MessageColors.ERROR))
     if not isinstance(ex, (
-        discord.NotFound,
-        commands.MissingPermissions,
-        commands.BotMissingPermissions,
-        commands.NoPrivateMessage,
-        commands.MaxConcurrencyReached) or (hasattr(ex, "log") and ex.log is True)
-    ):
-      # print(ex)
-      # logging.error(ex)
+            discord.NotFound,
+            commands.CheckFailure,
+            commands.MissingPermissions,
+            commands.BotMissingPermissions,
+            commands.NoPrivateMessage,
+            commands.MaxConcurrencyReached)) and (not hasattr(ex, "log") or (hasattr(ex, "log") and ex.log is True)):
+      raise ex
+
+  @commands.Cog.listener()
+  async def on_component(self, ctx: ComponentContext):
+    self.logger.info(f"Component: {ctx.custom_id} {ctx.selected_options}")
+
+  @commands.Cog.listener()
+  async def on_component_callback_error(self, ctx: ComponentContext, ex: Exception):
+    if not ctx.responded:
+      if ctx._deferred_hidden or not ctx.deferred:
+        await ctx.send(hidden=True, content=str(ex) or "An error has occured, try again later.")
+      else:
+        await ctx.send(embed=embed(title=str(ex) or "An error has occured, try again later.", color=MessageColors.ERROR))
+    if not isinstance(ex, (
+            discord.NotFound,
+            commands.CheckFailure,
+            commands.MissingPermissions,
+            commands.BotMissingPermissions,
+            commands.NoPrivateMessage,
+            commands.MaxConcurrencyReached)) and (not hasattr(ex, "log") or (hasattr(ex, "log") and ex.log is True)):
       raise ex
 
   async def process_commands(self, message):
