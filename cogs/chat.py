@@ -53,7 +53,16 @@ class Chat(commands.Cog):
       return await ctx.reply("yeah we know", allowed_mentions=discord.AllowedMentions.none())
     await ctx.reply(content, allowed_mentions=discord.AllowedMentions.none())
 
-  def default_prompt(self, author_prompt_name: str, my_prompt_name: str, author_name: str, my_name: str) -> str:
+  @commands.command(name="reset", help="Resets Friday's chat history. Helps if Friday is repeating messages")
+  async def reset_history(self, ctx: commands.Context):
+    try:
+      self.chat_history.pop(ctx.channel.id)
+    except KeyError:
+      await ctx.send(embed=embed(title="No history to delete"))
+    except Exception as e:
+      raise e
+    else:
+      await ctx.send(embed=embed(title="My chat history has been reset"))
     return (f"My name is \"{my_name}\", I'm a female AI Discord chatbot that will be friends with everyone and I'm always available. I am extremely creative, clever, respectful, supportive, polite, and friendly. I will refuse to talk about topics relating to politics, religion, sex, sexual context, race, age, disability, wars, conflicts, homosexuality, LGBT, convicts, slurs, hate crimes, children, and any NSFW content.\n\n"  # If my responses could be considered creepy or pedophilic in nature I will change the topic.\n\n"
             f"{author_prompt_name}: Hello {my_name}\n"
             f"{my_prompt_name}: Hello @{author_name}, how are you?\n"
