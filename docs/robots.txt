@@ -1,5 +1,0 @@
-User-agent: *
-Allow: /
-Disallow: /*?*
-Sitemap: http://docs.friday-bot.com/sitemap.xml
-Host: http://docs.friday-bot.com
