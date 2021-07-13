@@ -63,7 +63,7 @@ jobs:
       id: cache
       uses: actions/cache@v2
       env:
-        cache-name: cache-friday-dependencies
+        cache-name: cache-friday-build-dep
       with:
         path: |
           ${{ env.pythonLocation}}/lib/python${{ matrix.python-version }}/site-packages/*
