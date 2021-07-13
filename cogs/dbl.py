@@ -50,7 +50,11 @@ class TopGG(commands.Cog):
             url=self.vote_url
         )
     ]
-    await ctx.reply(embed=embed(title="Voting", description="When you vote you get:", fieldstitle=["Better rate limiting"], fieldsval=["200 messages/12 hours instead of 80 messages/12 hours."], footer="To get voting reminders use the command `!vote remind`"), components=[create_actionrow(*links)])
+    prev_time = await query(self.bot.log.mydb, "SELECT voted_time FROM votes WHERE id=?", ctx.author.id)
+    next_time = datetime.datetime.strptime(prev_time, "%Y-%m-%d %H:%M:%S.%f") if prev_time is not None else None
+    time = next_time.timestamp() + datetime.timedelta(hours=12).seconds if next_time is not None else None
+    vote_message = f"Your next vote time is: <t:{round(time)}:R>" if prev_time is not None else "You can vote now"
+    await ctx.reply(embed=embed(title="Voting", description=f"{vote_message}\n\nWhen you vote you get:", fieldstitle=["Better rate limiting"], fieldsval=["200 messages/12 hours instead of 80 messages/12 hours."], footer="To get voting reminders use the command `!vote remind`"), components=[create_actionrow(*links)])
 
   @vote.command(name="remind", help="Whether or not to remind you of the next time that you can vote")
   async def vote_remind(self, ctx: commands.Context):
