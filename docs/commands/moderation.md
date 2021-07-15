@@ -58,10 +58,10 @@ Usage:
 
 ```md
 !blacklist|bl 
-!blacklist|bl clear 
 !blacklist|bl add <word>
 !blacklist|bl remove <word>
 !blacklist|bl display 
+!blacklist|bl clear 
 ```
 
 Aliases:
@@ -287,7 +287,6 @@ Usage:
 !set deletecommandsafter [time=0]
 !set language [language]
 !set chatchannel 
-!set removeinvites 
 ```
 
 Aliases:
@@ -356,26 +355,6 @@ Aliases:
 
 ```md
 lang
-```
-
-Examples:
-
-```md
-None
-```
-
-### Removeinvites
-Automaticaly remove Discord invites from text channels
-Usage:
-
-```md
-!set removeinvites 
-```
-
-Aliases:
-
-```md
-None
 ```
 
 Examples:

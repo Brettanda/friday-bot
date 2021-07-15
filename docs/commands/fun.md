@@ -98,27 +98,6 @@ Usage:
 
 ```md
 !poll <title> <options>
-!poll conclude <poll>
-```
-
-Aliases:
-
-```md
-None
-```
-
-Examples:
-
-```md
-None
-```
-
-### Conclude
-Concludes the poll
-Usage:
-
-```md
-!poll conclude <poll>
 ```
 
 Aliases:
