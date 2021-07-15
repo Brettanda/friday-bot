@@ -1,0 +1,86 @@
+# https://squidfunk.github.io/mkdocs-material/setup/setting-up-navigation/
+
+site_name: Friday Bot Docs
+site_url: https://docs.friday-bot.com
+docs_dir: docs
+repo_url: https://github.com/Brettanda/friday-bot
+repo_name: brettanda/friday-bot
+edit_uri: ''
+copyright: Copyright &copy; 2020 - 2021 Brett Anda
+theme:
+  name: material
+  locale: en
+  highlightjs: true
+  language: en
+  logo: images/friday-logo-circle-150.png
+  favicon: images/friday-logo-circle-32.ico 
+  icon:
+    repo: fontawesome/brands/github
+  palette:
+    - scheme: default
+      media: "(prefers-color-scheme: light)"
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to dark mode
+    - scheme: slate
+      media: "(prefers-color-scheme: dark)"
+      toggle:
+        icon: material/weather-night
+        name: Switch to light mode
+  features:
+    # - navigation.top
+    # - navigation.instant # caches everything on live site
+    - navigation.sections
+    # - navigation.tabs
+    # - navigation.indexes
+    - search.suggest
+    # - search.highlight
+  shortcuts:
+    help: 191    # ?
+    next: 78     # n
+    previous: 80 # p
+    search: 83   # s
+plugins:
+  - search
+  - git-revision-date-localized:
+      type: timeago
+  - macros
+markdown_extensions:
+  - toc:
+      permalink: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:materialx.emoji.twemoji
+      emoji_generator: !!python/name:materialx.emoji.to_svg
+  - admonition
+  - pymdownx.details
+  - pymdownx.highlight
+  - pymdownx.superfences
+  # - footnotes
+  - attr_list
+extra_javascript:
+  - https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.2/highlight.min.js
+  # - javascripts/config.js
+extra_css:
+  - stylesheets/extra.css
+  - https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.2/styles/default.min.css
+extra:
+  # homepage: //friday-bot.com
+  analytics:
+    provider: google
+    property: G-41TXJVRWT0
+  version:
+    default: dev
+    provider: mike
+  # alternate:
+  #   - name: English
+  #     link: /en/
+  #     lang: en
+  social:
+    - icon: fontawesome/solid/globe-americas
+      link: //brettanda.ca
+    - icon: fontawesome/brands/github
+      link: //github.com/Brettanda
+    - icon: fontawesome/brands/discord
+      link: //discord.gg/XP4avQ449V
+    - icon: fontawesome/brands/patreon
+      link: //www.patreon.com/fridaybot

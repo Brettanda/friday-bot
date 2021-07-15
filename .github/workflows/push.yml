@@ -94,7 +94,6 @@ jobs:
         if ! [ -f friday-trans-key.json ]; then python create_trans_key.py; fi
         if [ -f friday-trans-key.json ]; then printf "File created"; fi
     # - name: Install Database
-    # 
     #   env:
     #     DB_FILE: ${{ secrets.DB_FILE }}
     #   run: |
@@ -131,3 +130,42 @@ jobs:
         . ~/venv/bin/activate
         if [ -f friday-trans-key.json ]; then printf "Google file here"; fi
         pytest
+  docs-build:
+    runs-on: ${{ matrix.os }}
+    name: Build ${{ matrix.os }}, Python ${{ matrix.python-version}}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        python-version: [3.8]
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Cache dependencies
+      id: cache
+      uses: actions/cache@v2
+      env:
+        cache-name: cache-friday-docs-dependencies
+      with:
+        path: |
+          ${{ env.pythonLocation}}/lib/python${{ matrix.python-version }}/site-packages/*
+          ~/venv
+        key: ${{ matrix.os }}-pip-${{ env.cache-name }}-${{ hashfiles('requirements.txt') }}
+        restore-keys: |
+          ${{ matrix.os }}-pip-${{ env.cache-name }}-
+          ${{ matrix.os }}-pip-
+          ${{ matrix.os }}-
+    - name: Install dependencies
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: |
+        python -m venv ~/venv
+        . ~/venv/bin/activate
+        python -m pip install --upgrade pip
+        if [ -f docs/requirements.txt ]; then python -m pip install -r docs/requirements.txt; fi
+    - name: Build
+      run: |
+        . ~/venv/bin/activate
+        cd docs/
+        mkdocs build
