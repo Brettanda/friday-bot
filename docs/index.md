@@ -29,7 +29,7 @@
     !rockpaperscissors <choice>
     ```
 
-    **To actually use the Rock, Paper, Scissors command you would type this:**
+    **To use the Rock, Paper, Scissors command you would type this:**
 
     ```md
     !rps rock
@@ -48,7 +48,7 @@
     !kick @someone @someoneelse They were annoying me
     ```
 
-    For this command you could also use the users IDs if you don't wish to mention the users. If you are not sure how to get a users ID please check out this article on [Where can I find my User/Server/Message ID](https://support.discord.com/hc/en-us/articles/206346498-Where-can-I-find-my-User-Server-Message-ID-). For example:
+    For this command, you could also use the users' IDs if you don't wish to mention the users. If you are not sure how to get a users ID please check out this article on [Where can I find my User/Server/Message ID](https://support.discord.com/hc/en-us/articles/206346498-Where-can-I-find-my-User-Server-Message-ID-). For example:
 
     ```md
     !kick 123456789 987654321
@@ -60,26 +60,8 @@
 
 ### Prefix
 
-The default prefix for Friday's commands is `!`, and for commands to execute every command needs this prefix or the custom prefix that you can set with the [prefix](commands/moderation/#prefix) command.
+The default prefix for Friday's commands is `!`, and for commands to execute every command needs this prefix or the custom prefix that you can set with the [prefix](/commands/moderation/#prefix) command.
 
-## Languages
+### Slash commands
 
-Friday can speak every language available to Google translate, but can only speak one language at a time per server. To change which language Friday will respond in and to, simply use the following the [language command](commands/moderation/#language).
-
-<!-- [^1]: Lorem ipsum dolor sit amet, consectetur adipiscing elit. -->
-
-<!-- For full documentation visit [mkdocs.org](https://www.mkdocs.org).
-
-## Commands
-
-* `mkdocs new [dir-name]` - Create a new project.
-* `mkdocs serve` - Start the live-reloading docs server.
-* `mkdocs build` - Build the documentation site.
-* `mkdocs -h` - Print help message and exit.
-
-## Project layout
-
-    mkdocs.yml    # The configuration file.
-    docs/
-        index.md  # The documentation homepage.
-        ...       # Other markdown pages, images and other files. -->
+Friday also supports slash commands. To use these commands, go to any text channel and start typing `/`, you should be greeted with a list of commands from bots and built-in commands.

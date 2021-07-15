@@ -10,10 +10,10 @@ Usage:
 
 ```md
 !custom|c <name>
-!custom|c remove <name>
-!custom|c list 
-!custom|c change <name> <url>
 !custom|c add <name> <url>
+!custom|c list 
+!custom|c remove <name>
+!custom|c change <name> <url>
 ```
 
 Aliases:

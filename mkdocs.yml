@@ -31,6 +31,7 @@ theme:
     # - navigation.top
     # - navigation.instant # caches everything on live site
     - navigation.sections
+    # - navigation.tabs
     # - navigation.indexes
     - search.suggest
     # - search.highlight

@@ -7,8 +7,8 @@ import asyncio
 # import mysql.connector
 
 from typing import TYPE_CHECKING
-from discord.ext import commands  # , tasks
-from discord_slash import SlashContext, SlashCommand
+from discord.ext import commands
+from discord_slash import SlashContext, SlashCommand, ComponentContext
 from cogs.help import cmd_help
 from functions import MessageColors, embed, mydb_connect, query, non_coro_query, relay_info, exceptions, config  # ,choosegame
 import traceback
@@ -60,7 +60,7 @@ class Log(commands.Cog):
       self._auto_spam_count = Counter()
 
     if not hasattr(self.bot, "slash"):
-      self.bot.slash = SlashCommand(self.bot, sync_on_cog_reload=True, sync_commands=True)
+      self.bot.slash = SlashCommand(self.bot, sync_commands=True, sync_on_cog_reload=True)
 
     if not hasattr(self, "mydb"):
       self.mydb = mydb_connect()
@@ -87,7 +87,7 @@ class Log(commands.Cog):
 
     if self.bot.cluster_idx == 0:
       non_coro_query(self.mydb, """CREATE TABLE IF NOT EXISTS servers
-                                (id bigint UNIQUE NOT NULL,
+                                (id bigint PRIMARY KEY NOT NULL,
                                 name varchar(255) NULL,
                                 tier tinytext NULL,
                                 prefix varchar(5) NOT NULL DEFAULT '!',
@@ -192,7 +192,7 @@ class Log(commands.Cog):
       channel = next(
           x
           for x in channels
-          if isinstance(x, discord.TextChannel) and guild.me.permissions_in(x).send_messages
+          if isinstance(x, discord.TextChannel) and x.permissions_for(guild.me).send_messages
       )
     except StopIteration:
       return
@@ -215,8 +215,12 @@ class Log(commands.Cog):
     await self.bot.process_commands(after)
 
   @commands.Cog.listener()
-  async def on_command(self, ctx):
+  async def on_command(self, ctx: commands.Context):
     self.logger.info(f"Command: {ctx.message.clean_content.encode('unicode_escape')}")
+
+  @commands.Cog.listener()
+  async def on_command_completion(self, ctx: commands.Context):
+    self.logger.debug(f"Finished Command: {ctx.message.clean_content.encode('unicode_escape')}")
 
   @commands.Cog.listener()
   async def on_slash_command(self, ctx):
@@ -230,14 +234,32 @@ class Log(commands.Cog):
       else:
         await ctx.send(embed=embed(title=str(ex) or "An error has occured, try again later.", color=MessageColors.ERROR))
     if not isinstance(ex, (
-        discord.NotFound,
-        commands.MissingPermissions,
-        commands.BotMissingPermissions,
-        commands.NoPrivateMessage,
-        commands.MaxConcurrencyReached) or (hasattr(ex, "log") and ex.log is True)
-    ):
-      # print(ex)
-      # logging.error(ex)
+            discord.NotFound,
+            commands.CheckFailure,
+            commands.MissingPermissions,
+            commands.BotMissingPermissions,
+            commands.NoPrivateMessage,
+            commands.MaxConcurrencyReached)) and (not hasattr(ex, "log") or (hasattr(ex, "log") and ex.log is True)):
+      raise ex
+
+  @commands.Cog.listener()
+  async def on_component(self, ctx: ComponentContext):
+    self.logger.info(f"Component: {ctx.custom_id} {ctx.selected_options}")
+
+  @commands.Cog.listener()
+  async def on_component_callback_error(self, ctx: ComponentContext, ex: Exception):
+    if not ctx.responded:
+      if ctx._deferred_hidden or not ctx.deferred:
+        await ctx.send(hidden=True, content=str(ex) or "An error has occured, try again later.")
+      else:
+        await ctx.send(embed=embed(title=str(ex) or "An error has occured, try again later.", color=MessageColors.ERROR))
+    if not isinstance(ex, (
+            discord.NotFound,
+            commands.CheckFailure,
+            commands.MissingPermissions,
+            commands.BotMissingPermissions,
+            commands.NoPrivateMessage,
+            commands.MaxConcurrencyReached)) and (not hasattr(ex, "log") or (hasattr(ex, "log") and ex.log is True)):
       raise ex
 
   async def process_commands(self, message):
@@ -275,15 +297,19 @@ class Log(commands.Cog):
   def get_prefixes(self) -> [int]:
     return [g["prefix"] for g in self.bot.saved_guilds.values()] + ["/", "!", "%", ">", "?", "-", "(", ")"]
 
-  async def get_guild_prefix(self, bot, message) -> str:
+  async def get_guild_prefix(self, bot: "Bot", message: discord.Message) -> str:
     if not message.guild or message.guild.id == 707441352367013899:
-      return commands.when_mentioned_or(config.defaultPrefix)(bot, message)
+      return config.defaultPrefix
     try:
-      return commands.when_mentioned_or(self.bot.saved_guilds[message.guild.id]["prefix"] or config.defaultPrefix)(bot, message)
+      return bot.prefixes[message.guild.id]
     except KeyError:
-      await query(self.mydb, "INSERT OR IGNORE INTO servers (id,muted,lang) VALUES (?,?,?)", message.guild.id, 0, message.guild.preferred_locale.split("-")[0])
-      self.set_guild(message.guild.id)
-      return commands.when_mentioned_or(self.bot.saved_guilds[message.guild.id]["prefix"] or config.defaultPrefix)(bot, message)
+      current = await query(self.mydb, "SELECT prefix FROM servers WHERE id=?", message.guild.id)
+      await self.set_guild_prefix(message.guild, str(current))
+      return bot.prefixes.get(message.guild.id, config.defaultPrefix)
+
+  async def set_guild_prefix(self, guild: discord.Guild, prefix: str) -> None:
+    await query(self.mydb, "UPDATE servers SET prefix=? WHERE id=?", str(prefix), int(guild.id))
+    self.bot.prefixes[guild.id] = str(prefix)
 
   def get_guild_delete_commands(self, guild: discord.Guild or int) -> int:
     try:
@@ -369,10 +395,6 @@ class Log(commands.Cog):
   #         chat_channel: int = None):
   #   if guild is None or :
   #     return False
-
-  def change_guild_prefix(self, guild: discord.Guild or int, prefix: str = config.defaultPrefix):
-    if guild is not None:
-      self.bot.saved_guilds[guild.id if isinstance(guild, discord.Guild) else guild]["prefix"] = prefix
 
   def change_guild_delete(self, guild: discord.Guild or int, delete: int = 0):
     if guild is not None:

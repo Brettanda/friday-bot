@@ -581,7 +581,7 @@ class Music(commands.Cog):
 
     try:
       await asyncio.sleep(3)
-      if len(member.guild.voice_client.channel.members) == 1:
+      if len(member.guild.voice_client.channel.voice_states) == 1:
         if member.guild.voice_client.channel.type == discord.ChannelType.stage_voice:
           await member.guild.voice_client.channel.edit(topic="")
         await member.guild.voice_client.disconnect()
