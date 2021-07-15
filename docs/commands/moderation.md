@@ -52,16 +52,16 @@ None
 
 ## Blacklist
 
-
+Blacklist words from being sent in text channels
 
 Usage:
 
 ```md
 !blacklist|bl 
-!blacklist|bl clear 
 !blacklist|bl add <word>
-!blacklist|bl display 
 !blacklist|bl remove <word>
+!blacklist|bl display 
+!blacklist|bl clear 
 ```
 
 Aliases:
@@ -285,7 +285,6 @@ Usage:
 ```md
 !set 
 !set deletecommandsafter [time=0]
-!set removeinvites 
 !set language [language]
 !set chatchannel 
 ```
@@ -356,26 +355,6 @@ Aliases:
 
 ```md
 lang
-```
-
-Examples:
-
-```md
-None
-```
-
-### Removeinvites
-Automaticaly remove Discord invites from text channels
-Usage:
-
-```md
-!set removeinvites 
-```
-
-Aliases:
-
-```md
-None
 ```
 
 Examples:

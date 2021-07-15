@@ -100,17 +100,12 @@ class Moderation(commands.Cog):
 
   @commands.command(name="prefix", help="Sets the prefix for Fridays commands")
   @commands.has_guild_permissions(administrator=True)
-  async def _prefix(self, ctx, new_prefix: typing.Optional[str] = config.defaultPrefix):
+  async def _prefix(self, ctx: commands.Context, new_prefix: typing.Optional[str] = config.defaultPrefix):
     new_prefix = new_prefix.lower()
     if len(new_prefix) > 5:
-      await ctx.reply(embed=embed(title="Can't set a prefix with more than 5 characters", color=MessageColors.ERROR))
-      return
-    await query(self.bot.log.mydb, "UPDATE servers SET prefix=? WHERE id=?", new_prefix, ctx.guild.id)
-    self.bot.log.change_guild_prefix(ctx.guild.id, new_prefix)
-    try:
-      await ctx.reply(embed=embed(title=f"My new prefix is `{new_prefix}`"))
-    except discord.Forbidden:
-      await ctx.reply(f"My new prefix is `{new_prefix}`")
+      return await ctx.reply(embed=embed(title="Can't set a prefix with more than 5 characters", color=MessageColors.ERROR))
+    await self.bot.log.set_guild_prefix(ctx.guild, new_prefix)
+    await ctx.reply(embed=embed(title=f"My new prefix is `{new_prefix}`"))
 
   @commands.group(name="set", invoke_without_command=True, case_insensitive=True)
   @commands.guild_only()

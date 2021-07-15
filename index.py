@@ -8,6 +8,7 @@ import discord
 from typing import TYPE_CHECKING
 from discord.ext import commands
 from dotenv import load_dotenv
+import sqlite3
 
 import cogs
 import functions
@@ -23,10 +24,14 @@ songqueue = {}
 dead_nodes_sent = False
 
 
+conn = sqlite3.connect("friday.db")
+c = conn.cursor()
+
+
 async def get_prefix(bot, message):
   if hasattr(bot.log, "get_guild_prefix"):
-    return await bot.log.get_guild_prefix(bot, message)
-  return functions.config.defaultPrefix
+    return commands.when_mentioned_or(await bot.log.get_guild_prefix(bot, message))(bot, message)
+  return commands.when_mentioned_or(functions.config.defaultPrefix)
 
 
 class Friday(commands.AutoShardedBot):
@@ -38,7 +43,7 @@ class Friday(commands.AutoShardedBot):
     self.loop = asyncio.new_event_loop()
     asyncio.set_event_loop(self.loop)
     super().__init__(
-        command_prefix=get_prefix or functions.config.defaultPrefix,
+        command_prefix=get_prefix,
         strip_after_prefix=True,
         case_insensitive=True,
         intents=functions.config.intents,
@@ -46,7 +51,7 @@ class Friday(commands.AutoShardedBot):
         owner_id=215227961048170496,
         description=functions.config.description,
         member_cache_flags=functions.config.member_cache,
-        fetch_offline_members=False,
+        chunk_guilds_at_startup=False,
         allowed_mentions=functions.config.allowed_mentions,
         # heartbeat_timeout=150.0,
         loop=self.loop, **kwargs
@@ -60,6 +65,10 @@ class Friday(commands.AutoShardedBot):
     self.ready = False
 
     self.load_extension("cogs.log")
+    c.execute("SELECT id,prefix FROM servers WHERE 1")
+    self.prefixes = {}
+    for i, p in c.fetchall():
+      self.prefixes.update({int(i): str(p)})
     self.load_cogs()
     self.logger.info(f"Cluster Starting {kwargs.get('shard_ids', None)}, {kwargs.get('shard_count', 1)}")
     if self.should_start:

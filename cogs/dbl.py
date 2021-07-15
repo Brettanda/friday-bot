@@ -4,6 +4,8 @@ import topgg
 import asyncio
 import datetime
 from discord.ext import commands, tasks
+from discord_slash import ButtonStyle
+from discord_slash.utils.manage_components import create_button, create_actionrow
 from typing_extensions import TYPE_CHECKING
 from functions import embed, config, query, non_coro_query
 
@@ -41,7 +43,18 @@ class TopGG(commands.Cog):
 
   @commands.group(name="vote", help="Get the link to vote for me on Top.gg", invoke_without_command=True)
   async def vote(self, ctx: commands.Context):
-    await ctx.reply(embed=embed(title="Vote link!", description=self.vote_url))
+    links = [
+        create_button(
+            style=ButtonStyle.URL,
+            label="Vote link",
+            url=self.vote_url
+        )
+    ]
+    prev_time = await query(self.bot.log.mydb, "SELECT voted_time FROM votes WHERE id=?", ctx.author.id)
+    next_time = datetime.datetime.strptime(prev_time, "%Y-%m-%d %H:%M:%S.%f") if prev_time is not None else None
+    time = next_time.timestamp() + datetime.timedelta(hours=12).seconds if next_time is not None else None
+    vote_message = f"Your next vote time is: <t:{round(time)}:R>" if prev_time is not None else "You can vote now"
+    await ctx.reply(embed=embed(title="Voting", description=f"{vote_message}\n\nWhen you vote you get:", fieldstitle=["Better rate limiting"], fieldsval=["200 messages/12 hours instead of 80 messages/12 hours."], footer="To get voting reminders use the command `!vote remind`"), components=[create_actionrow(*links)])
 
   @vote.command(name="remind", help="Whether or not to remind you of the next time that you can vote")
   async def vote_remind(self, ctx: commands.Context):
@@ -83,15 +96,21 @@ class TopGG(commands.Cog):
     if len(remind_user_ids) > 0:
       self.bot.logger.info(f"Reminded {len(remind_user_ids)} users")
     if len(vote_user_ids) > 0:
-      await query(self.bot.log.mydb, f"DELETE FROM votes WHERE to_remind=0 AND id IN ({','.join(vote_user_ids)})")
+      batch, to_purge = [], []
       await query(self.bot.log.mydb, f"UPDATE votes SET has_reminded=0,voted_time=NULL WHERE id IN ({','.join(vote_user_ids)})")
-      batch = []
       for user_id in vote_user_ids:
         get_member = self.bot.get_guild(config.support_server_id).get_member(user_id)
         member = get_member if get_member is not None else await self.bot.get_guild(config.support_server_id).fetch_member(user_id)
         if member is not None:
           self.bot.logger.info(f"Vote expired for {user_id}")
-          batch.append(member.remove_roles(member.guild.get_role(self.vote_role), reason="Vote expired"))
+          try:
+            await member.remove_roles(member.guild.get_role(self.vote_role), reason="Vote expired")
+          except Exception:
+            pass
+          else:
+            to_purge.append(user_id)
+      if len(to_purge) > 0:
+        await query(self.bot.log.mydb, f"DELETE FROM votes WHERE to_remind=0 AND id IN ({','.join(to_purge)})")
       if len(batch) > 0:
         await asyncio.gather(*batch)
 
