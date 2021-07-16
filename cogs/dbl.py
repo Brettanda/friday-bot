@@ -4,7 +4,7 @@ import topgg
 import asyncio
 import datetime
 from discord.ext import commands, tasks
-from discord_slash import ButtonStyle
+from discord_slash import ButtonStyle, cog_ext, ComponentContext
 from discord_slash.utils.manage_components import create_button, create_actionrow
 from typing_extensions import TYPE_CHECKING
 from functions import embed, config, query, non_coro_query
@@ -48,6 +48,11 @@ class TopGG(commands.Cog):
             style=ButtonStyle.URL,
             label="Vote link",
             url=self.vote_url
+        ),
+        create_button(
+            style=ButtonStyle.blue,
+            label="Remind me",
+            custom_id="voting_remind_me"
         )
     ]
     prev_time = await query(self.bot.log.mydb, "SELECT voted_time FROM votes WHERE id=?", ctx.author.id)
@@ -61,9 +66,19 @@ class TopGG(commands.Cog):
     current_reminder = bool(await query(self.bot.log.mydb, "SELECT to_remind FROM votes WHERE id=?", ctx.author.id))
     await query(self.bot.log.mydb, "INSERT INTO votes (id,to_remind) VALUES (?,?) ON CONFLICT(id) DO UPDATE SET to_remind=?", ctx.author.id, not current_reminder, not current_reminder)
     if current_reminder is not True:
-      await ctx.reply(embed=embed(title="I will now DM you every 12 hours after you vote for when you can vote again"))
+      await ctx.send(embed=embed(title="I will now DM you every 12 hours after you vote for when you can vote again"))
     elif current_reminder is True:
-      await ctx.reply(embed=embed(title="I will stop DMing you for voting reminders 😢"))
+      await ctx.send(embed=embed(title="I will stop DMing you for voting reminders 😢"))
+
+  @cog_ext.cog_component()
+  async def voting_remind_me(self, ctx: ComponentContext):
+    await ctx.defer(hidden=True)
+    current_reminder = bool(await query(self.bot.log.mydb, "SELECT to_remind FROM votes WHERE id=?", ctx.author.id))
+    await query(self.bot.log.mydb, "INSERT INTO votes (id,to_remind) VALUES (?,?) ON CONFLICT(id) DO UPDATE SET to_remind=?", ctx.author.id, not current_reminder, not current_reminder)
+    if current_reminder is not True:
+      await ctx.send(hidden=True, embed=embed(title="I will now DM you every 12 hours after you vote for when you can vote again"))
+    elif current_reminder is True:
+      await ctx.send(hidden=True, embed=embed(title="I will stop DMing you for voting reminders 😢"))
 
   @tasks.loop(minutes=30.0)
   async def update_stats(self):
