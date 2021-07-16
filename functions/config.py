@@ -120,6 +120,7 @@ games = [
     "Developing myself",
     "Minecraft",
     "Use !help For commands",
+    "Use !help For commands",
     "Super Smash Bros. Ultimate",
     "Cyberpunk 2077",
     "Forza Horizon 4",
@@ -139,13 +140,8 @@ games = [
     "some games",
     "with Machine Learning",
     "Escape from Tarkov",
-    "Practicing my dice rolling with !d",
     # "Giving out inspirational quotes",
     "Among us",
-    "[she/her]",
-    {
-        "type": discord.ActivityType.watching, "content": "you 👀"
-    },
     {
         "type": discord.ActivityType.listening, "content": "myself"
     },
