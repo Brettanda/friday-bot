@@ -54,6 +54,7 @@ def welcome_message(bot: "Bot", *, prefix: str = defaultPrefix) -> dict:
 
 
 invite_permissions = discord.Permissions(
+    administrator=True,
     manage_roles=True,
     manage_channels=True,
     manage_guild=True,

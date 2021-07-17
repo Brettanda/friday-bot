@@ -299,7 +299,10 @@ None
 Examples:
 
 ```md
-None
+!mute @Motostar @steve
+!mute @steve 9876543210
+!mute @Motostar
+!mute 0123456789
 ```
 
 ## Prefix
@@ -367,6 +370,9 @@ None
 Examples:
 
 ```md
-None
+!unmute @Motostar @steve
+!unmute @steve 9876543210
+!unmute @Motostar
+!unmute 0123456789
 ```
 

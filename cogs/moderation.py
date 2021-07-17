@@ -679,13 +679,13 @@ class Moderation(commands.Cog):
     await self.msg_remove_invites(msg)
     await self.check_blacklist(msg)
 
-  @commands.command(name="mute", help="Mute a member from text channels")
+  @commands.command(name="mute", extras={"examples": ["@Motostar @steve", "@steve 9876543210", "@Motostar", "0123456789"]}, help="Mute a member from text channels")
   @commands.guild_only()
-  @commands.has_guild_permissions(manage_channels=True)
-  @commands.bot_has_guild_permissions(manage_channels=True)
-  async def norm_mute(self, ctx, *, member: discord.Member):
+  @commands.has_guild_permissions(manage_channels=True, manage_roles=True)
+  @commands.bot_has_guild_permissions(view_channel=True, manage_channels=True, manage_roles=True)
+  async def norm_mute(self, ctx, *, member: commands.Greedy[discord.Member]):
     async with ctx.typing():
-      await self.mute(ctx, member=member)
+      await self.mute(ctx, member)
 
   @cog_ext.cog_slash(
       name="mute",
@@ -694,39 +694,38 @@ class Moderation(commands.Cog):
           create_option(name="member", description="The member to mute", option_type=SlashCommandOptionType.USER, required=True)
       ]
   )
-  @commands.has_guild_permissions(manage_channels=True)
-  @checks.bot_has_guild_permissions(manage_channels=True)
+  @commands.has_guild_permissions(manage_channels=True, manage_roles=True)
+  @checks.bot_has_guild_permissions(view_channel=True, manage_channels=True, manage_roles=True)
   @checks.slash(user=True, private=False)
-  async def slash_mute(self, ctx, member: discord.Member):
-    await ctx.defer()
-    await self.mute(ctx, member=member, slash=True)
+  async def slash_mute(self, ctx: SlashContext, member: discord.Member):
+    await ctx.defer(hidden=True)
+    await self.mute(ctx, member, True)
 
-  async def mute(self, ctx, *, member: discord.Member, slash: bool = False):
-    x = 0
-    for channel in ctx.guild.text_channels:
-      perms = channel.overwrites_for(member)
-      if perms.send_messages is False:
-        x += 1
-      perms.send_messages = False
+  async def mute(self, ctx: commands.Context, member: discord.Member, slash: bool = False):
+    roles = [r for r in await ctx.guild.fetch_roles() if r.name == "Muted" and not r.is_bot_managed() and not r.managed and not r.is_premium_subscriber() and not r.is_integration()]
+    muted_role: discord.Role = roles[0] if len(roles) > 0 else None
+    if muted_role is None:
+      muted_role: discord.Role = await ctx.guild.create_role(name="Muted", permissions=discord.Permissions.none(), colour=discord.Colour.light_grey(), hoist=False, mentionable=False)
       try:
-        await channel.set_permissions(member, reason="Muted!", overwrite=perms)
+        for channel in ctx.guild.channels:
+          await channel.set_permissions(muted_role, send_messages=False, speak=False, add_reactions=False)
       except discord.Forbidden:
-        pass
-    if x >= len(ctx.guild.text_channels):
-      if slash:
-        return await ctx.send(embed=embed(title=f"`{member.name}` has already been muted", color=MessageColors.ERROR))
-      return await ctx.reply(embed=embed(title=f"`{member.name}` has already been muted", color=MessageColors.ERROR))
+        await muted_role.delete()
+        return await ctx.send(embed=embed(title="I require Administrator permissions to build this `Muted` role.", color=MessageColors.ERROR))
+    if muted_role in member.roles:
+      return await ctx.send(embed=embed(title=f"`{member}` has already been muted", color=MessageColors.ERROR))
+    await member.add_roles(muted_role)
     if slash:
-      return await ctx.send(embed=embed(title=f"`{member.name}` has been muted."))
-    await ctx.reply(embed=embed(title=f"`{member.name}` has been muted."))
+      return await ctx.send(hidden=True, embed=embed(title=f"`{member}` has been muted."))
+    await ctx.send(embed=embed(title=f"`{member}` has been muted."))
 
-  @commands.command(name="unmute", help="Unmute a member from text channels")
+  @commands.command(name="unmute", extras={"examples": ["@Motostar @steve", "@steve 9876543210", "@Motostar", "0123456789"]}, help="Unmute a member from text channels")
   @commands.guild_only()
-  @commands.has_guild_permissions(manage_channels=True)
-  @commands.bot_has_guild_permissions(manage_channels=True)
-  async def norm_unmute(self, ctx, *, member: discord.Member):
+  @commands.has_guild_permissions(manage_channels=True, manage_roles=True)
+  @commands.bot_has_guild_permissions(manage_channels=True, manage_roles=True)
+  async def norm_unmute(self, ctx, *, member: commands.Greedy[discord.Member]):
     async with ctx.typing():
-      await self.unmute(ctx, member=member)
+      await self.unmute(ctx, member)
 
   @cog_ext.cog_slash(
       name="unmute",
@@ -737,20 +736,20 @@ class Moderation(commands.Cog):
   )
   @checks.slash(user=True, private=False)
   async def slash_unmute(self, ctx, member: discord.Member):
-    await ctx.defer()
-    await self.unmute(ctx, member=member, slash=True)
+    await ctx.defer(hidden=True)
+    await self.unmute(ctx, member, True)
 
-  async def unmute(self, ctx, *, member: discord.Member, slash: bool = False):
-    for channel in ctx.guild.text_channels:
-      perms = channel.overwrites_for(member)
-      perms.send_messages = None
-      try:
-        await channel.set_permissions(member, reason="Unmuted!", overwrite=perms if perms._values != {} else None)
-      except discord.Forbidden:
-        pass
+  async def unmute(self, ctx, member: discord.Member, slash: bool = False):
+    roles = [r for r in await ctx.guild.fetch_roles() if r.name == "Muted" and not r.is_bot_managed() and not r.managed and not r.is_premium_subscriber() and not r.is_integration()]
+    muted_role: discord.Role = roles[0] if len(roles) > 0 else None
+    if not muted_role:
+      return await ctx.send(embed=embed(title="No one has been muted yet", colors=MessageColors.ERROR))
+    if muted_role not in member.roles:
+      return await ctx.send(embed=embed(title=f"`{member}` has not been muted", color=MessageColors.ERROR))
+    await member.remove_roles(muted_role)
     if slash:
-      return await ctx.send(embed=embed(title=f"`{member.name}` has been unmuted."))
-    await ctx.reply(embed=embed(title=f"`{member.name}` has been unmuted."))
+      return await ctx.send(hidden=True, embed=embed(title=f"`{member}` has been un-muted"))
+    await ctx.send(embed=embed(title=f"`{member}` has been un-muted"))
 
   @commands.command(name="language", extras={"examples": ["en", "es", "english", "spanish"]}, aliases=["lang"], help="Change the language that I will speak")
   # @commands.cooldown(1, 3600, commands.BucketType.guild)
