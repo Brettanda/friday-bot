@@ -31,13 +31,13 @@ Shows information about the server
 Usage:
 
 ```md
-!serverinfo 
+!serverinfo|guildinfo 
 ```
 
 Aliases:
 
 ```md
-None
+guildinfo
 ```
 
 Examples:
@@ -53,7 +53,7 @@ Some information on the mentioned user
 Usage:
 
 ```md
-!userinfo <user>
+!userinfo [user]
 ```
 
 Aliases:
@@ -65,6 +65,8 @@ None
 Examples:
 
 ```md
-None
+!userinfo
+!userinfo @Friday
+!userinfo 476303446547365891
 ```
 

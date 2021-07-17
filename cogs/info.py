@@ -1,5 +1,6 @@
 import discord
 import datetime
+import typing
 from discord.ext import commands
 from discord_slash import cog_ext
 from discord_slash.model import SlashCommandOptionType
@@ -45,7 +46,7 @@ class Info(commands.Cog):
         ), components=[config.useful_buttons()]
     )
 
-  @commands.command(name="serverinfo", help="Shows information about the server")
+  @commands.command(name="serverinfo", aliases=["guildinfo"], help="Shows information about the server")
   @commands.guild_only()
   async def norm_server_info(self, ctx):
     await self.server_info(ctx)
@@ -64,26 +65,24 @@ class Info(commands.Cog):
         )
     )
 
-  @commands.command(name="userinfo", help="Some information on the mentioned user")
+  @commands.command(name="userinfo", extras={"examples": ["@Friday", "476303446547365891"]}, help="Some information on the mentioned user")
   @commands.guild_only()
-  async def norm_user_info(self, ctx, user: discord.Member):
-    await self.user_info(ctx, user)
+  async def norm_user_info(self, ctx, user: typing.Optional[discord.Member] = None):
+    await self.user_info(ctx, user if user is not None else ctx.author)
 
-  @cog_ext.cog_slash(name="userinfo", description="Some information on the mentioned user", options=[create_option(name="user", description="The user to get info for", option_type=SlashCommandOptionType.USER, required=True)])
+  @cog_ext.cog_slash(name="userinfo", description="Some information on the mentioned user", options=[create_option(name="user", description="The user to get info for", option_type=SlashCommandOptionType.USER, required=False)])
   @checks.slash(user=True, private=False)
-  async def slash_user_info(self, ctx, user: discord.Member):
-    await self.user_info(ctx, user, True)
+  async def slash_user_info(self, ctx, user: typing.Optional[discord.Member] = None):
+    await self.user_info(ctx, user if user is not None else ctx.author)
 
-  async def user_info(self, ctx, member: discord.Member, slash=False):
-    e = embed(
+  async def user_info(self, ctx: commands.Context, member: discord.Member):
+    return await ctx.send(embed=embed(
         title=f"{member.name} - Info",
-        fieldstitle=["Name", "Nickname", "Mention", "Role count", "Created", "Joined", "Top Role", "Pending"],
+        thumbnail=member.avatar_url,
+        fieldstitle=["Name", "Nickname", "Mention", "Role count", "Created", "Joined", "Top Role", "Pending Verification"],
         fieldsval=[member.name, member.nick, member.mention, len(member.roles), member.created_at.strftime("%b %d, %Y"), member.joined_at.strftime("%b %d, %Y"), member.top_role.mention, member.pending],
         color=member.color if member.color.value != 0 else MessageColors.DEFAULT
-    )
-    if slash:
-      return await ctx.send(embed=e)
-    return await ctx.reply(embed=e)
+    ))
 
 
 def setup(bot):
