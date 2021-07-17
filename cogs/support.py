@@ -55,7 +55,10 @@ class Support(commands.Cog, name="Support"):
       return
 
     if member is None:
-      member = await self.bot.get_guild(payload.guild_id).fetch_member(payload.user_id)
+      try:
+        member = await self.bot.get_guild(payload.guild_id).fetch_member(payload.user_id)
+      except discord.NotFound:
+        return
 
     if member.bot:
       return
@@ -80,7 +83,10 @@ class Support(commands.Cog, name="Support"):
       return
 
     if member is None:
-      member = await self.bot.get_guild(payload.guild_id).fetch_member(payload.user_id)
+      try:
+        member = await self.bot.get_guild(payload.guild_id).fetch_member(payload.user_id)
+      except discord.NotFound:
+        return
 
     if member.bot:
       return
