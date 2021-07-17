@@ -21,8 +21,8 @@ None
 Examples:
 
 ```md
-!ban @username @someone @someoneelse
-!ban @thisguy
+!ban @username @someone @someoneelse Spam
+!ban @thisguy The most spam i have ever seen
 !ban 12345678910 10987654321 @someone
 !ban @someone They were annoying me
 !ban 123456789 2 Sus
@@ -59,9 +59,9 @@ Usage:
 ```md
 !blacklist|bl 
 !blacklist|bl add <word>
-!blacklist|bl remove <word>
-!blacklist|bl display 
 !blacklist|bl clear 
+!blacklist|bl display 
+!blacklist|bl remove <word>
 ```
 
 Aliases:
@@ -158,6 +158,52 @@ Examples:
 !bl - shit
 ```
 
+## Chatchannel
+
+Set the current channel so that I will always try to respond with something
+
+Usage:
+
+```md
+!chatchannel 
+```
+
+Aliases:
+
+```md
+None
+```
+
+Examples:
+
+```md
+None
+```
+
+## Deletecommandsafter
+
+Set the time in seconds for how long to wait before deleting command messages
+
+Usage:
+
+```md
+!deletecommandsafter|deleteafter|delcoms [time=0]
+```
+
+Aliases:
+
+```md
+deleteafter,delcoms
+```
+
+Examples:
+
+```md
+!deletecommandsafter
+!deleteafter 0
+!delcoms 180
+```
+
 ## Kick
 
 
@@ -182,6 +228,32 @@ Examples:
 !kick 12345678910 10987654321 @someone
 !kick @someone I just really didn't like them
 !kick @thisguy 12345678910 They were spamming general
+```
+
+## Language
+
+Change the language that I will speak
+
+Usage:
+
+```md
+!language|lang [language]
+```
+
+Aliases:
+
+```md
+lang
+```
+
+Examples:
+
+```md
+!language
+!lang en
+!language es
+!lang english
+!language spanish
 ```
 
 ## Massmove
@@ -215,7 +287,7 @@ Mute a member from text channels
 Usage:
 
 ```md
-!mute <member>
+!mute <member>...
 ```
 
 Aliases:
@@ -276,93 +348,6 @@ Examples:
 !rolecall @admins general @username @username
 ```
 
-## Set
-
-
-
-Usage:
-
-```md
-!set 
-!set deletecommandsafter [time=0]
-!set language [language]
-!set chatchannel 
-```
-
-Aliases:
-
-```md
-None
-```
-
-Examples:
-
-```md
-None
-```
-
-### Chatchannel
-Set the current channel so that I will always try to respond with something
-Usage:
-
-```md
-!set chatchannel 
-```
-
-Aliases:
-
-```md
-None
-```
-
-Examples:
-
-```md
-None
-```
-
-### Deletecommandsafter
-Set the time in seconds for how long to wait before deleting command messages
-Usage:
-
-```md
-!set deletecommandsafter|deleteafter|delcoms [time=0]
-```
-
-Aliases:
-
-```md
-deleteafter,delcoms
-```
-
-Examples:
-
-```md
-!set deletecommandsafter 0
-!set deleteafter 180
-!set delcoms 
-```
-
-### Language
-Change the language that I will speak
-Usage:
-
-```md
-!set language|lang [language]
-```
-
-Aliases:
-
-```md
-lang
-```
-
-Examples:
-
-```md
-None
-```
-
 ## Unmute
 
 Unmute a member from text channels
@@ -370,7 +355,7 @@ Unmute a member from text channels
 Usage:
 
 ```md
-!unmute <member>
+!unmute <member>...
 ```
 
 Aliases:

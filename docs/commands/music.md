@@ -11,9 +11,9 @@ Usage:
 ```md
 !custom|c <name>
 !custom|c add <name> <url>
+!custom|c change <name> <url>
 !custom|c list 
 !custom|c remove <name>
-!custom|c change <name> <url>
 ```
 
 Aliases:

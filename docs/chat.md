@@ -29,10 +29,10 @@ Friday has a rate limit per user to help reduce spam and keep costs low. The abs
 
 ## Using a chat channel
 
-If your server has a set chat channel using the [`!set chatchannel`](/commands/moderation/#chatchannel) command. You do not need to mention Friday in that channel to talk to her. She will respond to messages without being mentioned.
+If your server has a set chat channel using the [`!chatchannel`](/commands/moderation/#chatchannel) command. You do not need to mention Friday in that channel to talk to her. She will respond to messages without being mentioned.
 
 ## Languages
 
-By default, Friday can understand and speak a lot of languages, whether Friday actually will do this is not up to me unless you use the [`!set language [langauge]`](/commands/moderation/#language) command.
+By default, Friday can understand and speak a lot of languages, whether Friday actually will do this is not up to me unless you use the [`!language [langauge]`](/commands/moderation/#language) command.
 
 If you have changes Friday's language to something other than English with the language command, Friday will speak two languages in the server that you used the command in. One of the languages will be the one that you chose and the other will be English.

@@ -107,11 +107,11 @@ class Moderation(commands.Cog):
     await self.bot.log.set_guild_prefix(ctx.guild, new_prefix)
     await ctx.reply(embed=embed(title=f"My new prefix is `{new_prefix}`"))
 
-  @commands.group(name="set", invoke_without_command=True, case_insensitive=True)
-  @commands.guild_only()
-  @commands.has_guild_permissions(manage_channels=True)
-  async def settings_bot(self, ctx):
-    await cmd_help(ctx, ctx.command)
+  # @commands.group(name="set", invoke_without_command=True, case_insensitive=True)
+  # @commands.guild_only()
+  # @commands.has_guild_permissions(manage_channels=True)
+  # async def settings_bot(self, ctx):
+  #   await cmd_help(ctx, ctx.command)
 
   # @cog_ext.cog_slash(name="bot", description="Bot settings")
   # @commands.has_guild_permissions(manage_channels=True)
@@ -119,7 +119,7 @@ class Moderation(commands.Cog):
   # async def slash_settings_bot(self, ctx):
   #   print("askjdhla")
 
-  @settings_bot.command(name="defaultrole", hidden=True, extras={"examples": ["@default", ""]}, help="Set the role that is given to new members when they join the server")
+  @commands.command(name="defaultrole", hidden=True, extras={"examples": ["@default"]}, help="Set the role that is given to new members when they join the server")
   @commands.is_owner()
   @commands.has_guild_permissions(manage_roles=True)
   @commands.bot_has_guild_permissions(manage_roles=True)
@@ -129,7 +129,7 @@ class Moderation(commands.Cog):
     await query(self.bot.log.mydb, "UPDATE servers SET defaultRole=? WHERE id=?", role_id, ctx.guild.id)
     await ctx.reply(embed=embed(title=f"The new default role for new members is `{role}`"))
 
-  @settings_bot.command(name="chatchannel", alias="chat", help="Set the current channel so that I will always try to respond with something")
+  @commands.command(name="chatchannel", alias="chat", help="Set the current channel so that I will always try to respond with something")
   @commands.guild_only()
   @commands.has_guild_permissions(manage_channels=True)
   async def norm_settings_bot_chat_channel(self, ctx):
@@ -155,7 +155,7 @@ class Moderation(commands.Cog):
       self.bot.log.change_guild_chat_channel(ctx.guild.id, None)
       return dict(embed=embed(title="I will no longer respond to all messages from this channel"))
 
-  @settings_bot.command(name="removeinvites", help="Automaticaly remove Discord invites from text channels")
+  @commands.command(name="removeinvites", help="Automaticaly remove Discord invites from text channels", hidden=True)
   @commands.guild_only()
   @commands.has_guild_permissions(manage_channels=True)
   @commands.bot_has_guild_permissions(manage_messages=True)
@@ -191,7 +191,7 @@ class Moderation(commands.Cog):
     except KeyError:
       pass
 
-  @settings_bot.command(name="musicchannel", help="Set the channel where I can join and play music. If none then I will join any VC", hidden=True)
+  @commands.command(name="musicchannel", help="Set the channel where I can join and play music. If none then I will join any VC", hidden=True)
   @commands.is_owner()
   @commands.has_guild_permissions(manage_channels=True)
   async def music_channel(self, ctx, voicechannel: typing.Optional[discord.VoiceChannel] = None):
@@ -202,7 +202,7 @@ class Moderation(commands.Cog):
     else:
       await ctx.reply(embed=embed(title=f"`{voicechannel}` is now my music channel"))
 
-  @settings_bot.command(name="deletecommandsafter", extras={"examples": ["0", "180", ""]}, aliases=["deleteafter", "delcoms"], help="Set the time in seconds for how long to wait before deleting command messages")
+  @commands.command(name="deletecommandsafter", extras={"examples": ["0", "180", ""]}, aliases=["deleteafter", "delcoms"], help="Set the time in seconds for how long to wait before deleting command messages")
   @commands.guild_only()
   @commands.has_guild_permissions(manage_channels=True)
   @commands.bot_has_permissions(manage_messages=True)
@@ -251,7 +251,7 @@ class Moderation(commands.Cog):
     except Exception as e:
       await relay_info(f"Error when trying to remove message (big) {type(e).__name__}: {e}", self.bot, logger=self.bot.log.log_errors)
 
-  @commands.group(name="blacklist", aliases=["bl"], invoke_without_command=True, case_insensitive=True)
+  @commands.group(name="blacklist", aliases=["bl"], invoke_without_command=True, case_insensitive=True, help="Blacklist words from being sent in text channels")
   @commands.guild_only()
   @commands.has_guild_permissions(manage_guild=True)
   async def _blacklist(self, ctx: commands.Context):
@@ -380,7 +380,7 @@ class Moderation(commands.Cog):
       return await ctx.send(embed=embed(title=f"Kicked `{', '.join(tokick)}`{(' for reason `' + reason+'`') if reason is not None else ''}"))
     return await ctx.reply(embed=embed(title=f"Kicked `{', '.join(tokick)}`{(' for reason `' + reason+'`') if reason is not None else ''}"))
 
-  @commands.command(name="ban", extras={"examples": ["@username @someone @someoneelse", "@thisguy", "12345678910 10987654321 @someone", "@someone They were annoying me", "123456789 2 Sus"]})
+  @commands.command(name="ban", extras={"examples": ["@username @someone @someoneelse Spam", "@thisguy The most spam i have ever seen", "12345678910 10987654321 @someone", "@someone They were annoying me", "123456789 2 Sus"]})
   @commands.bot_has_guild_permissions(ban_members=True)
   @commands.has_guild_permissions(ban_members=True)
   async def norm_ban(self, ctx, members: commands.Greedy[discord.Member], delete_message_days: typing.Optional[int] = 0, *, reason: str = None):
@@ -752,7 +752,7 @@ class Moderation(commands.Cog):
       return await ctx.send(embed=embed(title=f"`{member.name}` has been unmuted."))
     await ctx.reply(embed=embed(title=f"`{member.name}` has been unmuted."))
 
-  @settings_bot.command(name="language", aliases=["lang"], help="Change the language that I will speak")
+  @commands.command(name="language", extras={"examples": ["en", "es", "english", "spanish"]}, aliases=["lang"], help="Change the language that I will speak")
   # @commands.cooldown(1, 3600, commands.BucketType.guild)
   @commands.has_guild_permissions(administrator=True)
   async def language(self, ctx, language: typing.Optional[str] = None):

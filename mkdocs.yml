@@ -28,7 +28,7 @@ theme:
         icon: material/weather-night
         name: Switch to light mode
   features:
-    # - navigation.top
+    - navigation.top
     # - navigation.instant # caches everything on live site
     - navigation.sections
     # - navigation.tabs

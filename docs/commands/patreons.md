@@ -31,8 +31,8 @@ Usage:
 
 ```md
 !patreon server 
-!patreon server true 
 !patreon server false 
+!patreon server true 
 ```
 
 Aliases:
