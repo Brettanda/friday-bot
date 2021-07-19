@@ -83,7 +83,7 @@ class Fun(commands.Cog):
   # @commands.has_guild_permissions(move_members = True)
 
   @commands.command(name="rockpaperscissors", help="Play Rock Paper Scissors with Friday", aliases=["rps"], usage="<rock, paper or scissors>")
-  async def norm_rock_paper_scissors(self, ctx, args: str):
+  async def norm_rockpaperscissors(self, ctx, args: str):
     await self.rock_paper_scissors(ctx, args)
 
   @cog_ext.cog_slash(
@@ -112,7 +112,7 @@ class Fun(commands.Cog):
       ]
   )
   @checks.slash(user=False, private=True)
-  async def slash_rock_paper_scissors(self, ctx, choice: str):
+  async def slash_rockpaperscissors(self, ctx, choice: str):
     await ctx.defer()
     await self.rock_paper_scissors(ctx, choice)
 
@@ -257,7 +257,7 @@ class Fun(commands.Cog):
     ))
 
   @commands.command(name="coinflip", aliases=["coin"], help="Flip a coin")
-  async def norm_coin(self, ctx):
+  async def norm_coinflip(self, ctx):
     await ctx.reply(embed=embed(title="The coin landed on: " + random.choice(["Heads", "Tails"])))
 
   @cog_ext.cog_slash(
@@ -265,7 +265,7 @@ class Fun(commands.Cog):
       description="Flip a coin"
   )
   @checks.slash(user=False, private=True)
-  async def slash_coin(self, ctx):
+  async def slash_coinflip(self, ctx):
     await ctx.send(embed=embed(title="The coin landed on: " + random.choice(["Heads", "Tails"])))
 
   # @commands.command(name="mostroles", description="Show the server members with the most roles")
@@ -295,7 +295,7 @@ class Fun(commands.Cog):
       9: "🔟"
   }
 
-  @commands.command(name="poll", help="Make a poll. Seperate the options with `;;`")
+  @commands.command(name="poll", extras={"examples": ["\"this is a title\" 1;;2;;3"]}, help="Make a poll. Seperate the options with `;;`")
   @commands.guild_only()
   @commands.bot_has_permissions(manage_messages=True)
   async def norm_poll(self, ctx, title, *, options: str = None):

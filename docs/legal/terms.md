@@ -11,7 +11,7 @@ Abuse of the bot is defined in two ways:
 1. Abuse of the features of the bot including:
     - spamming
 
-2. Interacting with the bot with content relating to but not limited to the following topics:
+2. Repeatedly interacting with the bot with content relating to but not limited to the following topics:
 
     - politics
     - religion

@@ -6,6 +6,9 @@
 
 Displays some information about myself :)
 
+??? check "Has a slash command to match"
+	Learn more about [slash commands](/#slash-commands)
+
 Usage:
 
 ```md
@@ -18,15 +21,12 @@ Aliases:
 about
 ```
 
-Examples:
-
-```md
-None
-```
-
 ## Serverinfo
 
 Shows information about the server
+
+??? check "Has a slash command to match"
+	Learn more about [slash commands](/#slash-commands)
 
 Usage:
 
@@ -40,26 +40,17 @@ Aliases:
 guildinfo
 ```
 
-Examples:
-
-```md
-None
-```
-
 ## Userinfo
 
 Some information on the mentioned user
+
+??? check "Has a slash command to match"
+	Learn more about [slash commands](/#slash-commands)
 
 Usage:
 
 ```md
 !userinfo [user]
-```
-
-Aliases:
-
-```md
-None
 ```
 
 Examples:
@@ -69,4 +60,3 @@ Examples:
 !userinfo @Friday
 !userinfo 476303446547365891
 ```
-

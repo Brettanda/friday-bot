@@ -98,7 +98,7 @@ class Moderation(commands.Cog):
   #       await query(self.bot.log.mydb,"UPDATE servers SET muted=? WHERE id=?",0,ctx.guild.id)
   #       await ctx.reply(embed=embed(title="I will now respond to chat message as well as commands"))
 
-  @commands.command(name="prefix", help="Sets the prefix for Fridays commands")
+  @commands.command(name="prefix", extras={"examples": ["?", "f!"]}, help="Sets the prefix for Fridays commands")
   @commands.has_guild_permissions(administrator=True)
   async def _prefix(self, ctx: commands.Context, new_prefix: typing.Optional[str] = config.defaultPrefix):
     new_prefix = new_prefix.lower()
@@ -129,17 +129,17 @@ class Moderation(commands.Cog):
     await query(self.bot.log.mydb, "UPDATE servers SET defaultRole=? WHERE id=?", role_id, ctx.guild.id)
     await ctx.reply(embed=embed(title=f"The new default role for new members is `{role}`"))
 
-  @commands.command(name="chatchannel", alias="chat", help="Set the current channel so that I will always try to respond with something")
+  @commands.command(name="chatchannel", help="Set the current channel so that I will always try to respond with something")
   @commands.guild_only()
   @commands.has_guild_permissions(manage_channels=True)
-  async def norm_settings_bot_chat_channel(self, ctx):
+  async def norm_chatchannel(self, ctx):
     post = await self.settings_bot_chat_channel(ctx)
     await ctx.reply(**post)
 
-  @cog_ext.cog_subcommand(base="set", base_description="Bot settings", name="chatchannel", description="Set the current text channel so that I will always try to respond")
+  @cog_ext.cog_slash(name="chatchannel", description="Set the current text channel so that I will always try to respond")
   @commands.has_guild_permissions(manage_channels=True)
   @checks.slash(user=True, private=False)
-  async def slash_settings_bot_chat_channel(self, ctx):
+  async def slash_chatchannel(self, ctx):
     await ctx.defer()
     post = await self.settings_bot_chat_channel(ctx)
     await ctx.send(**post)
@@ -202,7 +202,7 @@ class Moderation(commands.Cog):
     else:
       await ctx.reply(embed=embed(title=f"`{voicechannel}` is now my music channel"))
 
-  @commands.command(name="deletecommandsafter", extras={"examples": ["0", "180", ""]}, aliases=["deleteafter", "delcoms"], help="Set the time in seconds for how long to wait before deleting command messages")
+  @commands.command(name="deletecommandsafter", extras={"examples": ["0", "180"]}, aliases=["deleteafter", "delcoms"], help="Set the time in seconds for how long to wait before deleting command messages")
   @commands.guild_only()
   @commands.has_guild_permissions(manage_channels=True)
   @commands.bot_has_permissions(manage_messages=True)
@@ -520,9 +520,7 @@ class Moderation(commands.Cog):
   @commands.guild_only()
   @commands.has_guild_permissions(move_members=True)
   @commands.bot_has_guild_permissions(move_members=True)
-  async def norm_mass_move(self, ctx, tochannel: typing.Union[discord.VoiceChannel, discord.StageChannel] = None, fromchannel: typing.Optional[typing.Union[discord.VoiceChannel, discord.StageChannel]] = None):
-    post = await self.mass_move(ctx, tochannel, fromchannel)
-    await ctx.reply(**post)
+  async def norm_massmove(self, ctx, tochannel: typing.Union[discord.VoiceChannel, discord.StageChannel] = None, fromchannel: typing.Optional[typing.Union[discord.VoiceChannel, discord.StageChannel]] = None):
 
   @cog_ext.cog_slash(
       name="move",
@@ -545,9 +543,7 @@ class Moderation(commands.Cog):
   @checks.bot_has_guild_permissions(move_members=True)
   @commands.has_guild_permissions(move_members=True)
   @checks.slash(user=True, private=False)
-  async def slash_mass_move(self, ctx, tochannel, fromchannel=None):
-    post = await self.mass_move(ctx, tochannel, fromchannel)
-    await ctx.send(**post)
+  async def slash_massmove(self, ctx, tochannel, fromchannel=None):
 
   async def mass_move(self, ctx, toChannel, fromChannel=None):
     if (fromChannel is not None and not isinstance(fromChannel, (discord.VoiceChannel, discord.StageChannel))) or (toChannel is not None and not isinstance(toChannel, (discord.VoiceChannel, discord.StageChannel))):
@@ -630,7 +626,7 @@ class Moderation(commands.Cog):
         return dict(content=f"Locked `{voicechannel}`")
       return dict(embed=embed(title=f"Locked `{voicechannel}`"))
 
-  @commands.command(name="begone", help="Delete unwanted message that I send")
+  @commands.command(name="begone", extras={"examples": ["https://discord.com/channels/707441352367013899/707458929696702525/707520808448294983","707520808448294983"]}, help="Delete unwanted message that I send")
   @commands.bot_has_permissions(manage_messages=True)
   async def begone(self, ctx, message: typing.Optional[discord.Message] = None):
     if message is not None and ctx.message.reference is not None:

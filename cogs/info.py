@@ -48,12 +48,12 @@ class Info(commands.Cog):
 
   @commands.command(name="serverinfo", aliases=["guildinfo"], help="Shows information about the server")
   @commands.guild_only()
-  async def norm_server_info(self, ctx):
+  async def norm_serverinfo(self, ctx):
     await self.server_info(ctx)
 
   @cog_ext.cog_slash(name="serverinfo", description="Info about a server")
   @commands.guild_only()
-  async def slash_server_info(self, ctx):
+  async def slash_serverinfo(self, ctx):
     await self.server_info(ctx)
 
   async def server_info(self, ctx: commands.Context):
@@ -67,12 +67,12 @@ class Info(commands.Cog):
 
   @commands.command(name="userinfo", extras={"examples": ["@Friday", "476303446547365891"]}, help="Some information on the mentioned user")
   @commands.guild_only()
-  async def norm_user_info(self, ctx, user: typing.Optional[discord.Member] = None):
+  async def norm_userinfo(self, ctx, user: typing.Optional[discord.Member] = None):
     await self.user_info(ctx, user if user is not None else ctx.author)
 
   @cog_ext.cog_slash(name="userinfo", description="Some information on the mentioned user", options=[create_option(name="user", description="The user to get info for", option_type=SlashCommandOptionType.USER, required=False)])
   @checks.slash(user=True, private=False)
-  async def slash_user_info(self, ctx, user: typing.Optional[discord.Member] = None):
+  async def slash_userinfo(self, ctx, user: typing.Optional[discord.Member] = None):
     await self.user_info(ctx, user if user is not None else ctx.author)
 
   async def user_info(self, ctx: commands.Context, member: discord.Member):

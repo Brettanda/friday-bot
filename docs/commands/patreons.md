@@ -4,7 +4,8 @@
 
 ## Patreon
 
-
+??? missing "Does not have a slash command to match"
+	Learn more about [slash commands](/#slash-commands)
 
 Usage:
 
@@ -13,19 +14,10 @@ Usage:
 !patreon server 
 ```
 
-Aliases:
-
-```md
-None
-```
-
-Examples:
-
-```md
-None
-```
-
 ### Server
+
+??? missing "Does not have a slash command to match"
+	Learn more about [slash commands](/#slash-commands)
 
 Usage:
 
@@ -34,16 +26,3 @@ Usage:
 !patreon server false 
 !patreon server true 
 ```
-
-Aliases:
-
-```md
-None
-```
-
-Examples:
-
-```md
-None
-```
-

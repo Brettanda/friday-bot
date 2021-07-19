@@ -6,21 +6,11 @@
 
 Pong!
 
+??? check "Has a slash command to match"
+	Learn more about [slash commands](/#slash-commands)
+
 Usage:
 
 ```md
 !ping 
 ```
-
-Aliases:
-
-```md
-None
-```
-
-Examples:
-
-```md
-None
-```
-
