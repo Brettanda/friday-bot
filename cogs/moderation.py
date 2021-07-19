@@ -681,9 +681,11 @@ class Moderation(commands.Cog):
   @commands.guild_only()
   @commands.has_guild_permissions(manage_channels=True, manage_roles=True)
   @commands.bot_has_guild_permissions(view_channel=True, manage_channels=True, manage_roles=True)
-  async def norm_mute(self, ctx, *, member: commands.Greedy[discord.Member]):
+  async def norm_mute(self, ctx: commands.Context, members: commands.Greedy[discord.Member]):
+    if len(members) == 0:
+      return await cmd_help(ctx, ctx.command, "You're missing some arguments, here is how the command should look")
     async with ctx.typing():
-      await self.mute(ctx, member)
+      await self.mute(ctx, members)
 
   @cog_ext.cog_slash(
       name="mute",
@@ -697,9 +699,13 @@ class Moderation(commands.Cog):
   @checks.slash(user=True, private=False)
   async def slash_mute(self, ctx: SlashContext, member: discord.Member):
     await ctx.defer(hidden=True)
-    await self.mute(ctx, member, True)
+    await self.mute(ctx, [member], True)
 
-  async def mute(self, ctx: commands.Context, member: discord.Member, slash: bool = False):
+  async def mute(self, ctx: commands.Context, members: [discord.Member], slash: bool = False):
+    if len(members) == 0:
+      if slash:
+        return await ctx.send(hidden=True, embed=embed(title="Failed to find that member", color=MessageColors.ERROR))
+      return await ctx.send(embed=embed(title="Failed to find that member", color=MessageColors.ERROR))
     roles = [r for r in await ctx.guild.fetch_roles() if r.name == "Muted" and not r.is_bot_managed() and not r.managed and not r.is_premium_subscriber() and not r.is_integration()]
     muted_role: discord.Role = roles[0] if len(roles) > 0 else None
     if muted_role is None:
@@ -710,20 +716,34 @@ class Moderation(commands.Cog):
       except discord.Forbidden:
         await muted_role.delete()
         return await ctx.send(embed=embed(title="I require Administrator permissions to build this `Muted` role.", color=MessageColors.ERROR))
-    if muted_role in member.roles:
-      return await ctx.send(embed=embed(title=f"`{member}` has already been muted", color=MessageColors.ERROR))
-    await member.add_roles(muted_role)
+    has_been_muted, not_muted = [], []
+    for member in members:
+      if muted_role in member.roles:
+        not_muted.append(member.name)
+      else:
+        try:
+          await member.add_roles(muted_role)
+        except Exception as e:
+          raise e
+        else:
+          has_been_muted.append(member.name)
+    if len(has_been_muted) == 0 and len(not_muted) > 0:
+      if slash:
+        return await ctx.send(hidden=True, embed=embed(title=f"Already muted: `{', '.join(not_muted)}`", color=MessageColors.ERROR))
+      return await ctx.send(embed=embed(title=f"Already muted: `{', '.join(not_muted)}`", color=MessageColors.ERROR))
     if slash:
-      return await ctx.send(hidden=True, embed=embed(title=f"`{member}` has been muted."))
-    await ctx.send(embed=embed(title=f"`{member}` has been muted."))
+      return await ctx.send(hidden=True, embed=embed(title=f"`{', '.join(has_been_muted)}` {'has' if len(has_been_muted) <= 1 else 'have'} been muted.", description="" if len(not_muted) == 0 else ("Already muted: " + ", ".join(not_muted) + "`")))
+    await ctx.send(embed=embed(title=f"`{', '.join(has_been_muted)}` {'has' if len(has_been_muted) <= 1 else 'have'} been muted.", description="" if len(not_muted) == 0 else ("Already muted: `" + ", ".join(not_muted) + "`")))
 
   @commands.command(name="unmute", extras={"examples": ["@Motostar @steve", "@steve 9876543210", "@Motostar", "0123456789"]}, help="Unmute a member from text channels")
   @commands.guild_only()
   @commands.has_guild_permissions(manage_channels=True, manage_roles=True)
   @commands.bot_has_guild_permissions(manage_channels=True, manage_roles=True)
-  async def norm_unmute(self, ctx, *, member: commands.Greedy[discord.Member]):
+  async def norm_unmute(self, ctx: commands.Context, members: commands.Greedy[discord.Member]):
+    if len(members) == 0:
+      return await cmd_help(ctx, ctx.command, "You're missing some arguments, here is how the command should look")
     async with ctx.typing():
-      await self.unmute(ctx, member)
+      await self.unmute(ctx, members)
 
   @cog_ext.cog_slash(
       name="unmute",
@@ -735,19 +755,31 @@ class Moderation(commands.Cog):
   @checks.slash(user=True, private=False)
   async def slash_unmute(self, ctx, member: discord.Member):
     await ctx.defer(hidden=True)
-    await self.unmute(ctx, member, True)
+    await self.unmute(ctx, [member], True)
 
-  async def unmute(self, ctx, member: discord.Member, slash: bool = False):
+  async def unmute(self, ctx, members: [discord.Member], slash: bool = False):
     roles = [r for r in await ctx.guild.fetch_roles() if r.name == "Muted" and not r.is_bot_managed() and not r.managed and not r.is_premium_subscriber() and not r.is_integration()]
     muted_role: discord.Role = roles[0] if len(roles) > 0 else None
     if not muted_role:
       return await ctx.send(embed=embed(title="No one has been muted yet", colors=MessageColors.ERROR))
-    if muted_role not in member.roles:
-      return await ctx.send(embed=embed(title=f"`{member}` has not been muted", color=MessageColors.ERROR))
-    await member.remove_roles(muted_role)
+    has_been_unmuted, not_unmuted = [], []
+    for member in members:
+      if muted_role not in member.roles:
+        not_unmuted.append(member.name)
+      else:
+        try:
+          await member.remove_roles(muted_role)
+        except Exception as e:
+          raise e
+        else:
+          has_been_unmuted.append(member.name)
+    if len(has_been_unmuted) == 0 and len(not_unmuted) > 0:
+      if slash:
+        return await ctx.send(hidden=True, embed=embed(title=f"Wasn't muted: `{', '.join(not_unmuted)}`", color=MessageColors.ERROR))
+      return await ctx.send(embed=embed(title=f"Wasn't muted: `{', '.join(not_unmuted)}`", color=MessageColors.ERROR))
     if slash:
-      return await ctx.send(hidden=True, embed=embed(title=f"`{member}` has been un-muted"))
-    await ctx.send(embed=embed(title=f"`{member}` has been un-muted"))
+      return await ctx.send(hidden=True, embed=embed(title=f"`{', '.join(has_been_unmuted)}` {'has' if len(has_been_unmuted) <= 1 else 'have'} been unmuted.", description="" if len(not_unmuted) == 0 else ("Wasn't muted: " + ", ".join(not_unmuted) + "`")))
+    await ctx.send(embed=embed(title=f"`{', '.join(has_been_unmuted)}` {'has' if len(has_been_unmuted) <= 1 else 'have'} been unmuted.", description="" if len(not_unmuted) == 0 else ("Wasn't muted: " + ", ".join(not_unmuted) + "`")))
 
   @commands.command(name="language", extras={"examples": ["en", "es", "english", "spanish"]}, aliases=["lang"], help="Change the language that I will speak")
   # @commands.cooldown(1, 3600, commands.BucketType.guild)
