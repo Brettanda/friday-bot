@@ -120,8 +120,6 @@ allowed_mentions = discord.AllowedMentions(roles=False, everyone=False, users=Tr
 games = [
     "Developing myself",
     "Minecraft",
-    "Use !help For commands",
-    "Use !help For commands",
     "Super Smash Bros. Ultimate",
     "Cyberpunk 2077",
     "Forza Horizon 4",
