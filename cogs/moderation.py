@@ -521,6 +521,7 @@ class Moderation(commands.Cog):
   @commands.has_guild_permissions(move_members=True)
   @commands.bot_has_guild_permissions(move_members=True)
   async def norm_massmove(self, ctx, tochannel: typing.Union[discord.VoiceChannel, discord.StageChannel] = None, fromchannel: typing.Optional[typing.Union[discord.VoiceChannel, discord.StageChannel]] = None):
+    await self.mass_move(ctx, tochannel, fromchannel)
 
   @cog_ext.cog_slash(
       name="move",
@@ -544,6 +545,7 @@ class Moderation(commands.Cog):
   @commands.has_guild_permissions(move_members=True)
   @checks.slash(user=True, private=False)
   async def slash_massmove(self, ctx, tochannel, fromchannel=None):
+    await self.mass_move(ctx, tochannel, fromchannel)
 
   async def mass_move(self, ctx, toChannel, fromChannel=None):
     if (fromChannel is not None and not isinstance(fromChannel, (discord.VoiceChannel, discord.StageChannel))) or (toChannel is not None and not isinstance(toChannel, (discord.VoiceChannel, discord.StageChannel))):
