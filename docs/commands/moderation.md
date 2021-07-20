@@ -270,7 +270,7 @@ Mute a member from text channels
 Usage:
 
 ```md
-!mute <member>...
+!mute <members>...
 ```
 
 Examples:
@@ -340,7 +340,7 @@ Unmute a member from text channels
 Usage:
 
 ```md
-!unmute <member>...
+!unmute <members>...
 ```
 
 Examples:
