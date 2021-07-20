@@ -29,9 +29,16 @@ class Info(commands.Cog):
     appinfo = await self.bot.application_info()
     owner = appinfo.team.members[0]
     delta = datetime.datetime.utcnow() - self.bot.uptime
-    hours, remainder = divmod(int(delta.total_seconds()), 3600)
+    weeks, remainder = divmod(int(delta.total_seconds()), 604800)
+    days, remainder = divmod(remainder, 86400)
+    hours, remainder = divmod(remainder, 3600)
     minutes, seconds = divmod(remainder, 60)
-    uptime = "{h}h {m}m {s}s".format(h=hours, m=minutes, s=seconds)
+    if weeks > 0:
+      uptime = "{w}w {d}d {h}h".format(w=weeks, d=days, h=hours)
+    elif days > 0:
+      uptime = "{d}d {h}h {m}m".format(d=days, h=hours, m=minutes)
+    else:
+      uptime = "{h}h {m}m {s}s".format(h=hours, m=minutes, s=seconds)
     return await ctx.send(
         embed=embed(
             title=f"{self.bot.user.name} - About",
