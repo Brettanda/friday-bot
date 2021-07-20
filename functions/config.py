@@ -25,7 +25,7 @@ def useful_buttons():
       manage_components.create_button(
           style=ButtonStyle.URL,
           url="https://www.patreon.com/fridaybot",
-          label="Premium"
+          label="Patreon"
       ),
       manage_components.create_button(
           style=ButtonStyle.URL,

@@ -85,6 +85,12 @@ Usage:
 !poll <title> <options>
 ```
 
+Examples:
+
+```md
+!poll "this is a title" 1;;2;;3
+```
+
 ## Rockpaperscissors
 
 Play Rock Paper Scissors with Friday
