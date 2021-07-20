@@ -1,9 +1,8 @@
 import asyncio
-import json
 import os
 import re
-# import sys
-import urllib
+import sys
+import aiohttp
 
 import discord
 # import ffmpeg
@@ -50,17 +49,17 @@ class redditlink(commands.Cog):
     self.pattern = r"https://www.reddit.com/r/[a-zA-Z0-9-_]+/comments/[a-zA-Z0-9]+/[a-zA-Z0-9_-]+"
     self.patternspoiler = r"||https://www.reddit.com/r/[a-zA-Z0-9-_]+/comments/[a-zA-Z0-9]+/[a-zA-Z0-9_-]+||"
 
-  def request(self, url):
-    req = urllib.request.Request(
-        url,
-        headers={
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.1916.47 Safari/537.36'
-        }
-    )
-
-    response = urllib.request.urlopen(req)
-
-    return json.loads(response.read())
+  async def request(self, url):
+    async with self.lock:
+      async with aiohttp.ClientSession() as session:
+        async with session.get(
+                url,
+                headers={
+                    'User-Agent':
+                    f'DiscordBot (https://github.com/Rapptz/discord.py {discord.__version__}) Python/{sys.version_info.major}.{sys.version_info.minor} aiohttp/{aiohttp.__version__}'
+                }) as r:
+          if r.status == 200:
+            return await r.json()
 
   @commands.Cog.listener()
   async def on_message(self, ctx):
@@ -85,7 +84,7 @@ class redditlink(commands.Cog):
     if len(reg) != 1:
       return
 
-    body = self.request(reg[0] + ".json")
+    body = await self.request(reg[0] + ".json")
 
     data = None
     video = None
@@ -168,8 +167,7 @@ class redditlink(commands.Cog):
       pass
     async with channel.typing():
       try:
-        async with self.lock:
-          await self.extract(message.content, payload=payload, guild=guild, channel=channel, message=message)
+        await self.extract(message.content, payload=payload, guild=guild, channel=channel, message=message)
       except Exception as e:
         await message.reply(embed=embed(title="Something went wrong", description="Please try again later. I have notified my boss of this error", color=MessageColors.ERROR), mention_author=False)
         raise e
@@ -177,8 +175,7 @@ class redditlink(commands.Cog):
   @cog_ext.cog_slash(name="redditextract", description="Extracts the file from the reddit post")
   async def slash_extract(self, ctx, link: str):
     await ctx.defer()
-    async with self.lock:
-      await self.extract(query=link, slash=True, ctx=ctx, guild=ctx.guild, channel=ctx.channel)
+    await self.extract(query=link, slash=True, ctx=ctx, guild=ctx.guild, channel=ctx.channel)
 
   async def extract(self, query, slash=False, payload=None, ctx=None, guild=None, channel=None, message=None):
     if ctx is None and message is not None:
@@ -199,7 +196,7 @@ class redditlink(commands.Cog):
 
     body = None
     try:
-      body = self.request(reg[0] + ".json")
+      body = await self.request(reg[0] + ".json")
     except BaseException:
       pass
 
@@ -256,8 +253,8 @@ class redditlink(commands.Cog):
         # name = f'{linkdata["extractor"]}-{linkdata["id"]}-{linkdata["title"]}.{linkdata["ext"]}'
         name = data["title"].split()
         if slash:
-          return await ctx.send(file=discord.File(fp=mp4file, filename=f'friday-bot.com{"_".join(name)}.{ext}', spoiler=spoiler))
-        return await ctx.reply(file=discord.File(fp=mp4file, filename=f'friday-bot.com{"_".join(name)}.{ext}', spoiler=spoiler), mention_author=False)
+          return await ctx.send(file=discord.File(fp=mp4file, filename=f'friday-bot.com_{"_".join(name)}.{ext}', spoiler=spoiler))
+        return await ctx.reply(file=discord.File(fp=mp4file, filename=f'friday-bot.com_{"_".join(name)}.{ext}', spoiler=spoiler), mention_author=False)
       except discord.HTTPException:
         if slash:
           return await ctx.send(embed=embed(title="This file is too powerful to be uploaded", description="You will have to open reddit to view this", color=MessageColors.ERROR))
