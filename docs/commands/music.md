@@ -6,14 +6,17 @@
 
 Play sounds/songs without looking for the url everytime
 
+??? missing "Does not have a slash command to match"
+	Learn more about [slash commands](/#slash-commands)
+
 Usage:
 
 ```md
 !custom|c <name>
 !custom|c add <name> <url>
+!custom|c change <name> <url>
 !custom|c list 
 !custom|c remove <name>
-!custom|c change <name> <url>
 ```
 
 Aliases:
@@ -22,13 +25,10 @@ Aliases:
 c
 ```
 
-Examples:
-
-```md
-None
-```
-
 ### Add
+
+??? missing "Does not have a slash command to match"
+	Learn more about [slash commands](/#slash-commands)
 
 Usage:
 
@@ -36,19 +36,10 @@ Usage:
 !custom add <name> <url>
 ```
 
-Aliases:
-
-```md
-None
-```
-
-Examples:
-
-```md
-None
-```
-
 ### Change
+
+??? missing "Does not have a slash command to match"
+	Learn more about [slash commands](/#slash-commands)
 
 Usage:
 
@@ -62,13 +53,10 @@ Aliases:
 replace
 ```
 
-Examples:
-
-```md
-None
-```
-
 ### List
+
+??? missing "Does not have a slash command to match"
+	Learn more about [slash commands](/#slash-commands)
 
 Usage:
 
@@ -76,19 +64,10 @@ Usage:
 !custom list 
 ```
 
-Aliases:
-
-```md
-None
-```
-
-Examples:
-
-```md
-None
-```
-
 ### Remove
+
+??? missing "Does not have a slash command to match"
+	Learn more about [slash commands](/#slash-commands)
 
 Usage:
 
@@ -102,15 +81,12 @@ Aliases:
 del
 ```
 
-Examples:
-
-```md
-None
-```
-
 ## Pause
 
 Pause the current track
+
+??? check "Has a slash command to match"
+	Learn more about [slash commands](/#slash-commands)
 
 Usage:
 
@@ -118,21 +94,12 @@ Usage:
 !pause 
 ```
 
-Aliases:
-
-```md
-None
-```
-
-Examples:
-
-```md
-None
-```
-
 ## Play
 
 Follow this command with the title of a song to search for it or just paste the Youtube/SoundCloud url if the search gives and undesirable result
+
+??? check "Has a slash command to match"
+	Learn more about [slash commands](/#slash-commands)
 
 Usage:
 
@@ -146,15 +113,12 @@ Aliases:
 p,add
 ```
 
-Examples:
-
-```md
-None
-```
-
 ## Queue
 
 shows the song queue
+
+??? check "Has a slash command to match"
+	Learn more about [slash commands](/#slash-commands)
 
 Usage:
 
@@ -162,21 +126,12 @@ Usage:
 !queue 
 ```
 
-Aliases:
-
-```md
-None
-```
-
-Examples:
-
-```md
-None
-```
-
 ## Resume
 
 Resume the current track
+
+??? check "Has a slash command to match"
+	Learn more about [slash commands](/#slash-commands)
 
 Usage:
 
@@ -184,21 +139,12 @@ Usage:
 !resume 
 ```
 
-Aliases:
-
-```md
-None
-```
-
-Examples:
-
-```md
-None
-```
-
 ## Skip
 
 Skips the current song
+
+??? check "Has a slash command to match"
+	Learn more about [slash commands](/#slash-commands)
 
 Usage:
 
@@ -206,21 +152,12 @@ Usage:
 !skip 
 ```
 
-Aliases:
-
-```md
-None
-```
-
-Examples:
-
-```md
-None
-```
-
 ## Stop
 
 Stops the currently playing music
+
+??? check "Has a slash command to match"
+	Learn more about [slash commands](/#slash-commands)
 
 Usage:
 
@@ -233,10 +170,3 @@ Aliases:
 ```md
 disconnect
 ```
-
-Examples:
-
-```md
-None
-```
-

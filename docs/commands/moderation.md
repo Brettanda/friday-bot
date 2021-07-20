@@ -4,7 +4,8 @@ Manage your server with these commands
 
 ## Ban
 
-
+??? check "Has a slash command to match"
+	Learn more about [slash commands](/#slash-commands)
 
 Usage:
 
@@ -12,17 +13,11 @@ Usage:
 !ban <members>... [delete_message_days=0] <reason>
 ```
 
-Aliases:
-
-```md
-None
-```
-
 Examples:
 
 ```md
-!ban @username @someone @someoneelse
-!ban @thisguy
+!ban @username @someone @someoneelse Spam
+!ban @thisguy The most spam i have ever seen
 !ban 12345678910 10987654321 @someone
 !ban @someone They were annoying me
 !ban 123456789 2 Sus
@@ -32,36 +27,38 @@ Examples:
 
 Delete unwanted message that I send
 
+??? missing "Does not have a slash command to match"
+	Learn more about [slash commands](/#slash-commands)
+
 Usage:
 
 ```md
 !begone [message]
 ```
 
-Aliases:
-
-```md
-None
-```
-
 Examples:
 
 ```md
-None
+!begone
+!begone https://discord.com/channels/707441352367013899/707458929696702525/707520808448294983
+!begone 707520808448294983
 ```
 
 ## Blacklist
 
 Blacklist words from being sent in text channels
 
+??? missing "Does not have a slash command to match"
+	Learn more about [slash commands](/#slash-commands)
+
 Usage:
 
 ```md
 !blacklist|bl 
 !blacklist|bl add <word>
-!blacklist|bl remove <word>
-!blacklist|bl display 
 !blacklist|bl clear 
+!blacklist|bl display 
+!blacklist|bl remove <word>
 ```
 
 Aliases:
@@ -70,13 +67,10 @@ Aliases:
 bl
 ```
 
-Examples:
-
-```md
-None
-```
-
 ### Add
+
+??? missing "Does not have a slash command to match"
+	Learn more about [slash commands](/#slash-commands)
 
 Usage:
 
@@ -99,25 +93,19 @@ Examples:
 
 ### Clear
 
+??? missing "Does not have a slash command to match"
+	Learn more about [slash commands](/#slash-commands)
+
 Usage:
 
 ```md
 !blacklist clear 
 ```
 
-Aliases:
-
-```md
-None
-```
-
-Examples:
-
-```md
-None
-```
-
 ### Display
+
+??? missing "Does not have a slash command to match"
+	Learn more about [slash commands](/#slash-commands)
 
 Usage:
 
@@ -131,13 +119,10 @@ Aliases:
 list,show
 ```
 
-Examples:
-
-```md
-None
-```
-
 ### Remove
+
+??? missing "Does not have a slash command to match"
+	Learn more about [slash commands](/#slash-commands)
 
 Usage:
 
@@ -158,20 +143,55 @@ Examples:
 !bl - shit
 ```
 
-## Kick
+## Chatchannel
 
+Set the current channel so that I will always try to respond with something
 
+??? check "Has a slash command to match"
+	Learn more about [slash commands](/#slash-commands)
 
 Usage:
 
 ```md
-!kick <members>... [reason]
+!chatchannel 
+```
+
+## Deletecommandsafter
+
+Set the time in seconds for how long to wait before deleting command messages
+
+??? missing "Does not have a slash command to match"
+	Learn more about [slash commands](/#slash-commands)
+
+Usage:
+
+```md
+!deletecommandsafter|deleteafter|delcoms [time=0]
 ```
 
 Aliases:
 
 ```md
-None
+deleteafter,delcoms
+```
+
+Examples:
+
+```md
+!deletecommandsafter
+!deleteafter 0
+!delcoms 180
+```
+
+## Kick
+
+??? check "Has a slash command to match"
+	Learn more about [slash commands](/#slash-commands)
+
+Usage:
+
+```md
+!kick <members>... [reason]
 ```
 
 Examples:
@@ -184,9 +204,41 @@ Examples:
 !kick @thisguy 12345678910 They were spamming general
 ```
 
+## Language
+
+Change the language that I will speak
+
+??? missing "Does not have a slash command to match"
+	Learn more about [slash commands](/#slash-commands)
+
+Usage:
+
+```md
+!language|lang [language]
+```
+
+Aliases:
+
+```md
+lang
+```
+
+Examples:
+
+```md
+!language
+!lang en
+!language es
+!lang english
+!language spanish
+```
+
 ## Massmove
 
 Move everyone from one voice channel to another
+
+??? check "Has a slash command to match"
+	Learn more about [slash commands](/#slash-commands)
 
 Usage:
 
@@ -212,27 +264,30 @@ Examples:
 
 Mute a member from text channels
 
+??? check "Has a slash command to match"
+	Learn more about [slash commands](/#slash-commands)
+
 Usage:
 
 ```md
-!mute <member>
-```
-
-Aliases:
-
-```md
-None
+!mute <members>...
 ```
 
 Examples:
 
 ```md
-None
+!mute @Motostar @steve
+!mute @steve 9876543210
+!mute @Motostar
+!mute 0123456789
 ```
 
 ## Prefix
 
 Sets the prefix for Fridays commands
+
+??? missing "Does not have a slash command to match"
+	Learn more about [slash commands](/#slash-commands)
 
 Usage:
 
@@ -240,21 +295,20 @@ Usage:
 !prefix [new_prefix='!']
 ```
 
-Aliases:
-
-```md
-None
-```
-
 Examples:
 
 ```md
-None
+!prefix
+!prefix ?
+!prefix f!
 ```
 
 ## Rolecall
 
 Moves everyone with a specific role to a voicechannel. Objects that can be exluded are voicechannels,roles,and members
+
+??? check "Has a slash command to match"
+	Learn more about [slash commands](/#slash-commands)
 
 Usage:
 
@@ -276,112 +330,24 @@ Examples:
 !rolecall @admins general @username @username
 ```
 
-## Set
-
-
-
-Usage:
-
-```md
-!set 
-!set deletecommandsafter [time=0]
-!set language [language]
-!set chatchannel 
-```
-
-Aliases:
-
-```md
-None
-```
-
-Examples:
-
-```md
-None
-```
-
-### Chatchannel
-Set the current channel so that I will always try to respond with something
-Usage:
-
-```md
-!set chatchannel 
-```
-
-Aliases:
-
-```md
-None
-```
-
-Examples:
-
-```md
-None
-```
-
-### Deletecommandsafter
-Set the time in seconds for how long to wait before deleting command messages
-Usage:
-
-```md
-!set deletecommandsafter|deleteafter|delcoms [time=0]
-```
-
-Aliases:
-
-```md
-deleteafter,delcoms
-```
-
-Examples:
-
-```md
-!set deletecommandsafter 0
-!set deleteafter 180
-!set delcoms 
-```
-
-### Language
-Change the language that I will speak
-Usage:
-
-```md
-!set language|lang [language]
-```
-
-Aliases:
-
-```md
-lang
-```
-
-Examples:
-
-```md
-None
-```
-
 ## Unmute
 
 Unmute a member from text channels
 
+??? check "Has a slash command to match"
+	Learn more about [slash commands](/#slash-commands)
+
 Usage:
 
 ```md
-!unmute <member>
-```
-
-Aliases:
-
-```md
-None
+!unmute <members>...
 ```
 
 Examples:
 
 ```md
-None
+!unmute @Motostar @steve
+!unmute @steve 9876543210
+!unmute @Motostar
+!unmute 0123456789
 ```
-

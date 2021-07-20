@@ -9,7 +9,7 @@ from functions import embed, MessageColors, checks
 class Dice(commands.Cog):
   """Roll some dice"""
 
-  @commands.command(name="dice", aliases=["d", "r", "roll"], help="D&D dice rolling")
+  @commands.command(name="dice", extras={"slash": True, "examples": ["1d20", "5d10k3", "d6"]}, aliases=["d", "r", "roll"], help="D&D dice rolling")
   async def norm_dice(self, ctx, *, roll: str):
     if "bump" in roll:
       return

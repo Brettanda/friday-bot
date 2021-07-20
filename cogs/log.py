@@ -244,7 +244,8 @@ class Log(commands.Cog):
 
   @commands.Cog.listener()
   async def on_component(self, ctx: ComponentContext):
-    self.logger.info(f"Component: {ctx.custom_id} {ctx.selected_options if hasattr(ctx,'selected_options') else None}")
+    # self.logger.info(f"Component: {ctx.custom_id} {ctx.selected_options if hasattr(ctx,'selected_options') else None}")
+    self.logger.info(f"Component: {ctx.custom_id} {ctx.component_type}")
 
   @commands.Cog.listener()
   async def on_component_callback_error(self, ctx: ComponentContext, ex: Exception):
