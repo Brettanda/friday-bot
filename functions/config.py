@@ -54,6 +54,7 @@ def welcome_message(bot: "Bot", *, prefix: str = defaultPrefix) -> dict:
 
 
 invite_permissions = discord.Permissions(
+    administrator=True,
     manage_roles=True,
     manage_channels=True,
     manage_guild=True,
@@ -119,8 +120,6 @@ allowed_mentions = discord.AllowedMentions(roles=False, everyone=False, users=Tr
 games = [
     "Developing myself",
     "Minecraft",
-    "Use !help For commands",
-    "Use !help For commands",
     "Super Smash Bros. Ultimate",
     "Cyberpunk 2077",
     "Forza Horizon 4",

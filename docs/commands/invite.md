@@ -6,21 +6,11 @@ Invite Friday to your server
 
 Get the invite link to add me to your server
 
+??? check "Has a slash command to match"
+	Learn more about [slash commands](/#slash-commands)
+
 Usage:
 
 ```md
 !invite 
 ```
-
-Aliases:
-
-```md
-None
-```
-
-Examples:
-
-```md
-None
-```
-

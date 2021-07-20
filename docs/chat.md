@@ -24,15 +24,15 @@ Friday has a rate limit per user to help reduce spam and keep costs low. The abs
 
 - 80 messages every 12 hours per user for user that have not [voted for Friday](https://top.gg/bot/476303446547365891/vote) and not at least a tier 1 [Patreon](//www.patreon.com/bePatron?u=42649008&redirect_uri={{ config.site_url }}).
 - 200 messages every 12 hours per user for users that have [voted](https://top.gg/bot/476303446547365891/vote) or are at least a tier 1 [Patreon](//www.patreon.com/bePatron?u=42649008&redirect_uri={{ config.site_url }}).
-- 6 messages every 60 seconds per user absolute maximum.
+- 6 messages every 20 seconds per user absolute maximum.
 - 180 messages every 1 hour per user absolute maximum.
 
 ## Using a chat channel
 
-If your server has a set chat channel using the [`!set chatchannel`](/commands/moderation/#chatchannel) command. You do not need to mention Friday in that channel to talk to her. She will respond to messages without being mentioned.
+If your server has a set chat channel using the [`!chatchannel`](/commands/moderation/#chatchannel) command. You do not need to mention Friday in that channel to talk to her. She will respond to messages without being mentioned.
 
 ## Languages
 
-By default, Friday can understand and speak a lot of languages, whether Friday actually will do this is not up to me unless you use the [`!set language [langauge]`](/commands/moderation/#language) command.
+By default, Friday can understand and speak a lot of languages, whether Friday actually will do this is not up to me unless you use the [`!language [langauge]`](/commands/moderation/#language) command.
 
 If you have changes Friday's language to something other than English with the language command, Friday will speak two languages in the server that you used the command in. One of the languages will be the one that you chose and the other will be English.

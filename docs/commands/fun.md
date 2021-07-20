@@ -6,6 +6,9 @@ Fun things like games
 
 Flip a coin
 
+??? check "Has a slash command to match"
+	Learn more about [slash commands](/#slash-commands)
+
 Usage:
 
 ```md
@@ -18,15 +21,12 @@ Aliases:
 coin
 ```
 
-Examples:
-
-```md
-None
-```
-
 ## Countdown
 
 Start a countdown. This command only updates every 10 seconds to avoid being ratelimited by Discord
+
+??? missing "Does not have a slash command to match"
+	Learn more about [slash commands](/#slash-commands)
 
 Usage:
 
@@ -40,15 +40,12 @@ Aliases:
 cd
 ```
 
-Examples:
-
-```md
-None
-```
-
 ## Gametime
 
 Ping a role that is attached to a game and see who wants to play
+
+??? missing "Does not have a slash command to match"
+	Learn more about [slash commands](/#slash-commands)
 
 Usage:
 
@@ -56,21 +53,12 @@ Usage:
 !gametime <role> <message>
 ```
 
-Aliases:
-
-```md
-None
-```
-
-Examples:
-
-```md
-None
-```
-
 ## Minesweeper
 
 Play minesweeper
+
+??? check "Has a slash command to match"
+	Learn more about [slash commands](/#slash-commands)
 
 Usage:
 
@@ -84,15 +72,12 @@ Aliases:
 ms
 ```
 
-Examples:
-
-```md
-None
-```
-
 ## Poll
 
 Make a poll. Seperate the options with `;;`
+
+??? check "Has a slash command to match"
+	Learn more about [slash commands](/#slash-commands)
 
 Usage:
 
@@ -100,21 +85,12 @@ Usage:
 !poll <title> <options>
 ```
 
-Aliases:
-
-```md
-None
-```
-
-Examples:
-
-```md
-None
-```
-
 ## Rockpaperscissors
 
 Play Rock Paper Scissors with Friday
+
+??? check "Has a slash command to match"
+	Learn more about [slash commands](/#slash-commands)
 
 Usage:
 
@@ -128,31 +104,15 @@ Aliases:
 rps
 ```
 
-Examples:
-
-```md
-None
-```
-
 ## Souptime
 
 Soup Time
+
+??? check "Has a slash command to match"
+	Learn more about [slash commands](/#slash-commands)
 
 Usage:
 
 ```md
 !souptime 
 ```
-
-Aliases:
-
-```md
-None
-```
-
-Examples:
-
-```md
-None
-```
-

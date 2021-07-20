@@ -18,16 +18,16 @@ class Issue(commands.Cog):
 
   @commands.command(name="issue", aliases=["problem", "feedback"], help="If you have an issue or noticed a bug with Friday, this will send a message to the developer.", usage="<Description of issue and steps to recreate the issue>")
   @commands.cooldown(1, 30, commands.BucketType.channel)
-  async def norm_feedback(self, ctx, *, issue: str):
-    await self.feedback(ctx, issue)
+  async def norm_issue(self, ctx, *, issue: str):
+    await self.issue(ctx, issue)
 
   @cog_ext.cog_slash(name="issue", description="If you have an issue or noticed a bug with Friday, this will send a message to the developer.")
   @commands.cooldown(1, 30, commands.BucketType.channel)
   @checks.slash(user=True, private=False)
-  async def slash_feedback(self, ctx, *, issue: str):
-    await self.feedback(ctx, issue, True)
+  async def slash_issue(self, ctx, *, issue: str):
+    await self.issue(ctx, issue, True)
 
-  async def feedback(self, ctx, issue: str, slash=False):
+  async def issue(self, ctx, issue: str, slash=False):
     timeout = 20
     if slash:
       confirm = await ctx.send(f"Please confirm your feedback by reacting with ✅. This will cancel after {timeout} seconds", embed=embed(title="Are you sure you would like to submit this issue?", description=f"{issue}"))

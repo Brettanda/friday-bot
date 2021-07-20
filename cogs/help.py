@@ -20,8 +20,15 @@ if TYPE_CHECKING:
 def get_examples(command: commands.command, prefix: str = "!") -> list:
   if command.extras != {} and "examples" in command.extras:
     examples, x, ay, gy = [], 0, 0, 0
+    alias, aliases, group_aliases = None, [command.name, *command.aliases], [command.parent.name, *command.parent.aliases] if command.parent is not None else []
+    if "NoneType" in str(list(command.clean_params.items())[0][1]):
+      ay = divmod(x, len(aliases))
+      alias = aliases[x - (ay[0] * len(aliases))]
+      gy = divmod(x, len(group_aliases)) if command.parent is not None else 0
+      group = group_aliases[x - (gy[0] * len(group_aliases))] + " " if command.parent is not None else ""
+      x += 1
+      examples.append(f"{prefix}{group}{alias}")
     for ex in command.extras["examples"]:
-      alias, aliases, group_aliases = None, [command.name, *command.aliases], [command.parent.name, *command.parent.aliases] if command.parent is not None else []
       ay = divmod(x, len(aliases))
       alias = aliases[x - (ay[0] * len(aliases))]
       gy = divmod(x, len(group_aliases)) if command.parent is not None else 0
@@ -55,7 +62,7 @@ def syntax(command, quotes: bool = True):
 
   sub_commands = ""
   if hasattr(command, "commands"):
-    for com in command.commands:
+    for com in sorted(command.commands, key=lambda x: x.qualified_name):
       if not com.hidden and com.enabled is not False:
         sub_commands += f"\n{cmd_and_aliases} {com.name} {get_params(com)}"
   # sub_commands = "".join(str(command.commands) if hasattr(command,"commands") else "")
