@@ -20,7 +20,7 @@ def useful_buttons():
       manage_components.create_button(
           style=ButtonStyle.URL,
           url="https://discord.gg/paMxRvvZFc",
-          label="Support"
+          label="Support Server"
       ),
       manage_components.create_button(
           style=ButtonStyle.URL,
@@ -30,7 +30,7 @@ def useful_buttons():
       manage_components.create_button(
           style=ButtonStyle.URL,
           url="https://docs.friday-bot.com/",
-          label="Commands"
+          label="Command Docs"
       )
   ])
 
