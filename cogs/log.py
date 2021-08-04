@@ -1,6 +1,5 @@
 import sys
 import logging
-import aiohttp
 import inspect
 import datetime
 import discord
