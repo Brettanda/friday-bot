@@ -426,7 +426,7 @@ class Log(commands.Cog):
     if guild is not None:
       self.bot.saved_guilds[guild.id if isinstance(guild, discord.Guild) else guild]["chatChannel"] = chatChannel
 
-  def change_guild_lang(self, guild: discord.Guild or int, lang: str = None) -> None:
+  def change_guild_lang(self, guild: typing.Union[discord.Guild, int], lang: str = None) -> None:
     if guild is not None:
       self.bot.saved_guilds[guild.id if isinstance(guild, discord.Guild) else guild]["lang"] = lang if lang is not None else guild.preferred_locale.split("-")[0] if isinstance(guild, discord.Guild) else "en"
 
