@@ -474,31 +474,31 @@ class Log(commands.Cog):
 
   @discord.utils.cached_property
   def log_spam(self) -> discord.Webhook:
-    return discord.Webhook.from_url(os.environ.get("WEBHOOKSPAM"), session=aiohttp.ClientSession(loop=self.loop))
+    return discord.Webhook.from_url(os.environ.get("WEBHOOKSPAM"), session=self.bot.session)
 
   @discord.utils.cached_property
   def log_chat(self) -> discord.Webhook:
-    return discord.Webhook.from_url(os.environ.get("WEBHOOKCHAT"), session=aiohttp.ClientSession(loop=self.loop))
+    return discord.Webhook.from_url(os.environ.get("WEBHOOKCHAT"), session=self.bot.session)
 
   @discord.utils.cached_property
   def log_info(self) -> discord.Webhook:
-    return discord.Webhook.from_url(os.environ.get("WEBHOOKINFO"), session=aiohttp.ClientSession(loop=self.loop))
+    return discord.Webhook.from_url(os.environ.get("WEBHOOKINFO"), session=self.bot.session)
 
   @discord.utils.cached_property
   def log_issues(self) -> discord.Webhook:
-    return discord.Webhook.from_url(os.environ.get("WEBHOOKISSUES"), session=aiohttp.ClientSession(loop=self.loop))
+    return discord.Webhook.from_url(os.environ.get("WEBHOOKISSUES"), session=self.bot.session)
 
   @discord.utils.cached_property
   def log_errors(self) -> discord.Webhook:
-    return discord.Webhook.from_url(os.environ.get("WEBHOOKERRORS"), session=aiohttp.ClientSession(loop=self.loop))
+    return discord.Webhook.from_url(os.environ.get("WEBHOOKERRORS"), session=self.bot.session)
 
   @discord.utils.cached_property
   def log_bumps(self) -> discord.Webhook:
-    return discord.Webhook.from_url(os.environ.get("WEBHOOKBUMPS"), session=aiohttp.ClientSession(loop=self.loop))
+    return discord.Webhook.from_url(os.environ.get("WEBHOOKBUMPS"), session=self.bot.session)
 
   @discord.utils.cached_property
   def log_join(self) -> discord.Webhook:
-    return discord.Webhook.from_url(os.environ.get("WEBHOOKJOIN"), session=aiohttp.ClientSession(loop=self.loop))
+    return discord.Webhook.from_url(os.environ.get("WEBHOOKJOIN"), session=self.bot.session)
 
   async def log_spammer(self, ctx, message, retry_after, *, notify=False):
     guild_name = getattr(ctx.guild, "name", "No Guild/ DM Channel")

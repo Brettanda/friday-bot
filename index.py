@@ -2,6 +2,7 @@ import asyncio
 import logging
 import os
 import sys
+import aiohttp
 from importlib import reload
 
 import discord
@@ -76,7 +77,7 @@ class Friday(commands.AutoShardedBot):
     self.prefixes = {}
     for i, p in c.fetchall():
       self.prefixes.update({int(i): str(p)})
-    self.load_cogs()
+    self.loop.run_until_complete(self.setup(True))
     self.logger.info(f"Cluster Starting {kwargs.get('shard_ids', None)}, {kwargs.get('shard_count', 1)}")
     if self.should_start:
       self.run(kwargs["token"])
@@ -92,12 +93,15 @@ class Friday(commands.AutoShardedBot):
   async def get_context(self, message, *, cls=None) -> functions.MyContext:
     return await super().get_context(message, cls=functions.MyContext)
 
-  def load_cogs(self) -> None:
-    for cog in cogs.default:
-      try:
-        self.load_extension(f"cogs.{cog}")
-      except Exception as e:
-        self.logger.error(f"Failed to load extenstion {cog} with \n {e}")
+  async def setup(self, load_extentions: bool = False) -> None:
+    self.session = aiohttp.ClientSession()
+
+    if load_extentions:
+      for cog in cogs.default:
+        try:
+          self.load_extension(f"cogs.{cog}")
+        except Exception as e:
+          self.logger.error(f"Failed to load extenstion {cog} with \n {e}")
 
   async def reload_cogs(self) -> None:
     self.ready = False
@@ -126,6 +130,7 @@ class Friday(commands.AutoShardedBot):
 
   async def close(self) -> None:
     self.logger.info("Shutting down")
+    await self.session.close()
     await super().close()
 
 
