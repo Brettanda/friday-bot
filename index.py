@@ -28,17 +28,23 @@ conn = sqlite3.connect("friday.db")
 c = conn.cursor()
 
 
-async def get_prefix(bot, message):
-  if hasattr(bot.log, "get_guild_prefix"):
-    return commands.when_mentioned_or(await bot.log.get_guild_prefix(bot, message))(bot, message)
-  return commands.when_mentioned_or(functions.config.defaultPrefix)
+async def get_prefix(bot: "Friday", message: discord.Message):
+  if message.guild is not None and message.guild.id != 707441352367013899:
+    if message.guild.id in bot.prefixes:
+      return commands.when_mentioned_or(bot.prefixes[message.guild.id])(bot, message)
+    else:
+      current = await functions.query(bot.log.mydb, "SELECT prefix FROM servers WHERE id=?", message.guild.id)
+      bot.prefixes[message.guild.id] = str(current)
+      bot.logger.warning(f"{message.guild.id}'s prefix was {bot.prefixes.get(message.guild.id, None)} and is now {current}")
+      return commands.when_mentioned_or(bot.prefixes[message.guild.id])(bot, message)
+  return commands.when_mentioned_or(functions.config.defaultPrefix)(bot, message)
 
 
 class Friday(commands.AutoShardedBot):
   def __init__(self, **kwargs):
-    self.cluster_name = kwargs.get("cluster_name", None)
-    self.cluster_idx = kwargs.get("cluster_idx", 0)
-    self.should_start = kwargs.get("start", False)
+    self.cluster_name = kwargs.pop("cluster_name", None)
+    self.cluster_idx = kwargs.pop("cluster_idx", 0)
+    self.should_start = kwargs.pop("start", False)
 
     self.loop = asyncio.new_event_loop()
     asyncio.set_event_loop(self.loop)
@@ -58,6 +64,7 @@ class Friday(commands.AutoShardedBot):
     )
 
     self.restartPending = False
+    self.views_loaded = False
     self.saved_guilds = {}
     self.songqueue = {}
     self.prod = True if len(sys.argv) > 1 and (sys.argv[1] == "--prod" or sys.argv[1] == "--production") else False

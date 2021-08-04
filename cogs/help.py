@@ -6,12 +6,11 @@ from discord.ext import commands, flags
 from discord.ext.menus import ListPageSource
 # from discord.utils import get
 
-from discord_slash import SlashContext  # , cog_ext, SlashCommandOptionType
-# from discord_slash.utils.manage_commands import create_option
+from discord_slash import SlashContext
+import typing
 from typing_extensions import TYPE_CHECKING
 # from cogs.cleanup import get_delete_time
-# import typing
-from functions import MessageColors, Menu, config  # , checks  # , embed
+from functions import MessageColors, Menu, views  # , embed
 
 if TYPE_CHECKING:
   from index import Friday as Bot
@@ -90,7 +89,7 @@ class HelpMenu(ListPageSource):
         description="If you would like to make a suggestion for a command please join the [Friday's Development](https://discord.gg/NTRuFjU) and explain your suggestion.\n\nFor more info on how commands work and how to format them please check out [docs.friday-bot.com](https://docs.friday-bot.com/).\n\n**Some commands will only show if you have the correct permissions to use them.**",
         colour=MessageColors.DEFAULT
     )
-    embed.set_thumbnail(url=self.ctx.bot.user.avatar_url)
+    embed.set_thumbnail(url=self.ctx.bot.user.avatar.url)
     embed.set_footer(text=f"{offset:,} - {min(len_data, offset+self.per_page-1):,} of {len_data:,} commands.")
 
     for name, value in fields:
@@ -107,14 +106,15 @@ class HelpMenu(ListPageSource):
     return await self.write_page(menu, fields)
 
 
-async def cmd_help(ctx: commands.Context or SlashContext, command, message: str = None):
+async def cmd_help(ctx: typing.Union[commands.Context, SlashContext], command: commands.Command, message: str = None):
   embed = Embed(
       title=message or f"Help with `{command}`",
       description=syntax(command),
       color=MessageColors.DEFAULT if message is None else MessageColors.ERROR
   )
   # embed.add_field(name="Command description", value=command.help)
-  embed.add_field(name="Command description", value=command.description or "None")
+  embed.add_field(name="Command description", value=command.description or "None", inline=False)
+  embed.add_field(name="Command examples", value="```md\n" + ("\n".join(get_examples(command, ctx.prefix)) or "None") + "\n```", inline=False)
   if isinstance(ctx, SlashContext):
     await ctx.send(embed=embed)
   else:
@@ -139,7 +139,7 @@ class Help(commands.HelpCommand):
     # embed.set_footer()
 
     for command in commands:
-      signature = self.clean_prefix + command.qualified_name + " "
+      signature = self.context.clean_prefix + command.qualified_name + " "
 
       signature += (
           "<args...>" if isinstance(command, flags.FlagCommand) else command.signature
@@ -167,7 +167,7 @@ class Help(commands.HelpCommand):
 
     return embed
 
-  async def command_callback(self, ctx, *, command=None):
+  async def command_callback(self, ctx: commands.Context, *, command: commands.Command = None):
     # await self.prepare_help_command(ctx, command)
     # bot: "Bot" = ctx.bot
 
@@ -181,6 +181,7 @@ class Help(commands.HelpCommand):
     # cog = bot.get_cog(command)
     # # if cog is None:
     # #   cog =
+    self.context = ctx
     return await super().command_callback(ctx, command=command)
 
   async def send_bot_help(self, mapping):
@@ -248,7 +249,7 @@ class Help(commands.HelpCommand):
                 delete_message_after=True,
                 clear_reactions_after=True,
                 timeout=delay if delay is not None and delay > 0 else 60,
-                extra_rows=[config.useful_buttons()])
+                extra_items=views.Links().links)
     await menu.start(ctx)
 
   async def send_cog_help(self, cog):
@@ -289,7 +290,7 @@ class Help(commands.HelpCommand):
 
   async def send_command_help(self, command: commands.Command):
     embed = Embed(color=MessageColors.DEFAULT)
-    embed.title = self.clean_prefix + command.qualified_name
+    embed.title = self.context.clean_prefix + command.qualified_name
 
     if command.description:
       embed.description = f"{command.description}\n\n{command.help}"
@@ -297,7 +298,7 @@ class Help(commands.HelpCommand):
       embed.description = command.help or "No help found..."
 
     if command.extras != {} and "examples" in command.extras:
-      embed.add_field(name="Examples", value="```py\n" + "\n".join(get_examples(command, self.clean_prefix)) + "```", inline=False)
+      embed.add_field(name="Examples", value="```py\n" + "\n".join(get_examples(command, self.context.clean_prefix)) + "```", inline=False)
 
     embed.add_field(name="Signature", value="```py\n" + self.get_command_signature(command) + "```", inline=False)
 

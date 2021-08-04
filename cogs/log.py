@@ -1,22 +1,20 @@
 import sys
 import logging
 import aiohttp
+import inspect
 import datetime
 import discord
 import asyncio
 # import mysql.connector
 
+import typing
 from typing import TYPE_CHECKING
 from discord.ext import commands
+from discord.ext.commands.view import StringView
 from discord_slash import SlashContext, SlashCommand, ComponentContext
 from cogs.help import cmd_help
-from functions import MessageColors, embed, mydb_connect, query, non_coro_query, relay_info, exceptions, config  # ,choosegame
+from functions import MessageColors, embed, mydb_connect, query, non_coro_query, relay_info, exceptions, config, views, MyContext, FakeInteractionMessage
 import traceback
-
-if discord.__version__ == "1.7.3":
-  from discord import AsyncWebhookAdapter
-else:
-  from discord.webhook.async_ import AsyncWebhookAdapter
 
 from collections import Counter
 
@@ -108,7 +106,7 @@ class Log(commands.Cog):
                                 customSounds longtext NULL)""")
 
   def check_perms(self, ctx):
-    if ctx.channel.type == discord.ChannelType.private:
+    if hasattr(ctx.channel, "type") and ctx.channel.type == discord.ChannelType.private:
       return True
 
     required_perms = [("send_messages", True), ("read_messages", True), ("embed_links", True), ("add_reactions", True)]
@@ -145,6 +143,9 @@ class Log(commands.Cog):
 
   @commands.Cog.listener()
   async def on_ready(self):
+    if not self.bot.views_loaded:
+      self.bot.add_view(views.Links())
+      self.bot.add_view(views.StopButton())
     #
     # FIXME: I think this could delete some of the db with more than one cluster
     #
@@ -242,10 +243,37 @@ class Log(commands.Cog):
             commands.MaxConcurrencyReached)) and (not hasattr(ex, "log") or (hasattr(ex, "log") and ex.log is True)):
       raise ex
 
+  async def convert_param(self, ctx: SlashContext, option, param):
+    value = option["value"]
+    if param.annotation != inspect.Parameter.empty:
+      value = await commands.run_converters(ctx, param.annotation, value, 0)
+    return value
+
   @commands.Cog.listener()
-  async def on_component(self, ctx: ComponentContext):
-    # self.logger.info(f"Component: {ctx.custom_id} {ctx.selected_options if hasattr(ctx,'selected_options') else None}")
-    self.logger.info(f"Component: {ctx.custom_id} {ctx.component_type}")
+  async def on_interaction(self, interaction: discord.Interaction):
+    if interaction.type != discord.InteractionType.application_command:
+      self.logger.info(f"Interaction: {interaction.data.get('custom_id','No ID')} {interaction.type}")
+
+    if interaction.type == discord.InteractionType.application_command:
+      command = self.bot.get_command(interaction.data["name"])
+
+      ctx = MyContext(prefix="/", view=StringView(interaction.data["name"]), bot=self.bot, message=FakeInteractionMessage(self.bot, interaction))
+      options = {option["name"]: option for option in interaction.data.get("options", {})}
+      params, kwargs = [], {}
+      for name, param in command.clean_params.items():
+        option = options.get(name)
+        if not option:
+          option = param.default
+        else:
+          option = await self.convert_param(ctx, option, param)
+        if param.kind == inspect.Parameter.KEYWORD_ONLY:
+          kwargs[name] = option
+        else:
+          params.append(option)
+      try:
+        await command(ctx, *params, **kwargs)
+      except Exception as e:
+        self.bot.dispatch("command_error", ctx, e)
 
   @commands.Cog.listener()
   async def on_component_callback_error(self, ctx: ComponentContext, ex: Exception):
@@ -295,22 +323,8 @@ class Log(commands.Cog):
 
     await self.bot.invoke(ctx)
 
-  def get_prefixes(self) -> [int]:
-    return [g["prefix"] for g in self.bot.saved_guilds.values()] + ["/", "!", "%", ">", "?", "-", "(", ")"]
-
-  async def get_guild_prefix(self, bot: "Bot", message: discord.Message) -> str:
-    if not message.guild or message.guild.id == 707441352367013899:
-      return config.defaultPrefix
-    try:
-      return bot.prefixes[message.guild.id]
-    except KeyError:
-      current = await query(self.mydb, "SELECT prefix FROM servers WHERE id=?", message.guild.id)
-      await self.set_guild_prefix(message.guild, str(current))
-      return bot.prefixes.get(message.guild.id, config.defaultPrefix)
-
-  async def set_guild_prefix(self, guild: discord.Guild, prefix: str) -> None:
-    await query(self.mydb, "UPDATE servers SET prefix=? WHERE id=?", str(prefix), int(guild.id))
-    self.bot.prefixes[guild.id] = str(prefix)
+  def get_prefixes(self) -> [str]:
+    return [*[g for g in self.bot.prefixes.values() if g != "!"], *["/", "!", "%", ">", "?", "-", "(", ")"]]
 
   def get_guild_delete_commands(self, guild: discord.Guild or int) -> int:
     try:
@@ -419,8 +433,7 @@ class Log(commands.Cog):
 
   def set_guild(
           self,
-          guild: discord.Guild or int,
-          prefix: str = config.defaultPrefix,
+          guild: typing.Union[discord.Guild, int],
           tier: int = 0,
           patreon_user: int = None,
           autoDeleteMSG: int = None,
@@ -433,7 +446,6 @@ class Log(commands.Cog):
       guild = guild if isinstance(guild, discord.Guild) else self.bot.get_guild(guild)
       self.bot.saved_guilds.update(
           {guild.id if isinstance(guild, discord.Guild) else guild: {
-              "prefix": prefix,
               "tier": tier,
               "patreon_user": patreon_user,
               "autoDeleteMSGs": autoDeleteMSG,
@@ -453,54 +465,39 @@ class Log(commands.Cog):
 
   async def set_all_guilds(self):
     # if not hasattr(self.bot, "saved_guilds") or len(self.bot.saved_guilds) != len(self.bot.guilds):
-    servers = await query(self.mydb,
-                          "SELECT id,prefix,tier,patreon_user,autoDeleteMSGs,muted,chatChannel,lang FROM servers")
+    servers = await query(self.mydb, "SELECT id,tier,patreon_user,autoDeleteMSGs,chatChannel,lang FROM servers")
     guilds = {}
-    for guild_id, prefix, tier, patreon_user, autoDeleteMSG, muted, chatChannel, lang in servers:
-      guilds.update({int(guild_id): {"prefix": str(prefix), "tier": str(tier), "patreon_user": int(patreon_user) if patreon_user is not None else None, "muted": True if int(muted) == 1 else False, "autoDeleteMSGs": int(autoDeleteMSG), "chatChannel": int(chatChannel) if chatChannel is not None else None, "lang": lang}})
+    for guild_id, tier, patreon_user, autoDeleteMSG, chatChannel, lang in servers:
+      guilds.update({int(guild_id): {"tier": str(tier), "patreon_user": int(patreon_user) if patreon_user is not None else None, "autoDeleteMSGs": int(autoDeleteMSG), "chatChannel": int(chatChannel) if chatChannel is not None else None, "lang": lang}})
     self.bot.saved_guilds = guilds
     return guilds
 
   @discord.utils.cached_property
   def log_spam(self) -> discord.Webhook:
-    if discord.__version__ == "1.7.3":
-      return discord.Webhook.from_url(os.environ.get("WEBHOOKSPAM"), adapter=AsyncWebhookAdapter(aiohttp.ClientSession(loop=self.loop)))
     return discord.Webhook.from_url(os.environ.get("WEBHOOKSPAM"), session=aiohttp.ClientSession(loop=self.loop))
 
   @discord.utils.cached_property
   def log_chat(self) -> discord.Webhook:
-    if discord.__version__ == "1.7.3":
-      return discord.Webhook.from_url(os.environ.get("WEBHOOKCHAT"), adapter=AsyncWebhookAdapter(aiohttp.ClientSession(loop=self.loop)))
     return discord.Webhook.from_url(os.environ.get("WEBHOOKCHAT"), session=aiohttp.ClientSession(loop=self.loop))
 
   @discord.utils.cached_property
   def log_info(self) -> discord.Webhook:
-    if discord.__version__ == "1.7.3":
-      return discord.Webhook.from_url(os.environ.get("WEBHOOKINFO"), adapter=AsyncWebhookAdapter(aiohttp.ClientSession(loop=self.loop)))
     return discord.Webhook.from_url(os.environ.get("WEBHOOKINFO"), session=aiohttp.ClientSession(loop=self.loop))
 
   @discord.utils.cached_property
   def log_issues(self) -> discord.Webhook:
-    if discord.__version__ == "1.7.3":
-      return discord.Webhook.from_url(os.environ.get("WEBHOOKISSUES"), adapter=AsyncWebhookAdapter(aiohttp.ClientSession(loop=self.loop)))
     return discord.Webhook.from_url(os.environ.get("WEBHOOKISSUES"), session=aiohttp.ClientSession(loop=self.loop))
 
   @discord.utils.cached_property
   def log_errors(self) -> discord.Webhook:
-    if discord.__version__ == "1.7.3":
-      return discord.Webhook.from_url(os.environ.get("WEBHOOKERRORS"), adapter=AsyncWebhookAdapter(aiohttp.ClientSession(loop=self.loop)))
     return discord.Webhook.from_url(os.environ.get("WEBHOOKERRORS"), session=aiohttp.ClientSession(loop=self.loop))
 
   @discord.utils.cached_property
   def log_bumps(self) -> discord.Webhook:
-    if discord.__version__ == "1.7.3":
-      return discord.Webhook.from_url(os.environ.get("WEBHOOKBUMPS"), adapter=AsyncWebhookAdapter(aiohttp.ClientSession(loop=self.loop)))
     return discord.Webhook.from_url(os.environ.get("WEBHOOKBUMPS"), session=aiohttp.ClientSession(loop=self.loop))
 
   @discord.utils.cached_property
   def log_join(self) -> discord.Webhook:
-    if discord.__version__ == "1.7.3":
-      return discord.Webhook.from_url(os.environ.get("WEBHOOKJOIN"), adapter=AsyncWebhookAdapter(aiohttp.ClientSession(loop=self.loop)))
     return discord.Webhook.from_url(os.environ.get("WEBHOOKJOIN"), session=aiohttp.ClientSession(loop=self.loop))
 
   async def log_spammer(self, ctx, message, retry_after, *, notify=False):
@@ -509,22 +506,22 @@ class Log(commands.Cog):
     fmt = 'User ? (ID ?) in guild %r (ID ?) spamming, retry_after: %.2fs'
     logging.warning(fmt, message.author, message.author.id, guild_name, guild_id, retry_after)
 
-    if not notify:
-      return
+    # if not notify:
+    #   return
 
-    return await self.log_spam.send(
-        username=self.bot.user.name,
-        avatar_url=self.bot.user.avatar_url,
-        embed=embed(
-            title="Spam-Control Triggered",
-            fieldstitle=["Member", "Guild Info", "Channel Info"],
-            fieldsval=[
-                f'{message.author} (ID: {message.author.id})',
-                f'{guild_name} (ID: {guild_id})',
-                f'{message.channel} (ID: {message.channel.id}'],
-            fieldsin=[False, False, False]
-        )
-    )
+    # return await self.log_spam.send(
+    #     username=self.bot.user.name,
+    #     avatar_url=self.bot.user.avatar.url,
+    #     embed=embed(
+    #         title="Spam-Control Triggered",
+    #         fieldstitle=["Member", "Guild Info", "Channel Info"],
+    #         fieldsval=[
+    #             f'{message.author} (ID: {message.author.id})',
+    #             f'{guild_name} (ID: {guild_id})',
+    #             f'{message.channel} (ID: {message.channel.id}'],
+    #         fieldsin=[False, False, False]
+    #     )
+    # )
 
   @commands.Cog.listener()
   async def on_command_error(self, ctx, error):

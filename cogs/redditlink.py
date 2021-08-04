@@ -236,7 +236,7 @@ class redditlink(commands.Cog):
 
     # TODO: Does not get url for videos atm
     channel = message.channel if payload is not None else ctx.channel
-    nsfw = channel.nsfw if channel is not None else False
+    nsfw = channel.nsfw if channel is not None and not isinstance(channel, discord.Thread) else channel.parent.nsfw if channel is not None and isinstance(channel, discord.Thread) else False
     if (nsfw is True and data["over_18"] is True) or (nsfw is False and data["over_18"] is False) or (nsfw is True and data["over_18"] is False):
       spoiler = False
     else:
