@@ -24,7 +24,7 @@ class Friday_testing(Friday):
   async def setup(self, load_extentions=False):
     for cog in cogs.default:
       self.load_extension(f"cogs.{cog}")
-    return super().setup()
+    return await super().setup(load_extentions=load_extentions)
 
   @tasks.loop()
   async def test_message(self):
