@@ -466,6 +466,7 @@ class Log(commands.Cog):
     # if not hasattr(self.bot, "saved_guilds") or len(self.bot.saved_guilds) != len(self.bot.guilds):
     servers = await query(self.mydb, "SELECT id,tier,patreon_user,autoDeleteMSGs,chatChannel,lang FROM servers")
     guilds = {}
+    for guild_id, tier, patreon_user, autoDeleteMSG, chatChannel, lang in servers:
       guilds.update({int(guild_id): {"tier": str(tier), "patreon_user": int(patreon_user) if patreon_user is not None else None, "autoDeleteMSGs": int(autoDeleteMSG), "chatChannel": int(chatChannel) if chatChannel is not None else None, "lang": lang}})
     self.bot.saved_guilds = guilds
     return guilds
