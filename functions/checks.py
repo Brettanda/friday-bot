@@ -1,6 +1,6 @@
 import discord
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Union
 from discord.ext import commands
 from discord_slash import SlashContext
 from . import exceptions, config, query
