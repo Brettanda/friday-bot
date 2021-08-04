@@ -325,20 +325,6 @@ class Log(commands.Cog):
   def get_prefixes(self) -> [str]:
     return [*[g for g in self.bot.prefixes.values() if g != "!"], *["/", "!", "%", ">", "?", "-", "(", ")"]]
 
-  async def get_guild_prefix(self, bot: "Bot", message: discord.Message) -> str:
-    if not message.guild or message.guild.id == 707441352367013899:
-      return config.defaultPrefix
-    try:
-      return bot.prefixes[message.guild.id]
-    except KeyError:
-      current = await query(self.mydb, "SELECT prefix FROM servers WHERE id=?", message.guild.id)
-      await self.set_guild_prefix(message.guild, str(current))
-      return bot.prefixes.get(message.guild.id, config.defaultPrefix)
-
-  async def set_guild_prefix(self, guild: discord.Guild, prefix: str) -> None:
-    await query(self.mydb, "UPDATE servers SET prefix=? WHERE id=?", str(prefix), int(guild.id))
-    self.bot.prefixes[guild.id] = str(prefix)
-
   def get_guild_delete_commands(self, guild: discord.Guild or int) -> int:
     try:
       if guild is not None:
@@ -446,8 +432,7 @@ class Log(commands.Cog):
 
   def set_guild(
           self,
-          guild: discord.Guild or int,
-          prefix: str = config.defaultPrefix,
+          guild: typing.Union[discord.Guild, int],
           tier: int = 0,
           patreon_user: int = None,
           autoDeleteMSG: int = None,
@@ -460,7 +445,6 @@ class Log(commands.Cog):
       guild = guild if isinstance(guild, discord.Guild) else self.bot.get_guild(guild)
       self.bot.saved_guilds.update(
           {guild.id if isinstance(guild, discord.Guild) else guild: {
-              "prefix": prefix,
               "tier": tier,
               "patreon_user": patreon_user,
               "autoDeleteMSGs": autoDeleteMSG,
@@ -480,11 +464,9 @@ class Log(commands.Cog):
 
   async def set_all_guilds(self):
     # if not hasattr(self.bot, "saved_guilds") or len(self.bot.saved_guilds) != len(self.bot.guilds):
-    servers = await query(self.mydb,
-                          "SELECT id,prefix,tier,patreon_user,autoDeleteMSGs,muted,chatChannel,lang FROM servers")
+    servers = await query(self.mydb, "SELECT id,tier,patreon_user,autoDeleteMSGs,chatChannel,lang FROM servers")
     guilds = {}
-    for guild_id, prefix, tier, patreon_user, autoDeleteMSG, muted, chatChannel, lang in servers:
-      guilds.update({int(guild_id): {"prefix": str(prefix), "tier": str(tier), "patreon_user": int(patreon_user) if patreon_user is not None else None, "muted": True if int(muted) == 1 else False, "autoDeleteMSGs": int(autoDeleteMSG), "chatChannel": int(chatChannel) if chatChannel is not None else None, "lang": lang}})
+      guilds.update({int(guild_id): {"tier": str(tier), "patreon_user": int(patreon_user) if patreon_user is not None else None, "autoDeleteMSGs": int(autoDeleteMSG), "chatChannel": int(chatChannel) if chatChannel is not None else None, "lang": lang}})
     self.bot.saved_guilds = guilds
     return guilds
 
