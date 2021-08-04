@@ -1,16 +1,17 @@
 import sys
 import logging
-import aiohttp
+import inspect
 import datetime
 import discord
 import asyncio
 # import mysql.connector
 
+import typing
 from typing import TYPE_CHECKING
-from discord.ext import commands
+from discord.ext.commands.view import StringView
 from discord_slash import SlashContext, SlashCommand, ComponentContext
 from cogs.help import cmd_help
-from functions import MessageColors, embed, mydb_connect, query, non_coro_query, relay_info, exceptions, config, views
+from functions import MessageColors, embed, mydb_connect, query, non_coro_query, relay_info, exceptions, config, views, MyContext, FakeInteractionMessage
 import traceback
 
 from discord.webhook.async_ import AsyncWebhookAdapter
