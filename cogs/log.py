@@ -326,7 +326,7 @@ class Log(commands.Cog):
   def get_prefixes(self) -> [str]:
     return [*[g for g in self.bot.prefixes.values() if g != "!"], *["/", "!", "%", ">", "?", "-", "(", ")"]]
 
-  def get_guild_delete_commands(self, guild: discord.Guild or int) -> int:
+  def get_guild_delete_commands(self, guild: typing.Union[discord.Guild, int]) -> int:
     try:
       if guild is not None:
         delete = self.bot.saved_guilds[guild.id if isinstance(guild, discord.Guild) else guild]["autoDeleteMSGs"]
@@ -335,7 +335,7 @@ class Log(commands.Cog):
       self.set_guild(guild)
       return delete if delete != 0 else None
 
-  def get_guild_muted(self, guild: discord.Guild or int) -> bool:
+  def get_guild_muted(self, guild: typing.Union[discord.Guild, int]) -> bool:
     try:
       if guild is not None:
         if guild.id if isinstance(guild, discord.Guild) else guild not in [int(item.id) for item in self.bot.guilds]:
@@ -345,7 +345,7 @@ class Log(commands.Cog):
       self.set_guild(guild)
       return bool(self.bot.saved_guilds[guild.id if isinstance(guild, discord.Guild) else guild]["muted"])
 
-  def get_guild_chat_channel(self, guild: discord.Guild or int) -> int:
+  def get_guild_chat_channel(self, guild: typing.Union[discord.Guild, int]) -> int:
     try:
       if guild is None:
         return False
@@ -359,7 +359,7 @@ class Log(commands.Cog):
       self.set_guild(guild)
       return self.bot.saved_guilds[guild.id if isinstance(guild, discord.Guild) else guild]["chatChannel"]
 
-  def get_guild_tier(self, guild: discord.Guild or int) -> str:
+  def get_guild_tier(self, guild: typing.Union[discord.Guild, int]) -> str:
     try:
       if guild is not None:
         guild = self.bot.saved_guilds.get(guild.id if isinstance(guild, discord.Guild) else guild, None)
@@ -390,7 +390,7 @@ class Log(commands.Cog):
         x += 1
       return final_tier if final_tier is not None else None
 
-  def get_guild_lang(self, guild: discord.Guild or int) -> str:
+  def get_guild_lang(self, guild: typing.Union[discord.Guild, int]) -> str:
     try:
       if guild is not None:
         guild = self.bot.saved_guilds.get(guild.id if isinstance(guild, discord.Guild) else guild, None)
@@ -411,23 +411,23 @@ class Log(commands.Cog):
   #   if guild is None or :
   #     return False
 
-  def change_guild_delete(self, guild: discord.Guild or int, delete: int = 0):
+  def change_guild_delete(self, guild: typing.Union[discord.Guild, int], delete: int = 0) -> None:
     if guild is not None:
       self.bot.saved_guilds[guild.id if isinstance(guild, discord.Guild) else guild]["autoDeleteMSGs"] = delete
 
-  def change_guild_muted(self, guild: discord.Guild or int, muted: bool = False):
+  def change_guild_muted(self, guild: typing.Union[discord.Guild, int], muted: bool = False) -> None:
     if guild is not None:
       self.bot.saved_guilds[guild.id if isinstance(guild, discord.Guild) else guild]["muted"] = muted
 
-  def change_guild_tier(self, guild: discord.Guild or int, premium: int = 0):
+  def change_guild_tier(self, guild: typing.Union[discord.Guild, int], premium: int = 0) -> None:
     if guild is not None:
       self.bot.saved_guilds.get(guild.id if isinstance(guild, discord.Guild) else guild, None)["tier"] = premium
 
-  def change_guild_chat_channel(self, guild: discord.Guild or int, chatChannel: int = None):
+  def change_guild_chat_channel(self, guild: typing.Union[discord.Guild, int], chatChannel: int = None) -> None:
     if guild is not None:
       self.bot.saved_guilds[guild.id if isinstance(guild, discord.Guild) else guild]["chatChannel"] = chatChannel
 
-  def change_guild_lang(self, guild: discord.Guild or int, lang: str = None):
+  def change_guild_lang(self, guild: discord.Guild or int, lang: str = None) -> None:
     if guild is not None:
       self.bot.saved_guilds[guild.id if isinstance(guild, discord.Guild) else guild]["lang"] = lang if lang is not None else guild.preferred_locale.split("-")[0] if isinstance(guild, discord.Guild) else "en"
 
@@ -441,7 +441,7 @@ class Log(commands.Cog):
           max_messages: [int] = None,
           muted: bool = False,
           chatChannel: int = None,
-          lang: str = None):
+          lang: str = None) -> None:
     if guild is not None:
       guild = guild if isinstance(guild, discord.Guild) else self.bot.get_guild(guild)
       self.bot.saved_guilds.update(
@@ -457,13 +457,13 @@ class Log(commands.Cog):
           }
           })
 
-  def remove_guild(self, guild: discord.Guild or int):
+  def remove_guild(self, guild: typing.Union[discord.Guild, int]) -> None:
     if guild is None:
       return False
     guild_id = guild.id if isinstance(guild, discord.Guild) else guild
     self.bot.saved_guilds.pop(guild_id, None)
 
-  async def set_all_guilds(self):
+  async def set_all_guilds(self) -> None:
     # if not hasattr(self.bot, "saved_guilds") or len(self.bot.saved_guilds) != len(self.bot.guilds):
     servers = await query(self.mydb, "SELECT id,tier,patreon_user,autoDeleteMSGs,chatChannel,lang FROM servers")
     guilds = {}

@@ -92,14 +92,14 @@ class Friday(commands.AutoShardedBot):
   async def get_context(self, message, *, cls=None) -> functions.MyContext:
     return await super().get_context(message, cls=functions.MyContext)
 
-  def load_cogs(self):
+  def load_cogs(self) -> None:
     for cog in cogs.default:
       try:
         self.load_extension(f"cogs.{cog}")
       except Exception as e:
         self.logger.error(f"Failed to load extenstion {cog} with \n {e}")
 
-  async def reload_cogs(self):
+  async def reload_cogs(self) -> None:
     self.ready = False
     reload(cogs)
     reload(functions)
@@ -112,7 +112,7 @@ class Friday(commands.AutoShardedBot):
       self.reload_extension(f"cogs.{i}")
     self.ready = True
 
-  async def on_message(self, ctx):
+  async def on_message(self, ctx) -> None:
     if not self.ready:
       return
 
@@ -121,10 +121,10 @@ class Friday(commands.AutoShardedBot):
 
     await self.process_commands(ctx)
 
-  async def on_error(self, event_method, *args, **kwargs):
+  async def on_error(self, event_method, *args, **kwargs) -> None:
     return await self.log.on_error(event_method, *args, **kwargs)
 
-  async def close(self):
+  async def close(self) -> None:
     self.logger.info("Shutting down")
     await super().close()
 
