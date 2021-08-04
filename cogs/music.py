@@ -340,7 +340,7 @@ class Music(commands.Cog):
       pass
     await self.skip(ctx)
 
-  @cog_ext.cog_slash(name="skip", description="Skips the current song", guild_ids=[243159711237537802])
+  @cog_ext.cog_slash(name="skip", description="Skips the current song")
   @checks.slash(user=True, private=False)
   async def slash_skip(self, ctx):
     await self.skip(ctx, True)
