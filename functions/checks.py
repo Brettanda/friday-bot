@@ -1,6 +1,6 @@
 import discord
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Union
 from discord.ext import commands
 from discord_slash import SlashContext
 from . import exceptions, config, query
@@ -57,7 +57,7 @@ async def guild_is_min_tier(bot: "Bot", guild: discord.Guild, tier: str = list(c
   return True
 
 
-async def user_is_min_tier(bot: "Bot", user: discord.User, tier: str = list(config.premium_tiers)[1]) -> bool:
+async def user_is_min_tier(bot: "Bot", user: Union[discord.User, discord.Member], tier: str = list(config.premium_tiers)[1]) -> bool:
   """ Checks if a user has at least patreon 'tier' """
 
   if hasattr(user, "guild") and user.guild.id != config.support_server_id or not hasattr(user, "guild"):

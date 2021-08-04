@@ -51,15 +51,14 @@ class redditlink(commands.Cog):
 
   async def request(self, url):
     async with self.lock:
-      async with aiohttp.ClientSession() as session:
-        async with session.get(
-                url,
-                headers={
-                    'User-Agent':
-                    f'DiscordBot (https://github.com/Rapptz/discord.py {discord.__version__}) Python/{sys.version_info.major}.{sys.version_info.minor} aiohttp/{aiohttp.__version__}'
-                }) as r:
-          if r.status == 200:
-            return await r.json()
+      async with self.bot.session.get(
+              url,
+              headers={
+                  'User-Agent':
+                  f'DiscordBot (https://github.com/Rapptz/discord.py {discord.__version__}) Python/{sys.version_info.major}.{sys.version_info.minor} aiohttp/{aiohttp.__version__}'
+              }) as r:
+        if r.status == 200:
+          return await r.json()
 
   @commands.Cog.listener()
   async def on_message(self, ctx):
