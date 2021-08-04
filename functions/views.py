@@ -27,4 +27,3 @@ class Links(PersistantButtons):
     return [discord.ui.Button(label="Support Server", style=discord.ButtonStyle.link, url="https://discord.gg/paMxRvvZFc", row=1),
             discord.ui.Button(label="Patreon", style=discord.ButtonStyle.link, url="https://www.patreon.com/fridaybot", row=1),
             discord.ui.Button(label="Command Docs", style=discord.ButtonStyle.link, url="https://docs.friday-bot.com/", row=1)]
-

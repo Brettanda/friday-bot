@@ -16,8 +16,6 @@ from cogs.help import cmd_help
 from functions import MessageColors, embed, mydb_connect, query, non_coro_query, relay_info, exceptions, config, views, MyContext, FakeInteractionMessage
 import traceback
 
-from discord.webhook.async_ import AsyncWebhookAdapter
-
 from collections import Counter
 
 import os
