@@ -1,13 +1,44 @@
-import asyncio
+import discord
 
 from discord.ext import commands
 from discord_slash import cog_ext
 
-from functions import embed, relay_info, checks
+from functions import embed, relay_info, checks, MessageColors
 from typing_extensions import TYPE_CHECKING
 
 if TYPE_CHECKING:
   from index import Friday as Bot
+
+
+class Confirm(discord.ui.View):
+  def __init__(self, bot: "Bot"):
+    self.bot = bot
+    super().__init__(timeout=None)
+
+  async def interaction_check(self, interaction: discord.Interaction) -> bool:
+    cached_original_message = interaction.message.reference.cached_message
+    original_message = cached_original_message if cached_original_message is not None else await interaction.channel.fetch_message(interaction.message.reference.message_id)
+    original_author = original_message.author
+    if original_message and original_author.id == interaction.user.id:
+      return True
+    if interaction.user.id == interaction.message.author.id:
+      return True
+    return False
+
+  @discord.ui.button(emoji="✅", label="Confirm", custom_id="issue_confirm", style=discord.ButtonStyle.green)
+  async def confirm(self, button: discord.ui.Button, interaction: discord.Interaction):
+    await interaction.response.edit_message(content="", embed=embed(title="Sent. For a follow up to this issue please join the support server"), view=SupportServer())
+    await relay_info("", embed=embed(title="Issue", description=f"{interaction.message.embeds[0].description}", author_icon=interaction.user.avatar.url, author_name=interaction.user.name), bot=self.bot, webhook=self.bot.log.log_issues)
+
+  @discord.ui.button(emoji="❌", label="Cancel", custom_id="issue_cancel", style=discord.ButtonStyle.grey)
+  async def cancel(self, button: discord.ui.Button, interaction: discord.Integration):
+    await interaction.response.edit_message(content="", embed=embed(title="Canceled", color=MessageColors.ERROR), view=None)
+
+
+class SupportServer(discord.ui.View):
+  def __init__(self):
+    super().__init__()
+    self.add_item(discord.ui.Button(label="Support Server", style=discord.ButtonStyle.grey, url="https://discord.gg/NTRuFjU"))
 
 
 class Issue(commands.Cog):
@@ -16,48 +47,23 @@ class Issue(commands.Cog):
   def __init__(self, bot: "Bot"):
     self.bot = bot
 
+  @commands.Cog.listener()
+  async def on_ready(self):
+    if not self.bot.views_loaded:
+      self.bot.add_view(Confirm(self.bot))
+
   @commands.command(name="issue", aliases=["problem", "feedback"], help="If you have an issue or noticed a bug with Friday, this will send a message to the developer.", usage="<Description of issue and steps to recreate the issue>")
   @commands.cooldown(1, 30, commands.BucketType.channel)
   async def norm_issue(self, ctx, *, issue: str):
     await self.issue(ctx, issue)
 
   @cog_ext.cog_slash(name="issue", description="If you have an issue or noticed a bug with Friday, this will send a message to the developer.")
-  @commands.cooldown(1, 30, commands.BucketType.channel)
   @checks.slash(user=True, private=False)
   async def slash_issue(self, ctx, *, issue: str):
     await self.issue(ctx, issue, True)
 
   async def issue(self, ctx, issue: str, slash=False):
-    timeout = 20
-    if slash:
-      confirm = await ctx.send(f"Please confirm your feedback by reacting with ✅. This will cancel after {timeout} seconds", embed=embed(title="Are you sure you would like to submit this issue?", description=f"{issue}"))
-    else:
-      confirm = await ctx.reply(f"Please confirm your feedback by reacting with ✅. This will cancel after {timeout} seconds", embed=embed(title="Are you sure you would like to submit this issue?", description=f"{issue}"))
-    delay = self.bot.log.get_guild_delete_commands(ctx.guild)
-    if not slash:
-      try:
-        await ctx.message.delete(delay=delay)
-      except Exception:
-        pass
-    await confirm.add_reaction("✅")
-
-    def check(reaction, user):
-      return str(reaction.emoji) == "✅" and user == ctx.author
-
-    try:
-      await self.bot.wait_for("reaction_add", timeout=float(timeout), check=check)
-    except asyncio.TimeoutError:
-      await confirm.edit(content="", embed=embed(title="Canceled"), mention_author=False)
-    else:
-      await confirm.edit(content="", embed=embed(title="Sent. For a follow up to this issue please join the support server https://discord.gg/NTRuFjU"), mention_author=False)
-      await relay_info("", embed=embed(title="Issue", description=f"{issue}", ctx=ctx), bot=self.bot, webhook=self.bot.log.log_issues)
-    finally:
-      if not slash:
-        await confirm.delete(delay=delay if delay is not None else 30)
-      try:
-        await confirm.clear_reaction("✅")
-      except Exception:
-        await confirm.remove_reaction("✅", self.bot.user)
+    await ctx.send("Please confirm your feedback.", embed=embed(title="Are you sure you would like to submit this issue?", description=f"{issue}"), view=Confirm(self.bot))
 
 
 def setup(bot):

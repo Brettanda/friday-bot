@@ -1,6 +1,11 @@
 from discord_slash import SlashContext
 from discord.ext.commands import Context
 import discord
+import typing
+from typing_extensions import TYPE_CHECKING
+
+if TYPE_CHECKING:
+  from index import Friday as Bot
 
 
 class MySlashContext(SlashContext):
@@ -29,10 +34,47 @@ class MySlashContext(SlashContext):
     #     raise e
 
 
+class FakeInteractionMessage:
+  """Turns an `discord.Interaction` into sudo a `discord.Message`"""
+
+  def __init__(self, bot: "Bot", interaction: discord.Interaction):
+    self._bot = bot
+    self.interaction = interaction
+    super().__init__()
+
+  @property
+  def bot(self) -> typing.Union["Bot", discord.Client, discord.AutoShardedClient]:
+    return self._bot
+
+  @property
+  def channel(self) -> typing.Union[discord.TextChannel, discord.DMChannel]:
+    return self.interaction.channel
+
+  @property
+  def guild(self) -> discord.Guild:
+    return self.interaction.guild
+
+  @property
+  def author(self) -> typing.Union[discord.User, discord.Member]:
+    return self.interaction.user
+
+  @property
+  def type(self) -> discord.MessageType:
+    return discord.MessageType.application_command
+
+  async def reply(self, content, **kwargs) -> discord.Message:
+    kwargs.pop("delete_after", None)
+    return await self.interaction.response.send_message(content, **kwargs)
+
+  @property
+  def _state(self) -> discord.Interaction._state:
+    return self.interaction._state
+
+
 class MyContext(Context):
-  async def reply(self, content=None, **kwargs):
+  async def reply(self, content=None, **kwargs) -> discord.Message:
     ignore_coms = ["log", "help", "meme", "issue", "reactionrole", "minesweeper", "poll", "confirm", "souptime", "say", "countdown"]
-    if not hasattr(kwargs, "delete_after") and self.command is not None and self.command.name not in ignore_coms:
+    if not hasattr(kwargs, "delete_after") and self.command is not None and self.command.name not in ignore_coms and self.message.type.name != "application_command":
       if hasattr(self.bot, "get_guild_delete_commands"):
         delete = self.bot.log.get_guild_delete_commands(self.message.guild)
       else:
@@ -41,15 +83,23 @@ class MyContext(Context):
       if delete is not None and self.command.name not in ignore_coms:
         kwargs.update({"delete_after": delete})
         await self.message.delete(delay=delete)
-    if not hasattr(kwargs, "mention_author"):
+    if not hasattr(kwargs, "mention_author") and self.message.type.name != "application_command":
       kwargs.update({"mention_author": False})
     try:
+      if self.message.type == discord.MessageType.application_command:
+        kwargs.pop("delete_after", None)
+        return await self.message.interaction.response.send_message(content, **kwargs)
+      if self.message.type == discord.MessageType.thread_starter_message:
+        return await self.message.channel.send(content, **kwargs)
       return await self.message.reply(content, **kwargs)
     except (discord.Forbidden, discord.HTTPException):
       try:
+        if self.message.type == discord.MessageType.application_command:
+          kwargs.pop("delete_after", None)
+          return await self.message.interaction.response.send_message(content, **kwargs)
         return await self.message.channel.send(content, **kwargs)
       except (discord.Forbidden, discord.HTTPException):
         pass
 
-  async def send(self, content=None, **kwargs):
+  async def send(self, content=None, **kwargs) -> discord.Message:
     return await self.reply(content, **kwargs)

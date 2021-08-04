@@ -10,30 +10,27 @@ class Dice(commands.Cog):
   """Roll some dice"""
 
   @commands.command(name="dice", extras={"slash": True, "examples": ["1d20", "5d10k3", "d6"]}, aliases=["d", "r", "roll"], help="D&D dice rolling")
-  async def norm_dice(self, ctx, *, roll: str):
+  async def norm_dice(self, ctx: commands.Context, *, roll: str):
     if "bump" in roll:
       return
 
-    async with ctx.typing():
-      post = await self.dice(roll)
-    await ctx.reply(**post)
+    return await self.dice(ctx, roll)
 
   @cog_ext.cog_slash(name="dice", description="D&D dice rolling")
   @checks.slash(user=False, private=True)
-  async def slash_dice(self, ctx, *, roll: str):
-    post = await self.dice(roll)
-    await ctx.send(**post)
+  async def slash_dice(self, ctx: commands.Context, *, roll: str):
+    return await self.dice(ctx, roll)
 
-  async def dice(self, roll):
+  async def dice(self, ctx: commands.Context, roll):
     roll = roll.lower()
 
     result = None
     try:
       result = d20.roll(roll)
     except Exception as e:
-      return dict(embed=embed(title=f"{e}", color=MessageColors.ERROR))
+      return await ctx.send(embed=embed(title=f"{e}", color=MessageColors.ERROR))
     else:
-      return dict(embed=embed(title=f"Your total: {str(result.total)}", description=f"Query: {str(result.ast)}\nResult: {str(result)}"))
+      return await ctx.send(embed=embed(title=f"Your total: {str(result.total)}", description=f"Query: {str(result.ast)}\nResult: {str(result)}"))
 
 
 def setup(bot):

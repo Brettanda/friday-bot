@@ -36,9 +36,9 @@ async def get_prefix(bot, message):
 
 class Friday(commands.AutoShardedBot):
   def __init__(self, **kwargs):
-    self.cluster_name = kwargs.get("cluster_name", None)
-    self.cluster_idx = kwargs.get("cluster_idx", 0)
-    self.should_start = kwargs.get("start", False)
+    self.cluster_name = kwargs.pop("cluster_name", None)
+    self.cluster_idx = kwargs.pop("cluster_idx", 0)
+    self.should_start = kwargs.pop("start", False)
 
     self.loop = asyncio.new_event_loop()
     asyncio.set_event_loop(self.loop)
@@ -58,6 +58,7 @@ class Friday(commands.AutoShardedBot):
     )
 
     self.restartPending = False
+    self.views_loaded = False
     self.saved_guilds = {}
     self.songqueue = {}
     self.prod = True if len(sys.argv) > 1 and (sys.argv[1] == "--prod" or sys.argv[1] == "--production") else False

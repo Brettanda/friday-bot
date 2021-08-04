@@ -104,7 +104,7 @@ def bow(sentence, wrds, show_details=True, mentioned=False):
         bag[i] = 1
         if show_details:
           inbag += f"{w} "
-          # print ("found in bag: %s" % w)
+          # print ("found in bag: ?" % w)
   # sentiment = sia.polarity_scores(" ".join(sentence))
   # bag.insert(0, sentiment["neg"])
   # bag.insert(0, sentiment["neu"])
