@@ -1,6 +1,6 @@
 name: Will it blend?
 
-on: [pull_request]
+on: [push]
 
 jobs:
   lint:
