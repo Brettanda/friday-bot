@@ -60,14 +60,12 @@ intents = discord.Intents(
     voice_states=True,
     messages=True,
     reactions=True,
-    # Members intent required for giving roles appon a member
-    # joining a guild, and for reaction roles that will come soon
+    members=True,
     # invites=True,
-    # members=True
 )
 
 member_cache = discord.MemberCacheFlags.none()
-member_cache.voice = True
+member_cache.joined = True
 
 # all_support_ranks = [item for item in support_ranks]
 

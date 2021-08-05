@@ -8,7 +8,7 @@ import asyncio
 
 import typing
 from typing import TYPE_CHECKING
-from discord.ext import commands
+from discord.ext import commands, tasks
 from discord.ext.commands.view import StringView
 from discord_slash import SlashContext, SlashCommand, ComponentContext
 from cogs.help import cmd_help
@@ -78,6 +78,7 @@ class Log(commands.Cog):
     # dlog.handlers = [handler]
     # dlog.setLevel(logging.INFO)
 
+    self.check_prefixes.start()
     # self.check_for_mydb.start()
 
     self.bot.add_check(self.check_perms)
@@ -95,7 +96,6 @@ class Log(commands.Cog):
                                 max_mentions int NULL DEFAULT NULL,
                                 max_messages text NULL,
                                 remove_invites tinyint(1) DEFAULT 0,
-                                defaultRole bigint NULL DEFAULT NULL,
                                 reactionRoles text NULL,
                                 customJoinLeave text NULL,
                                 botMasterRole bigint NULL DEFAULT NULL,
@@ -119,6 +119,12 @@ class Log(commands.Cog):
 
     raise commands.BotMissingPermissions(missing)
 
+  @tasks.loop(seconds=1)
+  async def check_prefixes(self):
+    await self.bot.wait_until_ready()
+    if len(self.bot.guilds) != len(self.bot.prefixes):
+      await relay_info(f"Missing prefixes: {len(self.bot.guilds)} - {len(self.bot.prefixes)}", self.bot, webhook=self.log_errors)
+
   # @tasks.loop(seconds=10.0)
   # async def check_for_mydb(self):
   #   try:
@@ -133,8 +139,9 @@ class Log(commands.Cog):
   #   while self.bot.is_closed():
   #     await asyncio.sleep(0.1)
 
-  # def cog_unload(self):
+  def cog_unload(self):
     # self.check_for_mydb.stop()
+    self.check_prefixes.stop()
 
   @commands.Cog.listener()
   async def on_shard_connect(self, shard_id):
@@ -206,6 +213,7 @@ class Log(commands.Cog):
       await asyncio.sleep(0.1)
     await relay_info(f"I have been removed from a guild, making the total **{len(self.bot.guilds)}**", self.bot, short=f"I have been removed from a guild, making the total {len(self.bot.guilds)}", webhook=self.log_join, logger=self.logger)
     await query(self.mydb, "DELETE FROM servers WHERE id=?", guild.id)
+    await query(self.mydb, "DELETE FROM blacklist WHERE id=?", guild.id)
     self.remove_guild(guild.id)
 
   @commands.Cog.listener()
@@ -256,6 +264,9 @@ class Log(commands.Cog):
     if interaction.type == discord.InteractionType.application_command:
       command = self.bot.get_command(interaction.data["name"])
 
+      if command is None:
+        return await relay_info(f"Missing slash command: {interaction.data['name']}", self.bot, webhook=self.log_errors)
+
       ctx = MyContext(prefix="/", view=StringView(interaction.data["name"]), bot=self.bot, message=FakeInteractionMessage(self.bot, interaction))
       options = {option["name"]: option for option in interaction.data.get("options", {})}
       params, kwargs = [], {}
@@ -269,8 +280,20 @@ class Log(commands.Cog):
           kwargs[name] = option
         else:
           params.append(option)
+
+      async def fallback():
+        await asyncio.sleep(2)
+        if interaction.response.is_done():
+          return
+        try:
+          await interaction.response.defer()
+        except Exception:
+          pass
+      self.bot.loop.create_task(fallback())
       try:
-        await command(ctx, *params, **kwargs)
+        self.bot.dispatch("command", ctx)
+        if await command.can_run(ctx):
+          await command(ctx, *params, **kwargs)
       except Exception as e:
         self.bot.dispatch("command_error", ctx, e)
 
@@ -523,8 +546,8 @@ class Log(commands.Cog):
     # )
 
   @commands.Cog.listener()
-  async def on_command_error(self, ctx, error):
-    slash = True if isinstance(ctx, SlashContext) else False
+  async def on_command_error(self, ctx: commands.Context, error):
+    slash = True if isinstance(ctx, SlashContext) or (hasattr(ctx, "is_interaction") and ctx.is_interaction) else False
     if hasattr(ctx.command, 'on_error'):
       return
 
