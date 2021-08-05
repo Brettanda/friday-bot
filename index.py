@@ -21,7 +21,6 @@ load_dotenv()
 
 TOKEN = os.environ.get('TOKENTEST')
 
-songqueue = {}
 dead_nodes_sent = False
 
 
