@@ -28,6 +28,7 @@ jobs:
           ~/venv
         key: ${{ matrix.os }}-pip-${{ env.cache-name }}-${{ hashfiles('lint-requirements.txt') }}
         restore-keys: |
+          ${{ matrix.os }}-pip-${{ env.cache-name }}-${{ hashfiles('lint-requirements.txt') }}
           ${{ matrix.os }}-pip-${{ env.cache-name }}-
           ${{ matrix.os }}-pip-
           ${{ matrix.os }}-
@@ -70,6 +71,7 @@ jobs:
           ~/venv
         key: ${{ matrix.os }}-pip-${{ env.cache-name }}-${{ hashfiles('requirements.txt') }}
         restore-keys: |
+          ${{ matrix.os }}-pip-${{ env.cache-name }}-${{ hashfiles('requirements.txt') }}
           ${{ matrix.os }}-pip-${{ env.cache-name }}-
           ${{ matrix.os }}-pip-
           ${{ matrix.os }}-
@@ -143,6 +145,7 @@ jobs:
           ~/venv
         key: ${{ matrix.os }}-pip-${{ env.cache-name }}-${{ hashfiles('requirements.txt') }}
         restore-keys: |
+          ${{ matrix.os }}-pip-${{ env.cache-name }}-${{ hashfiles('requirements.txt') }}
           ${{ matrix.os }}-pip-${{ env.cache-name }}-
           ${{ matrix.os }}-pip-
           ${{ matrix.os }}-
