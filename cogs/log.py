@@ -8,7 +8,7 @@ import asyncio
 
 import typing
 from typing import TYPE_CHECKING
-from discord.ext import commands  # , tasks
+from discord.ext import commands, tasks
 from discord.ext.commands.view import StringView
 from discord_slash import SlashContext, SlashCommand, ComponentContext
 from cogs.help import cmd_help
@@ -78,7 +78,7 @@ class Log(commands.Cog):
     # dlog.handlers = [handler]
     # dlog.setLevel(logging.INFO)
 
-    # self.check_prefixes.start()
+    self.check_prefixes.start()
     # self.check_for_mydb.start()
 
     self.bot.add_check(self.check_perms)
@@ -119,11 +119,11 @@ class Log(commands.Cog):
 
     raise commands.BotMissingPermissions(missing)
 
-  # @tasks.loop(seconds=1)
-  # async def check_prefixes(self):
-  #   await self.bot.wait_until_ready()
-  #   if len(self.bot.guilds) != len(self.bot.prefixes):
-  #     await relay_info(f"Missing prefixes: {len(self.bot.guilds)} - {len(self.bot.prefixes)}", self.bot, webhook=self.log_errors)
+  @tasks.loop(seconds=1)
+  async def check_prefixes(self):
+    await self.bot.wait_until_ready()
+    if len(self.bot.guilds) != len(self.bot.prefixes):
+      await relay_info(f"Missing prefixes: {len(self.bot.guilds)} - {len(self.bot.prefixes)}", self.bot, webhook=self.log_errors)
 
   # @tasks.loop(seconds=10.0)
   # async def check_for_mydb(self):
@@ -139,19 +139,17 @@ class Log(commands.Cog):
   #   while self.bot.is_closed():
   #     await asyncio.sleep(0.1)
 
-  # def cog_unload(self):
-  #   # self.check_for_mydb.stop()
-  #   self.check_prefixes.stop()
+  def cog_unload(self):
+    # self.check_for_mydb.stop()
+    self.check_prefixes.stop()
 
   @commands.Cog.listener()
   async def on_shard_connect(self, shard_id):
     await relay_info(f"Shard #{shard_id} has connected", self.bot, logger=self.logger)
 
   @commands.Cog.listener()
-  async def on_ready(self):
-    if not self.bot.views_loaded:
-      self.bot.add_view(views.Links())
-      self.bot.add_view(views.StopButton())
+  async def on_connect(self):
+    await relay_info("Connected", self.bot, logger=self.logger)
     #
     # FIXME: I think this could delete some of the db with more than one cluster
     #
@@ -161,6 +159,19 @@ class Log(commands.Cog):
         current.append(guild.id)
         await query(self.mydb, "INSERT OR IGNORE INTO servers (id,muted,lang) VALUES (?,?,?)", guild.id, 0, guild.preferred_locale.split("-")[0] if guild.preferred_locale is not None else "en")
         await query(self.mydb, f"DELETE FROM servers WHERE id NOT IN ({','.join(['?' for _ in current])})", *current)
+
+    for i, p in await query(self.mydb, "SELECT id,prefix FROM servers"):
+      self.bot.prefixes.update({int(i): str(p)})
+
+  @commands.Cog.listener()
+  async def on_ready(self):
+    if not self.bot.views_loaded:
+      # for name, view in views.__dict__.items():
+      #   if isinstance(view, discord.):
+      #     self.bot.add_view(view)
+      self.bot.add_view(views.Links())
+      self.bot.add_view(views.StopButton())
+      # self.bot.add_view(views.PaginationButtons())
 
     await self.set_all_guilds()
     await relay_info(f"Apart of {len(self.bot.guilds)} guilds", self.bot, logger=self.logger)
@@ -173,12 +184,20 @@ class Log(commands.Cog):
     await relay_info(f"Logged on as #{shard_id} {self.bot.user}! - {self.bot.get_shard(shard_id).latency*1000:,.0f} ms", self.bot, logger=self.logger)
 
   @commands.Cog.listener()
+  async def on_disconnect(self):
+    await relay_info("Disconnected", self.bot, logger=self.logger)
+
+  @commands.Cog.listener()
   async def on_shard_disconnect(self, shard_id):
     await relay_info(f"Shard #{shard_id} has disconnected", self.bot, logger=self.logger)
 
   @commands.Cog.listener()
   async def on_shard_reconnect(self, shard_id):
     await relay_info(f"Shard #{shard_id} has reconnected", self.bot, logger=self.logger)
+
+  @commands.Cog.listener()
+  async def on_resumed(self):
+    await relay_info("Resumed", self.bot, logger=self.logger)
 
   @commands.Cog.listener()
   async def on_shard_resumed(self, shard_id):
@@ -188,7 +207,6 @@ class Log(commands.Cog):
   async def on_guild_join(self, guild: discord.Guild):
     while self.bot.is_closed():
       await asyncio.sleep(0.1)
-    await relay_info(f"I have joined a new guild, making the total **{len(self.bot.guilds)}**", self.bot, short=f"I have joined a new guild, making the total {len(self.bot.guilds)}", webhook=self.log_join, logger=self.logger)
     await query(self.mydb, "INSERT OR IGNORE INTO servers (id,muted,lang) VALUES (?,?,?)", guild.id, 0, guild.preferred_locale.split("-")[0])
     priority_channels = []
     channels = []
@@ -209,15 +227,17 @@ class Log(commands.Cog):
 
     await channel.send(**config.welcome_message(self.bot))
     self.set_guild(guild.id)
+    await relay_info(f"I have joined a new guild, making the total **{len(self.bot.guilds)}**", self.bot, short=f"I have joined a new guild, making the total {len(self.bot.guilds)}", webhook=self.log_join, logger=self.logger)
 
   @commands.Cog.listener()
   async def on_guild_remove(self, guild):
     while self.bot.is_closed():
       await asyncio.sleep(0.1)
-    await relay_info(f"I have been removed from a guild, making the total **{len(self.bot.guilds)}**", self.bot, short=f"I have been removed from a guild, making the total {len(self.bot.guilds)}", webhook=self.log_join, logger=self.logger)
     await query(self.mydb, "DELETE FROM servers WHERE id=?", guild.id)
     await query(self.mydb, "DELETE FROM blacklist WHERE id=?", guild.id)
+    await query(self.mydb, "DELETE FROM nicknames WHERE guild_id=?", guild.id)
     self.remove_guild(guild.id)
+    await relay_info(f"I have been removed from a guild, making the total **{len(self.bot.guilds)}**", self.bot, short=f"I have been removed from a guild, making the total {len(self.bot.guilds)}", webhook=self.log_join, logger=self.logger)
 
   @commands.Cog.listener()
   async def on_message_edit(self, before, after):
@@ -459,6 +479,7 @@ class Log(commands.Cog):
   def set_guild(
           self,
           guild: typing.Union[discord.Guild, int],
+          prefix: str = "!",
           tier: int = 0,
           patreon_user: int = None,
           autoDeleteMSG: int = None,
@@ -469,6 +490,7 @@ class Log(commands.Cog):
           lang: str = None) -> None:
     if guild is not None:
       guild = guild if isinstance(guild, discord.Guild) else self.bot.get_guild(guild)
+      self.bot.prefixes.update({int(guild.id): str(prefix)})
       self.bot.saved_guilds.update(
           {guild.id if isinstance(guild, discord.Guild) else guild: {
               "tier": tier,
@@ -487,6 +509,7 @@ class Log(commands.Cog):
       return False
     guild_id = guild.id if isinstance(guild, discord.Guild) else guild
     self.bot.saved_guilds.pop(guild_id, None)
+    self.bot.prefixes.pop(guild_id, None)
 
   async def set_all_guilds(self) -> None:
     # if not hasattr(self.bot, "saved_guilds") or len(self.bot.saved_guilds) != len(self.bot.guilds):
