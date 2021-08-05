@@ -445,7 +445,7 @@ class Fun(commands.Cog):
     if slash:
       message = await ctx.send(content=f"{role.mention} {message if message is not None else ''}", allowed_mentions=discord.AllowedMentions(roles=True, everyone=False, users=False))
     else:
-      await ctx.delete()
+      await ctx.message.delete()
       message = await ctx.reply(content=f"{role.mention} {message if message is not None else ''}", allowed_mentions=discord.AllowedMentions(roles=True, everyone=False, users=False))
 
     await message.add_reaction("👍")
