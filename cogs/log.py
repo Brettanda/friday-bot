@@ -156,8 +156,11 @@ class Log(commands.Cog):
     # FIXME: I think this could delete some of the db with more than one cluster
     #
     if self.bot.cluster_idx == 0:
+      current = []
       for guild in self.bot.guilds:
+        current.append(guild.id)
         await query(self.mydb, "INSERT OR IGNORE INTO servers (id,muted,lang) VALUES (?,?,?)", guild.id, 0, guild.preferred_locale.split("-")[0] if guild.preferred_locale is not None else "en")
+        await query(self.mydb, f"DELETE FROM servers WHERE id NOT IN ({','.join(['?' for _ in current])})", *current)
 
     await self.set_all_guilds()
     await relay_info(f"Apart of {len(self.bot.guilds)} guilds", self.bot, logger=self.logger)
