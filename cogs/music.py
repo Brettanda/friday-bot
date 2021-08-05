@@ -566,7 +566,6 @@ class Music(commands.Cog):
 
   @Cog.listener()
   async def on_voice_state_update(self, member, before, after):
-    global songqueue
     # TODO: when moved to another voice channel, Friday will some times just stop playing music until !pause and !resume are executed
     if member == self.bot.user:
       if after.channel is None and len(self.bot.songqueue.get("{}".format(member.guild.id), [1])) > 0:

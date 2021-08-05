@@ -96,7 +96,6 @@ class Log(commands.Cog):
                                 max_mentions int NULL DEFAULT NULL,
                                 max_messages text NULL,
                                 remove_invites tinyint(1) DEFAULT 0,
-                                defaultRole bigint NULL DEFAULT NULL,
                                 reactionRoles text NULL,
                                 customJoinLeave text NULL,
                                 botMasterRole bigint NULL DEFAULT NULL,
@@ -214,6 +213,7 @@ class Log(commands.Cog):
       await asyncio.sleep(0.1)
     await relay_info(f"I have been removed from a guild, making the total **{len(self.bot.guilds)}**", self.bot, short=f"I have been removed from a guild, making the total {len(self.bot.guilds)}", webhook=self.log_join, logger=self.logger)
     await query(self.mydb, "DELETE FROM servers WHERE id=?", guild.id)
+    await query(self.mydb, "DELETE FROM blacklist WHERE id=?", guild.id)
     self.remove_guild(guild.id)
 
   @commands.Cog.listener()
@@ -546,8 +546,8 @@ class Log(commands.Cog):
     # )
 
   @commands.Cog.listener()
-  async def on_command_error(self, ctx, error):
-    slash = True if isinstance(ctx, SlashContext) else False
+  async def on_command_error(self, ctx: commands.Context, error):
+    slash = True if isinstance(ctx, SlashContext) or (hasattr(ctx, "is_interaction") and ctx.is_interaction) else False
     if hasattr(ctx.command, 'on_error'):
       return
 
