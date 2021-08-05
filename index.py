@@ -9,7 +9,6 @@ import discord
 from typing import TYPE_CHECKING
 from discord.ext import commands
 from dotenv import load_dotenv
-import sqlite3
 
 import cogs
 import functions
@@ -22,10 +21,6 @@ load_dotenv()
 TOKEN = os.environ.get('TOKENTEST')
 
 dead_nodes_sent = False
-
-
-conn = sqlite3.connect("friday.db")
-c = conn.cursor()
 
 
 async def get_prefix(bot: "Friday", message: discord.Message):
@@ -63,6 +58,7 @@ class Friday(commands.AutoShardedBot):
         loop=self.loop, **kwargs
     )
 
+    self.session = None
     self.restartPending = False
     self.views_loaded = False
     self.saved_guilds = {}
@@ -72,10 +68,7 @@ class Friday(commands.AutoShardedBot):
     self.ready = False
 
     self.load_extension("cogs.log")
-    c.execute("SELECT id,prefix FROM servers WHERE 1")
     self.prefixes = {}
-    for i, p in c.fetchall():
-      self.prefixes.update({int(i): str(p)})
     self.loop.run_until_complete(self.setup(True))
     self.logger.info(f"Cluster Starting {kwargs.get('shard_ids', None)}, {kwargs.get('shard_count', 1)}")
     if self.should_start:
@@ -111,6 +104,7 @@ class Friday(commands.AutoShardedBot):
       if not i.startswith("_"):
         reload(getattr(functions, i))
 
+    self.reload_extension("cogs.log")
     for i in cogs.default:
       self.reload_extension(f"cogs.{i}")
     self.ready = True

@@ -148,10 +148,8 @@ class Log(commands.Cog):
     await relay_info(f"Shard #{shard_id} has connected", self.bot, logger=self.logger)
 
   @commands.Cog.listener()
-  async def on_ready(self):
-    if not self.bot.views_loaded:
-      self.bot.add_view(views.Links())
-      self.bot.add_view(views.StopButton())
+  async def on_connect(self):
+    await relay_info("Connected", self.bot, logger=self.logger)
     #
     # FIXME: I think this could delete some of the db with more than one cluster
     #
@@ -161,6 +159,19 @@ class Log(commands.Cog):
         current.append(guild.id)
         await query(self.mydb, "INSERT OR IGNORE INTO servers (id,muted,lang) VALUES (?,?,?)", guild.id, 0, guild.preferred_locale.split("-")[0] if guild.preferred_locale is not None else "en")
         await query(self.mydb, f"DELETE FROM servers WHERE id NOT IN ({','.join(['?' for _ in current])})", *current)
+
+    for i, p in await query(self.mydb, "SELECT id,prefix FROM servers"):
+      self.bot.prefixes.update({int(i): str(p)})
+
+  @commands.Cog.listener()
+  async def on_ready(self):
+    if not self.bot.views_loaded:
+      # for name, view in views.__dict__.items():
+      #   if isinstance(view, discord.):
+      #     self.bot.add_view(view)
+      self.bot.add_view(views.Links())
+      self.bot.add_view(views.StopButton())
+      # self.bot.add_view(views.PaginationButtons())
 
     await self.set_all_guilds()
     await relay_info(f"Apart of {len(self.bot.guilds)} guilds", self.bot, logger=self.logger)
@@ -173,12 +184,20 @@ class Log(commands.Cog):
     await relay_info(f"Logged on as #{shard_id} {self.bot.user}! - {self.bot.get_shard(shard_id).latency*1000:,.0f} ms", self.bot, logger=self.logger)
 
   @commands.Cog.listener()
+  async def on_disconnect(self):
+    await relay_info("Disconnected", self.bot, logger=self.logger)
+
+  @commands.Cog.listener()
   async def on_shard_disconnect(self, shard_id):
     await relay_info(f"Shard #{shard_id} has disconnected", self.bot, logger=self.logger)
 
   @commands.Cog.listener()
   async def on_shard_reconnect(self, shard_id):
     await relay_info(f"Shard #{shard_id} has reconnected", self.bot, logger=self.logger)
+
+  @commands.Cog.listener()
+  async def on_resumed(self):
+    await relay_info("Resumed", self.bot, logger=self.logger)
 
   @commands.Cog.listener()
   async def on_shard_resumed(self, shard_id):
