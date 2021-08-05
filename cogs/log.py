@@ -8,7 +8,7 @@ import asyncio
 
 import typing
 from typing import TYPE_CHECKING
-from discord.ext import commands, tasks
+from discord.ext import commands  # , tasks
 from discord.ext.commands.view import StringView
 from discord_slash import SlashContext, SlashCommand, ComponentContext
 from cogs.help import cmd_help
@@ -78,7 +78,7 @@ class Log(commands.Cog):
     # dlog.handlers = [handler]
     # dlog.setLevel(logging.INFO)
 
-    self.check_prefixes.start()
+    # self.check_prefixes.start()
     # self.check_for_mydb.start()
 
     self.bot.add_check(self.check_perms)
@@ -119,11 +119,11 @@ class Log(commands.Cog):
 
     raise commands.BotMissingPermissions(missing)
 
-  @tasks.loop(seconds=1)
-  async def check_prefixes(self):
-    await self.bot.wait_until_ready()
-    if len(self.bot.guilds) != len(self.bot.prefixes):
-      await relay_info(f"Missing prefixes: {len(self.bot.guilds)} - {len(self.bot.prefixes)}", self.bot, webhook=self.log_errors)
+  # @tasks.loop(seconds=1)
+  # async def check_prefixes(self):
+  #   await self.bot.wait_until_ready()
+  #   if len(self.bot.guilds) != len(self.bot.prefixes):
+  #     await relay_info(f"Missing prefixes: {len(self.bot.guilds)} - {len(self.bot.prefixes)}", self.bot, webhook=self.log_errors)
 
   # @tasks.loop(seconds=10.0)
   # async def check_for_mydb(self):
@@ -139,9 +139,9 @@ class Log(commands.Cog):
   #   while self.bot.is_closed():
   #     await asyncio.sleep(0.1)
 
-  def cog_unload(self):
-    # self.check_for_mydb.stop()
-    self.check_prefixes.stop()
+  # def cog_unload(self):
+  #   # self.check_for_mydb.stop()
+  #   self.check_prefixes.stop()
 
   @commands.Cog.listener()
   async def on_shard_connect(self, shard_id):
