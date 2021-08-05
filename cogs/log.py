@@ -548,27 +548,8 @@ class Log(commands.Cog):
     return discord.Webhook.from_url(os.environ.get("WEBHOOKJOIN"), session=self.bot.session)
 
   async def log_spammer(self, ctx, message, retry_after, *, notify=False):
-    guild_name = getattr(ctx.guild, "name", "No Guild/ DM Channel")
     guild_id = getattr(ctx.guild, "id", None)
-    fmt = 'User ? (ID ?) in guild %r (ID ?) spamming, retry_after: %.2fs'
-    logging.warning(fmt, message.author, message.author.id, guild_name, guild_id, retry_after)
-
-    # if not notify:
-    #   return
-
-    # return await self.log_spam.send(
-    #     username=self.bot.user.name,
-    #     avatar_url=self.bot.user.avatar.url,
-    #     embed=embed(
-    #         title="Spam-Control Triggered",
-    #         fieldstitle=["Member", "Guild Info", "Channel Info"],
-    #         fieldsval=[
-    #             f'{message.author} (ID: {message.author.id})',
-    #             f'{guild_name} (ID: {guild_id})',
-    #             f'{message.channel} (ID: {message.channel.id}'],
-    #         fieldsin=[False, False, False]
-    #     )
-    # )
+    self.logger.warning(f"Spamming: {{User: {message.author.id}, Guild: {guild_id}, Retry: {retry_after}}}")
 
   @commands.Cog.listener()
   async def on_command_error(self, ctx: commands.Context, error):
