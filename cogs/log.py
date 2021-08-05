@@ -233,10 +233,9 @@ class Log(commands.Cog):
   async def on_guild_remove(self, guild):
     while self.bot.is_closed():
       await asyncio.sleep(0.1)
+    self.remove_guild(guild.id)
     await query(self.mydb, "DELETE FROM servers WHERE id=?", guild.id)
     await query(self.mydb, "DELETE FROM blacklist WHERE id=?", guild.id)
-    await query(self.mydb, "DELETE FROM nicknames WHERE guild_id=?", guild.id)
-    self.remove_guild(guild.id)
     await relay_info(f"I have been removed from a guild, making the total **{len(self.bot.guilds)}**", self.bot, short=f"I have been removed from a guild, making the total {len(self.bot.guilds)}", webhook=self.log_join, logger=self.logger)
 
   @commands.Cog.listener()
