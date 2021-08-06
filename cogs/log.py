@@ -121,11 +121,11 @@ class Log(commands.Cog):
 
     raise commands.BotMissingPermissions(missing)
 
-  @tasks.loop(seconds=1)
+  @tasks.loop(seconds=10)
   async def check_prefixes(self):
     await self.bot.wait_until_ready()
     if len(self.bot.guilds) != len(self.bot.prefixes):
-      await relay_info(f"Missing prefixes: {len(self.bot.guilds)} - {len(self.bot.prefixes)}", self.bot, webhook=self.log_errors)
+      self.logger.warning(f"Missing prefixes: {len(self.bot.guilds)} - {len(self.bot.prefixes)}")
 
   # @tasks.loop(seconds=10.0)
   # async def check_for_mydb(self):
@@ -160,7 +160,7 @@ class Log(commands.Cog):
       for guild in self.bot.guilds:
         current.append(guild.id)
         await query(self.mydb, "INSERT OR IGNORE INTO servers (id,muted,lang) VALUES (?,?,?)", guild.id, 0, guild.preferred_locale.split("-")[0] if guild.preferred_locale is not None else "en")
-        await query(self.mydb, f"DELETE FROM servers WHERE id NOT IN ({','.join(['?' for _ in current])})", *current)
+      await query(self.mydb, f"DELETE FROM servers WHERE id NOT IN ({','.join(['?' for _ in current])})", *current)
 
     for i, p in await query(self.mydb, "SELECT id,prefix FROM servers"):
       self.bot.prefixes.update({int(i): str(p)})
