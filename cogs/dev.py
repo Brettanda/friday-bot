@@ -7,13 +7,14 @@ import typing
 # import io
 # import textwrap
 import discord
+import asqlite
 from discord.ext import commands
 # from discord_slash import SlashContext  # , cog_ext
 from typing_extensions import TYPE_CHECKING
 # from discord_slash.utils.manage_commands import create_option, create_choice
 
 from cogs.help import cmd_help, syntax
-from functions import embed, build_docs, query  # , MessageColors
+from functions import embed, build_docs  # , query  # , MessageColors
 
 if TYPE_CHECKING:
   from index import Friday as Bot
@@ -258,8 +259,14 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
   @norm_dev.command(name="mysql")
   async def mysql(self, ctx, *, string: str):
     async with ctx.channel.typing():
-      response = await query(self.bot.log.mydb, string)
-    await ctx.reply(f"```mysql\n{response if response is not None else 'failed'}\n```")
+      async with asqlite.connect("friday.db") as mydb:
+        async with mydb.cursor() as mycursor:
+          await mycursor.execute(string)
+          if "select" in string.lower():
+            response = await mycursor.fetchall()
+          else:
+            await mydb.commit()
+    await ctx.reply(f"```mysql\n{[tuple(r) for r in response] if response is not None else 'failed'}\n```")
 
   @norm_dev.command(name="html")
   async def html(self, ctx):
