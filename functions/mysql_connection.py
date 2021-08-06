@@ -8,6 +8,8 @@ import sqlite3
 from typing import Union
 
 # def mydb_connect() -> mysql.connector.MySQLConnection():
+
+
 async def mydb_connect() -> asqlite.Connection:  # -> mysql.connector.pooling.MySQLConnectionPool():
   # https://www.mysqltutorial.org/python-connecting-mysql-databases/
   # mydb = sqlite3.connect("friday.db")

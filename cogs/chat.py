@@ -52,6 +52,7 @@ class Chat(commands.Cog):
 
   async def setup(self) -> None:
     ...
+
   @commands.command(name="say", aliases=["repeat"], help="Make Friday say what ever you want")
   async def say(self, ctx: commands.Context, *, content: str):
     if content in ("im stupid", "i'm stupid", "i am dumb", "im dumb"):
