@@ -62,6 +62,20 @@ class FakeInteractionMessage:
   def type(self) -> discord.MessageType:
     return discord.MessageType.application_command
 
+  @property
+  def content(self) -> str:
+    options = [f"{i.get('name', 'no-name')} {i.get('value', 'no-value')}" for i in self.interaction.data.get("options", [])]
+    return f"/{self.interaction.data['name']} {', '.join(options)}"
+
+  @property
+  def clean_content(self) -> str:
+    options = [f"{i.get('name', 'no-name')} {i.get('value', 'no-value')}" for i in self.interaction.data.get("options", [])]
+    return f"/{self.interaction.data['name']} {', '.join(options)}"
+
+  async def delete(self, *args, **kwargs) -> None:
+    """There should be no message to delete so just like ignore this function"""
+    return None
+
   async def reply(self, content, **kwargs) -> discord.Message:
     kwargs.pop("delete_after", None)
     return await self.interaction.response.send_message(content, **kwargs)
@@ -72,7 +86,10 @@ class FakeInteractionMessage:
 
 
 class MyContext(Context):
-  async def reply(self, content=None, **kwargs) -> discord.Message:
+  def is_interaction(self) -> bool:
+    return isinstance(self.message, FakeInteractionMessage)
+
+  async def reply(self, content: str = None, *, delete_original: bool = False, **kwargs) -> typing.Union[discord.Message, FakeInteractionMessage]:
     ignore_coms = ["log", "help", "meme", "issue", "reactionrole", "minesweeper", "poll", "confirm", "souptime", "say", "countdown"]
     if not hasattr(kwargs, "delete_after") and self.command is not None and self.command.name not in ignore_coms and self.message.type.name != "application_command":
       if hasattr(self.bot, "get_guild_delete_commands"):
@@ -86,20 +103,24 @@ class MyContext(Context):
     if not hasattr(kwargs, "mention_author") and self.message.type.name != "application_command":
       kwargs.update({"mention_author": False})
     try:
-      if self.message.type == discord.MessageType.application_command:
+      if self.is_interaction():
         kwargs.pop("delete_after", None)
+        if self.message.interaction.response.is_done():
+          return await self.message.interaction.followup.send(content, **kwargs)
         return await self.message.interaction.response.send_message(content, **kwargs)
       if self.message.type == discord.MessageType.thread_starter_message:
         return await self.message.channel.send(content, **kwargs)
       return await self.message.reply(content, **kwargs)
     except (discord.Forbidden, discord.HTTPException):
       try:
-        if self.message.type == discord.MessageType.application_command:
+        if self.is_interaction():
           kwargs.pop("delete_after", None)
+          if self.message.interaction.response.is_done():
+            return await self.message.interaction.followup.send(content, **kwargs)
           return await self.message.interaction.response.send_message(content, **kwargs)
         return await self.message.channel.send(content, **kwargs)
       except (discord.Forbidden, discord.HTTPException):
         pass
 
-  async def send(self, content=None, **kwargs) -> discord.Message:
-    return await self.reply(content, **kwargs)
+  async def send(self, content: str = None, *, delete_original: bool = False, **kwargs) -> typing.Union[discord.Message, FakeInteractionMessage]:
+    return await self.reply(content, delete_original=delete_original, **kwargs)
