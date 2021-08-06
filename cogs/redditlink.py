@@ -51,19 +51,18 @@ class redditlink(commands.Cog):
 
   async def request(self, url):
     async with self.lock:
-      async with aiohttp.ClientSession() as session:
-        async with session.get(
-                url,
-                headers={
-                    'User-Agent':
-                    f'DiscordBot (https://github.com/Rapptz/discord.py {discord.__version__}) Python/{sys.version_info.major}.{sys.version_info.minor} aiohttp/{aiohttp.__version__}'
-                }) as r:
-          if r.status == 200:
-            return await r.json()
+      async with self.bot.session.get(
+              url,
+              headers={
+                  'User-Agent':
+                  f'DiscordBot (https://github.com/Rapptz/discord.py {discord.__version__}) Python/{sys.version_info.major}.{sys.version_info.minor} aiohttp/{aiohttp.__version__}'
+              }) as r:
+        if r.status == 200:
+          return await r.json()
 
   @commands.Cog.listener()
-  async def on_message(self, ctx):
-    if ctx.author.bot:
+  async def on_message(self, message: discord.Message):
+    if message.author.bot:
       return
     # required_perms = [("add_reactions",True)]
     # guild = ctx.guild
@@ -75,10 +74,13 @@ class redditlink(commands.Cog):
     #   return
 
     # TODO: remove this check when members intent
-    if not ctx.guild:
+    if not message.guild:
       return
 
-    reg = re.findall(self.pattern, ctx.content)
+    if (await self.bot.get_context(message)).command is not None:
+      return
+
+    reg = re.findall(self.pattern, message.content)
     # spoiler = re.findall(self.patternspoiler,ctx.content)
 
     if len(reg) != 1:
@@ -114,7 +116,7 @@ class redditlink(commands.Cog):
     if "i.redd.it" in data["url"]:
       image = data["url"]
 
-    if data["url"] in ctx.content:
+    if data["url"] in message.content:
       return
 
     if data["url"].endswith(".html"):
@@ -124,14 +126,14 @@ class redditlink(commands.Cog):
       return
 
     try:
-      await ctx.add_reaction(self.emoji)
+      await message.add_reaction(self.emoji)
     except discord.Forbidden:
       pass
     except discord.NotFound:
       pass
 
   @commands.Cog.listener()
-  async def on_raw_reaction_add(self, payload):
+  async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
     if payload.user_id == self.bot.user.id:
       return
     # channel = self.bot.get_guild(payload.guild_id).get_channel(payload.channel_id)
@@ -172,27 +174,32 @@ class redditlink(commands.Cog):
         await message.reply(embed=embed(title="Something went wrong", description="Please try again later. I have notified my boss of this error", color=MessageColors.ERROR), mention_author=False)
         raise e
 
+  @commands.command(name="redditextract", help="Extracts the media from the reddit post")
+  async def norm_extract(self, ctx: commands.Context, link: str):
+    if not ctx.is_interaction():
+      async with ctx.typing():
+        return await self.extract(query=link, command=True, ctx=ctx, guild=ctx.guild, channel=ctx.channel)
+    return await self.extract(query=link, command=True, ctx=ctx, guild=ctx.guild, channel=ctx.channel)
+
   @cog_ext.cog_slash(name="redditextract", description="Extracts the file from the reddit post")
   async def slash_extract(self, ctx, link: str):
     await ctx.defer()
-    await self.extract(query=link, slash=True, ctx=ctx, guild=ctx.guild, channel=ctx.channel)
+    await self.extract(query=link, command=True, ctx=ctx, guild=ctx.guild, channel=ctx.channel)
 
-  async def extract(self, query, slash=False, payload=None, ctx=None, guild=None, channel=None, message=None):
+  async def extract(self, query, command: bool = False, payload: discord.RawReactionActionEvent = None, ctx: commands.Context = None, guild=None, channel: discord.TextChannel = None, message: discord.Message = None):
     if ctx is None and message is not None:
       ctx = await self.bot.get_context(message)
     if guild is None and not ctx.guild_id:
       raise commands.ArgumentParsingError()
     if channel is None and not ctx.channel_id:
       raise commands.ArgumentParsingError()
-    if message is None and not slash:
+    if message is None and not command:
       raise commands.ArgumentParsingError()
     # TODO: check the max file size of the server and change the quality of the video to match
     reg = re.findall(self.pattern, query)
 
     if len(reg) != 1:
-      if slash:
-        return await ctx.send(embed=embed(title="That is not a reddit post url", color=MessageColors.ERROR))
-      return
+      return await ctx.send(embed=embed(title="That is not a reddit post url", color=MessageColors.ERROR))
 
     body = None
     try:
@@ -206,9 +213,7 @@ class redditlink(commands.Cog):
       except BaseException:
         data = body[0]["data"]["children"][0]["data"]
     except KeyError:
-      if slash:
-        return await ctx.send(embed=embed(title="There was a problem connecting to reddit", color=MessageColors.ERROR))
-      return await ctx.reply(embed=embed(title="There was a problem connecting to reddit", color=MessageColors.ERROR), mention_author=False)
+      return await ctx.send(embed=embed(title="There was a problem connecting to reddit", color=MessageColors.ERROR))
 
     link = None
     linkdata = None
@@ -236,7 +241,7 @@ class redditlink(commands.Cog):
 
     # TODO: Does not get url for videos atm
     channel = message.channel if payload is not None else ctx.channel
-    nsfw = channel.nsfw if channel is not None else False
+    nsfw = channel.nsfw if channel is not None and not isinstance(channel, discord.Thread) else channel.parent.nsfw if channel is not None and isinstance(channel, discord.Thread) else False
     if (nsfw is True and data["over_18"] is True) or (nsfw is False and data["over_18"] is False) or (nsfw is True and data["over_18"] is False):
       spoiler = False
     else:
@@ -252,13 +257,9 @@ class redditlink(commands.Cog):
       try:
         # name = f'{linkdata["extractor"]}-{linkdata["id"]}-{linkdata["title"]}.{linkdata["ext"]}'
         name = data["title"].split()
-        if slash:
-          return await ctx.send(file=discord.File(fp=mp4file, filename=f'friday-bot.com_{"_".join(name)}.{ext}', spoiler=spoiler))
-        return await ctx.reply(file=discord.File(fp=mp4file, filename=f'friday-bot.com_{"_".join(name)}.{ext}', spoiler=spoiler), mention_author=False)
+        return await ctx.send(file=discord.File(fp=mp4file, filename=f'friday-bot.com_{"_".join(name)}.{ext}', spoiler=spoiler))
       except discord.HTTPException:
-        if slash:
-          return await ctx.send(embed=embed(title="This file is too powerful to be uploaded", description="You will have to open reddit to view this", color=MessageColors.ERROR))
-        return await ctx.reply(embed=embed(title="This file is too powerful to be uploaded", description="You will have to open reddit to view this", color=MessageColors.ERROR), mention_author=False)
+        return await ctx.send(embed=embed(title="This file is too powerful to be uploaded", description="You will have to open reddit to view this", color=MessageColors.ERROR))
       finally:
         try:
           os.remove(mp4file)
@@ -266,13 +267,9 @@ class redditlink(commands.Cog):
           pass
     else:
       if spoiler is True:
-        if slash:
-          return await ctx.send(content="||" + link + "||")
-        return await ctx.reply(content="||" + link + "||", mention_author=False)
+        return await ctx.send(content="||" + link + "||")
       else:
-        if slash:
-          return await ctx.send(content=link)
-        return await ctx.reply(content=link, mention_author=False)
+        return await ctx.send(content=link)
     # elif reaction.message.channel.nsfw == False and data["over_18"] == False:
 
     # print(len(body))

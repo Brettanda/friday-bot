@@ -2,13 +2,13 @@ import asyncio
 import logging
 import os
 import sys
+import aiohttp
 from importlib import reload
 
 import discord
 from typing import TYPE_CHECKING
 from discord.ext import commands
 from dotenv import load_dotenv
-import sqlite3
 
 import cogs
 import functions
@@ -20,25 +20,26 @@ load_dotenv()
 
 TOKEN = os.environ.get('TOKENTEST')
 
-songqueue = {}
 dead_nodes_sent = False
 
 
-conn = sqlite3.connect("friday.db")
-c = conn.cursor()
-
-
-async def get_prefix(bot, message):
-  if hasattr(bot.log, "get_guild_prefix"):
-    return commands.when_mentioned_or(await bot.log.get_guild_prefix(bot, message))(bot, message)
-  return commands.when_mentioned_or(functions.config.defaultPrefix)
+async def get_prefix(bot: "Friday", message: discord.Message):
+  if message.guild is not None and message.guild.id != 707441352367013899:
+    if message.guild.id in bot.prefixes:
+      return commands.when_mentioned_or(bot.prefixes[message.guild.id])(bot, message)
+    else:
+      current = await functions.query(bot.log.mydb, "SELECT prefix FROM servers WHERE id=?", message.guild.id)
+      bot.prefixes[message.guild.id] = str(current)
+      bot.logger.warning(f"{message.guild.id}'s prefix was {bot.prefixes.get(message.guild.id, None)} and is now {current}")
+      return commands.when_mentioned_or(bot.prefixes[message.guild.id])(bot, message)
+  return commands.when_mentioned_or(functions.config.defaultPrefix)(bot, message)
 
 
 class Friday(commands.AutoShardedBot):
   def __init__(self, **kwargs):
-    self.cluster_name = kwargs.get("cluster_name", None)
-    self.cluster_idx = kwargs.get("cluster_idx", 0)
-    self.should_start = kwargs.get("start", False)
+    self.cluster_name = kwargs.pop("cluster_name", None)
+    self.cluster_idx = kwargs.pop("cluster_idx", 0)
+    self.should_start = kwargs.pop("start", False)
 
     self.loop = asyncio.new_event_loop()
     asyncio.set_event_loop(self.loop)
@@ -57,7 +58,9 @@ class Friday(commands.AutoShardedBot):
         loop=self.loop, **kwargs
     )
 
+    self.session = None
     self.restartPending = False
+    self.views_loaded = False
     self.saved_guilds = {}
     self.songqueue = {}
     self.prod = True if len(sys.argv) > 1 and (sys.argv[1] == "--prod" or sys.argv[1] == "--production") else False
@@ -65,11 +68,8 @@ class Friday(commands.AutoShardedBot):
     self.ready = False
 
     self.load_extension("cogs.log")
-    c.execute("SELECT id,prefix FROM servers WHERE 1")
     self.prefixes = {}
-    for i, p in c.fetchall():
-      self.prefixes.update({int(i): str(p)})
-    self.load_cogs()
+    self.loop.run_until_complete(self.setup(True))
     self.logger.info(f"Cluster Starting {kwargs.get('shard_ids', None)}, {kwargs.get('shard_count', 1)}")
     if self.should_start:
       self.run(kwargs["token"])
@@ -85,14 +85,17 @@ class Friday(commands.AutoShardedBot):
   async def get_context(self, message, *, cls=None) -> functions.MyContext:
     return await super().get_context(message, cls=functions.MyContext)
 
-  def load_cogs(self):
-    for cog in cogs.default:
-      try:
-        self.load_extension(f"cogs.{cog}")
-      except Exception as e:
-        self.logger.error(f"Failed to load extenstion {cog} with \n {e}")
+  async def setup(self, load_extentions: bool = False) -> None:
+    self.session = aiohttp.ClientSession()
 
-  async def reload_cogs(self):
+    if load_extentions:
+      for cog in cogs.default:
+        try:
+          self.load_extension(f"cogs.{cog}")
+        except Exception as e:
+          self.logger.error(f"Failed to load extenstion {cog} with \n {e}")
+
+  async def reload_cogs(self) -> None:
     self.ready = False
     reload(cogs)
     reload(functions)
@@ -101,11 +104,12 @@ class Friday(commands.AutoShardedBot):
       if not i.startswith("_"):
         reload(getattr(functions, i))
 
+    self.reload_extension("cogs.log")
     for i in cogs.default:
       self.reload_extension(f"cogs.{i}")
     self.ready = True
 
-  async def on_message(self, ctx):
+  async def on_message(self, ctx) -> None:
     if not self.ready:
       return
 
@@ -114,11 +118,12 @@ class Friday(commands.AutoShardedBot):
 
     await self.process_commands(ctx)
 
-  async def on_error(self, event_method, *args, **kwargs):
+  async def on_error(self, event_method, *args, **kwargs) -> None:
     return await self.log.on_error(event_method, *args, **kwargs)
 
-  async def close(self):
+  async def close(self) -> None:
     self.logger.info("Shutting down")
+    await self.session.close()
     await super().close()
 
 

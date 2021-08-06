@@ -1,22 +1,19 @@
 import sys
 import logging
-import aiohttp
+import inspect
 import datetime
 import discord
 import asyncio
 # import mysql.connector
 
+import typing
 from typing import TYPE_CHECKING
-from discord.ext import commands
+from discord.ext import commands, tasks
+from discord.ext.commands.view import StringView
 from discord_slash import SlashContext, SlashCommand, ComponentContext
 from cogs.help import cmd_help
-from functions import MessageColors, embed, mydb_connect, query, non_coro_query, relay_info, exceptions, config  # ,choosegame
+from functions import MessageColors, embed, mydb_connect, query, non_coro_query, relay_info, exceptions, config, views, MyContext, FakeInteractionMessage
 import traceback
-
-if discord.__version__ == "1.7.3":
-  from discord import AsyncWebhookAdapter
-else:
-  from discord.webhook.async_ import AsyncWebhookAdapter
 
 from collections import Counter
 
@@ -81,6 +78,7 @@ class Log(commands.Cog):
     # dlog.handlers = [handler]
     # dlog.setLevel(logging.INFO)
 
+    self.check_prefixes.start()
     # self.check_for_mydb.start()
 
     self.bot.add_check(self.check_perms)
@@ -98,7 +96,6 @@ class Log(commands.Cog):
                                 max_mentions int NULL DEFAULT NULL,
                                 max_messages text NULL,
                                 remove_invites tinyint(1) DEFAULT 0,
-                                defaultRole bigint NULL DEFAULT NULL,
                                 reactionRoles text NULL,
                                 customJoinLeave text NULL,
                                 botMasterRole bigint NULL DEFAULT NULL,
@@ -108,7 +105,7 @@ class Log(commands.Cog):
                                 customSounds longtext NULL)""")
 
   def check_perms(self, ctx):
-    if ctx.channel.type == discord.ChannelType.private:
+    if hasattr(ctx.channel, "type") and ctx.channel.type == discord.ChannelType.private:
       return True
 
     required_perms = [("send_messages", True), ("read_messages", True), ("embed_links", True), ("add_reactions", True)]
@@ -121,6 +118,12 @@ class Log(commands.Cog):
       return True
 
     raise commands.BotMissingPermissions(missing)
+
+  @tasks.loop(seconds=1)
+  async def check_prefixes(self):
+    await self.bot.wait_until_ready()
+    if len(self.bot.guilds) != len(self.bot.prefixes):
+      await relay_info(f"Missing prefixes: {len(self.bot.guilds)} - {len(self.bot.prefixes)}", self.bot, webhook=self.log_errors)
 
   # @tasks.loop(seconds=10.0)
   # async def check_for_mydb(self):
@@ -136,21 +139,39 @@ class Log(commands.Cog):
   #   while self.bot.is_closed():
   #     await asyncio.sleep(0.1)
 
-  # def cog_unload(self):
+  def cog_unload(self):
     # self.check_for_mydb.stop()
+    self.check_prefixes.stop()
 
   @commands.Cog.listener()
   async def on_shard_connect(self, shard_id):
     await relay_info(f"Shard #{shard_id} has connected", self.bot, logger=self.logger)
 
   @commands.Cog.listener()
-  async def on_ready(self):
+  async def on_connect(self):
+    await relay_info("Connected", self.bot, logger=self.logger)
     #
     # FIXME: I think this could delete some of the db with more than one cluster
     #
     if self.bot.cluster_idx == 0:
+      current = []
       for guild in self.bot.guilds:
+        current.append(guild.id)
         await query(self.mydb, "INSERT OR IGNORE INTO servers (id,muted,lang) VALUES (?,?,?)", guild.id, 0, guild.preferred_locale.split("-")[0] if guild.preferred_locale is not None else "en")
+        await query(self.mydb, f"DELETE FROM servers WHERE id NOT IN ({','.join(['?' for _ in current])})", *current)
+
+    for i, p in await query(self.mydb, "SELECT id,prefix FROM servers"):
+      self.bot.prefixes.update({int(i): str(p)})
+
+  @commands.Cog.listener()
+  async def on_ready(self):
+    if not self.bot.views_loaded:
+      # for name, view in views.__dict__.items():
+      #   if isinstance(view, discord.):
+      #     self.bot.add_view(view)
+      self.bot.add_view(views.Links())
+      self.bot.add_view(views.StopButton())
+      # self.bot.add_view(views.PaginationButtons())
 
     await self.set_all_guilds()
     await relay_info(f"Apart of {len(self.bot.guilds)} guilds", self.bot, logger=self.logger)
@@ -163,12 +184,20 @@ class Log(commands.Cog):
     await relay_info(f"Logged on as #{shard_id} {self.bot.user}! - {self.bot.get_shard(shard_id).latency*1000:,.0f} ms", self.bot, logger=self.logger)
 
   @commands.Cog.listener()
+  async def on_disconnect(self):
+    await relay_info("Disconnected", self.bot, logger=self.logger)
+
+  @commands.Cog.listener()
   async def on_shard_disconnect(self, shard_id):
     await relay_info(f"Shard #{shard_id} has disconnected", self.bot, logger=self.logger)
 
   @commands.Cog.listener()
   async def on_shard_reconnect(self, shard_id):
     await relay_info(f"Shard #{shard_id} has reconnected", self.bot, logger=self.logger)
+
+  @commands.Cog.listener()
+  async def on_resumed(self):
+    await relay_info("Resumed", self.bot, logger=self.logger)
 
   @commands.Cog.listener()
   async def on_shard_resumed(self, shard_id):
@@ -178,7 +207,6 @@ class Log(commands.Cog):
   async def on_guild_join(self, guild: discord.Guild):
     while self.bot.is_closed():
       await asyncio.sleep(0.1)
-    await relay_info(f"I have joined a new guild, making the total **{len(self.bot.guilds)}**", self.bot, short=f"I have joined a new guild, making the total {len(self.bot.guilds)}", webhook=self.log_join, logger=self.logger)
     await query(self.mydb, "INSERT OR IGNORE INTO servers (id,muted,lang) VALUES (?,?,?)", guild.id, 0, guild.preferred_locale.split("-")[0])
     priority_channels = []
     channels = []
@@ -199,14 +227,16 @@ class Log(commands.Cog):
 
     await channel.send(**config.welcome_message(self.bot))
     self.set_guild(guild.id)
+    await relay_info(f"I have joined a new guild, making the total **{len(self.bot.guilds)}**", self.bot, short=f"I have joined a new guild, making the total {len(self.bot.guilds)}", webhook=self.log_join, logger=self.logger)
 
   @commands.Cog.listener()
   async def on_guild_remove(self, guild):
     while self.bot.is_closed():
       await asyncio.sleep(0.1)
-    await relay_info(f"I have been removed from a guild, making the total **{len(self.bot.guilds)}**", self.bot, short=f"I have been removed from a guild, making the total {len(self.bot.guilds)}", webhook=self.log_join, logger=self.logger)
-    await query(self.mydb, "DELETE FROM servers WHERE id=?", guild.id)
     self.remove_guild(guild.id)
+    await query(self.mydb, "DELETE FROM servers WHERE id=?", guild.id)
+    await query(self.mydb, "DELETE FROM blacklist WHERE id=?", guild.id)
+    await relay_info(f"I have been removed from a guild, making the total **{len(self.bot.guilds)}**", self.bot, short=f"I have been removed from a guild, making the total {len(self.bot.guilds)}", webhook=self.log_join, logger=self.logger)
 
   @commands.Cog.listener()
   async def on_message_edit(self, before, after):
@@ -242,10 +272,52 @@ class Log(commands.Cog):
             commands.MaxConcurrencyReached)) and (not hasattr(ex, "log") or (hasattr(ex, "log") and ex.log is True)):
       raise ex
 
+  async def convert_param(self, ctx: SlashContext, option, param):
+    value = option["value"]
+    if param.annotation != inspect.Parameter.empty:
+      value = await commands.run_converters(ctx, param.annotation, value, 0)
+    return value
+
   @commands.Cog.listener()
-  async def on_component(self, ctx: ComponentContext):
-    # self.logger.info(f"Component: {ctx.custom_id} {ctx.selected_options if hasattr(ctx,'selected_options') else None}")
-    self.logger.info(f"Component: {ctx.custom_id} {ctx.component_type}")
+  async def on_interaction(self, interaction: discord.Interaction):
+    if interaction.type != discord.InteractionType.application_command:
+      self.logger.info(f"Interaction: {interaction.data.get('custom_id','No ID')} {interaction.type}")
+
+    if interaction.type == discord.InteractionType.application_command:
+      command = self.bot.get_command(interaction.data["name"])
+
+      if command is None:
+        return await relay_info(f"Missing slash command: {interaction.data['name']}", self.bot, webhook=self.log_errors)
+
+      ctx = MyContext(prefix="/", view=StringView(interaction.data["name"]), bot=self.bot, message=FakeInteractionMessage(self.bot, interaction))
+      options = {option["name"]: option for option in interaction.data.get("options", {})}
+      params, kwargs = [], {}
+      for name, param in command.clean_params.items():
+        option = options.get(name)
+        if not option:
+          option = param.default
+        else:
+          option = await self.convert_param(ctx, option, param)
+        if param.kind == inspect.Parameter.KEYWORD_ONLY:
+          kwargs[name] = option
+        else:
+          params.append(option)
+
+      async def fallback():
+        await asyncio.sleep(2)
+        if interaction.response.is_done():
+          return
+        try:
+          await interaction.response.defer()
+        except Exception:
+          pass
+      self.bot.loop.create_task(fallback())
+      try:
+        self.bot.dispatch("command", ctx)
+        if await command.can_run(ctx):
+          await command(ctx, *params, **kwargs)
+      except Exception as e:
+        self.bot.dispatch("command_error", ctx, e)
 
   @commands.Cog.listener()
   async def on_component_callback_error(self, ctx: ComponentContext, ex: Exception):
@@ -295,24 +367,10 @@ class Log(commands.Cog):
 
     await self.bot.invoke(ctx)
 
-  def get_prefixes(self) -> [int]:
-    return [g["prefix"] for g in self.bot.saved_guilds.values()] + ["/", "!", "%", ">", "?", "-", "(", ")"]
+  def get_prefixes(self) -> [str]:
+    return [*[g for g in self.bot.prefixes.values() if g != "!"], *["/", "!", "%", ">", "?", "-", "(", ")"]]
 
-  async def get_guild_prefix(self, bot: "Bot", message: discord.Message) -> str:
-    if not message.guild or message.guild.id == 707441352367013899:
-      return config.defaultPrefix
-    try:
-      return bot.prefixes[message.guild.id]
-    except KeyError:
-      current = await query(self.mydb, "SELECT prefix FROM servers WHERE id=?", message.guild.id)
-      await self.set_guild_prefix(message.guild, str(current))
-      return bot.prefixes.get(message.guild.id, config.defaultPrefix)
-
-  async def set_guild_prefix(self, guild: discord.Guild, prefix: str) -> None:
-    await query(self.mydb, "UPDATE servers SET prefix=? WHERE id=?", str(prefix), int(guild.id))
-    self.bot.prefixes[guild.id] = str(prefix)
-
-  def get_guild_delete_commands(self, guild: discord.Guild or int) -> int:
+  def get_guild_delete_commands(self, guild: typing.Union[discord.Guild, int]) -> int:
     try:
       if guild is not None:
         delete = self.bot.saved_guilds[guild.id if isinstance(guild, discord.Guild) else guild]["autoDeleteMSGs"]
@@ -321,7 +379,7 @@ class Log(commands.Cog):
       self.set_guild(guild)
       return delete if delete != 0 else None
 
-  def get_guild_muted(self, guild: discord.Guild or int) -> bool:
+  def get_guild_muted(self, guild: typing.Union[discord.Guild, int]) -> bool:
     try:
       if guild is not None:
         if guild.id if isinstance(guild, discord.Guild) else guild not in [int(item.id) for item in self.bot.guilds]:
@@ -331,7 +389,7 @@ class Log(commands.Cog):
       self.set_guild(guild)
       return bool(self.bot.saved_guilds[guild.id if isinstance(guild, discord.Guild) else guild]["muted"])
 
-  def get_guild_chat_channel(self, guild: discord.Guild or int) -> int:
+  def get_guild_chat_channel(self, guild: typing.Union[discord.Guild, int]) -> int:
     try:
       if guild is None:
         return False
@@ -345,7 +403,7 @@ class Log(commands.Cog):
       self.set_guild(guild)
       return self.bot.saved_guilds[guild.id if isinstance(guild, discord.Guild) else guild]["chatChannel"]
 
-  def get_guild_tier(self, guild: discord.Guild or int) -> str:
+  def get_guild_tier(self, guild: typing.Union[discord.Guild, int]) -> str:
     try:
       if guild is not None:
         guild = self.bot.saved_guilds.get(guild.id if isinstance(guild, discord.Guild) else guild, None)
@@ -376,7 +434,7 @@ class Log(commands.Cog):
         x += 1
       return final_tier if final_tier is not None else None
 
-  def get_guild_lang(self, guild: discord.Guild or int) -> str:
+  def get_guild_lang(self, guild: typing.Union[discord.Guild, int]) -> str:
     try:
       if guild is not None:
         guild = self.bot.saved_guilds.get(guild.id if isinstance(guild, discord.Guild) else guild, None)
@@ -397,30 +455,30 @@ class Log(commands.Cog):
   #   if guild is None or :
   #     return False
 
-  def change_guild_delete(self, guild: discord.Guild or int, delete: int = 0):
+  def change_guild_delete(self, guild: typing.Union[discord.Guild, int], delete: int = 0) -> None:
     if guild is not None:
       self.bot.saved_guilds[guild.id if isinstance(guild, discord.Guild) else guild]["autoDeleteMSGs"] = delete
 
-  def change_guild_muted(self, guild: discord.Guild or int, muted: bool = False):
+  def change_guild_muted(self, guild: typing.Union[discord.Guild, int], muted: bool = False) -> None:
     if guild is not None:
       self.bot.saved_guilds[guild.id if isinstance(guild, discord.Guild) else guild]["muted"] = muted
 
-  def change_guild_tier(self, guild: discord.Guild or int, premium: int = 0):
+  def change_guild_tier(self, guild: typing.Union[discord.Guild, int], premium: int = 0) -> None:
     if guild is not None:
       self.bot.saved_guilds.get(guild.id if isinstance(guild, discord.Guild) else guild, None)["tier"] = premium
 
-  def change_guild_chat_channel(self, guild: discord.Guild or int, chatChannel: int = None):
+  def change_guild_chat_channel(self, guild: typing.Union[discord.Guild, int], chatChannel: int = None) -> None:
     if guild is not None:
       self.bot.saved_guilds[guild.id if isinstance(guild, discord.Guild) else guild]["chatChannel"] = chatChannel
 
-  def change_guild_lang(self, guild: discord.Guild or int, lang: str = None):
+  def change_guild_lang(self, guild: typing.Union[discord.Guild, int], lang: str = None) -> None:
     if guild is not None:
       self.bot.saved_guilds[guild.id if isinstance(guild, discord.Guild) else guild]["lang"] = lang if lang is not None else guild.preferred_locale.split("-")[0] if isinstance(guild, discord.Guild) else "en"
 
   def set_guild(
           self,
-          guild: discord.Guild or int,
-          prefix: str = config.defaultPrefix,
+          guild: typing.Union[discord.Guild, int],
+          prefix: str = "!",
           tier: int = 0,
           patreon_user: int = None,
           autoDeleteMSG: int = None,
@@ -428,12 +486,12 @@ class Log(commands.Cog):
           max_messages: [int] = None,
           muted: bool = False,
           chatChannel: int = None,
-          lang: str = None):
+          lang: str = None) -> None:
     if guild is not None:
       guild = guild if isinstance(guild, discord.Guild) else self.bot.get_guild(guild)
+      self.bot.prefixes.update({int(guild.id): str(prefix)})
       self.bot.saved_guilds.update(
           {guild.id if isinstance(guild, discord.Guild) else guild: {
-              "prefix": prefix,
               "tier": tier,
               "patreon_user": patreon_user,
               "autoDeleteMSGs": autoDeleteMSG,
@@ -445,90 +503,57 @@ class Log(commands.Cog):
           }
           })
 
-  def remove_guild(self, guild: discord.Guild or int):
+  def remove_guild(self, guild: typing.Union[discord.Guild, int]) -> None:
     if guild is None:
       return False
     guild_id = guild.id if isinstance(guild, discord.Guild) else guild
     self.bot.saved_guilds.pop(guild_id, None)
+    self.bot.prefixes.pop(guild_id, None)
 
-  async def set_all_guilds(self):
+  async def set_all_guilds(self) -> None:
     # if not hasattr(self.bot, "saved_guilds") or len(self.bot.saved_guilds) != len(self.bot.guilds):
-    servers = await query(self.mydb,
-                          "SELECT id,prefix,tier,patreon_user,autoDeleteMSGs,muted,chatChannel,lang FROM servers")
+    servers = await query(self.mydb, "SELECT id,tier,patreon_user,autoDeleteMSGs,chatChannel,lang FROM servers")
     guilds = {}
-    for guild_id, prefix, tier, patreon_user, autoDeleteMSG, muted, chatChannel, lang in servers:
-      guilds.update({int(guild_id): {"prefix": str(prefix), "tier": str(tier), "patreon_user": int(patreon_user) if patreon_user is not None else None, "muted": True if int(muted) == 1 else False, "autoDeleteMSGs": int(autoDeleteMSG), "chatChannel": int(chatChannel) if chatChannel is not None else None, "lang": lang}})
+    for guild_id, tier, patreon_user, autoDeleteMSG, chatChannel, lang in servers:
+      guilds.update({int(guild_id): {"tier": str(tier), "patreon_user": int(patreon_user) if patreon_user is not None else None, "autoDeleteMSGs": int(autoDeleteMSG), "chatChannel": int(chatChannel) if chatChannel is not None else None, "lang": lang}})
     self.bot.saved_guilds = guilds
     return guilds
 
   @discord.utils.cached_property
   def log_spam(self) -> discord.Webhook:
-    if discord.__version__ == "1.7.3":
-      return discord.Webhook.from_url(os.environ.get("WEBHOOKSPAM"), adapter=AsyncWebhookAdapter(aiohttp.ClientSession(loop=self.loop)))
-    return discord.Webhook.from_url(os.environ.get("WEBHOOKSPAM"), session=aiohttp.ClientSession(loop=self.loop))
+    return discord.Webhook.from_url(os.environ.get("WEBHOOKSPAM"), session=self.bot.session)
 
   @discord.utils.cached_property
   def log_chat(self) -> discord.Webhook:
-    if discord.__version__ == "1.7.3":
-      return discord.Webhook.from_url(os.environ.get("WEBHOOKCHAT"), adapter=AsyncWebhookAdapter(aiohttp.ClientSession(loop=self.loop)))
-    return discord.Webhook.from_url(os.environ.get("WEBHOOKCHAT"), session=aiohttp.ClientSession(loop=self.loop))
+    return discord.Webhook.from_url(os.environ.get("WEBHOOKCHAT"), session=self.bot.session)
 
   @discord.utils.cached_property
   def log_info(self) -> discord.Webhook:
-    if discord.__version__ == "1.7.3":
-      return discord.Webhook.from_url(os.environ.get("WEBHOOKINFO"), adapter=AsyncWebhookAdapter(aiohttp.ClientSession(loop=self.loop)))
-    return discord.Webhook.from_url(os.environ.get("WEBHOOKINFO"), session=aiohttp.ClientSession(loop=self.loop))
+    return discord.Webhook.from_url(os.environ.get("WEBHOOKINFO"), session=self.bot.session)
 
   @discord.utils.cached_property
   def log_issues(self) -> discord.Webhook:
-    if discord.__version__ == "1.7.3":
-      return discord.Webhook.from_url(os.environ.get("WEBHOOKISSUES"), adapter=AsyncWebhookAdapter(aiohttp.ClientSession(loop=self.loop)))
-    return discord.Webhook.from_url(os.environ.get("WEBHOOKISSUES"), session=aiohttp.ClientSession(loop=self.loop))
+    return discord.Webhook.from_url(os.environ.get("WEBHOOKISSUES"), session=self.bot.session)
 
   @discord.utils.cached_property
   def log_errors(self) -> discord.Webhook:
-    if discord.__version__ == "1.7.3":
-      return discord.Webhook.from_url(os.environ.get("WEBHOOKERRORS"), adapter=AsyncWebhookAdapter(aiohttp.ClientSession(loop=self.loop)))
-    return discord.Webhook.from_url(os.environ.get("WEBHOOKERRORS"), session=aiohttp.ClientSession(loop=self.loop))
+    return discord.Webhook.from_url(os.environ.get("WEBHOOKERRORS"), session=self.bot.session)
 
   @discord.utils.cached_property
   def log_bumps(self) -> discord.Webhook:
-    if discord.__version__ == "1.7.3":
-      return discord.Webhook.from_url(os.environ.get("WEBHOOKBUMPS"), adapter=AsyncWebhookAdapter(aiohttp.ClientSession(loop=self.loop)))
-    return discord.Webhook.from_url(os.environ.get("WEBHOOKBUMPS"), session=aiohttp.ClientSession(loop=self.loop))
+    return discord.Webhook.from_url(os.environ.get("WEBHOOKBUMPS"), session=self.bot.session)
 
   @discord.utils.cached_property
   def log_join(self) -> discord.Webhook:
-    if discord.__version__ == "1.7.3":
-      return discord.Webhook.from_url(os.environ.get("WEBHOOKJOIN"), adapter=AsyncWebhookAdapter(aiohttp.ClientSession(loop=self.loop)))
-    return discord.Webhook.from_url(os.environ.get("WEBHOOKJOIN"), session=aiohttp.ClientSession(loop=self.loop))
+    return discord.Webhook.from_url(os.environ.get("WEBHOOKJOIN"), session=self.bot.session)
 
   async def log_spammer(self, ctx, message, retry_after, *, notify=False):
-    guild_name = getattr(ctx.guild, "name", "No Guild/ DM Channel")
     guild_id = getattr(ctx.guild, "id", None)
-    fmt = 'User ? (ID ?) in guild %r (ID ?) spamming, retry_after: %.2fs'
-    logging.warning(fmt, message.author, message.author.id, guild_name, guild_id, retry_after)
-
-    if not notify:
-      return
-
-    return await self.log_spam.send(
-        username=self.bot.user.name,
-        avatar_url=self.bot.user.avatar_url,
-        embed=embed(
-            title="Spam-Control Triggered",
-            fieldstitle=["Member", "Guild Info", "Channel Info"],
-            fieldsval=[
-                f'{message.author} (ID: {message.author.id})',
-                f'{guild_name} (ID: {guild_id})',
-                f'{message.channel} (ID: {message.channel.id}'],
-            fieldsin=[False, False, False]
-        )
-    )
+    self.logger.warning(f"Spamming: {{User: {message.author.id}, Guild: {guild_id}, Retry: {retry_after}}}")
 
   @commands.Cog.listener()
-  async def on_command_error(self, ctx, error):
-    slash = True if isinstance(ctx, SlashContext) else False
+  async def on_command_error(self, ctx: commands.Context, error):
+    slash = True if isinstance(ctx, SlashContext) or (hasattr(ctx, "is_interaction") and ctx.is_interaction) else False
     if hasattr(ctx.command, 'on_error'):
       return
 

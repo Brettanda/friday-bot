@@ -436,7 +436,7 @@ class Fun(commands.Cog):
         return await ctx.send(hidden=True, content="Since this command is ment for game roles and you don't have that role, I will not go through with this command")
       return await ctx.reply(embed=embed(title="Since this command is ment for game roles and you don't have that role, I will not go through with this command", color=MessageColors.ERROR))
 
-    mention_perm = ctx.author.permissions_in(ctx.channel).mention_everyone
+    mention_perm = ctx.channel.permissions_for(ctx.author).mention_everyone
     if not role.mentionable and not mention_perm:
       if slash:
         return await ctx.send(hidden=True, content="You don't have permission to mention that role")
@@ -445,7 +445,7 @@ class Fun(commands.Cog):
     if slash:
       message = await ctx.send(content=f"{role.mention} {message if message is not None else ''}", allowed_mentions=discord.AllowedMentions(roles=True, everyone=False, users=False))
     else:
-      await ctx.delete()
+      await ctx.message.delete()
       message = await ctx.reply(content=f"{role.mention} {message if message is not None else ''}", allowed_mentions=discord.AllowedMentions(roles=True, everyone=False, users=False))
 
     await message.add_reaction("👍")
@@ -459,9 +459,9 @@ class Fun(commands.Cog):
     sec = sec % 60
     return hours, minutes, sec
 
-  @commands.command(name="countdown", aliases=["cd"], help="Start a countdown. This command only updates every 5 seconds to avoid being ratelimited by Discord")
+  @commands.command(name="countdown", aliases=["cd"], help="Start a countdown. This command only updates every 10 seconds to avoid being ratelimited by Discord")
   @commands.max_concurrency(3, commands.BucketType.guild, wait=True)
-  async def countdown(self, ctx: commands.Context, hours: typing.Optional[int] = 0, minutes: typing.Optional[int] = 0, seconds: typing.Optional[int] = 0, title: str = None):
+  async def countdown(self, ctx: commands.Context, hours: typing.Optional[int] = 0, minutes: typing.Optional[int] = 0, seconds: typing.Optional[int] = 0, title: typing.Optional[str] = None):
     if hours == 0 and minutes == 0 and seconds == 0:
       return await ctx.send_help(ctx.command)
 
@@ -469,19 +469,20 @@ class Fun(commands.Cog):
       return await ctx.reply(embed=embed(title="Only positive numbers are accepted", color=MessageColors.ERROR))
 
     current_countdowns = [item for item in self.countdowns if (item[0] is not None and item[0] == ctx.guild.id) or (item[0] is None and ctx.author.dm_channel is not None and item[1] == ctx.author.dm_channel.id)] if ctx.guild is not None else []
-    if len(current_countdowns) > 5:
+    free_max, paid_max = 3, 8
+    if len(current_countdowns) > free_max:
       if ctx.guild is not None:
         guild_min = await checks.guild_is_min_tier(self.bot, ctx.guild, "t1_one_guild")
-        if len(current_countdowns) > 5 and not guild_min:
-          return await ctx.reply(embed=embed(title="This server can only have a max of 5 concurrent countdowns per server", description="To unlock more please check out [patreon.com/fridaybot](https://www.patreon.com/bePatron?u=42649008)", color=MessageColors.ERROR))
-        elif len(current_countdowns) > 20 and guild_min:
-          return await ctx.reply(embed=embed(title="This server can only have a max of 20 concurrent countdowns per server", color=MessageColors.ERROR))
+        if len(current_countdowns) > free_max and not guild_min:
+          return await ctx.reply(embed=embed(title=f"This server can only have a max of {free_max} concurrent countdowns per server", description="To unlock more please check out [patreon.com/fridaybot](https://www.patreon.com/bePatron?u=42649008)", color=MessageColors.ERROR))
+        elif len(current_countdowns) > paid_max and guild_min:
+          return await ctx.reply(embed=embed(title=f"This server can only have a max of {paid_max} concurrent countdowns per server", color=MessageColors.ERROR))
       if ctx.guild is None and ctx.author.dm_channel is not None:
         user_min = await checks.user_is_min_tier(self.bot, ctx.author, "t1_one_guild")
-        if len(current_countdowns) > 5 and not user_min:
-          return await ctx.reply(embed=embed(title="You can only have a max of 5 concurrent countdowns per server", description="To unlock more please check out [patreon.com/fridaybot](https://www.patreon.com/bePatron?u=42649008)", color=MessageColors.ERROR))
-        elif len(current_countdowns) > 20 and user_min:
-          return await ctx.reply(embed=embed(title="You can only have a max of 20 concurrent countdowns per server", color=MessageColors.ERROR))
+        if len(current_countdowns) > free_max and not user_min:
+          return await ctx.reply(embed=embed(title=f"You can only have a max of {free_max} concurrent countdowns per server", description="To unlock more please check out [patreon.com/fridaybot](https://www.patreon.com/bePatron?u=42649008)", color=MessageColors.ERROR))
+        elif len(current_countdowns) > paid_max and user_min:
+          return await ctx.reply(embed=embed(title=f"You can only have a max of {paid_max} concurrent countdowns per server", color=MessageColors.ERROR))
 
     duration = datetime.timedelta(hours=hours, minutes=minutes, seconds=seconds)
     if duration.days > 0:
@@ -494,10 +495,10 @@ class Fun(commands.Cog):
     self.countdowns.append((message.guild.id if message.guild is not None else None, message.channel.id, message.id, title, future))
     self.countdown_messages.append((message, title, future))
 
-  @tasks.loop(seconds=5.0)
+  @tasks.loop(seconds=10.0)
   async def loop_countdown(self):
-    while self.bot.is_closed():
-      await asyncio.sleep(0.1)
+    if self.bot.is_closed():
+      return
     x, y, batch, batch_delete_db = 0, 0, [], []
     if len(self.countdown_messages) == 0:
       for guild_id, channel_id, message_id, title, time in self.countdowns:

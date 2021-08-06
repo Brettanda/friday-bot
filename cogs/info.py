@@ -6,7 +6,7 @@ from discord_slash import cog_ext
 from discord_slash.model import SlashCommandOptionType
 from discord_slash.utils.manage_commands import create_option
 
-from functions import embed, MessageColors, checks, config
+from functions import embed, MessageColors, checks, views
 from typing_extensions import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -42,15 +42,15 @@ class Info(commands.Cog):
     return await ctx.send(
         embed=embed(
             title=f"{self.bot.user.name} - About",
-            thumbnail=self.bot.user.avatar_url,
-            author_icon=owner.avatar_url,
+            thumbnail=self.bot.user.avatar.url if hasattr(self.bot.user, "avatar") else self.bot.user.avatar_url if hasattr(self.bot.user, "avatar_url") else None,
+            author_icon=owner.avatar.url if hasattr(owner, "avatar") else owner.avatar_url if hasattr(owner, "avatar_url") else None,
             author_name=owner,
             description="Big thanks to all Patrons!",
             fieldstitle=["Servers joined", "Latency", "Shards", "Loving Life", "Uptime", "Existed since"],
             fieldsval=[len(self.bot.guilds), f"{(self.bot.get_shard(ctx.guild.shard_id).latency if ctx.guild else self.bot.latency)*1000:,.0f} ms", self.bot.shard_count, "True", uptime, self.bot.user.created_at.strftime("%b %d, %Y")],
             # fieldstitle=["Username","Guilds joined","Status","Latency","Shards","Audio Nodes","Loving Life","Existed since"],
             # fieldsval=[self.bot.user.name,len(self.bot.guilds),ctx.guild.me.activity.name if ctx.guild.me.activity is not None else None,f"{self.bot.latency*1000:,.0f} ms",self.bot.shard_count,len(self.bot.wavelink.nodes),"True",self.bot.user.created_at]
-        ), components=[config.useful_buttons()]
+        ), view=views.Links()
     )
 
   @commands.command(name="serverinfo", aliases=["guildinfo"], help="Shows information about the server")
@@ -67,6 +67,7 @@ class Info(commands.Cog):
     return await ctx.send(
         embed=embed(
             title=ctx.guild.name + " - Info",
+            thumbnail=ctx.guild.icon.url,
             fieldstitle=["Server Name", "Members", "Server ID", "Region", "Created", "Verification level", "Roles"],
             fieldsval=[ctx.guild.name, ctx.guild.member_count, ctx.guild.id, ctx.guild.region, ctx.guild.created_at.strftime("%b %d, %Y"), ctx.guild.verification_level, len(ctx.guild.roles)]
         )
@@ -85,7 +86,7 @@ class Info(commands.Cog):
   async def user_info(self, ctx: commands.Context, member: discord.Member):
     return await ctx.send(embed=embed(
         title=f"{member.name} - Info",
-        thumbnail=member.avatar_url,
+        thumbnail=member.avatar.url,
         fieldstitle=["Name", "Nickname", "Mention", "Role count", "Created", "Joined", "Top Role", "Pending Verification"],
         fieldsval=[member.name, member.nick, member.mention, len(member.roles), member.created_at.strftime("%b %d, %Y"), member.joined_at.strftime("%b %d, %Y"), member.top_role.mention, member.pending],
         color=member.color if member.color.value != 0 else MessageColors.DEFAULT
