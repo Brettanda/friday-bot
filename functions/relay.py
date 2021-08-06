@@ -12,7 +12,7 @@ MISSING = discord.utils.MISSING
 async def relay_info(msg: str, bot: "Bot", embed: discord.Embed = MISSING, file=MISSING, filefirst=MISSING, short: str = MISSING, webhook: discord.Webhook = MISSING, logger=logging.getLogger(__name__)):
   if webhook is MISSING:
     webhook = bot.log.log_info
-  if not bot.prod and bot.canary:
+  if bot.prod or bot.canary:
     thispath = os.getcwd()
     if "\\" in thispath:
       seperator = "\\\\"
