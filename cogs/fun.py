@@ -12,7 +12,7 @@ from discord_slash.utils.manage_commands import create_choice, create_option, Sl
 
 # sys.path.insert(1, os.path.join(sys.path[0], '..'))
 from pyfiglet import figlet_format
-from functions import MessageColors, embed, exceptions, checks, query, non_coro_query
+from functions import MessageColors, embed, exceptions, checks, query
 from typing_extensions import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -29,20 +29,23 @@ class Fun(commands.Cog):
   def __init__(self, bot: "Bot"):
     self.bot = bot
     self.rpsoptions = ["rock", "paper", "scissors"]
+    self.countdowns = []
+    self.bot.loop.create_task(self.setup())
+    self.countdown_messages = []
+    self.loop_countdown.add_exception_type(discord.NotFound)
+    self.loop_countdown.start()
+    # self.timeouter = None
+    # self.timeoutCh = None
+
+  async def setup(self) -> None:
+    self.countdowns = await query(self.bot.log.mydb, "SELECT * FROM countdowns")
     if self.bot.cluster_idx == 0:
-      non_coro_query(self.bot.log.mydb, """CREATE TABLE IF NOT EXISTS countdowns
+      await query(self.bot.log.mydb, """CREATE TABLE IF NOT EXISTS countdowns
                                         (guild bigint NULL,
                                         channel bigint NOT NULL,
                                         message bigint NOT NULL,
                                         title text NULL,
                                         time bigint NOT NULL)""")
-    self.countdowns = []
-    self.countdown_messages = []
-    self.loop_countdown.add_exception_type(discord.NotFound)
-    self.loop_countdown.start()
-    self.countdowns = non_coro_query(self.bot.log.mydb, "SELECT * FROM countdowns")
-    # self.timeouter = None
-    # self.timeoutCh = None
 
   def cog_unload(self):
     self.loop_countdown.stop()

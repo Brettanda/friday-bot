@@ -151,7 +151,7 @@ class Log(commands.Cog):
 
   @commands.Cog.listener()
   async def on_connect(self):
-    await relay_info("Connected", self.bot, logger=self.logger)
+    self.logger.debug("Connected")
     #
     # FIXME: I think this could delete some of the db with more than one cluster
     #
@@ -187,7 +187,7 @@ class Log(commands.Cog):
 
   @commands.Cog.listener()
   async def on_disconnect(self):
-    await relay_info("Disconnected", self.bot, logger=self.logger)
+    self.logger.debug("Disconnected")
 
   @commands.Cog.listener()
   async def on_shard_disconnect(self, shard_id):
@@ -199,7 +199,7 @@ class Log(commands.Cog):
 
   @commands.Cog.listener()
   async def on_resumed(self):
-    await relay_info("Resumed", self.bot, logger=self.logger)
+    self.logger.debug("Resumed")
 
   @commands.Cog.listener()
   async def on_shard_resumed(self, shard_id):

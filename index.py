@@ -124,7 +124,7 @@ class Friday(commands.AutoShardedBot):
   async def close(self) -> None:
     self.logger.info("Shutting down")
     await self.session.close()
-    await super().close()
+    return await super().close()
 
 
 if __name__ == "__main__":
