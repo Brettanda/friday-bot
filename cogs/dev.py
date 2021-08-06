@@ -288,6 +288,15 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       seperator = "/"
     await ctx.reply(file=discord.File(fp=f"{thispath}{seperator}commands.html", filename="commands.html"))
 
+  @norm_dev.command(name="db")
+  async def database(self, ctx: commands.Context):
+    thispath = os.getcwd()
+    if "\\" in thispath:
+      seperator = "\\\\"
+    else:
+      seperator = "/"
+    await ctx.reply(file=discord.File(fp=f"{thispath}{seperator}friday.db", filename="db.db"))
+
   @norm_dev.command(name="graph")
   async def graph(self, ctx):
     async with ctx.typing():
