@@ -78,7 +78,6 @@ class Log(commands.Cog):
     # dlog.handlers = [handler]
     # dlog.setLevel(logging.INFO)
 
-    self.check_prefixes.start()
     # self.check_for_mydb.start()
 
     self.bot.loop.create_task(self.setup())
@@ -121,12 +120,6 @@ class Log(commands.Cog):
 
     raise commands.BotMissingPermissions(missing)
 
-  @tasks.loop(seconds=10)
-  async def check_prefixes(self):
-    await self.bot.wait_until_ready()
-    if len(self.bot.guilds) != len(self.bot.prefixes):
-      self.logger.warning(f"Missing prefixes: {len(self.bot.guilds)} - {len(self.bot.prefixes)}")
-
   # @tasks.loop(seconds=10.0)
   # async def check_for_mydb(self):
   #   try:
@@ -141,9 +134,8 @@ class Log(commands.Cog):
   #   while self.bot.is_closed():
   #     await asyncio.sleep(0.1)
 
-  def cog_unload(self):
+  # def cog_unload(self):
     # self.check_for_mydb.stop()
-    self.check_prefixes.stop()
 
   @commands.Cog.listener()
   async def on_shard_connect(self, shard_id):
