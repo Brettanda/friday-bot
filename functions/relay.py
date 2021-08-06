@@ -21,7 +21,8 @@ async def relay_info(msg: str, bot: "Bot", embed: discord.Embed = MISSING, file=
     avatar_url = bot.user.avatar.url
     try:
       await webhook.send(username=bot.user.name, avatar_url=avatar_url, content=discord.utils.escape_mentions(msg), embed=embed if not filefirst else MISSING, file=discord.File(f"{thispath}{seperator}{file}", filename="Error.txt") if filefirst else MISSING)
-    except discord.HTTPException:
+    except discord.HTTPException as e:
+      bot.logger.error(e)
       await webhook.send(username=bot.user.name, avatar_url=avatar_url, file=discord.File(f"{thispath}{seperator}{file}", filename="Error.txt"))
   # elif bot.prod:
   #   appinfo = await bot.application_info()
