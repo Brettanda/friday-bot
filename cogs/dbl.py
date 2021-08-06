@@ -7,7 +7,7 @@ from discord.ext import commands, tasks
 from discord_slash import ButtonStyle, cog_ext, ComponentContext
 from discord_slash.utils.manage_components import create_button, create_actionrow
 from typing_extensions import TYPE_CHECKING
-from functions import embed, config, query, non_coro_query
+from functions import embed, config, query
 
 if TYPE_CHECKING:
   from index import Friday as Bot
@@ -20,12 +20,8 @@ class TopGG(commands.Cog):
     self.bot = bot
     self.token = os.getenv("TOKENDBL")
     self.topgg = topgg.DBLClient(self.bot, self.token, autopost=False)
-    if self.bot.cluster_idx == 0:  # and self.bot.prod:
-      non_coro_query(self.bot.log.mydb, """CREATE TABLE IF NOT EXISTS votes
-                                        (id bigint PRIMARY KEY NOT NULL,
-                                        to_remind tinyint(1) NOT NULL DEFAULT 0,
-                                        has_reminded tinyint(1) NOT NULL DEFAULT 0,
-                                        voted_time timestamp NULL DEFAULT NULL)""")
+    self.bot.loop.create_task(self.setup())
+    if self.bot.cluster_idx == 0:
       if not hasattr(self.bot, "topgg_webhook"):
         self.bot.topgg_webhook = topgg.WebhookManager(self.bot).dbl_webhook("/dblwebhook", os.environ["DBLWEBHOOKPASS"])
         self.bot.topgg_webhook.run(5000)
@@ -36,6 +32,14 @@ class TopGG(commands.Cog):
 
     if self.bot.prod:
       self.update_stats.start()
+
+  async def setup(self) -> None:
+    if self.bot.cluster_idx == 0:
+      await query(self.bot.log.mydb, """CREATE TABLE IF NOT EXISTS votes
+                                        (id bigint PRIMARY KEY NOT NULL,
+                                        to_remind tinyint(1) NOT NULL DEFAULT 0,
+                                        has_reminded tinyint(1) NOT NULL DEFAULT 0,
+                                        voted_time timestamp NULL DEFAULT NULL)""")
 
   def cog_unload(self):
     self.update_votes.cancel()

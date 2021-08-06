@@ -12,7 +12,7 @@ from discord.ext import commands, tasks
 from discord.ext.commands.view import StringView
 from discord_slash import SlashContext, SlashCommand, ComponentContext
 from cogs.help import cmd_help
-from functions import MessageColors, embed, mydb_connect, query, non_coro_query, relay_info, exceptions, config, views, MyContext, FakeInteractionMessage
+from functions import MessageColors, embed, mydb_connect, query, relay_info, exceptions, config, views, MyContext, FakeInteractionMessage
 import traceback
 
 from collections import Counter
@@ -81,10 +81,12 @@ class Log(commands.Cog):
     self.check_prefixes.start()
     # self.check_for_mydb.start()
 
+    self.bot.loop.create_task(self.setup())
     self.bot.add_check(self.check_perms)
 
+  async def setup(self) -> None:
     if self.bot.cluster_idx == 0:
-      non_coro_query(self.mydb, """CREATE TABLE IF NOT EXISTS servers
+      await query(self.mydb, """CREATE TABLE IF NOT EXISTS servers
                                 (id bigint PRIMARY KEY NOT NULL,
                                 name varchar(255) NULL,
                                 tier tinytext NULL,
