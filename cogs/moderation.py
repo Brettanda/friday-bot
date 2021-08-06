@@ -18,7 +18,7 @@ from discord_slash.utils.manage_commands import create_option
 from typing_extensions import TYPE_CHECKING
 
 from cogs.help import cmd_help
-from functions import MessageColors, embed, query, non_coro_query, checks, relay_info, config
+from functions import MessageColors, embed, query, checks, relay_info, config
 
 if TYPE_CHECKING:
   from index import Friday as Bot
@@ -31,10 +31,8 @@ class Moderation(commands.Cog):
     self.bot = bot
 
     self.invite_reg = r"(https?:\/\/)?(www\.)?(discord(app|)\.(gg)(\/invite|))\/[a-zA-Z0-9\-]+"
-    if not hasattr(self, "to_remove_invites"):
-      self.to_remove_invites = {}
-      for guild_id, to_remove in non_coro_query(self.bot.log.mydb, "SELECT id,remove_invites FROM servers"):
-        self.to_remove_invites.update({int(guild_id): bool(to_remove)})
+
+    self.bot.loop.create_task(self.setup())
 
     if not hasattr(self, "message_spam_control"):
       self.message_spam_control = {}
@@ -42,23 +40,29 @@ class Moderation(commands.Cog):
     if not hasattr(self, "message_spam_control_counter"):
       self.message_spam_control_counter = {}
 
+  async def setup(self) -> None:
+    if not hasattr(self, "to_remove_invites"):
+      self.to_remove_invites = {}
+      for guild_id, to_remove in await query(self.bot.log.mydb, "SELECT id,remove_invites FROM servers"):
+        self.to_remove_invites.update({int(guild_id): bool(to_remove)})
+
     if self.bot.cluster_idx == 0:
-      non_coro_query(self.bot.log.mydb, """CREATE TABLE IF NOT EXISTS welcome
+      await query(self.bot.log.mydb, """CREATE TABLE IF NOT EXISTS welcome
                                         (guild_id bigint PRIMARY KEY NOT NULL,
                                         role_id bigint DEFAULT NULL,
                                         channel_id bigint DEFAULT NULL,
                                         message bigtext DEFAULT NULL)""")
-      non_coro_query(self.bot.log.mydb, """CREATE TABLE IF NOT EXISTS blacklist
+      await query(self.bot.log.mydb, """CREATE TABLE IF NOT EXISTS blacklist
                                         (id bigint,
                                         word text)""")
 
     if not hasattr(self, "welcome"):
-      self.welcome, welcome = {}, non_coro_query(self.bot.log.mydb, "SELECT * FROM welcome")
+      self.welcome, welcome = {}, await query(self.bot.log.mydb, "SELECT * FROM welcome")
       for guild_id, role_id, channel_id, message in welcome:
         self.welcome[int(guild_id)] = {"role_id": int(role_id) if role_id is not None else None, "channel_id": int(channel_id) if channel_id is not None else None, "message": str(message) if message is not None else None}
 
     if not hasattr(self, "blacklist"):
-      blacklists = non_coro_query(self.bot.log.mydb, "SELECT * FROM blacklist")
+      blacklists = await query(self.bot.log.mydb, "SELECT * FROM blacklist")
       self.blacklist = {}
       for server, word in blacklists:
         if server not in self.blacklist:

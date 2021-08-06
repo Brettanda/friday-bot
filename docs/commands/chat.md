@@ -1,6 +1,7 @@
 # Chat
 
 
+
 ## Reset
 
 Resets Friday's chat history. Helps if Friday is repeating messages

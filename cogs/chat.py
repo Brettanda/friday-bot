@@ -28,6 +28,9 @@ class Chat(commands.Cog):
     if not hasattr(self, "translate_client"):
       self.translate_client = translate.Client()  # _http=self.bot.http)
     self.h = HTMLParser()
+
+    self.bot.loop.create_task(self.setup())
+
     if not hasattr(self, "chat_history"):
       self.chat_history = {}
 
@@ -46,6 +49,9 @@ class Chat(commands.Cog):
 
     # if not hasattr(self, "chat_spam_control"):
     #   self.chat_spam_control = commands.CooldownMapping.from_cooldown(5, 15.0, commands.BucketType.channel)
+
+  async def setup(self) -> None:
+    ...
 
   @commands.command(name="say", aliases=["repeat"], help="Make Friday say what ever you want")
   async def say(self, ctx: commands.Context, *, content: str):
