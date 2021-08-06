@@ -14,7 +14,7 @@ from typing_extensions import TYPE_CHECKING
 # from discord_slash.utils.manage_commands import create_option, create_choice
 
 from cogs.help import cmd_help, syntax
-from functions import embed, build_docs, query  # , MessageColors
+from functions import embed, build_docs  # , query  # , MessageColors
 
 if TYPE_CHECKING:
   from index import Friday as Bot
