@@ -39,13 +39,6 @@ class Fun(commands.Cog):
     # self.timeoutCh = None
 
   async def setup(self) -> None:
-    if self.bot.cluster_idx == 0:
-      await self.bot.db.query("""CREATE TABLE IF NOT EXISTS countdowns
-                                        (guild bigint NULL,
-                                        channel bigint NOT NULL,
-                                        message bigint NOT NULL,
-                                        title text NULL,
-                                        time bigint NOT NULL)""")
     self.countdowns = await self.bot.db.query("SELECT * FROM countdowns")
 
   def cog_unload(self):

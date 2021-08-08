@@ -46,16 +46,6 @@ class Moderation(commands.Cog):
       for guild_id, to_remove in await self.bot.db.query("SELECT id,remove_invites FROM servers"):
         self.to_remove_invites.update({int(guild_id): bool(to_remove)})
 
-    if self.bot.cluster_idx == 0:
-      await self.bot.db.query("""CREATE TABLE IF NOT EXISTS welcome
-                                        (guild_id bigint PRIMARY KEY NOT NULL,
-                                        role_id bigint DEFAULT NULL,
-                                        channel_id bigint DEFAULT NULL,
-                                        message text DEFAULT NULL)""")
-      await self.bot.db.query("""CREATE TABLE IF NOT EXISTS blacklist
-                                        (id bigint,
-                                        word text)""")
-
     if not hasattr(self, "welcome"):
       self.welcome, welcome = {}, await self.bot.db.query("SELECT * FROM welcome")
       for guild_id, role_id, channel_id, message in welcome:
