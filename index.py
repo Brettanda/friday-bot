@@ -28,7 +28,7 @@ async def get_prefix(bot: "Friday", message: discord.Message):
     if message.guild.id in bot.prefixes:
       return commands.when_mentioned_or(bot.prefixes[message.guild.id])(bot, message)
     else:
-      current = await functions.query(bot.log.mydb, "SELECT prefix FROM servers WHERE id=?", message.guild.id)
+      current = await bot.db.query("SELECT prefix FROM servers WHERE id=$1", message.guild.id)
       bot.prefixes[message.guild.id] = str(current)
       bot.logger.warning(f"{message.guild.id}'s prefix was {bot.prefixes.get(message.guild.id, None)} and is now {current}")
       return commands.when_mentioned_or(bot.prefixes[message.guild.id])(bot, message)
