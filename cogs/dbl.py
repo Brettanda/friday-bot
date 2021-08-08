@@ -20,7 +20,6 @@ class TopGG(commands.Cog):
     self.bot = bot
     self.token = os.getenv("TOKENDBL")
     self.topgg = topgg.DBLClient(self.bot, self.token, autopost=False)
-    self.bot.loop.create_task(self.setup())
     if self.bot.cluster_idx == 0:
       if not hasattr(self.bot, "topgg_webhook"):
         self.bot.topgg_webhook = topgg.WebhookManager(self.bot).dbl_webhook("/dblwebhook", os.environ["DBLWEBHOOKPASS"])
@@ -32,14 +31,6 @@ class TopGG(commands.Cog):
 
     if self.bot.prod:
       self.update_stats.start()
-
-  async def setup(self) -> None:
-    if self.bot.cluster_idx == 0:
-      await self.bot.db.query("""CREATE TABLE IF NOT EXISTS votes
-                                        (id bigint PRIMARY KEY NOT NULL,
-                                        to_remind boolean NOT NULL DEFAULT false,
-                                        has_reminded boolean NOT NULL DEFAULT false,
-                                        voted_time timestamp NULL DEFAULT NULL)""")
 
   def cog_unload(self):
     self.update_votes.cancel()

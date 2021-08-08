@@ -81,26 +81,6 @@ class Log(commands.Cog):
     self.bot.add_check(self.check_perms)
 
   async def setup(self) -> None:
-    if self.bot.cluster_idx == 0:
-      await self.bot.db.query("""CREATE TABLE IF NOT EXISTS servers
-                                (id bigint PRIMARY KEY NOT NULL,
-                                tier text NULL,
-                                prefix varchar(5) NOT NULL DEFAULT '!',
-                                patreon_user bigint NULL DEFAULT NULL,
-                                muted boolean NOT NULL,
-                                lang varchar(2) NULL DEFAULT NULL,
-                                autoDeleteMSGs smallint NOT NULL DEFAULT 0,
-                                max_mentions int NULL DEFAULT NULL,
-                                max_messages text NULL,
-                                remove_invites boolean DEFAULT false,
-                                bot_manager bigint DEFAULT NULL,
-                                persona text DEFAULT 'friday',
-                                customJoinLeave text NULL,
-                                botMasterRole bigint NULL DEFAULT NULL,
-                                chatChannel bigint NULL DEFAULT NULL,
-                                musicChannel bigint NULL DEFAULT NULL,
-                                customSounds text NULL);""")
-
     if not hasattr(self, "bot_managers"):
       self.bot_managers = {}
       for guild_id, role_id in await self.bot.db.query("SELECT id,bot_manager FROM servers"):
