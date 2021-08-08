@@ -4,12 +4,13 @@
 from discord.ext import commands
 
 from typing_extensions import TYPE_CHECKING
+from functions import MyContext
 
 if TYPE_CHECKING:
   from index import Friday as Bot
 
 
-async def get_delete_time(ctx: commands.Context = None, guild_id: int = None):
+async def get_delete_time(ctx: "MyContext" = None, guild_id: int = None):
   if isinstance(ctx, commands.Context) and guild_id is None:
     guild_id = ctx.guild.id if ctx.guild is not None else None
   if ctx is None and guild_id is None:

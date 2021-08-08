@@ -7,7 +7,7 @@ from discord.ext import commands, tasks
 from discord_slash import ButtonStyle, cog_ext, ComponentContext
 from discord_slash.utils.manage_components import create_button, create_actionrow
 from typing_extensions import TYPE_CHECKING
-from functions import embed, config
+from functions import embed, config, MyContext
 
 if TYPE_CHECKING:
   from index import Friday as Bot
@@ -46,7 +46,7 @@ class TopGG(commands.Cog):
     self.update_stats.cancel()
 
   @commands.group(name="vote", help="Get the link to vote for me on Top.gg", invoke_without_command=True)
-  async def vote(self, ctx: commands.Context):
+  async def vote(self, ctx: "MyContext"):
     links = [
         create_button(
             style=ButtonStyle.URL,
@@ -66,6 +66,7 @@ class TopGG(commands.Cog):
     await ctx.reply(embed=embed(title="Voting", description=f"{vote_message}\n\nWhen you vote you get:", fieldstitle=["Better rate limiting"], fieldsval=["200 messages/12 hours instead of 80 messages/12 hours."], footer="To get voting reminders use the command `!vote remind`"), components=[create_actionrow(*links)])
 
   @vote.command(name="remind", help="Whether or not to remind you of the next time that you can vote")
+  async def vote_remind(self, ctx: "MyContext"):
     current_reminder = bool(await self.bot.db.query("SELECT to_remind FROM votes WHERE id=$1", ctx.author.id))
     await self.bot.db.query("INSERT INTO votes (id,to_remind) VALUES ($1,$2) ON CONFLICT(id) DO UPDATE SET to_remind=$3", ctx.author.id, not current_reminder, not current_reminder)
     if current_reminder is not True:

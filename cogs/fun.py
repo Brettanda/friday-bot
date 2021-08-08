@@ -14,6 +14,7 @@ from discord_slash.utils.manage_commands import create_choice, create_option, Sl
 from pyfiglet import figlet_format
 from functions import MessageColors, embed, exceptions, checks
 from typing_extensions import TYPE_CHECKING
+from functions import MyContext
 
 if TYPE_CHECKING:
   from index import Friday as Bot
@@ -86,7 +87,7 @@ class Fun(commands.Cog):
   # @commands.has_guild_permissions(move_members = True)
 
   @commands.command(name="rockpaperscissors", help="Play Rock Paper Scissors with Friday", aliases=["rps"], usage="<rock, paper or scissors>")
-  async def norm_rockpaperscissors(self, ctx, choice: str):
+  async def norm_rockpaperscissors(self, ctx: "MyContext", choice: str):
     await self.rock_paper_scissors(ctx, choice)
 
   @cog_ext.cog_slash(
@@ -119,7 +120,7 @@ class Fun(commands.Cog):
     await ctx.defer()
     await self.rock_paper_scissors(ctx, choice)
 
-  async def rock_paper_scissors(self, ctx: commands.Context or SlashContext, args: str) -> None:
+  async def rock_paper_scissors(self, ctx: typing.Union["MyContext", SlashContext], args: str) -> None:
     arg = args.lower()
 
     if arg not in self.rpsoptions:
@@ -464,7 +465,7 @@ class Fun(commands.Cog):
 
   @commands.command(name="countdown", aliases=["cd"], help="Start a countdown. This command only updates every 10 seconds to avoid being ratelimited by Discord")
   @commands.max_concurrency(3, commands.BucketType.guild, wait=True)
-  async def countdown(self, ctx: commands.Context, hours: typing.Optional[int] = 0, minutes: typing.Optional[int] = 0, seconds: typing.Optional[int] = 0, title: typing.Optional[str] = None):
+  async def countdown(self, ctx: "MyContext", hours: typing.Optional[int] = 0, minutes: typing.Optional[int] = 0, seconds: typing.Optional[int] = 0, title: typing.Optional[str] = None):
     if hours == 0 and minutes == 0 and seconds == 0:
       return await ctx.send_help(ctx.command)
 

@@ -18,7 +18,7 @@ from discord_slash.utils.manage_commands import create_option
 from typing_extensions import TYPE_CHECKING
 
 from cogs.help import cmd_help
-from functions import MessageColors, embed, checks, relay_info, config
+from functions import MessageColors, embed, checks, relay_info, config, MyContext
 
 if TYPE_CHECKING:
   from index import Friday as Bot
@@ -135,7 +135,7 @@ class Moderation(commands.Cog):
 
   @commands.command(name="prefix", extras={"examples": ["?", "f!"]}, help="Sets the prefix for Fridays commands")
   @commands.has_guild_permissions(administrator=True)
-  async def _prefix(self, ctx: commands.Context, new_prefix: typing.Optional[str] = config.defaultPrefix):
+  async def _prefix(self, ctx: "MyContext", new_prefix: typing.Optional[str] = config.defaultPrefix):
     new_prefix = new_prefix.lower()
     if len(new_prefix) > 5:
       return await ctx.reply(embed=embed(title="Can't set a prefix with more than 5 characters", color=MessageColors.ERROR))
@@ -159,13 +159,13 @@ class Moderation(commands.Cog):
   @commands.guild_only()
   @commands.has_guild_permissions(manage_roles=True, manage_guild=True, manage_channels=True)
   @commands.bot_has_guild_permissions(manage_roles=True)
-  async def _welcome(self, ctx: commands.Context):
+  async def _welcome(self, ctx: "MyContext"):
     await ctx.send_help(ctx.command)
 
   @_welcome.command(name="display", aliases=["list", "show"], help="Shows the servers current welcome settings")
   @commands.guild_only()
   @commands.has_guild_permissions(manage_roles=True, manage_guild=True, manage_channels=True)
-  async def _welcome_display(self, ctx: commands.Context):
+  async def _welcome_display(self, ctx: "MyContext"):
     if ctx.guild.id not in self.welcome:
       return await ctx.reply(embed=embed(title="This server hasn't set any welcome settings", color=MessageColors.ERROR))
     guild = self.welcome[ctx.guild.id]
@@ -181,7 +181,7 @@ class Moderation(commands.Cog):
   @commands.guild_only()
   @commands.has_guild_permissions(manage_roles=True, manage_guild=True, manage_channels=True)
   @commands.bot_has_guild_permissions(manage_roles=True)
-  async def _welcome_role(self, ctx: commands.Context, role: typing.Optional[discord.Role] = None):
+  async def _welcome_role(self, ctx: "MyContext", role: typing.Optional[discord.Role] = None):
     role_id = role.id if role is not None else None
     await self.bot.db.query("INSERT INTO welcome (guild_id,role_id) VALUES ($1,$2) ON CONFLICT(guild_id) DO UPDATE SET role_id=$3", ctx.guild.id, role_id, role_id)
     if ctx.guild.id in self.welcome:
@@ -193,7 +193,7 @@ class Moderation(commands.Cog):
   @_welcome.command(name="channel", extras={"examples": ["#welcome", "#general", "707458929696702525"]}, help="Setup a welcome channel for Friday to welcome new memebers in")
   @commands.guild_only()
   @commands.has_guild_permissions(manage_guild=True, manage_channels=True)
-  async def _welcome_channel(self, ctx: commands.Context, channel: typing.Optional[discord.TextChannel] = None):
+  async def _welcome_channel(self, ctx: "MyContext", channel: typing.Optional[discord.TextChannel] = None):
     if channel is not None:
       if channel.permissions_for(ctx.guild.me).send_messages is False:
         return await ctx.reply(embed=embed(title=f"I don't have send_permissions in {channel}", color=MessageColors.ERROR))
@@ -208,7 +208,7 @@ class Moderation(commands.Cog):
   @_welcome.command(name="message", extras={"examples": [r"Welcome to the server {user}, stay a while!", r"Welcome {user} to {server}", "A new member has joined the server!"]}, help="Set a message to greet new members to your server, message variables are `{user}`,`{server}`")
   @commands.guild_only()
   @commands.has_guild_permissions(manage_guild=True, manage_channels=True)
-  async def _welcome_message(self, ctx: commands.Context, *, message: typing.Optional[str] = None):
+  async def _welcome_message(self, ctx: "MyContext", *, message: typing.Optional[str] = None):
     if len(message) > 255:
       await ctx.reply(embed=embed(title="Welcome messages can't be longer than 255 characters", color=MessageColors.ERROR))
     await self.bot.db.query("INSERT INTO welcome (guild_id,message) VALUES ($1,$2) ON CONFLICT(guild_id) DO UPDATE SET message=$3", ctx.guild.id, message, message)
@@ -349,8 +349,7 @@ class Moderation(commands.Cog):
 
   @commands.group(name="blacklist", aliases=["bl"], invoke_without_command=True, case_insensitive=True, help="Blacklist words from being sent in text channels")
   @commands.guild_only()
-  @commands.has_guild_permissions(manage_guild=True)
-  async def _blacklist(self, ctx: commands.Context):
+  async def _blacklist(self, ctx: "MyContext"):
     await ctx.send_help(ctx.command)
     # await cmd_help(ctx, ctx.command)
 
@@ -643,7 +642,7 @@ class Moderation(commands.Cog):
   async def slash_massmove(self, ctx, tochannel, fromchannel=None):
     await self.mass_move(ctx, tochannel, fromchannel)
 
-  async def mass_move(self, ctx, toChannel, fromChannel=None):
+  async def mass_move(self, ctx: "MyContext", toChannel: discord.VoiceChannel, fromChannel: discord.VoiceChannel = None):
     if (fromChannel is not None and not isinstance(fromChannel, (discord.VoiceChannel, discord.StageChannel))) or (toChannel is not None and not isinstance(toChannel, (discord.VoiceChannel, discord.StageChannel))):
       if isinstance(ctx, SlashContext):
         return dict(hidden=True, content="Please only select voice channels for moving")
@@ -777,7 +776,7 @@ class Moderation(commands.Cog):
   @commands.guild_only()
   @commands.has_guild_permissions(manage_channels=True, manage_roles=True)
   @commands.bot_has_guild_permissions(view_channel=True, manage_channels=True, manage_roles=True)
-  async def norm_mute(self, ctx: commands.Context, members: commands.Greedy[discord.Member]):
+  async def norm_mute(self, ctx: "MyContext", members: commands.Greedy[discord.Member]):
     if len(members) == 0:
       return await cmd_help(ctx, ctx.command, "You're missing some arguments, here is how the command should look")
     async with ctx.typing():
@@ -797,7 +796,7 @@ class Moderation(commands.Cog):
     await ctx.defer(hidden=True)
     await self.mute(ctx, [member], True)
 
-  async def mute(self, ctx: commands.Context, members: [discord.Member], slash: bool = False):
+  async def mute(self, ctx: "MyContext", members: [discord.Member], slash: bool = False):
     if len(members) == 0:
       if slash:
         return await ctx.send(hidden=True, embed=embed(title="Failed to find that member", color=MessageColors.ERROR))
@@ -835,7 +834,7 @@ class Moderation(commands.Cog):
   @commands.guild_only()
   @commands.has_guild_permissions(manage_channels=True, manage_roles=True)
   @commands.bot_has_guild_permissions(manage_channels=True, manage_roles=True)
-  async def norm_unmute(self, ctx: commands.Context, members: commands.Greedy[discord.Member]):
+  async def norm_unmute(self, ctx: "MyContext", members: commands.Greedy[discord.Member]):
     if len(members) == 0:
       return await cmd_help(ctx, ctx.command, "You're missing some arguments, here is how the command should look")
     async with ctx.typing():

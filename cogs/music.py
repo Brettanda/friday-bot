@@ -19,10 +19,10 @@ import datetime
 import time
 # from cogs.cleanup import get_delete_time
 
-from functions import embed, MessageColors, exceptions, checks  # , relay_info
+from functions import embed, MessageColors, exceptions, checks, MyContext  # , relay_info
 
 
-def can_play(ctx: commands.Context):
+def can_play(ctx: "MyContext"):
   connect_perms = ["connect", "speak"]
   missing = []
   if ctx.author.voice is None or ctx.author.voice.channel is None:
@@ -135,7 +135,7 @@ class Music(commands.Cog):
       return (*dataa,)
       # return cls(discord.FFmpegPCMAudio(filename, **ffmpeg_options), data=data)
 
-  async def start_playing(self, ctx: commands.Context, pop=False, slash=False):
+  async def start_playing(self, ctx: "MyContext", pop=False, slash=False):
     # global songqueue
     serverQueueId = "{}".format(ctx.guild.id)
 
@@ -207,7 +207,7 @@ class Music(commands.Cog):
   async def slash_play(self, ctx, query: str):
     await self.play(ctx, query, True)
 
-  async def play(self, ctx: commands.Context, query: str, slash=False):
+  async def play(self, ctx: "MyContext", query: str, slash=False):
     # await ctx.guild.chunk(cache=False)
     can_play = await self.can_play(ctx)
     if can_play is not True:
@@ -297,7 +297,7 @@ class Music(commands.Cog):
   async def slash_stop(self, ctx):
     await self.stop(ctx, True)
 
-  async def stop(self, ctx, slash=False):
+  async def stop(self, ctx: "MyContext", slash=False):
     can_play = await self.can_play(ctx)
     if can_play is not True:
       if slash:
@@ -331,7 +331,7 @@ class Music(commands.Cog):
   @commands.command(name="skip", help="Skips the current song")
   @commands.guild_only()
   @commands.bot_has_permissions(send_messages=True, embed_links=True, read_messages=True)
-  async def norm_skip(self, ctx: commands.Context):
+  async def norm_skip(self, ctx: "MyContext"):
     try:
       await ctx.message.delete(delay=self.bot.log.get_guild_delete_commands(ctx.guild))
     except discord.NotFound:
@@ -343,7 +343,7 @@ class Music(commands.Cog):
   async def slash_skip(self, ctx):
     await self.skip(ctx, True)
 
-  async def skip(self, ctx: commands.Context, slash=False):
+  async def skip(self, ctx: "MyContext", slash=False):
     can_play = await self.can_play(ctx)
     if can_play is not True:
       if slash:
