@@ -61,6 +61,7 @@ class Database:
     if self.bot.cluster_idx == 0:
       self.loop.run_until_complete(self.create_tables())
       self.loop.run_until_complete(self.sync_table_columns())
+      self.loop.create_task(self.check_guilds())
 
   async def setup(self):
     hostname = 'localhost' if self.bot.prod or self.bot.canary else os.environ["DBHOSTNAME"]
@@ -68,6 +69,15 @@ class Database:
     password = os.environ["DBPASSWORDCANARY"] if self.bot.canary else os.environ["DBPASSWORD"] if self.bot.prod else os.environ["DBPASSWORDLOCAL"]
     database = os.environ["DBDATABASECANARY"] if self.bot.canary else os.environ["DBDATABASE"] if self.bot.prod else os.environ["DBDATABASELOCAL"]
     self.connection = await asyncpg.create_pool(host=hostname, user=username, password=password, database=database, loop=self.loop)
+
+  async def check_guilds(self):
+    await self.bot.wait_until_ready()
+    actual_guilds, checked_guilds = [guild.id for guild in self.bot.guilds], []
+    for guild_id in await self.query("SELECT id FROM servers"):
+      if int(guild_id[0]) in actual_guilds:
+        checked_guilds.append(guild_id)
+    if len(checked_guilds) == len(self.bot.guilds):
+      self.bot.logger.info("All guilds are in the Database")
 
   async def create_tables(self):
     for table in self.columns:
