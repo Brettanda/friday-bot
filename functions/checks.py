@@ -2,8 +2,7 @@ import discord
 
 from typing import TYPE_CHECKING, Union
 from discord.ext import commands
-from discord_slash import SlashContext
-from . import exceptions, config, query
+from .custom_contexts import MyContext
 
 if TYPE_CHECKING:
   from discord.ext.commands.core import _CheckDecorator
@@ -129,7 +128,7 @@ def bot_has_guild_permissions(**perms) -> "_CheckDecorator":
   if invalid:
     raise TypeError(f"Invalid permssion(s): {', '.join(invalid)}")
 
-  async def predicate(ctx: commands.Context or SlashContext) -> bool:
+  async def predicate(ctx: "MyContext") -> bool:
     if not ctx.guild and ctx.guild_id:
       raise commands.NoPrivateMessage()
 
@@ -162,7 +161,7 @@ def slash(user: bool = False, private: bool = True) -> "_CheckDecorator":
 #   if invalid:
 #     raise TypeError(f"Invalid permission(s): {', '.join(invalid)}")
 
-#   async def predicate(ctx:commands.Context or SlashContext) -> bool:
+#   async def predicate(ctx:"MyContext" or SlashContext) -> bool:
 #     if not ctx.guild and not ctx.guild_id:
 #       raise commands.NoPrivateMessage()
 

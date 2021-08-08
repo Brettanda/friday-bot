@@ -12,7 +12,7 @@ from discord.ext import commands  # , tasks
 from discord.ext.commands.view import StringView
 from discord_slash import SlashContext, SlashCommand, ComponentContext
 from cogs.help import cmd_help
-from functions import MessageColors, embed, mydb_connect, query, relay_info, exceptions, config, views, MyContext, FakeInteractionMessage
+from functions import MessageColors, embed, relay_info, exceptions, config, views, MyContext, FakeInteractionMessage
 import traceback
 
 from collections import Counter
