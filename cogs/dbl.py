@@ -1,13 +1,13 @@
 import os
-# import discord
+import discord
 import topgg
 import asyncio
 import datetime
 from discord.ext import commands, tasks
-from discord_slash import ButtonStyle, cog_ext, ComponentContext
+from discord_slash import ButtonStyle
 from discord_slash.utils.manage_components import create_button, create_actionrow
 from typing_extensions import TYPE_CHECKING
-from functions import embed, config, query
+from functions import embed, config, MyContext
 
 if TYPE_CHECKING:
   from index import Friday as Bot
@@ -20,7 +20,6 @@ class TopGG(commands.Cog):
     self.bot = bot
     self.token = os.getenv("TOKENDBL")
     self.topgg = topgg.DBLClient(self.bot, self.token, autopost=False)
-    self.bot.loop.create_task(self.setup())
     if self.bot.cluster_idx == 0:
       if not hasattr(self.bot, "topgg_webhook"):
         self.bot.topgg_webhook = topgg.WebhookManager(self.bot).dbl_webhook("/dblwebhook", os.environ["DBLWEBHOOKPASS"])
@@ -33,20 +32,12 @@ class TopGG(commands.Cog):
     if self.bot.prod:
       self.update_stats.start()
 
-  async def setup(self) -> None:
-    if self.bot.cluster_idx == 0:
-      await query(self.bot.log.mydb, """CREATE TABLE IF NOT EXISTS votes
-                                        (id bigint PRIMARY KEY NOT NULL,
-                                        to_remind tinyint(1) NOT NULL DEFAULT 0,
-                                        has_reminded tinyint(1) NOT NULL DEFAULT 0,
-                                        voted_time timestamp NULL DEFAULT NULL)""")
-
   def cog_unload(self):
     self.update_votes.cancel()
     self.update_stats.cancel()
 
   @commands.group(name="vote", help="Get the link to vote for me on Top.gg", invoke_without_command=True)
-  async def vote(self, ctx: commands.Context):
+  async def vote(self, ctx: "MyContext"):
     links = [
         create_button(
             style=ButtonStyle.URL,
@@ -59,30 +50,32 @@ class TopGG(commands.Cog):
             custom_id="voting_remind_me"
         )
     ]
-    prev_time = await query(self.bot.log.mydb, "SELECT voted_time FROM votes WHERE id=?", ctx.author.id)
+    prev_time = await self.bot.db.query("SELECT voted_time FROM votes WHERE id=$1 LIMIT 1", ctx.author.id)
     next_time = datetime.datetime.strptime(prev_time, "%Y-%m-%d %H:%M:%S.%f") if prev_time is not None else None
     time = next_time.timestamp() + datetime.timedelta(hours=12).seconds if next_time is not None else None
     vote_message = f"Your next vote time is: <t:{round(time)}:R>" if prev_time is not None else "You can vote now"
     await ctx.reply(embed=embed(title="Voting", description=f"{vote_message}\n\nWhen you vote you get:", fieldstitle=["Better rate limiting"], fieldsval=["200 messages/12 hours instead of 80 messages/12 hours."], footer="To get voting reminders use the command `!vote remind`"), components=[create_actionrow(*links)])
 
   @vote.command(name="remind", help="Whether or not to remind you of the next time that you can vote")
-  async def vote_remind(self, ctx: commands.Context):
-    current_reminder = bool(await query(self.bot.log.mydb, "SELECT to_remind FROM votes WHERE id=?", ctx.author.id))
-    await query(self.bot.log.mydb, "INSERT INTO votes (id,to_remind) VALUES (?,?) ON CONFLICT(id) DO UPDATE SET to_remind=?", ctx.author.id, not current_reminder, not current_reminder)
+  async def vote_remind(self, ctx: "MyContext"):
+    current_reminder = bool(await self.bot.db.query("SELECT to_remind FROM votes WHERE id=$1", ctx.author.id))
+    await self.bot.db.query("INSERT INTO votes (id,to_remind) VALUES ($1,$2) ON CONFLICT(id) DO UPDATE SET to_remind=$3", ctx.author.id, not current_reminder, not current_reminder)
     if current_reminder is not True:
       await ctx.send(embed=embed(title="I will now DM you every 12 hours after you vote for when you can vote again"))
     elif current_reminder is True:
       await ctx.send(embed=embed(title="I will stop DMing you for voting reminders 😢"))
 
-  @cog_ext.cog_component()
-  async def voting_remind_me(self, ctx: ComponentContext):
-    await ctx.defer(hidden=True)
-    current_reminder = bool(await query(self.bot.log.mydb, "SELECT to_remind FROM votes WHERE id=?", ctx.author.id))
-    await query(self.bot.log.mydb, "INSERT INTO votes (id,to_remind) VALUES (?,?) ON CONFLICT(id) DO UPDATE SET to_remind=?", ctx.author.id, not current_reminder, not current_reminder)
+  @commands.Cog.listener()
+  async def on_interaction(self, interaction: discord.Interaction):
+    if interaction.data.get("custom_id", None) != "voting_remind_me":
+      return
+    # await interaction.response.defer()
+    current_reminder = bool(await self.bot.db.query("SELECT to_remind FROM votes WHERE id=$1", interaction.user.id))
+    await self.bot.db.query("INSERT INTO votes (id,to_remind) VALUES ($1,$2) ON CONFLICT(id) DO UPDATE SET to_remind=$3", interaction.user.id, not current_reminder, not current_reminder)
     if current_reminder is not True:
-      await ctx.send(hidden=True, embed=embed(title="I will now DM you every 12 hours after you vote for when you can vote again"))
+      await interaction.response.send_message(ephemeral=True, embed=embed(title="I will now DM you every 12 hours after you vote for when you can vote again"))
     elif current_reminder is True:
-      await ctx.send(hidden=True, embed=embed(title="I will stop DMing you for voting reminders 😢"))
+      await interaction.response.send_message(ephemeral=True, embed=embed(title="I will stop DMing you for voting reminders 😢"))
 
   @tasks.loop(minutes=30.0)
   async def update_stats(self):
@@ -101,8 +94,8 @@ class TopGG(commands.Cog):
       return
     reset_time, notify_time = datetime.datetime.utcnow() - datetime.timedelta(hours=24), datetime.datetime.utcnow() - datetime.timedelta(hours=12)
     reset_time_formated, notify_time_formated = f"{reset_time.year}-{'0' if reset_time.month < 10 else ''}{reset_time.month}-{'0' if reset_time.day < 10 else ''}{reset_time.day} {'0' if reset_time.hour < 10 else ''}{reset_time.hour}:{'0' if reset_time.minute < 10 else ''}{reset_time.minute}:{'0' if reset_time.second < 10 else ''}{reset_time.second}", f"{notify_time.year}-{'0' if notify_time.month < 10 else ''}{notify_time.month}-{'0' if notify_time.day < 10 else ''}{notify_time.day} {'0' if notify_time.hour < 10 else ''}{notify_time.hour}:{'0' if notify_time.minute < 10 else ''}{notify_time.minute}:{'0' if notify_time.second < 10 else ''}{notify_time.second}"
-    votes = await query(self.bot.log.mydb, f"SELECT id FROM votes WHERE voted_time < datetime('{reset_time_formated}')")
-    reminds = await query(self.bot.log.mydb, f"SELECT id FROM votes WHERE has_reminded=0 AND to_remind=1 AND voted_time < datetime('{notify_time_formated}')")
+    votes = await self.bot.db.query(f"SELECT id FROM votes WHERE voted_time < to_timestamp('{reset_time_formated}','YYYY-MM-DD HH24:MI:SS')")
+    reminds = await self.bot.db.query(f"SELECT id FROM votes WHERE has_reminded=false AND to_remind=true AND voted_time < to_timestamp('{notify_time_formated}','YYYY-MM-DD HH24:MI:SS')")
     vote_user_ids, remind_user_ids = [str(vote[0]) for vote in votes], [str(vote[0]) for vote in reminds]
     for user_id in remind_user_ids:
       try:
@@ -110,13 +103,13 @@ class TopGG(commands.Cog):
         await self.bot.http.send_message(private["id"], f"Your vote time has refreshed. You can now vote again! {self.vote_url}")
       except Exception:
         pass
-    await query(self.bot.log.mydb, f"UPDATE votes SET has_reminded=1 WHERE has_reminded=0 AND voted_time < datetime('{notify_time_formated}')")
-    await query(self.bot.log.mydb, f"DELETE FROM votes WHERE to_remind=0 AND (voted_time IS NULL OR voted_time < datetime('{notify_time_formated}'))")
+    await self.bot.db.query(f"UPDATE votes SET has_reminded=true WHERE has_reminded=false AND voted_time < to_timestamp('{notify_time_formated}','YYYY-MM-DD HH24:MI:SS')")
+    await self.bot.db.query(f"DELETE FROM votes WHERE to_remind=false AND (voted_time IS NULL OR voted_time < to_timestamp('{notify_time_formated}','YYYY-MM-DD HH24:MI:SS'))")
     if len(remind_user_ids) > 0:
       self.bot.logger.info(f"Reminded {len(remind_user_ids)} users")
     if len(vote_user_ids) > 0:
       batch, to_purge = [], []
-      await query(self.bot.log.mydb, f"UPDATE votes SET has_reminded=0,voted_time=NULL WHERE id IN ({','.join(vote_user_ids)})")
+      await self.bot.db.query(f"UPDATE votes SET has_reminded=false,voted_time=NULL WHERE id IN ({','.join(vote_user_ids)})")
       for user_id in vote_user_ids:
         get_member = self.bot.get_guild(config.support_server_id).get_member(user_id)
         member = get_member if get_member is not None else await self.bot.get_guild(config.support_server_id).fetch_member(user_id)
@@ -129,7 +122,7 @@ class TopGG(commands.Cog):
           else:
             to_purge.append(user_id)
       if len(to_purge) > 0:
-        await query(self.bot.log.mydb, f"DELETE FROM votes WHERE to_remind=0 AND id IN ({','.join(to_purge)})")
+        await self.bot.db.query(f"DELETE FROM votes WHERE to_remind=false AND id IN ({','.join(to_purge)})")
       if len(batch) > 0:
         await asyncio.gather(*batch)
 
@@ -142,7 +135,7 @@ class TopGG(commands.Cog):
   async def on_dbl_vote(self, data):
     self.bot.logger.info(f'Received an upvote, {data}')
     if data.get("user", None) is not None:
-      await query(self.bot.log.mydb, "INSERT INTO votes (id,voted_time) VALUES (?,?) ON CONFLICT(id) DO UPDATE SET has_reminded=0,voted_time=?", int(data["user"]), datetime.datetime.now(), datetime.datetime.now())
+      await self.bot.db.query("INSERT INTO votes (id,voted_time) VALUES ($1,$2) ON CONFLICT(id) DO UPDATE SET has_reminded=false,voted_time=$3", int(data["user"]), datetime.datetime.now(), datetime.datetime.now())
     if data.get("type", None) == "test" or int(data.get("user", None)) not in (215227961048170496, 813618591878086707):
       if data.get("user", None) is not None:
         support_server = self.bot.get_guild(config.support_server_id)

@@ -10,7 +10,7 @@ from discord_slash import SlashContext
 import typing
 from typing_extensions import TYPE_CHECKING
 # from cogs.cleanup import get_delete_time
-from functions import MessageColors, Menu, views  # , embed
+from functions import MessageColors, Menu, views, MyContext
 
 if TYPE_CHECKING:
   from index import Friday as Bot
@@ -167,7 +167,7 @@ class Help(commands.HelpCommand):
 
     return embed
 
-  async def command_callback(self, ctx: commands.Context, *, command: commands.Command = None):
+  async def command_callback(self, ctx: "MyContext", *, command: commands.Command = None):
     # await self.prepare_help_command(ctx, command)
     # bot: "Bot" = ctx.bot
 

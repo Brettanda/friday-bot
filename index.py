@@ -24,11 +24,11 @@ dead_nodes_sent = False
 
 
 async def get_prefix(bot: "Friday", message: discord.Message):
-  if message.guild is not None and message.guild.id != 707441352367013899:
+  if message.guild is not None:
     if message.guild.id in bot.prefixes:
       return commands.when_mentioned_or(bot.prefixes[message.guild.id])(bot, message)
     else:
-      current = await functions.query(bot.log.mydb, "SELECT prefix FROM servers WHERE id=?", message.guild.id)
+      current = await bot.db.query("SELECT prefix FROM servers WHERE id=$1", message.guild.id)
       bot.prefixes[message.guild.id] = str(current)
       bot.logger.warning(f"{message.guild.id}'s prefix was {bot.prefixes.get(message.guild.id, None)} and is now {current}")
       return commands.when_mentioned_or(bot.prefixes[message.guild.id])(bot, message)
@@ -67,8 +67,9 @@ class Friday(commands.AutoShardedBot):
     self.canary = True if len(sys.argv) > 1 and (sys.argv[1] == "--canary") else False
     self.ready = False
 
-    self.load_extension("cogs.log")
     self.prefixes = {}
+    self.db = functions.Database(self)
+    self.load_extension("cogs.log")
     self.loop.run_until_complete(self.setup(True))
     self.logger.info(f"Cluster Starting {kwargs.get('shard_ids', None)}, {kwargs.get('shard_count', 1)}")
     if self.should_start:
@@ -124,6 +125,7 @@ class Friday(commands.AutoShardedBot):
   async def close(self) -> None:
     self.logger.info("Shutting down")
     await self.session.close()
+    await self.db.close()
     return await super().close()
 
 

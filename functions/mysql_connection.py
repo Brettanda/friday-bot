@@ -1,69 +1,101 @@
-# Move to PostgreSQL when bot get big
+import asyncpg
+import os
 
-from mysql.connector import errors
-import asqlite
-import sqlite3
-# from . import config
-
+from typing_extensions import TYPE_CHECKING
 from typing import Union
 
-# def mydb_connect() -> mysql.connector.MySQLConnection():
+if TYPE_CHECKING:
+  from index import Friday as Bot
 
 
-async def mydb_connect() -> asqlite.Connection:  # -> mysql.connector.pooling.MySQLConnectionPool():
-  # https://www.mysqltutorial.org/python-connecting-mysql-databases/
-  # mydb = sqlite3.connect("friday.db")
+class Database:
+  """Database Stuffs and Tings"""
 
-  # return mydb
-  return None
+  def __init__(self, bot: "Bot"):
+    self.bot = bot
+    self.loop = bot.loop
+    self.columns = {
+        "servers": [
+            "id bigint PRIMARY KEY NOT NULL",
+            "tier text NULL",
+            "prefix varchar(5) NOT NULL DEFAULT '!'",
+            "patreon_user bigint NULL DEFAULT NULL",
+            "lang varchar(2) NULL DEFAULT NULL",
+            "autoDeleteMSGs smallint NOT NULL DEFAULT 0",
+            "max_mentions int NULL DEFAULT NULL",
+            "max_messages text NULL",
+            "remove_invites boolean DEFAULT false",
+            "bot_manager bigint DEFAULT NULL",
+            "persona text DEFAULT 'friday'",
+            "customJoinLeave text NULL",
+            "botMasterRole bigint NULL DEFAULT NULL",
+            "chatChannel bigint NULL DEFAULT NULL",
+            "musicChannel bigint NULL DEFAULT NULL",
+            "customSounds text NULL"
+        ],
+        "votes": [
+            "id bigint PRIMARY KEY NOT NULL",
+            "to_remind boolean NOT NULL DEFAULT false",
+            "has_reminded boolean NOT NULL DEFAULT false",
+            "voted_time timestamp NULL DEFAULT NULL"
+        ],
+        "countdowns": [
+            "guild bigint NULL",
+            "channel bigint NOT NULL",
+            "message bigint NOT NULL",
+            "title text NULL",
+            "time bigint NOT NULL"
+        ],
+        "welcome": [
+            "guild_id bigint PRIMARY KEY NOT NULL",
+            "role_id bigint DEFAULT NULL",
+            "channel_id bigint DEFAULT NULL",
+            "message text DEFAULT NULL"
+        ],
+        "blacklist": [
+            "id bigint",
+            "word text"
+        ],
+    }
+    self.loop.run_until_complete(self.setup())
+    if self.bot.cluster_idx == 0:
+      self.loop.run_until_complete(self.create_tables())
+      self.loop.run_until_complete(self.sync_table_columns())
 
+  async def setup(self):
+    hostname = 'localhost' if self.bot.prod or self.bot.canary else os.environ["DBHOSTNAME"]
+    username = os.environ["DBUSERNAMECANARY"] if self.bot.canary else os.environ["DBUSERNAME"] if self.bot.prod else os.environ["DBUSERNAMELOCAL"]
+    password = os.environ["DBPASSWORDCANARY"] if self.bot.canary else os.environ["DBPASSWORD"] if self.bot.prod else os.environ["DBPASSWORDLOCAL"]
+    database = os.environ["DBDATABASECANARY"] if self.bot.canary else os.environ["DBDATABASE"] if self.bot.prod else os.environ["DBDATABASELOCAL"]
+    self.connection = await asyncpg.create_pool(host=hostname, user=username, password=password, database=database, loop=self.loop)
 
-# async def query(mydb: mysql.connector.MySQLConnection(), query: str, *params, rlist: bool = False) -> str or list:
-async def query(mydb: asqlite.Connection, query: str, *params, rlist: bool = False) -> Union[str, list]:
-  async with asqlite.connect("friday.db") as mydb:
-    async with mydb.cursor() as mycursor:
-      await mycursor.execute(query, params)
+  async def create_tables(self):
+    for table in self.columns:
+      await self.query(f"CREATE TABLE IF NOT EXISTS {table} ({','.join(self.columns[table])});")
+
+  async def sync_table_columns(self):
+    # https://stackoverflow.com/questions/9991043/how-can-i-test-if-a-column-exists-in-a-table-using-an-sql-statement
+    ...
+
+  async def query(self, query: str, *params) -> Union[str, None, list]:
+    async with self.connection.acquire() as mycursor:
       if "select" in query.lower():
-        if "where" in query.lower() and "," not in query.lower() and '>' not in query.lower().split("where")[1] and '<' not in query.lower().split("where")[1] or "limit" in query.lower():
-          if rlist is True:
-            result = await mycursor.fetchall()
-          else:
-            result = await mycursor.fetchone()
-            result = result[0] if result is not None else None
-        else:
-          result = await mycursor.fetchall()
+        result = await mycursor.fetch(query, *params)
       else:
-        await mydb.commit()
-      if "select" in query.lower():
+        await mycursor.execute(query, *params)
+    if hasattr(self.bot, "logger"):
+      self.bot.logger.debug(f"PostgreSQL Query: \"{query}\" + {params}")
+    if "select" in query.lower():
+      if isinstance(result, list) and len(result) == 1 and "limit 1" in query.lower():
+        result = [tuple(i) for i in result][0]
+        if len(result) == 1:
+          return result[0]
         return result
-
-
-def non_coro_query(mydb: sqlite3.Connection, query: str, *params, rlist: bool = False) -> Union[str, list]:
-  """Meant to placed in __init__() of cogs"""
-  try:
-    mydb = sqlite3.connect("friday.db", 30.0)
-    # if not mydb.is_connected():
-    #   mydb.reconnect(attempts=2, delay=0.1)
-    mycursor = mydb.cursor()
-    mycursor.execute(query, params)
-    if "select" in query.lower():
-      if "where" in query.lower() and "," not in query.lower() and '>' not in query.lower().split("where")[1] and '<' not in query.lower().split("where")[1] or "limit" in query.lower():
-        if rlist is True:
-          result = mycursor.fetchall()
-        else:
-          result = mycursor.fetchone()
-          result = result[0] if result is not None else None
-      else:
-        result = mycursor.fetchall()
-    # if not mydb.is_connected():
-    #   mydb.reconnect(attempts=2, delay=0.1)
-    mydb.commit()
-    # mycursor.close()
-    if "select" in query.lower():
+      if isinstance(result, list) and len(result) > 0 and "limit 1" not in query.lower():
+        return [tuple(i) for i in result]
+      elif isinstance(result, list) and len(result) == 0 and "limit 1" in query.lower():
+        return None
       return result
-  except errors.Error as e:
-    print("MySQL Error ", e)
-  finally:
-    mycursor.close()
-    mydb.close()
-  #   if mydb.is_connected():
+
+  async def close(self):
+    await self.connection.close()

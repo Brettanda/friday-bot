@@ -12,7 +12,7 @@ import datetime
 from profanity import profanity
 from six.moves.html_parser import HTMLParser
 from google.cloud import translate_v2 as translate
-from functions import relay_info, checks, embed, MessageColors, query  # , queryIntents
+from functions import relay_info, checks, embed, MessageColors, MyContext
 # MessageColors, dev_guilds, get_reddit_post, embed, config, msg_reply,
 if TYPE_CHECKING:
   from index import Friday as Bot
@@ -54,13 +54,13 @@ class Chat(commands.Cog):
     ...
 
   @commands.command(name="say", aliases=["repeat"], help="Make Friday say what ever you want")
-  async def say(self, ctx: commands.Context, *, content: str):
+  async def say(self, ctx: "MyContext", *, content: str):
     if content in ("im stupid", "i'm stupid", "i am dumb", "im dumb"):
       return await ctx.reply("yeah we know", allowed_mentions=discord.AllowedMentions.none())
     await ctx.reply(content, allowed_mentions=discord.AllowedMentions.none())
 
   @commands.command(name="reset", help="Resets Friday's chat history. Helps if Friday is repeating messages")
-  async def reset_history(self, ctx: commands.Context):
+  async def reset_history(self, ctx: "MyContext"):
     try:
       self.chat_history.pop(ctx.channel.id)
     except KeyError:
@@ -227,7 +227,7 @@ class Chat(commands.Cog):
       return False
 
     if msg.guild is not None and msg.author.id != self.bot.user.id:
-      if (await query(self.bot.log.mydb, "SELECT chatChannel FROM servers WHERE id=?", msg.guild.id)) != msg.channel.id:
+      if await self.bot.db.query("SELECT chatChannel FROM servers WHERE id=$1", msg.guild.id) != msg.channel.id:
         if msg.guild.me not in msg.mentions:
           return False
 
@@ -241,7 +241,7 @@ class Chat(commands.Cog):
       return False
 
     if msg.guild is not None:
-      if (await query(self.bot.log.mydb, "SELECT chatChannel FROM servers WHERE id=?", msg.guild.id)) != msg.channel.id:
+      if await self.bot.db.query("SELECT chatChannel FROM servers WHERE id=$1", msg.guild.id) != msg.channel.id:
         if msg.guild.me not in msg.mentions:
           return False
 

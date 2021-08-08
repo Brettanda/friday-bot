@@ -5,12 +5,14 @@ from discord_slash import cog_ext
 
 from functions import embed, MessageColors, checks
 
+from functions import MyContext
+
 
 class Dice(commands.Cog):
   """Roll some dice"""
 
   @commands.command(name="dice", extras={"slash": True, "examples": ["1d20", "5d10k3", "d6"]}, aliases=["d", "r", "roll"], help="D&D dice rolling")
-  async def norm_dice(self, ctx: commands.Context, *, roll: str):
+  async def norm_dice(self, ctx: "MyContext", *, roll: str):
     if "bump" in roll:
       return
 
@@ -18,10 +20,10 @@ class Dice(commands.Cog):
 
   @cog_ext.cog_slash(name="dice", description="D&D dice rolling")
   @checks.slash(user=False, private=True)
-  async def slash_dice(self, ctx: commands.Context, *, roll: str):
+  async def slash_dice(self, ctx: "MyContext", *, roll: str):
     return await self.dice(ctx, roll)
 
-  async def dice(self, ctx: commands.Context, roll):
+  async def dice(self, ctx: "MyContext", roll):
     roll = roll.lower()
 
     result = None
