@@ -2,6 +2,7 @@ import discord
 
 from typing import TYPE_CHECKING, Union
 from discord.ext import commands
+from . import exceptions, config
 from .custom_contexts import MyContext
 
 if TYPE_CHECKING:
