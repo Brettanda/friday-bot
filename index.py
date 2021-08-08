@@ -67,8 +67,9 @@ class Friday(commands.AutoShardedBot):
     self.canary = True if len(sys.argv) > 1 and (sys.argv[1] == "--canary") else False
     self.ready = False
 
-    self.load_extension("cogs.log")
     self.prefixes = {}
+    self.db = functions.Database(self)
+    self.load_extension("cogs.log")
     self.loop.run_until_complete(self.setup(True))
     self.logger.info(f"Cluster Starting {kwargs.get('shard_ids', None)}, {kwargs.get('shard_count', 1)}")
     if self.should_start:
@@ -124,6 +125,7 @@ class Friday(commands.AutoShardedBot):
   async def close(self) -> None:
     self.logger.info("Shutting down")
     await self.session.close()
+    await self.db.close()
     return await super().close()
 
 

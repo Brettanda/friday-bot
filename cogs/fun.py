@@ -12,7 +12,7 @@ from discord_slash.utils.manage_commands import create_choice, create_option, Sl
 
 # sys.path.insert(1, os.path.join(sys.path[0], '..'))
 from pyfiglet import figlet_format
-from functions import MessageColors, embed, exceptions, checks, query
+from functions import MessageColors, embed, exceptions, checks
 from typing_extensions import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -38,14 +38,14 @@ class Fun(commands.Cog):
     # self.timeoutCh = None
 
   async def setup(self) -> None:
-    self.countdowns = await query(self.bot.log.mydb, "SELECT * FROM countdowns")
     if self.bot.cluster_idx == 0:
-      await query(self.bot.log.mydb, """CREATE TABLE IF NOT EXISTS countdowns
+      await self.bot.db.query("""CREATE TABLE IF NOT EXISTS countdowns
                                         (guild bigint NULL,
                                         channel bigint NOT NULL,
                                         message bigint NOT NULL,
                                         title text NULL,
                                         time bigint NOT NULL)""")
+    self.countdowns = await self.bot.db.query("SELECT * FROM countdowns")
 
   def cog_unload(self):
     self.loop_countdown.stop()
@@ -494,7 +494,7 @@ class Fun(commands.Cog):
     future = now + duration.seconds
     hours, minutes, sec = self.get_time(now, future)
     message = await ctx.send(embed=embed(title=f"Countdown: {title if title is not None else ''}", description="```" + figlet_format(f"{hours}:{minutes}:{sec}") + "```"))
-    await query(self.bot.log.mydb, "INSERT OR IGNORE INTO countdowns (guild,channel,message,title,time) VALUES (?,?,?,?,?)", message.guild.id if message.guild is not None else None, message.channel.id, message.id, title, future)
+    await self.bot.db.query("INSERT INTO countdowns (guild,channel,message,title,time) VALUES ($1,$2,$3,$4,$5) ON CONFLICT DO NOTHING", message.guild.id if message.guild is not None else None, message.channel.id, message.id, title, future)
     self.countdowns.append((message.guild.id if message.guild is not None else None, message.channel.id, message.id, title, future))
     self.countdown_messages.append((message, title, future))
 
@@ -528,7 +528,7 @@ class Fun(commands.Cog):
         batch.append(message.edit(embed=embed(title=f"Countdown: {title if title is not None else ''}", description="```" + figlet_format(f"{hours}:{minutes}:{sec}") + "```")))
       y += 1
     if len(batch_delete_db) > 0:
-      batch.append(query(self.bot.log.mydb, f"DELETE FROM countdowns WHERE message IN ({', '.join(batch_delete_db)})"))
+      batch.append(self.bot.db.query(f"DELETE FROM countdowns WHERE message IN ({', '.join(batch_delete_db)})"))
     await asyncio.gather(*batch)
 
   @commands.Cog.listener()
@@ -536,7 +536,7 @@ class Fun(commands.Cog):
     while self.bot.is_closed():
       await asyncio.sleep(0.1)
     if payload.guild_id is not None and len([item for item in self.countdowns if item[2] == payload.message_id]) > 0:
-      await query(self.bot.log.mydb, "DELETE FROM countdowns WHERE message=?", payload.message_id)
+      await self.bot.db.query("DELETE FROM countdowns WHERE message=$1", payload.message_id)
       self.countdown_messages.pop(self.countdown_messages.index([i for i in self.countdown_messages if i[0].id == payload.message_id][0]))
       self.countdowns.pop(self.countdowns.index([i for i in self.countdowns if i[2] == payload.message_id][0]))
 

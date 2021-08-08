@@ -120,7 +120,7 @@ def is_supporter_or_voted() -> "_CheckDecorator":
 
 
 async def user_voted(bot: "Bot", user: discord.User) -> bool:
-  user_id = await query(bot.log.mydb, "SELECT id FROM votes WHERE id=?", user.id)
+  user_id = await bot.db.query("SELECT id FROM votes WHERE id=$1", user.id)
   return True if user_id is not None else False
 
 

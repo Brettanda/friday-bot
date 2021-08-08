@@ -3,7 +3,6 @@
 # import discord
 from discord.ext import commands
 
-from functions import query  # , embed
 from typing_extensions import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -16,7 +15,7 @@ async def get_delete_time(ctx: commands.Context = None, guild_id: int = None):
   if ctx is None and guild_id is None:
     return None
   try:
-    result = await query(ctx.bot.log.mydb, "SELECT autoDeleteMSGs FROM servers WHERE id=%s", guild_id)
+    result = await ctx.bot.db.query("SELECT autoDeleteMSGs FROM servers WHERE id=%s", guild_id)
     if result is None or result == 0:
       return None
     return result
