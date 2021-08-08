@@ -86,8 +86,8 @@ class Fun(commands.Cog):
   # @commands.has_guild_permissions(move_members = True)
 
   @commands.command(name="rockpaperscissors", help="Play Rock Paper Scissors with Friday", aliases=["rps"], usage="<rock, paper or scissors>")
-  async def norm_rockpaperscissors(self, ctx, args: str):
-    await self.rock_paper_scissors(ctx, args)
+  async def norm_rockpaperscissors(self, ctx, choice: str):
+    await self.rock_paper_scissors(ctx, choice)
 
   @cog_ext.cog_slash(
       name="rockpaperscissors",
