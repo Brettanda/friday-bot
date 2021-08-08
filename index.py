@@ -24,7 +24,7 @@ dead_nodes_sent = False
 
 
 async def get_prefix(bot: "Friday", message: discord.Message):
-  if message.guild is not None and message.guild.id != 707441352367013899:
+  if message.guild is not None:
     if message.guild.id in bot.prefixes:
       return commands.when_mentioned_or(bot.prefixes[message.guild.id])(bot, message)
     else:
