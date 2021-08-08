@@ -97,13 +97,18 @@ jobs:
         if [ -f friday-trans-key.json ]; then printf "File created"; fi
     - name: Test with pytest
       env:
+        DBHOSTNAME: ${{ secrets.DBHOSTNAME }}
+        DBUSERNAME: ${{ secrets.DBUSERNAME }}
+        DBUSERNAMECANARY: ${{ secrets.DBUSERNAMECANARY }}
+        DBUSERNAMELOCAL: ${{ secrets.DBUSERNAMELOCAL }}
+        DBPASSWORD: ${{ secrets.DBPASSWORD }}
+        DBPASSWORDCANARY: ${{ secrets.DBPASSWORDCANARY }}
+        DBPASSWORDLOCAL: ${{ secrets.DBPASSWORDLOCAL }}
+        DBDATABASE: ${{ secrets.DBDATABASE }}
+        DBDATABASECANARY: ${{ secrets.DBDATABASECANARY }}
+        DBDATABASELOCAL: ${{ secrets.DBDATABASELOCAL }}
         TOKENTEST: ${{ secrets.TOKENTEST }}
-        DATABASE: ${{ secrets.DATABASE }}
-        DATABASETEST: ${{ secrets.DATABASETEST }}
         DBLWEBHOOKPASS: ${{ secrets.DBLWEBHOOKPASS }}
-        DBUSER: ${{ secrets.DBUSER }}
-        DBPASS: ${{ secrets.DBPASS }}
-        DBHOST: ${{ secrets.DBHOST }}
         WEBHOOKSPAM: ${{ secrets.WEBHOOKSPAM }}
         WEBHOOKISSUES: ${{ secrets.WEBHOOKISSUES }}
         WEBHOOKINFO: ${{ secrets.WEBHOOKINFO }}
