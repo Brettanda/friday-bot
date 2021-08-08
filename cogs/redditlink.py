@@ -12,6 +12,7 @@ from discord_slash import cog_ext
 
 from functions import MessageColors, embed
 from typing_extensions import TYPE_CHECKING
+from functions import MyContext
 
 if TYPE_CHECKING:
   from index import Friday as Bot
@@ -175,7 +176,7 @@ class redditlink(commands.Cog):
         raise e
 
   @commands.command(name="redditextract", help="Extracts the media from the reddit post")
-  async def norm_extract(self, ctx: commands.Context, link: str):
+  async def norm_extract(self, ctx: "MyContext", link: str):
     if not ctx.is_interaction():
       async with ctx.typing():
         return await self.extract(query=link, command=True, ctx=ctx, guild=ctx.guild, channel=ctx.channel)
@@ -186,7 +187,7 @@ class redditlink(commands.Cog):
     await ctx.defer()
     await self.extract(query=link, command=True, ctx=ctx, guild=ctx.guild, channel=ctx.channel)
 
-  async def extract(self, query, command: bool = False, payload: discord.RawReactionActionEvent = None, ctx: commands.Context = None, guild=None, channel: discord.TextChannel = None, message: discord.Message = None):
+  async def extract(self, query, command: bool = False, payload: discord.RawReactionActionEvent = None, ctx: "MyContext" = None, guild=None, channel: discord.TextChannel = None, message: discord.Message = None):
     if ctx is None and message is not None:
       ctx = await self.bot.get_context(message)
     if guild is None and not ctx.guild_id:

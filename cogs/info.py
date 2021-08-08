@@ -6,7 +6,7 @@ from discord_slash import cog_ext
 from discord_slash.model import SlashCommandOptionType
 from discord_slash.utils.manage_commands import create_option
 
-from functions import embed, MessageColors, checks, views
+from functions import embed, MessageColors, checks, views, MyContext
 from typing_extensions import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -25,7 +25,7 @@ class Info(commands.Cog):
   async def slash_info(self, ctx):
     await self.info(ctx)
 
-  async def info(self, ctx: commands.Context):
+  async def info(self, ctx: "MyContext"):
     appinfo = await self.bot.application_info()
     owner = appinfo.team.members[0]
     delta = datetime.datetime.utcnow() - self.bot.uptime
@@ -63,7 +63,7 @@ class Info(commands.Cog):
   async def slash_serverinfo(self, ctx):
     await self.server_info(ctx)
 
-  async def server_info(self, ctx: commands.Context):
+  async def server_info(self, ctx: "MyContext"):
     return await ctx.send(
         embed=embed(
             title=ctx.guild.name + " - Info",
@@ -83,7 +83,7 @@ class Info(commands.Cog):
   async def slash_userinfo(self, ctx, user: typing.Optional[discord.Member] = None):
     await self.user_info(ctx, user if user is not None else ctx.author)
 
-  async def user_info(self, ctx: commands.Context, member: discord.Member):
+  async def user_info(self, ctx: "MyContext", member: discord.Member):
     return await ctx.send(embed=embed(
         title=f"{member.name} - Info",
         thumbnail=member.avatar.url,

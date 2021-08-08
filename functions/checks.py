@@ -3,7 +3,8 @@ import discord
 from typing import TYPE_CHECKING, Union
 from discord.ext import commands
 from discord_slash import SlashContext
-from . import exceptions, config, query
+from . import exceptions, config
+from .custom_contexts import MyContext
 
 if TYPE_CHECKING:
   from discord.ext.commands.core import _CheckDecorator
@@ -120,7 +121,7 @@ def is_supporter_or_voted() -> "_CheckDecorator":
 
 
 async def user_voted(bot: "Bot", user: discord.User) -> bool:
-  user_id = await query(bot.log.mydb, "SELECT id FROM votes WHERE id=?", user.id)
+  user_id = await bot.db.query("SELECT id FROM votes WHERE id=$1", user.id)
   return True if user_id is not None else False
 
 
@@ -129,7 +130,7 @@ def bot_has_guild_permissions(**perms) -> "_CheckDecorator":
   if invalid:
     raise TypeError(f"Invalid permssion(s): {', '.join(invalid)}")
 
-  async def predicate(ctx: commands.Context or SlashContext) -> bool:
+  async def predicate(ctx: "MyContext") -> bool:
     if not ctx.guild and ctx.guild_id:
       raise commands.NoPrivateMessage()
 
@@ -162,7 +163,7 @@ def slash(user: bool = False, private: bool = True) -> "_CheckDecorator":
 #   if invalid:
 #     raise TypeError(f"Invalid permission(s): {', '.join(invalid)}")
 
-#   async def predicate(ctx:commands.Context or SlashContext) -> bool:
+#   async def predicate(ctx:"MyContext" or SlashContext) -> bool:
 #     if not ctx.guild and not ctx.guild_id:
 #       raise commands.NoPrivateMessage()
 

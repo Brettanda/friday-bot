@@ -1,7 +1,7 @@
 from discord.ext import commands
 from discord_slash import SlashContext, cog_ext
 
-from functions import get_reddit_post, checks
+from functions import get_reddit_post, checks, MyContext
 from typing_extensions import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -19,7 +19,7 @@ class Meme(commands.Cog):
   # @commands.max_concurrency(1,commands.BucketType.channel,wait=False)
   @commands.command(name="meme", aliases=["shitpost"], help="Meme time")
   @commands.cooldown(1, 1, commands.BucketType.user)
-  async def norm_meme(self, ctx: commands.Context):
+  async def norm_meme(self, ctx: "MyContext"):
     if not ctx.is_interaction():
       async with ctx.typing():
         return await ctx.reply(**await get_reddit_post(ctx, self.subs))

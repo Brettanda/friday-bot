@@ -15,6 +15,7 @@ from typing_extensions import TYPE_CHECKING
 
 from cogs.help import cmd_help, syntax
 from functions import embed, build_docs  # , query  # , MessageColors
+from functions import MyContext
 
 if TYPE_CHECKING:
   from index import Friday as Bot
@@ -296,7 +297,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     await ctx.reply(file=discord.File(fp=f"{thispath}{seperator}commands.html", filename="commands.html"))
 
   @norm_dev.command(name="db")
-  async def database(self, ctx: commands.Context):
+  async def database(self, ctx: "MyContext"):
     thispath = os.getcwd()
     if "\\" in thispath:
       seperator = "\\\\"
@@ -388,7 +389,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
   #       await ctx.send(f'```py\n{value}{ret}\n```')
 
   @commands.Cog.listener()
-  async def on_message(self, ctx: commands.Context):
+  async def on_message(self, ctx: "MyContext"):
     if "process.exit()" in ctx.clean_content or "bot.destroy()" in ctx.clean_content:
       try:
         return await ctx.add_reaction("😡")

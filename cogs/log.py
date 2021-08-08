@@ -12,7 +12,7 @@ from discord.ext import commands  # , tasks
 from discord.ext.commands.view import StringView
 from discord_slash import SlashContext, SlashCommand, ComponentContext
 from cogs.help import cmd_help
-from functions import MessageColors, embed, mydb_connect, query, relay_info, exceptions, config, views, MyContext, FakeInteractionMessage
+from functions import MessageColors, embed, relay_info, exceptions, config, views, MyContext, FakeInteractionMessage
 import traceback
 
 from collections import Counter
@@ -44,6 +44,7 @@ class Log(commands.Cog):
   def __init__(self, bot: "Bot"):
     self.bot = bot
     self.loop = bot.loop
+    self.bot.loop.create_task(self.setup())
 
     if not hasattr(self, "spam_control"):
       self.spam_control = commands.CooldownMapping.from_cooldown(5, 15.0, commands.BucketType.user)
@@ -58,9 +59,6 @@ class Log(commands.Cog):
 
     if not hasattr(self.bot, "slash"):
       self.bot.slash = SlashCommand(self.bot, sync_commands=True, sync_on_cog_reload=True)
-
-    if not hasattr(self, "mydb"):
-      self.mydb = mydb_connect()
 
     self.bot.process_commands = self.process_commands
     # self.bot.on_error = self.on_error
@@ -80,30 +78,34 @@ class Log(commands.Cog):
 
     # self.check_for_mydb.start()
 
-    self.bot.loop.create_task(self.setup())
     self.bot.add_check(self.check_perms)
 
   async def setup(self) -> None:
     if self.bot.cluster_idx == 0:
-      await query(self.mydb, """CREATE TABLE IF NOT EXISTS servers
+      await self.bot.db.query("""CREATE TABLE IF NOT EXISTS servers
                                 (id bigint PRIMARY KEY NOT NULL,
-                                name varchar(255) NULL,
-                                tier tinytext NULL,
+                                tier text NULL,
                                 prefix varchar(5) NOT NULL DEFAULT '!',
                                 patreon_user bigint NULL DEFAULT NULL,
-                                muted tinyint(1) NOT NULL,
+                                muted boolean NOT NULL,
                                 lang varchar(2) NULL DEFAULT NULL,
-                                autoDeleteMSGs tinyint NOT NULL DEFAULT 0,
+                                autoDeleteMSGs smallint NOT NULL DEFAULT 0,
                                 max_mentions int NULL DEFAULT NULL,
                                 max_messages text NULL,
-                                remove_invites tinyint(1) DEFAULT 0,
-                                reactionRoles text NULL,
+                                remove_invites boolean DEFAULT false,
+                                bot_manager bigint DEFAULT NULL,
+                                persona text DEFAULT 'friday',
                                 customJoinLeave text NULL,
                                 botMasterRole bigint NULL DEFAULT NULL,
                                 chatChannel bigint NULL DEFAULT NULL,
                                 musicChannel bigint NULL DEFAULT NULL,
-                                greeting varchar(255) NULL DEFAULT NULL,
-                                customSounds longtext NULL)""")
+                                customSounds text NULL);""")
+
+    if not hasattr(self, "bot_managers"):
+      self.bot_managers = {}
+      for guild_id, role_id in await self.bot.db.query("SELECT id,bot_manager FROM servers"):
+        if role_id is not None:
+          self.bot_managers.update({int(guild_id): int(role_id)})
 
   def check_perms(self, ctx):
     if hasattr(ctx.channel, "type") and ctx.channel.type == discord.ChannelType.private:
@@ -151,10 +153,14 @@ class Log(commands.Cog):
       current = []
       for guild in self.bot.guilds:
         current.append(guild.id)
-        await query(self.mydb, "INSERT OR IGNORE INTO servers (id,muted,lang) VALUES (?,?,?)", guild.id, 0, guild.preferred_locale.split("-")[0] if guild.preferred_locale is not None else "en")
-      await query(self.mydb, f"DELETE FROM servers WHERE id NOT IN ({','.join(['?' for _ in current])})", *current)
+        await self.bot.db.query("INSERT INTO servers (id,muted,lang) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING", guild.id, False, guild.preferred_locale.split("-")[0] if guild.preferred_locale is not None else "en")
+      x, ticks = 1, []
+      for _ in current:
+        ticks.append(f"${x}")
+        x += 1
+      await self.bot.db.query(f"DELETE FROM servers WHERE id NOT IN ({','.join(ticks)})", *current)
 
-    for i, p in await query(self.mydb, "SELECT id,prefix FROM servers"):
+    for i, p in await self.bot.db.query("SELECT id,prefix FROM servers"):
       self.bot.prefixes.update({int(i): str(p)})
 
   @commands.Cog.listener()
@@ -201,7 +207,7 @@ class Log(commands.Cog):
   async def on_guild_join(self, guild: discord.Guild):
     while self.bot.is_closed():
       await asyncio.sleep(0.1)
-    await query(self.mydb, "INSERT OR IGNORE INTO servers (id,muted,lang) VALUES (?,?,?)", guild.id, 0, guild.preferred_locale.split("-")[0])
+    await self.bot.db.query("INSERT INTO servers (id,muted,lang) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING", guild.id, False, guild.preferred_locale.split("-")[0])
     priority_channels = []
     channels = []
     for channel in guild.text_channels:
@@ -228,8 +234,8 @@ class Log(commands.Cog):
     while self.bot.is_closed():
       await asyncio.sleep(0.1)
     self.remove_guild(guild.id)
-    await query(self.mydb, "DELETE FROM servers WHERE id=?", guild.id)
-    await query(self.mydb, "DELETE FROM blacklist WHERE id=?", guild.id)
+    await self.bot.db.query("DELETE FROM servers WHERE id=$1", guild.id)
+    await self.bot.db.query("DELETE FROM blacklist WHERE id=$1", guild.id)
     await relay_info(f"I have been removed from a guild, making the total **{len(self.bot.guilds)}**", self.bot, short=f"I have been removed from a guild, making the total {len(self.bot.guilds)}", webhook=self.log_join, logger=self.logger)
 
   @commands.Cog.listener()
@@ -506,7 +512,7 @@ class Log(commands.Cog):
 
   async def set_all_guilds(self) -> None:
     # if not hasattr(self.bot, "saved_guilds") or len(self.bot.saved_guilds) != len(self.bot.guilds):
-    servers = await query(self.mydb, "SELECT id,tier,patreon_user,autoDeleteMSGs,chatChannel,lang FROM servers")
+    servers = await self.bot.db.query("SELECT id,tier,patreon_user,autoDeleteMSGs,chatChannel,lang FROM servers")
     guilds = {}
     for guild_id, tier, patreon_user, autoDeleteMSG, chatChannel, lang in servers:
       guilds.update({int(guild_id): {"tier": str(tier), "patreon_user": int(patreon_user) if patreon_user is not None else None, "autoDeleteMSGs": int(autoDeleteMSG), "chatChannel": int(chatChannel) if chatChannel is not None else None, "lang": lang}})
