@@ -133,7 +133,7 @@ class Log(commands.Cog):
       current = []
       for guild in self.bot.guilds:
         current.append(guild.id)
-        await self.bot.db.query("INSERT INTO servers (id,muted,lang) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING", guild.id, False, guild.preferred_locale.split("-")[0] if guild.preferred_locale is not None else "en")
+        await self.bot.db.query("INSERT INTO servers (id,lang) VALUES ($1,$2) ON CONFLICT DO NOTHING", guild.id, guild.preferred_locale.split("-")[0] if guild.preferred_locale is not None else "en")
       x, ticks = 1, []
       for _ in current:
         ticks.append(f"${x}")
@@ -187,7 +187,7 @@ class Log(commands.Cog):
   async def on_guild_join(self, guild: discord.Guild):
     while self.bot.is_closed():
       await asyncio.sleep(0.1)
-    await self.bot.db.query("INSERT INTO servers (id,muted,lang) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING", guild.id, False, guild.preferred_locale.split("-")[0])
+    await self.bot.db.query("INSERT INTO servers (id,lang) VALUES ($1,$2) ON CONFLICT DO NOTHING", guild.id, guild.preferred_locale.split("-")[0])
     priority_channels = []
     channels = []
     for channel in guild.text_channels:
@@ -225,11 +225,11 @@ class Log(commands.Cog):
     await self.bot.process_commands(after)
 
   @commands.Cog.listener()
-  async def on_command(self, ctx: commands.Context):
+  async def on_command(self, ctx: "MyContext"):
     self.logger.info(f"Command: {ctx.message.clean_content.encode('unicode_escape')}")
 
   @commands.Cog.listener()
-  async def on_command_completion(self, ctx: commands.Context):
+  async def on_command_completion(self, ctx: "MyContext"):
     self.logger.debug(f"Finished Command: {ctx.message.clean_content.encode('unicode_escape')}")
 
   @commands.Cog.listener()
@@ -359,16 +359,6 @@ class Log(commands.Cog):
       self.set_guild(guild)
       return delete if delete != 0 else None
 
-  def get_guild_muted(self, guild: typing.Union[discord.Guild, int]) -> bool:
-    try:
-      if guild is not None:
-        if guild.id if isinstance(guild, discord.Guild) else guild not in [int(item.id) for item in self.bot.guilds]:
-          return False
-        return bool(self.bot.saved_guilds[guild.id if isinstance(guild, discord.Guild) else guild]["muted"])
-    except KeyError:
-      self.set_guild(guild)
-      return bool(self.bot.saved_guilds[guild.id if isinstance(guild, discord.Guild) else guild]["muted"])
-
   def get_guild_chat_channel(self, guild: typing.Union[discord.Guild, int]) -> int:
     try:
       if guild is None:
@@ -429,7 +419,6 @@ class Log(commands.Cog):
   #         guild: discord.Guild or int,
   #         prefix: str = config.defaultPrefix,
   #         delete: int = None,
-  #         muted: bool = False,
   #         premium: bool = False,
   #         chat_channel: int = None):
   #   if guild is None or :
@@ -438,10 +427,6 @@ class Log(commands.Cog):
   def change_guild_delete(self, guild: typing.Union[discord.Guild, int], delete: int = 0) -> None:
     if guild is not None:
       self.bot.saved_guilds[guild.id if isinstance(guild, discord.Guild) else guild]["autoDeleteMSGs"] = delete
-
-  def change_guild_muted(self, guild: typing.Union[discord.Guild, int], muted: bool = False) -> None:
-    if guild is not None:
-      self.bot.saved_guilds[guild.id if isinstance(guild, discord.Guild) else guild]["muted"] = muted
 
   def change_guild_tier(self, guild: typing.Union[discord.Guild, int], premium: int = 0) -> None:
     if guild is not None:
@@ -464,7 +449,6 @@ class Log(commands.Cog):
           autoDeleteMSG: int = None,
           max_mentions: int = None,
           max_messages: [int] = None,
-          muted: bool = False,
           chatChannel: int = None,
           lang: str = None) -> None:
     if guild is not None:
@@ -477,7 +461,6 @@ class Log(commands.Cog):
               "autoDeleteMSGs": autoDeleteMSG,
               "max_mentions": max_mentions,
               "max_messages": max_messages,
-              "muted": muted,
               "chatChannel": chatChannel if chatChannel is not None else None,
               "lang": lang if lang is not None else guild.preferred_locale.split("-")[0]
           }
@@ -532,7 +515,7 @@ class Log(commands.Cog):
     self.logger.warning(f"Spamming: {{User: {message.author.id}, Guild: {guild_id}, Retry: {retry_after}}}")
 
   @commands.Cog.listener()
-  async def on_command_error(self, ctx: commands.Context, error):
+  async def on_command_error(self, ctx: "MyContext", error):
     slash = True if isinstance(ctx, SlashContext) or (hasattr(ctx, "is_interaction") and ctx.is_interaction) else False
     if hasattr(ctx.command, 'on_error'):
       return
