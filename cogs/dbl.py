@@ -1,10 +1,10 @@
 import os
-# import discord
+import discord
 import topgg
 import asyncio
 import datetime
 from discord.ext import commands, tasks
-from discord_slash import ButtonStyle, cog_ext, ComponentContext
+from discord_slash import ButtonStyle
 from discord_slash.utils.manage_components import create_button, create_actionrow
 from typing_extensions import TYPE_CHECKING
 from functions import embed, config, MyContext
@@ -74,12 +74,17 @@ class TopGG(commands.Cog):
     elif current_reminder is True:
       await ctx.send(embed=embed(title="I will stop DMing you for voting reminders 😢"))
 
+  @commands.Cog.listener()
+  async def on_interaction(self, interaction: discord.Interaction):
+    if interaction.data.get("custom_id", None) != "voting_remind_me":
+      return
+    # await interaction.response.defer()
     current_reminder = bool(await self.bot.db.query("SELECT to_remind FROM votes WHERE id=$1", interaction.user.id))
     await self.bot.db.query("INSERT INTO votes (id,to_remind) VALUES ($1,$2) ON CONFLICT(id) DO UPDATE SET to_remind=$3", interaction.user.id, not current_reminder, not current_reminder)
     if current_reminder is not True:
-      await ctx.send(hidden=True, embed=embed(title="I will now DM you every 12 hours after you vote for when you can vote again"))
+      await interaction.response.send_message(ephemeral=True, embed=embed(title="I will now DM you every 12 hours after you vote for when you can vote again"))
     elif current_reminder is True:
-      await ctx.send(hidden=True, embed=embed(title="I will stop DMing you for voting reminders 😢"))
+      await interaction.response.send_message(ephemeral=True, embed=embed(title="I will stop DMing you for voting reminders 😢"))
 
   @tasks.loop(minutes=30.0)
   async def update_stats(self):
