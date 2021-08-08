@@ -202,7 +202,7 @@ class Moderation(commands.Cog):
     if ctx.guild.id in self.welcome:
       self.welcome[ctx.guild.id]["channel_id"] = channel_id
     else:
-      self.welcome.update({"role_id": None, "channel_id": channel_id, "message": None})
+      self.welcome.update({ctx.guild.id: {"role_id": None, "channel_id": channel_id, "message": None}})
     await ctx.reply(embed=embed(title=f"Welcome message will be sent to `{channel}`", description="" if self.welcome[ctx.guild.id]["message"] is not None else "Don't forget to set a welcome message"))
 
   @_welcome.command(name="message", extras={"examples": [r"Welcome to the server {user}, stay a while!", r"Welcome {user} to {server}", "A new member has joined the server!"]}, help="Set a message to greet new members to your server, message variables are `{user}`,`{server}`")
