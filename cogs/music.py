@@ -78,7 +78,7 @@ class Music(commands.Cog):
 
     author = ctx.author
     voice = author.voice
-    voicechannel = voice.channel if channel is None else channel
+    voicechannel = voice.channel if voice is not None and channel is None else channel
 
     if not hasattr(ctx.author, "voice"):
       raise exceptions.OnlySlashCommands()
