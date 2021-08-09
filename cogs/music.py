@@ -141,7 +141,8 @@ class Music(commands.Cog):
 
     if pop is True:
       if isinstance(ctx.voice_client.channel, discord.StageChannel) and ctx.voice_client.channel.instance.topic == self.bot.songqueue[serverQueueId][0].title:
-        await ctx.voice_client.channel.instance.edit(topic=self.bot.songqueue[serverQueueId][1].title, reason="Next song")
+        if len(self.bot.songqueue[serverQueueId]) > 1:
+          await ctx.voice_client.channel.instance.edit(topic=self.bot.songqueue[serverQueueId][1].title, reason="Next song")
       self.bot.songqueue[serverQueueId].pop(0)
 
     if len(self.bot.songqueue[serverQueueId]) > 0:
@@ -283,7 +284,7 @@ class Music(commands.Cog):
       return await ctx.reply(embed=embed(title=f"{e}", color=MessageColors.ERROR))
       # return await ctx.reply(embed=embed(title=f"{e}", color=MessageColors.ERROR))
     # try:
-    await self.start_playing(ctx, slash=slash)
+    self.bot.loop.create_task(self.start_playing(ctx, slash=slash))
     # except:
     # await self.tryagain(ctx)
 
