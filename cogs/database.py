@@ -1,6 +1,7 @@
 import asyncpg
 import os
 
+from discord.ext import commands
 from typing_extensions import TYPE_CHECKING
 from typing import Union
 
@@ -8,7 +9,7 @@ if TYPE_CHECKING:
   from index import Friday as Bot
 
 
-class Database:
+class Database(commands.Cog):
   """Database Stuffs and Tings"""
 
   def __init__(self, bot: "Bot"):
@@ -61,17 +62,16 @@ class Database:
     if self.bot.cluster_idx == 0:
       self.loop.run_until_complete(self.create_tables())
       self.loop.run_until_complete(self.sync_table_columns())
-      self.loop.create_task(self.check_guilds())
 
   async def setup(self):
     hostname = 'localhost' if self.bot.prod or self.bot.canary else os.environ["DBHOSTNAME"]
     username = os.environ["DBUSERNAMECANARY"] if self.bot.canary else os.environ["DBUSERNAME"] if self.bot.prod else os.environ["DBUSERNAMELOCAL"]
     password = os.environ["DBPASSWORDCANARY"] if self.bot.canary else os.environ["DBPASSWORD"] if self.bot.prod else os.environ["DBPASSWORDLOCAL"]
     database = os.environ["DBDATABASECANARY"] if self.bot.canary else os.environ["DBDATABASE"] if self.bot.prod else os.environ["DBDATABASELOCAL"]
-    self.connection = await asyncpg.create_pool(host=hostname, user=username, password=password, database=database, loop=self.loop)
+    self.connection: asyncpg.Pool = await asyncpg.create_pool(host=hostname, user=username, password=password, database=database, loop=self.loop)
 
-  async def check_guilds(self):
-    await self.bot.wait_until_ready()
+  @commands.Cog.listener()
+  async def on_ready(self):
     actual_guilds, checked_guilds = [guild.id for guild in self.bot.guilds], []
     for guild_id in await self.query("SELECT id FROM servers"):
       if int(guild_id[0]) in actual_guilds:
@@ -109,3 +109,7 @@ class Database:
 
   async def close(self):
     await self.connection.close()
+
+
+def setup(bot):
+  bot.add_cog(Database(bot))

@@ -133,12 +133,8 @@ class Log(commands.Cog):
       current = []
       for guild in self.bot.guilds:
         current.append(guild.id)
-        await self.bot.db.query("INSERT INTO servers (id,lang) VALUES ($1,$2) ON CONFLICT DO NOTHING", guild.id, guild.preferred_locale.split("-")[0] if guild.preferred_locale is not None else "en")
-      x, ticks = 1, []
-      for _ in current:
-        ticks.append(f"${x}")
-        x += 1
-      await self.bot.db.query(f"DELETE FROM servers WHERE id NOT IN ({','.join(ticks)})", *current)
+        await self.bot.db.query(f"INSERT INTO servers (id,lang) VALUES ({guild.id},'{guild.preferred_locale.split('-')[0] if guild.preferred_locale is not None else 'en'}') ON CONFLICT DO NOTHING")
+      await self.bot.db.query(f"DELETE FROM servers WHERE id NOT IN ({','.join([str(i) for i in current])})")
 
     for i, p in await self.bot.db.query("SELECT id,prefix FROM servers"):
       self.bot.prefixes.update({int(i): str(p)})
@@ -187,7 +183,7 @@ class Log(commands.Cog):
   async def on_guild_join(self, guild: discord.Guild):
     while self.bot.is_closed():
       await asyncio.sleep(0.1)
-    await self.bot.db.query("INSERT INTO servers (id,lang) VALUES ($1,$2) ON CONFLICT DO NOTHING", guild.id, guild.preferred_locale.split("-")[0])
+    await self.bot.db.query(f"INSERT INTO servers (id,lang) VALUES ({guild.id},'{guild.preferred_locale.split('-')[0]}') ON CONFLICT DO NOTHING")
     priority_channels = []
     channels = []
     for channel in guild.text_channels:
@@ -214,8 +210,10 @@ class Log(commands.Cog):
     while self.bot.is_closed():
       await asyncio.sleep(0.1)
     self.remove_guild(guild.id)
-    await self.bot.db.query("DELETE FROM servers WHERE id=$1", guild.id)
-    await self.bot.db.query("DELETE FROM blacklist WHERE id=$1", guild.id)
+    await self.bot.db.query(
+          f"DELETE FROM servers WHERE id={guild.id};"
+          f"DELETE FROM blacklist WHERE id={guild.id};"
+          f"DELETE FROM welcome WHERE guild_id={guild.id};")
     await relay_info(f"I have been removed from a guild, making the total **{len(self.bot.guilds)}**", self.bot, short=f"I have been removed from a guild, making the total {len(self.bot.guilds)}", webhook=self.log_join, logger=self.logger)
 
   @commands.Cog.listener()
