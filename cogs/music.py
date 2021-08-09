@@ -605,7 +605,7 @@ class Music(commands.Cog):
       return
     try:
       async with ctx.typing():
-        sounds = await self.bot.db.query("SELECT customSounds FROM servers WHERE id=$1", ctx.guild.id)
+        sounds = await self.bot.db.query("SELECT customSounds FROM servers WHERE id=$1 LIMIT 1", ctx.guild.id)
         sounds = json.loads(sounds)
     except Exception:
       await ctx.reply(embed=embed(title=f"The custom sound `{name}` has not been set, please add it with `{ctx.prefix}custom|c add <name> <url>`", color=MessageColors.ERROR))
@@ -631,7 +631,7 @@ class Music(commands.Cog):
 
     async with ctx.typing():
       name = "".join(name.split(" ")).lower()
-      sounds = (await self.bot.db.query("SELECT customSounds FROM servers WHERE id=$1", ctx.guild.id))
+      sounds = (await self.bot.db.query("SELECT customSounds FROM servers WHERE id=$1 LIMIT 1", ctx.guild.id))
       if sounds == "" or sounds is None:
         sounds = r"{}"
       sounds = json.loads(sounds)
@@ -646,7 +646,7 @@ class Music(commands.Cog):
   @commands.guild_only()
   async def custom_list(self, ctx):
     async with ctx.typing():
-      sounds = await self.bot.db.query("SELECT customSounds FROM servers WHERE id=$1", ctx.guild.id)
+      sounds = await self.bot.db.query("SELECT customSounds FROM servers WHERE id=$1 LIMIT 1", ctx.guild.id)
       if sounds is None:
         raise exceptions.NoCustomSoundsFound("There are no custom sounds for this server (yet)")
       sounds = json.loads(sounds)
@@ -664,7 +664,7 @@ class Music(commands.Cog):
     try:
       async with ctx.typing():
         name = "".join(name.split(" ")).lower()
-        sounds = await self.bot.db.query("SELECT customSounds FROM servers WHERE id=$1", ctx.guild.id)
+        sounds = await self.bot.db.query("SELECT customSounds FROM servers WHERE id=$1 LIMIT 1", ctx.guild.id)
         sounds = json.loads(sounds)
         old = sounds[name]
         sounds[name] = url
@@ -681,7 +681,7 @@ class Music(commands.Cog):
     try:
       async with ctx.typing():
         name = "".join(name.split(" ")).lower()
-        sounds = await self.bot.db.query("SELECT customSounds FROM servers WHERE id=$1", ctx.guild.id)
+        sounds = await self.bot.db.query("SELECT customSounds FROM servers WHERE id=$1 LIMIT 1", ctx.guild.id)
         sounds = json.loads(sounds)
         del sounds[name]
         await self.bot.db.query("UPDATE servers SET customSounds=$1 WHERE id=$2", json.dumps(sounds), ctx.guild.id)
