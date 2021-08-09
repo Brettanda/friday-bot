@@ -15,6 +15,7 @@ import functions
 
 if TYPE_CHECKING:
   from .cogs.log import Log
+  from .cogs.database import Database
 
 load_dotenv()
 
@@ -68,7 +69,7 @@ class Friday(commands.AutoShardedBot):
     self.ready = False
 
     self.prefixes = {}
-    self.db = functions.Database(self)
+    self.load_extension("cogs.database")
     self.load_extension("cogs.log")
     self.loop.run_until_complete(self.setup(True))
     self.logger.info(f"Cluster Starting {kwargs.get('shard_ids', None)}, {kwargs.get('shard_count', 1)}")
@@ -82,6 +83,10 @@ class Friday(commands.AutoShardedBot):
   @property
   def logger(self):
     return self.log.logger
+
+  @property
+  def db(self) -> "Database":
+    return self.get_cog("Database")
 
   async def get_context(self, message, *, cls=None) -> functions.MyContext:
     return await super().get_context(message, cls=functions.MyContext)
