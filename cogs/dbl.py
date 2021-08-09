@@ -4,13 +4,28 @@ import topgg
 import asyncio
 import datetime
 from discord.ext import commands, tasks
-from discord_slash import ButtonStyle
-from discord_slash.utils.manage_components import create_button, create_actionrow
 from typing_extensions import TYPE_CHECKING
 from functions import embed, config, MyContext
 
 if TYPE_CHECKING:
   from index import Friday as Bot
+
+
+class VoteView(discord.ui.View):
+  def __init__(self, parent: "TopGG", *, timeout=None):
+    self.parent = parent
+    self.bot = self.parent.bot
+    super().__init__(timeout=timeout)
+    self.add_item(discord.ui.Button(label="Vote link", url=self.parent.vote_url, style=discord.ButtonStyle.url))
+
+  @discord.ui.button(label="Remind me", style=discord.ButtonStyle.primary, custom_id="voting_remind_me")
+  async def voting_remind_me(self, button: discord.ui.Button, interaction: discord.Interaction):
+    current_reminder = bool(await self.bot.db.query("SELECT to_remind FROM votes WHERE id=$1", interaction.user.id))
+    await self.bot.db.query("INSERT INTO votes (id,to_remind) VALUES ($1,$2) ON CONFLICT(id) DO UPDATE SET to_remind=$3", interaction.user.id, not current_reminder, not current_reminder)
+    if current_reminder is not True:
+      await interaction.response.send_message(ephemeral=True, embed=embed(title="I will now DM you every 12 hours after you vote for when you can vote again"))
+    elif current_reminder is True:
+      await interaction.response.send_message(ephemeral=True, embed=embed(title="I will stop DMing you for voting reminders 😢"))
 
 
 class TopGG(commands.Cog):
@@ -36,25 +51,18 @@ class TopGG(commands.Cog):
     self.update_votes.cancel()
     self.update_stats.cancel()
 
+  @commands.Cog.listener()
+  async def on_ready(self):
+    if not self.bot.views_loaded:
+      self.bot.add_view(VoteView(self))
+
   @commands.group(name="vote", help="Get the link to vote for me on Top.gg", invoke_without_command=True)
   async def vote(self, ctx: "MyContext"):
-    links = [
-        create_button(
-            style=ButtonStyle.URL,
-            label="Vote link",
-            url=self.vote_url
-        ),
-        create_button(
-            style=ButtonStyle.blue,
-            label="Remind me",
-            custom_id="voting_remind_me"
-        )
-    ]
     prev_time = await self.bot.db.query("SELECT voted_time FROM votes WHERE id=$1 LIMIT 1", ctx.author.id)
     next_time = datetime.datetime.strptime(prev_time, "%Y-%m-%d %H:%M:%S.%f") if prev_time is not None else None
     time = next_time.timestamp() + datetime.timedelta(hours=12).seconds if next_time is not None else None
     vote_message = f"Your next vote time is: <t:{round(time)}:R>" if prev_time is not None else "You can vote now"
-    await ctx.reply(embed=embed(title="Voting", description=f"{vote_message}\n\nWhen you vote you get:", fieldstitle=["Better rate limiting"], fieldsval=["200 messages/12 hours instead of 80 messages/12 hours."], footer="To get voting reminders use the command `!vote remind`"), components=[create_actionrow(*links)])
+    await ctx.reply(embed=embed(title="Voting", description=f"{vote_message}\n\nWhen you vote you get:", fieldstitle=["Better rate limiting"], fieldsval=["200 messages/12 hours instead of 80 messages/12 hours."], footer="To get voting reminders use the command `!vote remind`"), view=VoteView(self))
 
   @vote.command(name="remind", help="Whether or not to remind you of the next time that you can vote")
   async def vote_remind(self, ctx: "MyContext"):
@@ -64,18 +72,6 @@ class TopGG(commands.Cog):
       await ctx.send(embed=embed(title="I will now DM you every 12 hours after you vote for when you can vote again"))
     elif current_reminder is True:
       await ctx.send(embed=embed(title="I will stop DMing you for voting reminders 😢"))
-
-  @commands.Cog.listener()
-  async def on_interaction(self, interaction: discord.Interaction):
-    if interaction.data.get("custom_id", None) != "voting_remind_me":
-      return
-    # await interaction.response.defer()
-    current_reminder = bool(await self.bot.db.query("SELECT to_remind FROM votes WHERE id=$1", interaction.user.id))
-    await self.bot.db.query("INSERT INTO votes (id,to_remind) VALUES ($1,$2) ON CONFLICT(id) DO UPDATE SET to_remind=$3", interaction.user.id, not current_reminder, not current_reminder)
-    if current_reminder is not True:
-      await interaction.response.send_message(ephemeral=True, embed=embed(title="I will now DM you every 12 hours after you vote for when you can vote again"))
-    elif current_reminder is True:
-      await interaction.response.send_message(ephemeral=True, embed=embed(title="I will stop DMing you for voting reminders 😢"))
 
   @tasks.loop(minutes=30.0)
   async def update_stats(self):
