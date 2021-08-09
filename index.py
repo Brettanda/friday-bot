@@ -130,7 +130,6 @@ class Friday(commands.AutoShardedBot):
   async def close(self) -> None:
     self.logger.info("Shutting down")
     await self.session.close()
-    await self.db.close()
     return await super().close()
 
 
@@ -146,7 +145,6 @@ if __name__ == "__main__":
   try:
     loop.run_until_complete(bot.start(TOKEN, reconnect=True))
   except KeyboardInterrupt:
-    # mydb.close()
     logging.info("STOPED")
     loop.run_until_complete(bot.close())
   finally:
