@@ -7,7 +7,6 @@ import typing
 # import io
 # import textwrap
 import discord
-import asqlite
 from discord.ext import commands
 # from discord_slash import SlashContext  # , cog_ext
 from typing_extensions import TYPE_CHECKING
@@ -260,13 +259,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
   @norm_dev.command(name="mysql")
   async def mysql(self, ctx, *, string: str):
     async with ctx.channel.typing():
-      async with asqlite.connect("friday.db") as mydb:
-        async with mydb.cursor() as mycursor:
-          await mycursor.execute(string)
-          if "select" in string.lower():
-            response = await mycursor.fetchall()
-          else:
-            await mydb.commit()
+      response = await self.bot.db.query(string)
     await ctx.reply(f"```mysql\n{[tuple(r) for r in response] if response is not None else 'failed'}\n```")
 
   @norm_dev.command(name="html")
