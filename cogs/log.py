@@ -145,6 +145,7 @@ class Log(commands.Cog):
       # for name, view in views.__dict__.items():
       #   if isinstance(view, discord.):
       #     self.bot.add_view(view)
+      self.bot.add_view(views.SupportIntroRoles())
       self.bot.add_view(views.Links())
       self.bot.add_view(views.StopButton())
       # self.bot.add_view(views.PaginationButtons())

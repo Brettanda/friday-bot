@@ -14,7 +14,7 @@ from typing_extensions import TYPE_CHECKING
 
 from cogs.help import cmd_help, syntax
 from functions import embed, build_docs  # , query  # , MessageColors
-from functions import MyContext
+from functions import MyContext, views
 
 if TYPE_CHECKING:
   from index import Friday as Bot
@@ -63,6 +63,8 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       await ctx.message.delete()
     except BaseException:
       pass
+    if message.id == 707520808448294983:
+      return await message.edit(content=edit, view=views.SupportIntroRoles())
     await message.edit(content=edit)
 
   # @cog_ext.cog_subcommand(
