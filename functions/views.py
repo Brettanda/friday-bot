@@ -38,10 +38,10 @@ class SupportIntroRoles(discord.ui.View):
 
     if role in interaction.user.roles:
       await interaction.user.remove_roles(role, reason="No more updates :(")
-      await interaction.response.send_message(ephemeral=True, content="You will no longer receive pings for updates")
+      await interaction.followup.send(ephemeral=True, content="You will no longer receive pings for updates")
     else:
       await interaction.user.add_roles(role, reason="Updates!")
-      await interaction.response.send_message(ephemeral=True, content="You will now be pinged when a new update comes out")
+      await interaction.followup.send(ephemeral=True, content="You will now be pinged when a new update comes out")
 
 
 class Links(PersistantButtons):
