@@ -107,9 +107,6 @@ class Database(commands.Cog):
         return None
       return result
 
-  async def close(self):
-    await self.connection.close()
-
 
 def setup(bot):
   bot.add_cog(Database(bot))
