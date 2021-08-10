@@ -16,6 +16,30 @@ class StopButton(PersistantButtons):
     await interaction.message.delete()
 
 
+class SupportIntroRoles(discord.ui.View):
+  """This should only be used in the support guild"""
+
+  def __init__(self):
+    super().__init__(timeout=None)
+
+  @discord.ui.button(emoji="📌", label="Get Updates", style=discord.ButtonStyle.blurple, custom_id="support_updates")
+  async def support_updates(self, button: discord.ui.Button, interaction: discord.Interaction):
+    if interaction.guild_id != 707441352367013899 or interaction.channel_id != 707458929696702525 or interaction.message_id != 707520808448294983:
+      return
+
+    role = interaction.guild.get_role(848626624365592636)
+    if role is None:
+      return
+
+    if not isinstance(interaction.user, discord.Member):
+      return
+
+    if role in interaction.user.roles:
+      await interaction.user.remove_roles(role, reason="No more updates :(")
+    else:
+      await interaction.user.add_roles(role, reason="Updates!")
+
+
 class Links(PersistantButtons):
   def __init__(self):
     super().__init__()
