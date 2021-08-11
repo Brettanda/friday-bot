@@ -383,14 +383,6 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
   #       self._last_result = ret
   #       await ctx.send(f'```py\n{value}{ret}\n```')
 
-  @commands.Cog.listener()
-  async def on_message(self, ctx: "MyContext"):
-    if "process.exit()" in ctx.clean_content or "bot.destroy()" in ctx.clean_content:
-      try:
-        return await ctx.add_reaction("😡")
-      except discord.Forbidden:
-        pass
-
 
 def setup(bot):
   bot.add_cog(Dev(bot))
