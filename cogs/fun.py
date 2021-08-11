@@ -155,7 +155,7 @@ class Fun(commands.Cog):
       8: "8️⃣"
   }
 
-  @commands.command(name="minesweeper", aliases=["ms"], help="Play minesweeper")
+  @commands.command(name="minesweeper", enabled=False, aliases=["ms"], help="Play minesweeper")
   async def norm_minesweeper(self, ctx, size: typing.Optional[int] = 5, bomb_count: typing.Optional[int] = 6):
     await ctx.reply(**await self.mine_sweeper(size, bomb_count))
 

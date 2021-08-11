@@ -553,7 +553,8 @@ class Log(commands.Cog):
     #   else:
     #     await ctx.reply(embed=embed(title=str(error), color=MessageColors.ERROR), delete_after=delete)
       # await ctx.reply(embed=embed(title="Could not find that channel",description="Make sure it is the right channel type",color=MessageColors.ERROR))
-    # elif isinstance(error, commands.DisabledCommand):
+    elif isinstance(error, commands.DisabledCommand):
+      await ctx.send(embed=embed(title=error_text, description="Please check the #updates channel in the support server for more info", color=MessageColors.ERROR))
     #   if slash:
     #     await ctx.send(embed=embed(title=str(error) or "This command has been disabled", color=MessageColors.ERROR), delete_after=delete)
     #   else:
