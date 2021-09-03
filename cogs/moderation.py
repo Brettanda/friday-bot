@@ -327,7 +327,7 @@ class Moderation(commands.Cog):
   async def _blacklist_add_word(self, ctx, *, word: str):
     cleansed_word = self.do_slugify(word)
     if len(await self.bot.db.query("SELECT guild_id,word FROM blacklist WHERE guild_id=$1 AND word=$2", ctx.guild.id, cleansed_word)) > 0:
-      return await ctx.reply(embed=embed(title="Can't add duplicate word",color=MessageColors.ERROR))
+      return await ctx.reply(embed=embed(title="Can't add duplicate word", color=MessageColors.ERROR))
     await self.bot.db.query("INSERT INTO blacklist (guild_id,word) VALUES ($1,$2) ON CONFLICT DO NOTHING", ctx.guild.id, cleansed_word)
     word = word
     await ctx.reply(embed=embed(title=f"Added `{word}` to the blacklist"))
