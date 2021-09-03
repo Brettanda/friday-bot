@@ -40,26 +40,6 @@ class Moderation(commands.Cog):
     if not hasattr(self, "message_spam_control_counter"):
       self.message_spam_control_counter = {}
 
-  async def setup(self) -> None:
-    if not hasattr(self, "to_remove_invites"):
-      self.to_remove_invites = {}
-      for guild_id, to_remove in await self.bot.db.query("SELECT id,remove_invites FROM servers"):
-        self.to_remove_invites.update({int(guild_id): bool(to_remove)})
-
-    if not hasattr(self, "welcome"):
-      self.welcome, welcome = {}, await self.bot.db.query("SELECT * FROM welcome")
-      for guild_id, role_id, channel_id, message in welcome:
-        self.welcome[int(guild_id)] = {"role_id": int(role_id) if role_id is not None else None, "channel_id": int(channel_id) if channel_id is not None else None, "message": str(message) if message is not None else None}
-
-    if not hasattr(self, "blacklist"):
-      blacklists = await self.bot.db.query("SELECT * FROM blacklist")
-      self.blacklist = {}
-      for server, word in blacklists:
-        if server not in self.blacklist:
-          self.blacklist[int(server)] = [word]
-        else:
-          self.blacklist[int(server)].append(word)
-
   def cog_check(self, ctx):
     if ctx.guild is None:
       raise commands.NoPrivateMessage("This command can only be used within a guild")
@@ -260,8 +240,9 @@ class Moderation(commands.Cog):
     if not msg.guild or msg.author.bot:
       return
 
+    to_remove_invites = await self.bot.db.query(f"SELECT remove_invites FROM servers WHERE id={msg.guild.id} LIMIT 1")
     try:
-      if self.to_remove_invites[msg.guild.id] is True:
+      if bool(to_remove_invites) is True:
         reg = re.match(self.invite_reg, msg.clean_content, re.RegexFlag.MULTILINE + re.RegexFlag.IGNORECASE)
         check = bool(reg)
         if check:
@@ -325,9 +306,10 @@ class Moderation(commands.Cog):
     if bypass:
       return
     cleansed_msg = self.do_slugify(msg.clean_content)
+    blacklist = await self.bot.db.query("SELECT guild_id,word FROM blacklist")
     try:
-      if msg.guild.id in self.blacklist:
-        for blacklisted_word in self.blacklist[msg.guild.id]:
+      if msg.guild.id in [i[0] for i in blacklist]:
+        for blacklisted_word in [i[1] for i in blacklist if i[0] == msg.guild.id]:
           if blacklisted_word in cleansed_msg:
             try:
               await msg.delete()
