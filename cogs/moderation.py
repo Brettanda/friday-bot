@@ -224,14 +224,12 @@ class Moderation(commands.Cog):
   @commands.has_guild_permissions(manage_channels=True)
   @commands.bot_has_guild_permissions(manage_messages=True)
   async def norm_remove_discord_invites(self, ctx):
-    check = await self.bot.db.query("SELECT remove_invites FROM servers WHERE id=$1", ctx.guild.id)
+    check = await self.bot.db.query("SELECT remove_invites FROM servers WHERE id=$1 LIMIT 1", ctx.guild.id)
     if bool(check) is True:
       await self.bot.db.query("UPDATE servers SET remove_invites=$1 WHERE id=$2", False, ctx.guild.id)
-      self.to_remove_invites[ctx.guild.id] = False
       await ctx.reply(embed=embed(title="I will no longer remove invites"))
     else:
       await self.bot.db.query("UPDATE servers SET remove_invites=$1 WHERE id=$2", True, ctx.guild.id)
-      self.to_remove_invites[ctx.guild.id] = True
       await ctx.reply(embed=embed(title="I will begin to remove invites"))
 
   async def msg_remove_invites(self, msg: discord.Message):
@@ -339,7 +337,6 @@ class Moderation(commands.Cog):
   @commands.has_guild_permissions(manage_guild=True)
   async def _blacklist_remove_word(self, ctx, *, word: str):
     cleansed_word = word
-    self.bot.logger.info(await self.bot.db.query("SELECT word FROM blacklist WHERE guild_id=$1", ctx.guild.id))
     if cleansed_word not in [i[0] for i in await self.bot.db.query("SELECT word FROM blacklist WHERE guild_id=$1", ctx.guild.id)]:
       return await ctx.reply(embed=embed(title="You don't seem to blacklisting that word"))
     await self.bot.db.query("DELETE FROM blacklist WHERE (guild_id=$1 AND word=$2)", ctx.guild.id, cleansed_word)
