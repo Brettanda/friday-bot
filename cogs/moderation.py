@@ -224,14 +224,12 @@ class Moderation(commands.Cog):
   @commands.has_guild_permissions(manage_channels=True)
   @commands.bot_has_guild_permissions(manage_messages=True)
   async def norm_remove_discord_invites(self, ctx):
-    check = await self.bot.db.query("SELECT remove_invites FROM servers WHERE id=$1", ctx.guild.id)
+    check = await self.bot.db.query("SELECT remove_invites FROM servers WHERE id=$1 LIMIT 1", ctx.guild.id)
     if bool(check) is True:
       await self.bot.db.query("UPDATE servers SET remove_invites=$1 WHERE id=$2", False, ctx.guild.id)
-      self.to_remove_invites[ctx.guild.id] = False
       await ctx.reply(embed=embed(title="I will no longer remove invites"))
     else:
       await self.bot.db.query("UPDATE servers SET remove_invites=$1 WHERE id=$2", True, ctx.guild.id)
-      self.to_remove_invites[ctx.guild.id] = True
       await ctx.reply(embed=embed(title="I will begin to remove invites"))
 
   async def msg_remove_invites(self, msg: discord.Message):
@@ -328,11 +326,9 @@ class Moderation(commands.Cog):
   @commands.has_guild_permissions(manage_guild=True)
   async def _blacklist_add_word(self, ctx, *, word: str):
     cleansed_word = self.do_slugify(word)
-    await self.bot.db.query("INSERT INTO blacklist VALUES ($1,$2) ON CONFLICT DO NOTHING", ctx.guild.id, cleansed_word)
-    try:
-      self.blacklist[ctx.guild.id].append(cleansed_word)
-    except KeyError:
-      self.blacklist[ctx.guild.id] = [cleansed_word]
+    if len(await self.bot.db.query("SELECT guild_id,word FROM blacklist WHERE guild_id=$1 AND word=$2", ctx.guild.id, cleansed_word)) > 0:
+      return await ctx.reply(embed=embed(title="Can't add duplicate word", color=MessageColors.ERROR))
+    await self.bot.db.query("INSERT INTO blacklist (guild_id,word) VALUES ($1,$2) ON CONFLICT DO NOTHING", ctx.guild.id, cleansed_word)
     word = word
     await ctx.reply(embed=embed(title=f"Added `{word}` to the blacklist"))
 
@@ -341,10 +337,9 @@ class Moderation(commands.Cog):
   @commands.has_guild_permissions(manage_guild=True)
   async def _blacklist_remove_word(self, ctx, *, word: str):
     cleansed_word = word
-    if cleansed_word not in self.blacklist[ctx.guild.id]:
+    if cleansed_word not in [i[0] for i in await self.bot.db.query("SELECT word FROM blacklist WHERE guild_id=$1", ctx.guild.id)]:
       return await ctx.reply(embed=embed(title="You don't seem to blacklisting that word"))
-    await self.bot.db.query("DELETE FROM blacklist WHERE (id=$1 AND word=$2)", ctx.guild.id, cleansed_word)
-    self.blacklist[ctx.guild.id].remove(cleansed_word)
+    await self.bot.db.query("DELETE FROM blacklist WHERE (guild_id=$1 AND word=$2)", ctx.guild.id, cleansed_word)
     word = word
     await ctx.reply(embed=embed(title=f"Removed `{word}` from the blacklist"))
 
@@ -352,7 +347,7 @@ class Moderation(commands.Cog):
   @commands.guild_only()
   @commands.has_guild_permissions(manage_guild=True)
   async def _blacklist_display_words(self, ctx):
-    words = await self.bot.db.query("SELECT word FROM blacklist WHERE id=$1", ctx.guild.id, rlist=True)
+    words = await self.bot.db.query("SELECT word FROM blacklist WHERE guild_id=$1", ctx.guild.id)
     if words == [] or words is None:
       return await ctx.reply(embed=embed(title=f"No blacklisted words yet, use `{ctx.prefix}blacklist add <word>` to get started"))
     await ctx.reply(embed=embed(title="Blocked words", description='\n'.join(x[0] for x in words)))
@@ -361,8 +356,7 @@ class Moderation(commands.Cog):
   @commands.guild_only()
   @commands.has_guild_permissions(manage_guild=True)
   async def _blacklist_clear(self, ctx):
-    await self.bot.db.query("DELETE FROM blacklist WHERE id=$1", ctx.guild.id)
-    self.blacklist[ctx.guild.id] = []
+    await self.bot.db.query("DELETE FROM blacklist WHERE guild_id=$1", ctx.guild.id)
     await ctx.reply(embed=embed(title="Removed all blacklisted words"))
 
   @commands.command(name="kick", extras={"examples": ["@username @someone @someoneelse", "@thisguy", "12345678910 10987654321 @someone", "@someone I just really didn't like them", "@thisguy 12345678910 They were spamming general"]})
