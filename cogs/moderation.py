@@ -211,12 +211,10 @@ class Moderation(commands.Cog):
   async def settings_bot_chat_channel(self, ctx):
     chat_channel = await self.bot.db.query("SELECT chatChannel FROM servers WHERE id=$1 LIMIT 1", ctx.guild.id)
     if chat_channel is None:
-      await self.bot.db.query("UPDATE servers SET chatChannel=$1 WHERE id=$2", ctx.channel.id, ctx.guild.id)
-      self.bot.log.change_guild_chat_channel(ctx.guild.id, ctx.channel.id)
+      await self.bot.db.query("UPDATE servers SET chatChannel=$1 WHERE id=$2", str(ctx.channel.id), ctx.guild.id)
       return dict(embed=embed(title="I will now respond to every message in this channel"))
     else:
       await self.bot.db.query("UPDATE servers SET chatChannel=$1 WHERE id=$2", None, ctx.guild.id)
-      self.bot.log.change_guild_chat_channel(ctx.guild.id, None)
       return dict(embed=embed(title="I will no longer respond to all messages from this channel"))
 
   @commands.command(name="removeinvites", help="Automaticaly remove Discord invites from text channels", hidden=True)
