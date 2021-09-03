@@ -1,7 +1,7 @@
 import asyncpg
 import os
 
-from discord.ext import commands
+from discord.ext import commands, tasks
 from typing_extensions import TYPE_CHECKING
 from typing import Union
 
@@ -22,17 +22,17 @@ class Database(commands.Cog):
             "prefix varchar(5) NOT NULL DEFAULT '!'",
             "patreon_user bigint NULL DEFAULT NULL",
             "lang varchar(2) NULL DEFAULT NULL",
-            "autoDeleteMSGs smallint NOT NULL DEFAULT 0",
+            "autodeletemsgs smallint NOT NULL DEFAULT 0",
             "max_mentions int NULL DEFAULT NULL",
             "max_messages text NULL",
             "remove_invites boolean DEFAULT false",
-            "bot_manager bigint DEFAULT NULL",
+            "bot_manager text DEFAULT NULL",
             "persona text DEFAULT 'friday'",
-            "customJoinLeave text NULL",
-            "botMasterRole bigint NULL DEFAULT NULL",
-            "chatChannel bigint NULL DEFAULT NULL",
-            "musicChannel bigint NULL DEFAULT NULL",
-            "customSounds text NULL"
+            "customjoinleave text NULL",
+            "botmasterrole text NULL DEFAULT NULL",
+            "chatchannel text NULL DEFAULT NULL",
+            "musicchannel text NULL DEFAULT NULL",
+            "customsounds text NULL",
         ],
         "votes": [
             "id bigint PRIMARY KEY NOT NULL",
@@ -49,15 +49,17 @@ class Database(commands.Cog):
         ],
         "welcome": [
             "guild_id bigint PRIMARY KEY NOT NULL",
-            "role_id bigint DEFAULT NULL",
-            "channel_id bigint DEFAULT NULL",
+            "role_id text DEFAULT NULL",
+            "channel_id text DEFAULT NULL",
             "message text DEFAULT NULL"
         ],
         "blacklist": [
             "id bigint",
+            "guild_id bigint",
             "word text"
         ],
     }
+    self.update_local_values.start()
     self.loop.run_until_complete(self.setup())
     if self.bot.cluster_idx == 0:
       self.loop.run_until_complete(self.create_tables())
@@ -78,6 +80,18 @@ class Database(commands.Cog):
         checked_guilds.append(guild_id)
     if len(checked_guilds) == len(self.bot.guilds):
       self.bot.logger.info("All guilds are in the Database")
+
+  @tasks.loop(minutes=1)
+  async def update_local_values(self):
+    prefixes = {}
+    for i, p in await self.query("SELECT id,prefix FROM servers"):
+      prefixes.update({int(i): str(p)})
+
+    self.bot.prefixes = prefixes
+
+  @update_local_values.before_loop
+  async def update_local_values_before(self):
+    await self.bot.wait_until_ready()
 
   async def create_tables(self):
     for table in self.columns:
@@ -106,6 +120,9 @@ class Database(commands.Cog):
       elif isinstance(result, list) and len(result) == 0 and "limit 1" in query.lower():
         return None
       return result
+
+  def cog_unload(self):
+    self.update_local_values.stop()
 
 
 def setup(bot):

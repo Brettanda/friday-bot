@@ -32,33 +32,11 @@ class Moderation(commands.Cog):
 
     self.invite_reg = r"(https?:\/\/)?(www\.)?(discord(app|)\.(gg)(\/invite|))\/[a-zA-Z0-9\-]+"
 
-    self.bot.loop.create_task(self.setup())
-
     if not hasattr(self, "message_spam_control"):
       self.message_spam_control = {}
 
     if not hasattr(self, "message_spam_control_counter"):
       self.message_spam_control_counter = {}
-
-  async def setup(self) -> None:
-    if not hasattr(self, "to_remove_invites"):
-      self.to_remove_invites = {}
-      for guild_id, to_remove in await self.bot.db.query("SELECT id,remove_invites FROM servers"):
-        self.to_remove_invites.update({int(guild_id): bool(to_remove)})
-
-    if not hasattr(self, "welcome"):
-      self.welcome, welcome = {}, await self.bot.db.query("SELECT * FROM welcome")
-      for guild_id, role_id, channel_id, message in welcome:
-        self.welcome[int(guild_id)] = {"role_id": int(role_id) if role_id is not None else None, "channel_id": int(channel_id) if channel_id is not None else None, "message": str(message) if message is not None else None}
-
-    if not hasattr(self, "blacklist"):
-      blacklists = await self.bot.db.query("SELECT * FROM blacklist")
-      self.blacklist = {}
-      for server, word in blacklists:
-        if server not in self.blacklist:
-          self.blacklist[int(server)] = [word]
-        else:
-          self.blacklist[int(server)].append(word)
 
   def cog_check(self, ctx):
     if ctx.guild is None:
@@ -233,12 +211,10 @@ class Moderation(commands.Cog):
   async def settings_bot_chat_channel(self, ctx):
     chat_channel = await self.bot.db.query("SELECT chatChannel FROM servers WHERE id=$1 LIMIT 1", ctx.guild.id)
     if chat_channel is None:
-      await self.bot.db.query("UPDATE servers SET chatChannel=$1 WHERE id=$2", ctx.channel.id, ctx.guild.id)
-      self.bot.log.change_guild_chat_channel(ctx.guild.id, ctx.channel.id)
+      await self.bot.db.query("UPDATE servers SET chatChannel=$1 WHERE id=$2", str(ctx.channel.id), ctx.guild.id)
       return dict(embed=embed(title="I will now respond to every message in this channel"))
     else:
       await self.bot.db.query("UPDATE servers SET chatChannel=$1 WHERE id=$2", None, ctx.guild.id)
-      self.bot.log.change_guild_chat_channel(ctx.guild.id, None)
       return dict(embed=embed(title="I will no longer respond to all messages from this channel"))
 
   @commands.command(name="removeinvites", help="Automaticaly remove Discord invites from text channels", hidden=True)
@@ -246,22 +222,21 @@ class Moderation(commands.Cog):
   @commands.has_guild_permissions(manage_channels=True)
   @commands.bot_has_guild_permissions(manage_messages=True)
   async def norm_remove_discord_invites(self, ctx):
-    check = await self.bot.db.query("SELECT remove_invites FROM servers WHERE id=$1", ctx.guild.id)
+    check = await self.bot.db.query("SELECT remove_invites FROM servers WHERE id=$1 LIMIT 1", ctx.guild.id)
     if bool(check) is True:
       await self.bot.db.query("UPDATE servers SET remove_invites=$1 WHERE id=$2", False, ctx.guild.id)
-      self.to_remove_invites[ctx.guild.id] = False
       await ctx.reply(embed=embed(title="I will no longer remove invites"))
     else:
       await self.bot.db.query("UPDATE servers SET remove_invites=$1 WHERE id=$2", True, ctx.guild.id)
-      self.to_remove_invites[ctx.guild.id] = True
       await ctx.reply(embed=embed(title="I will begin to remove invites"))
 
   async def msg_remove_invites(self, msg: discord.Message):
     if not msg.guild or msg.author.bot:
       return
 
+    to_remove_invites = await self.bot.db.query(f"SELECT remove_invites FROM servers WHERE id={msg.guild.id} LIMIT 1")
     try:
-      if self.to_remove_invites[msg.guild.id] is True:
+      if bool(to_remove_invites) is True:
         reg = re.match(self.invite_reg, msg.clean_content, re.RegexFlag.MULTILINE + re.RegexFlag.IGNORECASE)
         check = bool(reg)
         if check:
@@ -325,9 +300,10 @@ class Moderation(commands.Cog):
     if bypass:
       return
     cleansed_msg = self.do_slugify(msg.clean_content)
+    blacklist = await self.bot.db.query("SELECT guild_id,word FROM blacklist")
     try:
-      if msg.guild.id in self.blacklist:
-        for blacklisted_word in self.blacklist[msg.guild.id]:
+      if msg.guild.id in [i[0] for i in blacklist]:
+        for blacklisted_word in [i[1] for i in blacklist if i[0] == msg.guild.id]:
           if blacklisted_word in cleansed_msg:
             try:
               await msg.delete()
@@ -348,11 +324,9 @@ class Moderation(commands.Cog):
   @commands.has_guild_permissions(manage_guild=True)
   async def _blacklist_add_word(self, ctx, *, word: str):
     cleansed_word = self.do_slugify(word)
-    await self.bot.db.query("INSERT INTO blacklist VALUES ($1,$2) ON CONFLICT DO NOTHING", ctx.guild.id, cleansed_word)
-    try:
-      self.blacklist[ctx.guild.id].append(cleansed_word)
-    except KeyError:
-      self.blacklist[ctx.guild.id] = [cleansed_word]
+    if len(await self.bot.db.query("SELECT guild_id,word FROM blacklist WHERE guild_id=$1 AND word=$2", ctx.guild.id, cleansed_word)) > 0:
+      return await ctx.reply(embed=embed(title="Can't add duplicate word", color=MessageColors.ERROR))
+    await self.bot.db.query("INSERT INTO blacklist (guild_id,word) VALUES ($1,$2) ON CONFLICT DO NOTHING", ctx.guild.id, cleansed_word)
     word = word
     await ctx.reply(embed=embed(title=f"Added `{word}` to the blacklist"))
 
@@ -361,10 +335,9 @@ class Moderation(commands.Cog):
   @commands.has_guild_permissions(manage_guild=True)
   async def _blacklist_remove_word(self, ctx, *, word: str):
     cleansed_word = word
-    if cleansed_word not in self.blacklist[ctx.guild.id]:
+    if cleansed_word not in [i[0] for i in await self.bot.db.query("SELECT word FROM blacklist WHERE guild_id=$1", ctx.guild.id)]:
       return await ctx.reply(embed=embed(title="You don't seem to blacklisting that word"))
-    await self.bot.db.query("DELETE FROM blacklist WHERE (id=$1 AND word=$2)", ctx.guild.id, cleansed_word)
-    self.blacklist[ctx.guild.id].remove(cleansed_word)
+    await self.bot.db.query("DELETE FROM blacklist WHERE (guild_id=$1 AND word=$2)", ctx.guild.id, cleansed_word)
     word = word
     await ctx.reply(embed=embed(title=f"Removed `{word}` from the blacklist"))
 
@@ -372,7 +345,7 @@ class Moderation(commands.Cog):
   @commands.guild_only()
   @commands.has_guild_permissions(manage_guild=True)
   async def _blacklist_display_words(self, ctx):
-    words = await self.bot.db.query("SELECT word FROM blacklist WHERE id=$1", ctx.guild.id, rlist=True)
+    words = await self.bot.db.query("SELECT word FROM blacklist WHERE guild_id=$1", ctx.guild.id)
     if words == [] or words is None:
       return await ctx.reply(embed=embed(title=f"No blacklisted words yet, use `{ctx.prefix}blacklist add <word>` to get started"))
     await ctx.reply(embed=embed(title="Blocked words", description='\n'.join(x[0] for x in words)))
@@ -381,8 +354,7 @@ class Moderation(commands.Cog):
   @commands.guild_only()
   @commands.has_guild_permissions(manage_guild=True)
   async def _blacklist_clear(self, ctx):
-    await self.bot.db.query("DELETE FROM blacklist WHERE id=$1", ctx.guild.id)
-    self.blacklist[ctx.guild.id] = []
+    await self.bot.db.query("DELETE FROM blacklist WHERE guild_id=$1", ctx.guild.id)
     await ctx.reply(embed=embed(title="Removed all blacklisted words"))
 
   @commands.command(name="kick", extras={"examples": ["@username @someone @someoneelse", "@thisguy", "12345678910 10987654321 @someone", "@someone I just really didn't like them", "@thisguy 12345678910 They were spamming general"]})
