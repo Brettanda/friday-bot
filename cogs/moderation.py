@@ -32,8 +32,6 @@ class Moderation(commands.Cog):
 
     self.invite_reg = r"(https?:\/\/)?(www\.)?(discord(app|)\.(gg)(\/invite|))\/[a-zA-Z0-9\-]+"
 
-    self.bot.loop.create_task(self.setup())
-
     if not hasattr(self, "message_spam_control"):
       self.message_spam_control = {}
 
