@@ -58,7 +58,10 @@ class Moderation(commands.Cog):
     await self.send_welcome_message(after)
 
   async def send_welcome_message(self, member: discord.Member) -> None:
-    channel_id, message = await self.bot.db.query("SELECT channel_id,message FROM welcome WHERE guild_id=$1 LIMIT 1", member.guild.id)
+    welcome = await self.bot.db.query("SELECT channel_id,message FROM welcome WHERE guild_id=$1 LIMIT 1", member.guild.id)
+    if welcome is None:
+      return
+    channel_id, message = welcome
     if channel_id is None or message is None:
       return
     channel = self.bot.get_channel(channel_id)
