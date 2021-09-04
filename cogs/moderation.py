@@ -58,13 +58,12 @@ class Moderation(commands.Cog):
     await self.send_welcome_message(after)
 
   async def send_welcome_message(self, member: discord.Member) -> None:
-    if member.guild.id not in self.welcome:
+    channel_id, message = await self.bot.db.query("SELECT channel_id,message FROM welcome WHERE guild_id=$1 LIMIT 1", member.guild.id)
+    if channel_id is None or message is None:
       return
-    welcome = self.welcome[member.guild.id]
-    channel = self.bot.get_channel(welcome.get("channel_id", None))
+    channel = self.bot.get_channel(channel_id)
     if channel is None:
       return
-    message = welcome["message"]
     message_variables = [r"{user}", r"{server}"]
     if any(var in message.lower() for var in message_variables):
       for var in message_variables:
@@ -72,18 +71,17 @@ class Moderation(commands.Cog):
           message = f"{member.mention}".join(message.split(var))
         elif var == r"{server}":
           message = f"{member.guild.name}".join(message.split(var))
-    await channel.send(message, allowed_mentions=discord.AllowedMentions.none())
+    await channel.send(message, allowed_mentions=discord.AllowedMentions(users=True))
 
   async def add_welcome_role(self, member: discord.Member) -> None:
-    if member.guild.id not in self.welcome:
+    role_id = await self.bot.db.query("SELECT role_id FROM welcome WHERE guild_id=$1 LIMIT 1", member.guild.id)
+    if role_id is None:
       return
-    role_id = self.welcome[member.guild.id]["role_id"]
     if role_id is None or str(role_id).lower() == "null":
       return
     else:
       role = member.guild.get_role(role_id)
       if role is None:
-        # await member.guild.owner.send(f"The default role that was chosen for me to add to members when they join yours server \"{member.guild.name}\" could not be found, please update the default role at https://friday-self.bot.com")
         await self.bot.db.query("UPDATE welcome SET role_id=NULL WHERE guild_id=$1", member.guild.id)
       else:
         await member.add_roles(role, reason="Welcome Role")
@@ -134,16 +132,16 @@ class Moderation(commands.Cog):
   @commands.guild_only()
   @commands.has_guild_permissions(manage_roles=True, manage_guild=True, manage_channels=True)
   async def _welcome_display(self, ctx: "MyContext"):
-    if ctx.guild.id not in self.welcome:
+    guild_id, role_id, channel_id, message = await self.bot.db.query("SELECT guild_id,role_id,channel_id,message FROM welcome WHERE guild_id=$1 LIMIT 1", ctx.guild.id)
+    if ctx.guild.id != guild_id:
       return await ctx.reply(embed=embed(title="This server hasn't set any welcome settings", color=MessageColors.ERROR))
-    guild = self.welcome[ctx.guild.id]
-    role_id, channel_id, message = guild['role_id'], guild['channel_id'], guild["message"]
     await ctx.reply(embed=embed(
         title="Current Welcome Settings",
         fieldstitle=["Role", "Channel", "Message"],
-        fieldsval=[f"<@&{role_id}>"if role_id is not None else None, f"<#{channel_id}>" if channel_id is not None else None, f"{message}"],
+        fieldsval=[f"<@&{role_id}>"if role_id is not None else "None", f"<#{channel_id}>" if channel_id is not None else "None", f"{message}" if message != "" else "None"],
         fieldsin=[False, False, False]
     ))
+    self.bot.logger.info("lmao wtf")
 
   @_welcome.command(name="role", extras={"examples": ["@default", "12345678910"]}, help="Set the role that is given to new members when they join the server")
   @commands.guild_only()
@@ -152,10 +150,6 @@ class Moderation(commands.Cog):
   async def _welcome_role(self, ctx: "MyContext", role: typing.Optional[discord.Role] = None):
     role_id = role.id if role is not None else None
     await self.bot.db.query("INSERT INTO welcome (guild_id,role_id) VALUES ($1,$2) ON CONFLICT(guild_id) DO UPDATE SET role_id=$3", ctx.guild.id, role_id, role_id)
-    if ctx.guild.id in self.welcome:
-      self.welcome[ctx.guild.id]["role_id"] = role_id
-    else:
-      self.welcome.update({"role_id": role_id, "channel_id": None, "message": None})
     await ctx.reply(embed=embed(title=f"New members will now receive the role `{role}`"))
 
   @_welcome.command(name="channel", extras={"examples": ["#welcome", "#general", "707458929696702525"]}, help="Setup a welcome channel for Friday to welcome new memebers in")
@@ -167,11 +161,8 @@ class Moderation(commands.Cog):
         return await ctx.reply(embed=embed(title=f"I don't have send_permissions in {channel}", color=MessageColors.ERROR))
     channel_id = channel.id if channel is not None else None
     await self.bot.db.query("INSERT INTO welcome (guild_id,channel_id) VALUES ($1,$2) ON CONFLICT(guild_id) DO UPDATE SET channel_id=$3", ctx.guild.id, channel_id, channel_id)
-    if ctx.guild.id in self.welcome:
-      self.welcome[ctx.guild.id]["channel_id"] = channel_id
-    else:
-      self.welcome.update({ctx.guild.id: {"role_id": None, "channel_id": channel_id, "message": None}})
-    await ctx.reply(embed=embed(title=f"Welcome message will be sent to `{channel}`", description="" if self.welcome[ctx.guild.id]["message"] is not None else "Don't forget to set a welcome message"))
+    message = await self.bot.db.query("SELECT message FROM welcome WHERE guild_id=$1 LIMIT 1", ctx.guild.id)
+    await ctx.reply(embed=embed(title=f"Welcome message will be sent to `{channel}`", description="" if message is not None else "Don't forget to set a welcome message"))
 
   @_welcome.command(name="message", extras={"examples": [r"Welcome to the server {user}, stay a while!", r"Welcome {user} to {server}", "A new member has joined the server!"]}, help="Set a message to greet new members to your server, message variables are `{user}`,`{server}`")
   @commands.guild_only()
@@ -180,10 +171,6 @@ class Moderation(commands.Cog):
     if len(message) > 255:
       await ctx.reply(embed=embed(title="Welcome messages can't be longer than 255 characters", color=MessageColors.ERROR))
     await self.bot.db.query("INSERT INTO welcome (guild_id,message) VALUES ($1,$2) ON CONFLICT(guild_id) DO UPDATE SET message=$3", ctx.guild.id, message, message)
-    if ctx.guild.id in self.welcome:
-      self.welcome[ctx.guild.id]["message"] = message
-    else:
-      self.welcome.update({"role_id": None, "channel_id": None, "message": message})
     formated_message, message_variables = message, [r"{user}", r"{server}"]
     if any(var in message.lower() for var in message_variables):
       for var in message_variables:
@@ -191,7 +178,8 @@ class Moderation(commands.Cog):
           formated_message = f"@{ctx.author.name}".join(formated_message.split(var))
         elif var == r"{server}":
           formated_message = f"{ctx.guild.name}".join(formated_message.split(var))
-    await ctx.reply(embed=embed(title="This servers welcome message is now", description=f"```{message}```\n\nThis will look like\n```{formated_message}```" + ("" if self.welcome[ctx.guild.id]["channel_id"] is not None else "\n\n**Don't forget to set a welcome channel**")))
+    channel_id = await self.bot.db.query("SELECT channel_id FROM welcome WHERE guild_id=$1 LIMIT 1", ctx.guild.id)
+    await ctx.reply(embed=embed(title="This servers welcome message is now", description=f"```{message}```\n\nThis will look like\n```{formated_message}```" + ("" if channel_id is not None else "\n\n**Don't forget to set a welcome channel**")))
 
   @commands.command(name="chatchannel", help="Set the current channel so that I will always try to respond with something")
   @commands.guild_only()
