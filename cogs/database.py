@@ -1,6 +1,7 @@
 import asyncpg
 import os
 
+import discord
 from discord.ext import commands, tasks
 from typing_extensions import TYPE_CHECKING
 from typing import Union
@@ -33,6 +34,7 @@ class Database(commands.Cog):
             "chatchannel text NULL DEFAULT NULL",
             "musicchannel text NULL DEFAULT NULL",
             "customsounds text NULL",
+            r"text_channels json[] NOT NULL DEFAULT '{}'",
         ],
         "votes": [
             "id bigint PRIMARY KEY NOT NULL",
@@ -81,6 +83,32 @@ class Database(commands.Cog):
     if len(checked_guilds) == len(self.bot.guilds):
       self.bot.logger.info("All guilds are in the Database")
 
+  @commands.Cog.listener()
+  async def on_connect(self):
+    #
+    # FIXME: I think this could delete some of the db with more than one cluster
+    #
+    if self.bot.cluster_idx == 0:
+      current = []
+      for guild in self.bot.guilds:
+        current.append(guild.id)
+        text_channels = str([{"name": i.name, "id": i.id, "type": str(i.type), "position": i.position} for i in guild.text_channels]).replace("'", '"')  # .replace("[", "{").replace("]", "}")
+        if len(text_channels) == 0:
+          await guild.fetch_channels()
+          text_channels = str([{"name": i.name, "id": i.id, "type": str(i.type), "position": i.position} for i in guild.text_channels]).replace("'", '"')  # .replace("[", "{").replace("]", "}")
+        await self.query(f"""INSERT INTO servers (id,lang,text_channels) VALUES ({guild.id},'{guild.preferred_locale.split('-')[0] if guild.preferred_locale is not None else 'en'}',array[$1]::json[]) ON CONFLICT(id) DO UPDATE SET text_channels=array[$1]::json[]""", text_channels)
+      await self.query(f"DELETE FROM servers WHERE id NOT IN ({','.join([str(i) for i in current])})")
+
+    for i, p in await self.query("SELECT id,prefix FROM servers"):
+      self.bot.prefixes.update({int(i): str(p)})
+
+  @commands.Cog.listener()
+  async def on_guild_channel_update(self, before: discord.abc.GuildChannel, after: discord.abc.GuildChannel):
+    if not isinstance(after, discord.TextChannel):
+      return
+    text_channels = str([{"name": i.name, "id": i.id, "type": str(i.type), "position": i.position} for i in after.guild.text_channels]).replace("'", '"')
+    await self.query("""UPDATE servers SET text_channels=array[$1]::json[] WHERE id=$2""", text_channels, after.guild.id)
+
   @tasks.loop(minutes=1)
   async def update_local_values(self):
     prefixes = {}
@@ -99,7 +127,11 @@ class Database(commands.Cog):
 
   async def sync_table_columns(self):
     # https://stackoverflow.com/questions/9991043/how-can-i-test-if-a-column-exists-in-a-table-using-an-sql-statement
-    ...
+    for table in self.columns:
+      for column in self.columns[table]:
+        result = await self.query(f"SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='{table}' AND column_name='{column.split(' ')[0]}') LIMIT 1")
+        if not result:
+          await self.query(f"ALTER TABLE {table} ADD COLUMN {column};")
 
   async def query(self, query: str, *params) -> Union[str, None, list]:
     async with self.connection.acquire() as mycursor:
