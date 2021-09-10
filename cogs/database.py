@@ -95,7 +95,11 @@ class Database(commands.Cog):
       current = []
       for guild in self.bot.guilds:
         current.append(guild.id)
-        toprole = json.dumps({"name": guild.me.top_role.name, "id": guild.me.top_role.id, "position": guild.me.top_role.position})
+        if guild.me is None:
+          me = await guild.fetch_member(self.bot.user.id)
+          toprole = json.dumps({"name": me.top_role.name, "id": me.top_role.id, "position": me.top_role.position})
+        else:
+          toprole = json.dumps({"name": guild.me.top_role.name, "id": guild.me.top_role.id, "position": guild.me.top_role.position})
         roles = json.dumps([{"name": i.name, "id": i.id, "position": i.position, "managed": i.managed} for i in guild.roles if not i.is_default()])
         if len(guild.roles) == 0:
           roles = json.dumps([{"name": i.name, "id": i.id, "position": i.position, "managed": i.managed} for i in await guild.fetch_roles() if not i.is_default()])
