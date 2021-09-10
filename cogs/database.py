@@ -98,17 +98,22 @@ class Database(commands.Cog):
         if guild.me is None:
           me = await guild.fetch_member(self.bot.user.id)
           if me.top_role is None:
-            toprole = json.dumps({})
+            toprole = {}
           else:
-            toprole = json.dumps({"name": me.top_role.name, "id": me.top_role.id, "position": me.top_role.position})
+            toprole = {"name": me.top_role.name, "id": me.top_role.id, "position": me.top_role.position}
         else:
           if guild.me.top_role is None:
-            toprole = json.dumps({})
+            toprole = {}
           else:
-            toprole = json.dumps({"name": guild.me.top_role.name, "id": guild.me.top_role.id, "position": guild.me.top_role.position})
-        roles = json.dumps([{"name": i.name, "id": i.id, "position": i.position, "managed": i.managed} for i in guild.roles if i.is_assignable()])
+            toprole = {"name": guild.me.top_role.name, "id": guild.me.top_role.id, "position": guild.me.top_role.position}
+        roles = [{"name": i.name, "id": i.id, "position": i.position, "managed": i.managed} for i in guild.roles if not i.is_default() and not i.is_bot_managed() and not i.is_integration() and not i.is_premium_subscriber()]
         if len(guild.roles) == 0:
-          roles = json.dumps([{"name": i.name, "id": i.id, "position": i.position, "managed": i.managed} for i in await guild.fetch_roles() if i.is_assignable()])
+          roles = [{"name": i.name, "id": i.id, "position": i.position, "managed": i.managed} for i in await guild.fetch_roles() if not i.is_default() and not i.is_bot_managed() and not i.is_integration() and not i.is_premium_subscriber()]
+        if len(roles) > 0 and len(toprole) > 0:
+          roles = json.dumps([i for i in roles if len(i) > 0 and i["position"] < toprole["position"]])
+        else:
+          roles = json.dumps(roles)
+        toprole = json.dumps(toprole)
         text_channels = json.dumps([{"name": i.name, "id": i.id, "type": str(i.type), "position": i.position} for i in guild.text_channels])
         if len(guild.text_channels) == 0:
           text_channels = json.dumps([{"name": i.name, "id": i.id, "type": str(i.type), "position": i.position} for i in await guild.fetch_channels() if str(i.type) == "text"])
@@ -134,8 +139,13 @@ class Database(commands.Cog):
 
   @commands.Cog.listener()
   async def on_guild_role_update(self, before: discord.Role, after: discord.Role):
-    toprole = json.dumps({"name": after.guild.me.top_role.name, "id": after.guild.me.top_role.id, "position": after.guild.me.top_role.position})
-    roles = json.dumps([{"name": i.name, "id": i.id, "position": i.position, "managed": i.managed} for i in after.guild.roles if i.is_assignable()])
+    toprole = {"name": after.guild.me.top_role.name, "id": after.guild.me.top_role.id, "position": after.guild.me.top_role.position}
+    roles = [{"name": i.name, "id": i.id, "position": i.position, "managed": i.managed} for i in after.guild.roles if not i.is_default() and not i.is_bot_managed() and not i.is_integration() and not i.is_premium_subscriber()]
+    if len(roles) > 0 and len(toprole) > 0:
+      roles = json.dumps([i for i in roles if len(i) > 0 and i["position"] < toprole["position"]])
+    else:
+      roles = json.dumps(roles)
+    toprole = json.dumps(toprole)
     await self.query("""UPDATE servers SET toprole=$1::json, roles=array[$2]::json[] WHERE id=$3""", toprole, roles, after.guild.id)
 
   @tasks.loop(minutes=1)
