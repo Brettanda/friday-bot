@@ -35,6 +35,7 @@ class Database(commands.Cog):
             "chatchannel text NULL DEFAULT NULL",
             "musicchannel text NULL DEFAULT NULL",
             "customsounds text NULL",
+            r"toprole json NOT NULL DEFAULT '{}'",
             r"roles json[] NOT NULL DEFAULT '{}'",
             r"text_channels json[] NOT NULL DEFAULT '{}'",
         ],
@@ -94,13 +95,18 @@ class Database(commands.Cog):
       current = []
       for guild in self.bot.guilds:
         current.append(guild.id)
-        roles = json.dumps([{"name": i.name, "id": i.id, "position": i.position} for i in guild.roles])
+        if guild.me is None:
+          me = await guild.fetch_member(self.bot.user.id)
+          toprole = json.dumps({"name": me.top_role.name, "id": me.top_role.id, "position": me.top_role.position})
+        else:
+          toprole = json.dumps({"name": guild.me.top_role.name, "id": guild.me.top_role.id, "position": guild.me.top_role.position})
+        roles = json.dumps([{"name": i.name, "id": i.id, "position": i.position, "managed": i.managed} for i in guild.roles if not i.is_default()])
         if len(guild.roles) == 0:
-          roles = json.dumps([{"name": i.name, "id": i.id, "position": i.position} for i in await guild.fetch_roles()])
+          roles = json.dumps([{"name": i.name, "id": i.id, "position": i.position, "managed": i.managed} for i in await guild.fetch_roles() if not i.is_default()])
         text_channels = json.dumps([{"name": i.name, "id": i.id, "type": str(i.type), "position": i.position} for i in guild.text_channels])
         if len(guild.text_channels) == 0:
           text_channels = json.dumps([{"name": i.name, "id": i.id, "type": str(i.type), "position": i.position} for i in await guild.fetch_channels() if str(i.type) == "text"])
-        await self.query(f"""INSERT INTO servers (id,lang,roles,text_channels) VALUES ({guild.id},'{guild.preferred_locale.split('-')[0] if guild.preferred_locale is not None else 'en'}',array[$1]::json[],array[$2]::json[]) ON CONFLICT(id) DO UPDATE SET roles=array[$1]::json[], text_channels=array[$2]::json[]""", roles, text_channels)
+        await self.query(f"""INSERT INTO servers (id,lang,toprole,roles,text_channels) VALUES ({guild.id},'{guild.preferred_locale.split('-')[0] if guild.preferred_locale is not None else 'en'}',$1::json,array[$2]::json[],array[$3]::json[]) ON CONFLICT(id) DO UPDATE SET toprole=$1::json,roles=array[$2]::json[], text_channels=array[$3]::json[]""", toprole, roles, text_channels)
       await self.query(f"DELETE FROM servers WHERE id NOT IN ({','.join([str(i) for i in current])})")
 
     for i, p in await self.query("SELECT id,prefix FROM servers"):
@@ -114,9 +120,17 @@ class Database(commands.Cog):
     await self.query("""UPDATE servers SET text_channels=array[$1]::json[] WHERE id=$2""", text_channels, after.guild.id)
 
   @commands.Cog.listener()
-  async def on_guild_role_update(self, before: discord.abc.GuildChannel, after: discord.abc.GuildChannel):
-    roles = json.dumps([{"name": i.name, "id": i.id, "position": i.position} for i in after.guild.roles])
-    await self.query("""UPDATE servers SET roles=array[$1]::json[] WHERE id=$2""", roles, after.guild.id)
+  async def on_member_update(self, before: discord.Member, after: discord.Member):
+    if after.id != self.bot.user.id:
+      return
+    toprole = json.dumps({"name": after.guild.me.top_role.name, "id": after.guild.me.top_role.id, "position": after.guild.me.top_role.position})
+    await self.query("""UPDATE servers SET toprole=$1::json WHERE id=$2""", toprole, after.guild.id)
+
+  @commands.Cog.listener()
+  async def on_guild_role_update(self, before: discord.Role, after: discord.Role):
+    toprole = json.dumps({"name": after.guild.me.top_role.name, "id": after.guild.me.top_role.id, "position": after.guild.me.top_role.position})
+    roles = json.dumps([{"name": i.name, "id": i.id, "position": i.position, "managed": i.managed} for i in after.guild.roles if not i.is_default()])
+    await self.query("""UPDATE servers SET toprole=$1::json, roles=array[$2]::json[] WHERE id=$3""", toprole, roles, after.guild.id)
 
   @tasks.loop(minutes=1)
   async def update_local_values(self):
