@@ -35,6 +35,7 @@ class Database(commands.Cog):
             "chatchannel text NULL DEFAULT NULL",
             "musicchannel text NULL DEFAULT NULL",
             "customsounds text NULL",
+            r"roles json[] NOT NULL DEFAULT '{}'",
             r"text_channels json[] NOT NULL DEFAULT '{}'",
         ],
         "votes": [
@@ -93,10 +94,13 @@ class Database(commands.Cog):
       current = []
       for guild in self.bot.guilds:
         current.append(guild.id)
+        roles = json.dumps([{"name": i.name, "id": i.id, "position": i.position} for i in guild.roles])
+        if len(guild.roles) == 0:
+          roles = json.dumps([{"name": i.name, "id": i.id, "position": i.position} for i in await guild.fetch_roles()])
         text_channels = json.dumps([{"name": i.name, "id": i.id, "type": str(i.type), "position": i.position} for i in guild.text_channels])
         if len(guild.text_channels) == 0:
           text_channels = json.dumps([{"name": i.name, "id": i.id, "type": str(i.type), "position": i.position} for i in await guild.fetch_channels() if str(i.type) == "text"])
-        await self.query(f"""INSERT INTO servers (id,lang,text_channels) VALUES ({guild.id},'{guild.preferred_locale.split('-')[0] if guild.preferred_locale is not None else 'en'}',array[$1]::json[]) ON CONFLICT(id) DO UPDATE SET text_channels=array[$1]::json[]""", text_channels)
+        await self.query(f"""INSERT INTO servers (id,lang,roles,text_channels) VALUES ({guild.id},'{guild.preferred_locale.split('-')[0] if guild.preferred_locale is not None else 'en'}',array[$1]::json[],array[$2]::json[]) ON CONFLICT(id) DO UPDATE SET roles=array[$1]::json[], text_channels=array[$2]::json[]""", roles, text_channels)
       await self.query(f"DELETE FROM servers WHERE id NOT IN ({','.join([str(i) for i in current])})")
 
     for i, p in await self.query("SELECT id,prefix FROM servers"):
@@ -108,6 +112,11 @@ class Database(commands.Cog):
       return
     text_channels = json.dumps([{"name": i.name, "id": i.id, "type": str(i.type), "position": i.position} for i in after.guild.text_channels])
     await self.query("""UPDATE servers SET text_channels=array[$1]::json[] WHERE id=$2""", text_channels, after.guild.id)
+
+  @commands.Cog.listener()
+  async def on_guild_role_update(self, before: discord.abc.GuildChannel, after: discord.abc.GuildChannel):
+    roles = json.dumps([{"name": i.name, "id": i.id, "position": i.position} for i in after.guild.roles])
+    await self.query("""UPDATE servers SET roles=array[$1]::json[] WHERE id=$2""", roles, after.guild.id)
 
   @tasks.loop(minutes=1)
   async def update_local_values(self):
