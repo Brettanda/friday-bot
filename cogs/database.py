@@ -1,5 +1,6 @@
 import asyncpg
 import os
+import json
 
 import discord
 from discord.ext import commands, tasks
@@ -92,10 +93,10 @@ class Database(commands.Cog):
       current = []
       for guild in self.bot.guilds:
         current.append(guild.id)
-        text_channels = str([{"name": i.name, "id": i.id, "type": str(i.type), "position": i.position} for i in guild.text_channels]).replace("'", '"')  # .replace("[", "{").replace("]", "}")
+        text_channels = json.dumps([{"name": i.name, "id": i.id, "type": str(i.type), "position": i.position} for i in guild.text_channels])
         if len(text_channels) == 0:
           await guild.fetch_channels()
-          text_channels = str([{"name": i.name, "id": i.id, "type": str(i.type), "position": i.position} for i in guild.text_channels]).replace("'", '"')  # .replace("[", "{").replace("]", "}")
+          text_channels = json.dumps([{"name": i.name, "id": i.id, "type": str(i.type), "position": i.position} for i in guild.text_channels if str(i.type) == "text"])
         await self.query(f"""INSERT INTO servers (id,lang,text_channels) VALUES ({guild.id},'{guild.preferred_locale.split('-')[0] if guild.preferred_locale is not None else 'en'}',array[$1]::json[]) ON CONFLICT(id) DO UPDATE SET text_channels=array[$1]::json[]""", text_channels)
       await self.query(f"DELETE FROM servers WHERE id NOT IN ({','.join([str(i) for i in current])})")
 
@@ -106,7 +107,7 @@ class Database(commands.Cog):
   async def on_guild_channel_update(self, before: discord.abc.GuildChannel, after: discord.abc.GuildChannel):
     if not isinstance(after, discord.TextChannel):
       return
-    text_channels = str([{"name": i.name, "id": i.id, "type": str(i.type), "position": i.position} for i in after.guild.text_channels]).replace("'", '"')
+    text_channels = json.dumps([{"name": i.name, "id": i.id, "type": str(i.type), "position": i.position} for i in after.guild.text_channels])
     await self.query("""UPDATE servers SET text_channels=array[$1]::json[] WHERE id=$2""", text_channels, after.guild.id)
 
   @tasks.loop(minutes=1)
