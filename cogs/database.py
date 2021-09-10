@@ -94,9 +94,8 @@ class Database(commands.Cog):
       for guild in self.bot.guilds:
         current.append(guild.id)
         text_channels = json.dumps([{"name": i.name, "id": i.id, "type": str(i.type), "position": i.position} for i in guild.text_channels])
-        if len(text_channels) == 0:
-          await guild.fetch_channels()
-          text_channels = json.dumps([{"name": i.name, "id": i.id, "type": str(i.type), "position": i.position} for i in guild.text_channels if str(i.type) == "text"])
+        if len(guild.text_channels) == 0:
+          text_channels = json.dumps([{"name": i.name, "id": i.id, "type": str(i.type), "position": i.position} for i in await guild.fetch_channels() if str(i.type) == "text"])
         await self.query(f"""INSERT INTO servers (id,lang,text_channels) VALUES ({guild.id},'{guild.preferred_locale.split('-')[0] if guild.preferred_locale is not None else 'en'}',array[$1]::json[]) ON CONFLICT(id) DO UPDATE SET text_channels=array[$1]::json[]""", text_channels)
       await self.query(f"DELETE FROM servers WHERE id NOT IN ({','.join([str(i) for i in current])})")
 
