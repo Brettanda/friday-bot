@@ -106,9 +106,9 @@ class Database(commands.Cog):
             toprole = json.dumps({})
           else:
             toprole = json.dumps({"name": guild.me.top_role.name, "id": guild.me.top_role.id, "position": guild.me.top_role.position})
-        roles = json.dumps([{"name": i.name, "id": i.id, "position": i.position, "managed": i.managed} for i in guild.roles if not i.is_default()])
+        roles = json.dumps([{"name": i.name, "id": i.id, "position": i.position, "managed": i.managed} for i in guild.roles if i.is_assignable()])
         if len(guild.roles) == 0:
-          roles = json.dumps([{"name": i.name, "id": i.id, "position": i.position, "managed": i.managed} for i in await guild.fetch_roles() if not i.is_default()])
+          roles = json.dumps([{"name": i.name, "id": i.id, "position": i.position, "managed": i.managed} for i in await guild.fetch_roles() if i.is_assignable()])
         text_channels = json.dumps([{"name": i.name, "id": i.id, "type": str(i.type), "position": i.position} for i in guild.text_channels])
         if len(guild.text_channels) == 0:
           text_channels = json.dumps([{"name": i.name, "id": i.id, "type": str(i.type), "position": i.position} for i in await guild.fetch_channels() if str(i.type) == "text"])
@@ -135,7 +135,7 @@ class Database(commands.Cog):
   @commands.Cog.listener()
   async def on_guild_role_update(self, before: discord.Role, after: discord.Role):
     toprole = json.dumps({"name": after.guild.me.top_role.name, "id": after.guild.me.top_role.id, "position": after.guild.me.top_role.position})
-    roles = json.dumps([{"name": i.name, "id": i.id, "position": i.position, "managed": i.managed} for i in after.guild.roles if not i.is_default()])
+    roles = json.dumps([{"name": i.name, "id": i.id, "position": i.position, "managed": i.managed} for i in after.guild.roles if i.is_assignable()])
     await self.query("""UPDATE servers SET toprole=$1::json, roles=array[$2]::json[] WHERE id=$3""", toprole, roles, after.guild.id)
 
   @tasks.loop(minutes=1)
