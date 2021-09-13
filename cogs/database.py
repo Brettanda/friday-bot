@@ -22,7 +22,7 @@ class Database(commands.Cog):
             "id bigint PRIMARY KEY NOT NULL",
             "tier text NULL",
             "prefix varchar(5) NOT NULL DEFAULT '!'",
-            "patreon_user bigint NULL DEFAULT NULL",
+            "patreon_user text NULL DEFAULT NULL",
             "lang varchar(2) NULL DEFAULT NULL",
             "autodeletemsgs smallint NOT NULL DEFAULT 0",
             "max_mentions int NULL DEFAULT NULL",
@@ -31,10 +31,9 @@ class Database(commands.Cog):
             "bot_manager text DEFAULT NULL",
             "persona text DEFAULT 'friday'",
             "customjoinleave text NULL",
-            "botmasterrole text NULL DEFAULT NULL",
             "chatchannel text NULL DEFAULT NULL",
             "musicchannel text NULL DEFAULT NULL",
-            "customsounds text NULL",
+            "customsounds json NULL",
             r"toprole json NOT NULL DEFAULT '{}'",
             r"roles json[] NOT NULL DEFAULT '{}'",
             r"text_channels json[] NOT NULL DEFAULT '{}'",
@@ -100,23 +99,23 @@ class Database(commands.Cog):
           if me.top_role is None:
             toprole = {}
           else:
-            toprole = {"name": me.top_role.name, "id": me.top_role.id, "position": me.top_role.position}
+            toprole = {"name": me.top_role.name, "id": str(me.top_role.id), "position": me.top_role.position}
         else:
           if guild.me.top_role is None:
             toprole = {}
           else:
-            toprole = {"name": guild.me.top_role.name, "id": guild.me.top_role.id, "position": guild.me.top_role.position}
-        roles = [{"name": i.name, "id": i.id, "position": i.position, "managed": i.managed} for i in guild.roles if not i.is_default() and not i.is_bot_managed() and not i.is_integration() and not i.is_premium_subscriber()]
+            toprole = {"name": guild.me.top_role.name, "id": str(guild.me.top_role.id), "position": guild.me.top_role.position}
+        roles = [{"name": i.name, "id": str(i.id), "position": i.position, "managed": i.managed} for i in guild.roles if not i.is_default() and not i.is_bot_managed() and not i.is_integration() and not i.is_premium_subscriber()]
         if len(guild.roles) == 0:
-          roles = [{"name": i.name, "id": i.id, "position": i.position, "managed": i.managed} for i in await guild.fetch_roles() if not i.is_default() and not i.is_bot_managed() and not i.is_integration() and not i.is_premium_subscriber()]
+          roles = [{"name": i.name, "id": str(i.id), "position": i.position, "managed": i.managed} for i in await guild.fetch_roles() if not i.is_default() and not i.is_bot_managed() and not i.is_integration() and not i.is_premium_subscriber()]
         if len(roles) > 0 and len(toprole) > 0:
           roles = json.dumps([i for i in roles if len(i) > 0 and i["position"] < toprole["position"]])
         else:
           roles = json.dumps(roles)
         toprole = json.dumps(toprole)
-        text_channels = json.dumps([{"name": i.name, "id": i.id, "type": str(i.type), "position": i.position} for i in guild.text_channels])
+        text_channels = json.dumps([{"name": i.name, "id": str(i.id), "type": str(i.type), "position": i.position} for i in guild.text_channels])
         if len(guild.text_channels) == 0:
-          text_channels = json.dumps([{"name": i.name, "id": i.id, "type": str(i.type), "position": i.position} for i in await guild.fetch_channels() if str(i.type) == "text"])
+          text_channels = json.dumps([{"name": i.name, "id": str(i.id), "type": str(i.type), "position": i.position} for i in await guild.fetch_channels() if str(i.type) == "text"])
         await self.query(f"""INSERT INTO servers (id,lang,toprole,roles,text_channels) VALUES ({guild.id},'{guild.preferred_locale.split('-')[0] if guild.preferred_locale is not None else 'en'}',$1::json,array[$2]::json[],array[$3]::json[]) ON CONFLICT(id) DO UPDATE SET toprole=$1::json,roles=array[$2]::json[], text_channels=array[$3]::json[]""", toprole, roles, text_channels)
       await self.query(f"DELETE FROM servers WHERE id NOT IN ({','.join([str(i) for i in current])})")
 
@@ -127,20 +126,20 @@ class Database(commands.Cog):
   async def on_guild_channel_update(self, before: discord.abc.GuildChannel, after: discord.abc.GuildChannel):
     if not isinstance(after, discord.TextChannel):
       return
-    text_channels = json.dumps([{"name": i.name, "id": i.id, "type": str(i.type), "position": i.position} for i in after.guild.text_channels])
+    text_channels = json.dumps([{"name": i.name, "id": str(i.id), "type": str(i.type), "position": i.position} for i in after.guild.text_channels])
     await self.query("""UPDATE servers SET text_channels=array[$1]::json[] WHERE id=$2""", text_channels, after.guild.id)
 
   @commands.Cog.listener()
   async def on_member_update(self, before: discord.Member, after: discord.Member):
     if after.id != self.bot.user.id:
       return
-    toprole = json.dumps({"name": after.guild.me.top_role.name, "id": after.guild.me.top_role.id, "position": after.guild.me.top_role.position})
+    toprole = json.dumps({"name": after.guild.me.top_role.name, "id": str(after.guild.me.top_role.id), "position": after.guild.me.top_role.position})
     await self.query("""UPDATE servers SET toprole=$1::json WHERE id=$2""", toprole, after.guild.id)
 
   @commands.Cog.listener()
   async def on_guild_role_update(self, before: discord.Role, after: discord.Role):
-    toprole = {"name": after.guild.me.top_role.name, "id": after.guild.me.top_role.id, "position": after.guild.me.top_role.position}
-    roles = [{"name": i.name, "id": i.id, "position": i.position, "managed": i.managed} for i in after.guild.roles if not i.is_default() and not i.is_bot_managed() and not i.is_integration() and not i.is_premium_subscriber()]
+    toprole = {"name": after.guild.me.top_role.name, "id": str(after.guild.me.top_role.id), "position": after.guild.me.top_role.position}
+    roles = [{"name": i.name, "id": str(i.id), "position": i.position, "managed": i.managed} for i in after.guild.roles if not i.is_default() and not i.is_bot_managed() and not i.is_integration() and not i.is_premium_subscriber()]
     if len(roles) > 0 and len(toprole) > 0:
       roles = json.dumps([i for i in roles if len(i) > 0 and i["position"] < toprole["position"]])
     else:
