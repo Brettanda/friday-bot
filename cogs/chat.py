@@ -227,8 +227,8 @@ class Chat(commands.Cog):
       return False
 
     if msg.guild is not None and msg.author.id != self.bot.user.id:
-      channel = await self.bot.db.query("SELECT chatChannel FROM servers WHERE id=$1", msg.guild.id)
-      if channel != str(msg.channel.id):
+      channel = await self.bot.db.query("SELECT chatchannel FROM servers WHERE id=$1 LIMIT 1", msg.guild.id)
+      if channel != msg.channel.id:
         if msg.guild.me not in msg.mentions:
           return False
 
@@ -242,8 +242,8 @@ class Chat(commands.Cog):
       return False
 
     if msg.guild is not None:
-      channel = await self.bot.db.query("SELECT chatChannel FROM servers WHERE id=$1", msg.guild.id)
-      if channel != str(msg.channel.id):
+      channel = await self.bot.db.query("SELECT chatchannel FROM servers WHERE id=$1 LIMIT 1", msg.guild.id)
+      if channel != msg.channel.id:
         if msg.guild.me not in msg.mentions:
           return False
 
