@@ -5,6 +5,7 @@ from discord.ext.commands import Cog
 from discord.ext import commands
 
 from discord_slash import cog_ext  # , SlashContext
+# from discord_slash.utils.manage_commands import create_option, SlashCommandOptionType
 from typing_extensions import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -19,6 +20,7 @@ import datetime
 import time
 # from cogs.cleanup import get_delete_time
 
+# from .help import cmd_help
 from functions import embed, MessageColors, exceptions, checks, MyContext  # , relay_info
 
 
@@ -79,6 +81,9 @@ class Music(commands.Cog):
     author = ctx.author
     voice = author.voice
     voicechannel = voice.channel if voice is not None and channel is None else channel
+
+    # if channel is not None:
+    #   channel = ctx.author.voice
 
     if not hasattr(ctx.author, "voice"):
       raise exceptions.OnlySlashCommands()
@@ -195,6 +200,48 @@ class Music(commands.Cog):
       await ctx.guild.voice_client.disconnect()
       # if looping:
       return await ctx.send(embed=embed(title="Finished the queue", color=MessageColors.MUSIC), delete_after=self.bot.log.get_guild_delete_commands(ctx.guild))
+
+  # @commands.command(name="join", help="Join a voice channel", hidden=True)
+  # @commands.guild_only()
+  # @commands.is_owner()
+  # @commands.bot_has_permissions(send_messages=True, embed_links=True, read_messages=True)
+  # async def norm_join(self, ctx, *, channel: discord.VoiceChannel = None):
+  #   await self.join(ctx, channel)
+
+  # # @cog_ext.cog_slash(
+  # #     name="join",
+  # #     description="Join a voice channel",
+  # #     options=[
+  # #         create_option(name="voicechannel", description="The voice channel to join", option_type=SlashCommandOptionType.CHANNEL, required=False)
+  # #     ]
+  # # )
+  # # @checks.slash(user=True, private=False)
+  # # async def slash_join(self, ctx, channel):
+  # #   if not isinstance(channel, discord.VoiceChannel) or isinstance(channel, discord.StageChannel):
+  # #     return await ctx.send(embed=embed(title=f"`{channel.name}` is not joinable", color=MessageColors.ERROR))
+  # #   await self.join(ctx, channel, True)
+
+  # async def join(self, ctx, channel=None, slash=False):
+  #   can_play = await self.can_play(ctx, channel)
+
+  #   if can_play is not True:
+  #     if slash:
+  #       return await ctx.send(**can_play)
+  #     return await ctx.reply(**can_play)
+
+  #   if channel is None:
+  #     if ctx.author.voice is not None and ctx.author.voice.channel is not None:
+  #       channel = await ctx.author.voice.channel.connect(reconnect=True)
+  #     else:
+  #       await cmd_help(ctx, ctx.command, "You must specify a voice channel or be in one")
+
+  #   # if vc.channel.type.name == "stage_voice" and vc.channel.topic is None:
+  #   #   vc.pause()
+  #   if channel.type == discord.ChannelType.stage_voice:
+  #     # await vc.channel.edit(topic="Beats with Friday")
+  #     await ctx.guild.me.edit(suppress=False)
+  #     # await ctx.guild.me.request_to_speak()
+  #   await ctx.guild.change_voice_state(channel=channel, self_mute=False, self_deaf=True)
 
   @commands.command(name="play", aliases=['p', 'add'], usage="<url/title>", help="Follow this command with the title of a song to search for it or just paste the Youtube/SoundCloud url if the search gives and undesirable result")
   @commands.guild_only()
