@@ -121,7 +121,7 @@ def is_supporter_or_voted() -> "_CheckDecorator":
 
 
 async def user_voted(bot: "Bot", user: discord.User) -> bool:
-  user_id = await bot.db.query("SELECT id FROM votes WHERE id=$1", user.id)
+  user_id = await bot.db.query("SELECT id FROM votes WHERE id=$1", str(user.id))
   if isinstance(user_id, list) and len(user_id) > 0:
     user_id = user_id[0]
   elif isinstance(user_id, list) and len(user_id) == 0:

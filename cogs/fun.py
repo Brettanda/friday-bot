@@ -39,7 +39,7 @@ class Fun(commands.Cog):
     # self.timeoutCh = None
 
   async def setup(self) -> None:
-    self.countdowns = await self.bot.db.query("SELECT * FROM countdowns")
+    self.countdowns = await self.bot.db.query("SELECT guild,channel,message,title,time FROM countdowns")
 
   def cog_unload(self):
     self.loop_countdown.stop()
@@ -488,8 +488,8 @@ class Fun(commands.Cog):
     future = now + duration.seconds
     hours, minutes, sec = self.get_time(now, future)
     message = await ctx.send(embed=embed(title=f"Countdown: {title if title is not None else ''}", description="```" + figlet_format(f"{hours}:{minutes}:{sec}") + "```"))
-    await self.bot.db.query("INSERT INTO countdowns (guild,channel,message,title,time) VALUES ($1,$2,$3,$4,$5) ON CONFLICT DO NOTHING", message.guild.id if message.guild is not None else None, message.channel.id, message.id, title, future)
-    self.countdowns.append((message.guild.id if message.guild is not None else None, message.channel.id, message.id, title, future))
+    await self.bot.db.query("INSERT INTO countdowns (guild,channel,message,title,time) VALUES ($1,$2,$3,$4,$5) ON CONFLICT DO NOTHING", str(message.guild.id), str(message.channel.id), str(message.id), title, future)
+    self.countdowns.append((str(message.guild.id), str(message.channel.id), str(message.id), title, future))
     self.countdown_messages.append((message, title, future))
 
   @tasks.loop(seconds=10.0)
@@ -500,7 +500,7 @@ class Fun(commands.Cog):
     if len(self.countdown_messages) == 0:
       for guild_id, channel_id, message_id, title, time in self.countdowns:
         try:
-          message = await (await self.bot.fetch_channel(channel_id)).fetch_message(message_id)
+          message = await (await self.bot.fetch_channel(int(channel_id))).fetch_message(int(message_id))
         except discord.NotFound:
           batch_delete_db.append(str(message_id))
           try:
@@ -522,17 +522,17 @@ class Fun(commands.Cog):
         batch.append(message.edit(embed=embed(title=f"Countdown: {title if title is not None else ''}", description="```" + figlet_format(f"{hours}:{minutes}:{sec}") + "```")))
       y += 1
     if len(batch_delete_db) > 0:
-      batch.append(self.bot.db.query(f"DELETE FROM countdowns WHERE message IN ({', '.join(batch_delete_db)})"))
+      batch.append(self.bot.db.query(f"""DELETE FROM countdowns WHERE message IN ('{"', '".join(batch_delete_db)}')"""))
     await asyncio.gather(*batch)
 
   @commands.Cog.listener()
   async def on_raw_message_delete(self, payload: discord.RawMessageDeleteEvent):
     while self.bot.is_closed():
       await asyncio.sleep(0.1)
-    if payload.guild_id is not None and len([item for item in self.countdowns if item[2] == payload.message_id]) > 0:
-      await self.bot.db.query("DELETE FROM countdowns WHERE message=$1", payload.message_id)
-      self.countdown_messages.pop(self.countdown_messages.index([i for i in self.countdown_messages if i[0].id == payload.message_id][0]))
-      self.countdowns.pop(self.countdowns.index([i for i in self.countdowns if i[2] == payload.message_id][0]))
+    if payload.guild_id is not None and len([item for item in self.countdowns if int(item[2]) == payload.message_id]) > 0:
+      await self.bot.db.query("DELETE FROM countdowns WHERE message=$1", str(payload.message_id))
+      self.countdown_messages.pop(self.countdown_messages.index([i for i in self.countdown_messages if int(i[0].id) == payload.message_id][0]))
+      self.countdowns.pop(self.countdowns.index([i for i in self.countdowns if int(i[2]) == payload.message_id][0]))
 
   @loop_countdown.before_loop
   async def before_loop_countdown(self):
