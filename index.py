@@ -26,13 +26,13 @@ dead_nodes_sent = False
 
 async def get_prefix(bot: "Friday", message: discord.Message):
   if message.guild is not None:
-    if message.guild.id in bot.prefixes:
-      return commands.when_mentioned_or(bot.prefixes[message.guild.id])(bot, message)
+    if str(message.guild.id) in bot.prefixes:
+      return commands.when_mentioned_or(bot.prefixes[str(message.guild.id)])(bot, message)
     else:
-      current = await bot.db.query("SELECT prefix FROM servers WHERE id=$1", message.guild.id)
+      current = await bot.db.query("SELECT prefix FROM servers WHERE id=$1", str(message.guild.id))
       bot.prefixes[message.guild.id] = str(current)
-      bot.logger.warning(f"{message.guild.id}'s prefix was {bot.prefixes.get(message.guild.id, None)} and is now {current}")
-      return commands.when_mentioned_or(bot.prefixes[message.guild.id])(bot, message)
+      bot.logger.warning(f"{message.guild.id}'s prefix was {bot.prefixes.get(str(message.guild.id), None)} and is now {current}")
+      return commands.when_mentioned_or(bot.prefixes[str(message.guild.id)])(bot, message)
   return commands.when_mentioned_or(functions.config.defaultPrefix)(bot, message)
 
 
@@ -78,7 +78,7 @@ class Friday(commands.AutoShardedBot):
 
   @property
   def log(self) -> "Log":
-    return self.get_cog(functions.config.reloadable_bot)
+    return self.get_cog("Log")
 
   @property
   def logger(self):
@@ -91,8 +91,8 @@ class Friday(commands.AutoShardedBot):
   async def get_context(self, message, *, cls=None) -> functions.MyContext:
     return await super().get_context(message, cls=functions.MyContext)
 
-  async def setup(self, load_extentions: bool = False) -> None:
-    self.session = aiohttp.ClientSession()
+  async def setup(self, load_extentions: bool = False):
+    self.session: aiohttp.ClientSession() = aiohttp.ClientSession()
 
     if load_extentions:
       for cog in cogs.default:
@@ -101,7 +101,7 @@ class Friday(commands.AutoShardedBot):
         except Exception as e:
           self.logger.error(f"Failed to load extenstion {cog} with \n {e}")
 
-  async def reload_cogs(self) -> None:
+  async def reload_cogs(self):
     self.ready = False
     reload(cogs)
     reload(functions)
@@ -115,7 +115,7 @@ class Friday(commands.AutoShardedBot):
       self.reload_extension(f"cogs.{i}")
     self.ready = True
 
-  async def on_message(self, ctx) -> None:
+  async def on_message(self, ctx):
     if not self.ready:
       return
 
@@ -124,10 +124,10 @@ class Friday(commands.AutoShardedBot):
 
     await self.process_commands(ctx)
 
-  async def on_error(self, event_method, *args, **kwargs) -> None:
+  async def on_error(self, event_method, *args, **kwargs):
     return await self.log.on_error(event_method, *args, **kwargs)
 
-  async def close(self) -> None:
+  async def close(self):
     self.logger.info("Shutting down")
     await self.session.close()
     return await super().close()

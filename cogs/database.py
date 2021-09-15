@@ -19,7 +19,7 @@ class Database(commands.Cog):
     self.loop = bot.loop
     self.columns = {
         "servers": [
-            "id bigint PRIMARY KEY NOT NULL",
+            "id text PRIMARY KEY NOT NULL",
             "tier text NULL",
             "prefix varchar(5) NOT NULL DEFAULT '!'",
             "patreon_user text NULL DEFAULT NULL",
@@ -39,28 +39,29 @@ class Database(commands.Cog):
             r"text_channels json[] NOT NULL DEFAULT '{}'",
         ],
         "votes": [
-            "id bigint PRIMARY KEY NOT NULL",
+            "id text PRIMARY KEY NOT NULL",
             "to_remind boolean NOT NULL DEFAULT false",
             "has_reminded boolean NOT NULL DEFAULT false",
             "voted_time timestamp NULL DEFAULT NULL"
         ],
         "countdowns": [
-            "guild bigint NULL",
-            "channel bigint NOT NULL",
-            "message bigint NOT NULL",
+            "guild text NULL",
+            "channel text NOT NULL",
+            "message text PRIMARY KEY NOT NULL",
             "title text NULL",
             "time bigint NOT NULL"
         ],
         "welcome": [
-            "guild_id bigint PRIMARY KEY NOT NULL",
+            "guild_id text PRIMARY KEY NOT NULL",
             "role_id text DEFAULT NULL",
             "channel_id text DEFAULT NULL",
             "message text DEFAULT NULL"
         ],
         "blacklist": [
-            "id bigint",
-            "guild_id bigint",
-            "word text"
+            "guild_id text PRIMARY KEY NOT NULL",
+            "ignoreadmins bool DEFAULT true",
+            "dmuser bool DEFAULT true",
+            "words text[]"
         ],
     }
     self.update_local_values.start()
@@ -78,9 +79,9 @@ class Database(commands.Cog):
 
   @commands.Cog.listener()
   async def on_ready(self):
-    actual_guilds, checked_guilds = [guild.id for guild in self.bot.guilds], []
+    actual_guilds, checked_guilds = [str(guild.id) for guild in self.bot.guilds], []
     for guild_id in await self.query("SELECT id FROM servers"):
-      if int(guild_id[0]) in actual_guilds:
+      if str(guild_id[0]) in actual_guilds:
         checked_guilds.append(guild_id)
     if len(checked_guilds) == len(self.bot.guilds):
       self.bot.logger.info("All guilds are in the Database")
@@ -93,7 +94,7 @@ class Database(commands.Cog):
     if self.bot.cluster_idx == 0:
       current = []
       for guild in self.bot.guilds:
-        current.append(guild.id)
+        current.append(str(guild.id))
         if guild.me is None:
           me = await guild.fetch_member(self.bot.user.id)
           if me.top_role is None:
@@ -116,25 +117,25 @@ class Database(commands.Cog):
         text_channels = json.dumps([{"name": i.name, "id": str(i.id), "type": str(i.type), "position": i.position} for i in guild.text_channels])
         if len(guild.text_channels) == 0:
           text_channels = json.dumps([{"name": i.name, "id": str(i.id), "type": str(i.type), "position": i.position} for i in await guild.fetch_channels() if str(i.type) == "text"])
-        await self.query(f"""INSERT INTO servers (id,lang,toprole,roles,text_channels) VALUES ({guild.id},'{guild.preferred_locale.split('-')[0] if guild.preferred_locale is not None else 'en'}',$1::json,array[$2]::json[],array[$3]::json[]) ON CONFLICT(id) DO UPDATE SET toprole=$1::json,roles=array[$2]::json[], text_channels=array[$3]::json[]""", toprole, roles, text_channels)
-      await self.query(f"DELETE FROM servers WHERE id NOT IN ({','.join([str(i) for i in current])})")
+        await self.query(f"""INSERT INTO servers (id,lang,toprole,roles,text_channels) VALUES ({str(guild.id)},'{guild.preferred_locale.split('-')[0] if guild.preferred_locale is not None else 'en'}',$1::json,array[$2]::json[],array[$3]::json[]) ON CONFLICT(id) DO UPDATE SET toprole=$1::json,roles=array[$2]::json[], text_channels=array[$3]::json[]""", toprole, roles, text_channels)
+      await self.query(f"""DELETE FROM servers WHERE id NOT IN ('{"','".join([str(i) for i in current])}')""")
 
     for i, p in await self.query("SELECT id,prefix FROM servers"):
-      self.bot.prefixes.update({int(i): str(p)})
+      self.bot.prefixes.update({str(i): str(p)})
 
   @commands.Cog.listener()
   async def on_guild_channel_update(self, before: discord.abc.GuildChannel, after: discord.abc.GuildChannel):
     if not isinstance(after, discord.TextChannel):
       return
     text_channels = json.dumps([{"name": i.name, "id": str(i.id), "type": str(i.type), "position": i.position} for i in after.guild.text_channels])
-    await self.query("""UPDATE servers SET text_channels=array[$1]::json[] WHERE id=$2""", text_channels, after.guild.id)
+    await self.query("""UPDATE servers SET text_channels=array[$1]::json[] WHERE id=$2""", text_channels, str(after.guild.id))
 
   @commands.Cog.listener()
   async def on_member_update(self, before: discord.Member, after: discord.Member):
     if after.id != self.bot.user.id:
       return
     toprole = json.dumps({"name": after.guild.me.top_role.name, "id": str(after.guild.me.top_role.id), "position": after.guild.me.top_role.position})
-    await self.query("""UPDATE servers SET toprole=$1::json WHERE id=$2""", toprole, after.guild.id)
+    await self.query("""UPDATE servers SET toprole=$1::json WHERE id=$2""", toprole, str(after.guild.id))
 
   @commands.Cog.listener()
   async def on_guild_role_update(self, before: discord.Role, after: discord.Role):
@@ -145,13 +146,13 @@ class Database(commands.Cog):
     else:
       roles = json.dumps(roles)
     toprole = json.dumps(toprole)
-    await self.query("""UPDATE servers SET toprole=$1::json, roles=array[$2]::json[] WHERE id=$3""", toprole, roles, after.guild.id)
+    await self.query("""UPDATE servers SET toprole=$1::json, roles=array[$2]::json[] WHERE id=$3""", toprole, roles, str(after.guild.id))
 
   @tasks.loop(minutes=1)
   async def update_local_values(self):
     prefixes = {}
     for i, p in await self.query("SELECT id,prefix FROM servers"):
-      prefixes.update({int(i): str(p)})
+      prefixes.update({str(i): str(p)})
 
     self.bot.prefixes = prefixes
 
