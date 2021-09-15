@@ -77,6 +77,10 @@ class Database(commands.Cog):
     database = os.environ["DBDATABASECANARY"] if self.bot.canary else os.environ["DBDATABASE"] if self.bot.prod else os.environ["DBDATABASELOCAL"]
     self.connection: asyncpg.Pool = await asyncpg.create_pool(host=hostname, user=username, password=password, database=database, loop=self.loop)
 
+  @property
+  def pool(self):
+    return self.connection
+
   @commands.Cog.listener()
   async def on_ready(self):
     actual_guilds, checked_guilds = [str(guild.id) for guild in self.bot.guilds], []

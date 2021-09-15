@@ -46,6 +46,7 @@ class Fun(commands.Cog):
 
   # @commands.Cog.listener()
   # async def on_ready(self):
+  #   self.bot.add_view(views.StopButton())
 
   # TODO: has no way to end this command ATM
   # TODO: can only store one user total for all of friday
@@ -293,6 +294,7 @@ class Fun(commands.Cog):
   }
 
   @commands.command(name="poll", extras={"examples": ["\"this is a title\" 1;;2;;3"]}, help="Make a poll. Seperate the options with `;;`")
+  # @commands.group(name="poll", extras={"examples": ["\"this is a title\" 1;;2;;3"]}, help="Make a poll. Seperate the options with `;;`")
   @commands.guild_only()
   @commands.bot_has_permissions(manage_messages=True)
   async def norm_poll(self, ctx, title, *, options: str = None):
@@ -409,6 +411,19 @@ class Fun(commands.Cog):
       x += 1
 
     await message.edit(embed=embed(title=message.embeds[0].title.replace("Pole: ", "Poll: "), fieldstitle=titles, fieldsval=vals, fieldsin=ins))
+
+  # @norm_poll.command(name="conclude", help="Concludes the poll", hidden=True)
+  # @commands.guild_only()
+  # @commands.bot_has_permissions(manage_messages=True)
+  # async def norm_poll_conclude(self, ctx: "MyContext", poll: discord.Message):
+  #   if not poll.embeds[0].title.startswith("Poll: "):
+  #     return await ctx.send(embed=embed(title="That message is not a poll", color=MessageColors.ERROR))
+
+  # @cog_ext.cog_subcommand(base="poll", base_desc="Make a poll", name="conclude", description="Concludes a poll", options=[create_option(name="message", description="The link to the poll message", option_type=SlashCommandOptionType.STRING, required=True)], guild_ids=[243159711237537802])
+  # @checks.slash(user=True, private=False)
+  # async def slash_poll_conclude(self, ctx: SlashContext, message: discord.Message):
+  #   if not message.embeds[0].title.startswith("Poll: "):
+  #     return await ctx.send(embed=embed(title="That message is not a poll", color=MessageColors.ERROR))
 
   @commands.command(name="gametime", help="Ping a role that is attached to a game and see who wants to play")
   @commands.guild_only()
