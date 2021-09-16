@@ -45,7 +45,7 @@ class Moderation(commands.Cog):
 
   @commands.Cog.listener()
   async def on_member_join(self, member: discord.Member):
-    if member.pending:
+    if member.pending is not False:
       return
     await self.add_welcome_role(member)
     await self.send_welcome_message(member)
@@ -58,13 +58,13 @@ class Moderation(commands.Cog):
     await self.send_welcome_message(after)
 
   async def send_welcome_message(self, member: discord.Member) -> None:
-    welcome = await self.bot.db.query("SELECT channel_id,message FROM welcome WHERE guild_id=$1 LIMIT 1", member.guild.id)
+    welcome = await self.bot.db.query("SELECT channel_id,message FROM welcome WHERE guild_id=$1 LIMIT 1", str(member.guild.id))
     if welcome is None:
       return
     channel_id, message = welcome
     if channel_id is None or message is None:
       return
-    channel = self.bot.get_channel(channel_id)
+    channel = self.bot.get_channel(int(channel_id))
     if channel is None:
       return
     message_variables = [r"{user}", r"{server}"]
@@ -77,15 +77,15 @@ class Moderation(commands.Cog):
     await channel.send(message, allowed_mentions=discord.AllowedMentions(users=True))
 
   async def add_welcome_role(self, member: discord.Member) -> None:
-    role_id = await self.bot.db.query("SELECT role_id FROM welcome WHERE guild_id=$1 LIMIT 1", member.guild.id)
+    role_id = await self.bot.db.query("SELECT role_id FROM welcome WHERE guild_id=$1 LIMIT 1", str(member.guild.id))
     if role_id is None:
       return
     if role_id is None or str(role_id).lower() == "null":
       return
     else:
-      role = member.guild.get_role(role_id)
+      role = member.guild.get_role(int(role_id))
       if role is None:
-        await self.bot.db.query("UPDATE welcome SET role_id=NULL WHERE guild_id=$1", member.guild.id)
+        await self.bot.db.query("UPDATE welcome SET role_id=NULL WHERE guild_id=$1", str(member.guild.id))
       else:
         await member.add_roles(role, reason="Welcome Role")
 
@@ -108,8 +108,8 @@ class Moderation(commands.Cog):
     new_prefix = new_prefix.lower()
     if len(new_prefix) > 5:
       return await ctx.reply(embed=embed(title="Can't set a prefix with more than 5 characters", color=MessageColors.ERROR))
-    await self.bot.db.query("UPDATE servers SET prefix=$1 WHERE id=$2", str(new_prefix), int(ctx.guild.id))
-    self.bot.prefixes[ctx.guild.id] = str(new_prefix)
+    await self.bot.db.query("UPDATE servers SET prefix=$1 WHERE id=$2", str(new_prefix), str(ctx.guild.id))
+    self.bot.prefixes[str(ctx.guild.id)] = str(new_prefix)
     await ctx.reply(embed=embed(title=f"My new prefix is `{new_prefix}`"))
 
   # @commands.group(name="set", invoke_without_command=True, case_insensitive=True)
@@ -135,8 +135,8 @@ class Moderation(commands.Cog):
   @commands.guild_only()
   @commands.has_guild_permissions(manage_roles=True, manage_guild=True, manage_channels=True)
   async def _welcome_display(self, ctx: "MyContext"):
-    guild_id, role_id, channel_id, message = await self.bot.db.query("SELECT guild_id,role_id,channel_id,message FROM welcome WHERE guild_id=$1 LIMIT 1", ctx.guild.id)
-    if ctx.guild.id != guild_id:
+    guild_id, role_id, channel_id, message = await self.bot.db.query("SELECT guild_id,role_id,channel_id,message FROM welcome WHERE guild_id=$1 LIMIT 1", str(ctx.guild.id))
+    if str(ctx.guild.id) != guild_id:
       return await ctx.reply(embed=embed(title="This server hasn't set any welcome settings", color=MessageColors.ERROR))
     await ctx.reply(embed=embed(
         title="Current Welcome Settings",
@@ -144,7 +144,6 @@ class Moderation(commands.Cog):
         fieldsval=[f"<@&{role_id}>"if role_id is not None else "None", f"<#{channel_id}>" if channel_id is not None else "None", f"{message}" if message != "" else "None"],
         fieldsin=[False, False, False]
     ))
-    self.bot.logger.info("lmao wtf")
 
   @_welcome.command(name="role", extras={"examples": ["@default", "12345678910"]}, help="Set the role that is given to new members when they join the server")
   @commands.guild_only()
@@ -152,7 +151,7 @@ class Moderation(commands.Cog):
   @commands.bot_has_guild_permissions(manage_roles=True)
   async def _welcome_role(self, ctx: "MyContext", role: typing.Optional[discord.Role] = None):
     role_id = role.id if role is not None else None
-    await self.bot.db.query("INSERT INTO welcome (guild_id,role_id) VALUES ($1,$2) ON CONFLICT(guild_id) DO UPDATE SET role_id=$3", ctx.guild.id, role_id, role_id)
+    await self.bot.db.query("INSERT INTO welcome (guild_id,role_id) VALUES ($1,$2) ON CONFLICT(guild_id) DO UPDATE SET role_id=$2", str(ctx.guild.id), str(role_id))
     await ctx.reply(embed=embed(title=f"New members will now receive the role `{role}`"))
 
   @_welcome.command(name="channel", extras={"examples": ["#welcome", "#general", "707458929696702525"]}, help="Setup a welcome channel for Friday to welcome new memebers in")
@@ -163,25 +162,25 @@ class Moderation(commands.Cog):
       if channel.permissions_for(ctx.guild.me).send_messages is False:
         return await ctx.reply(embed=embed(title=f"I don't have send_permissions in {channel}", color=MessageColors.ERROR))
     channel_id = channel.id if channel is not None else None
-    await self.bot.db.query("INSERT INTO welcome (guild_id,channel_id) VALUES ($1,$2) ON CONFLICT(guild_id) DO UPDATE SET channel_id=$3", ctx.guild.id, channel_id, channel_id)
-    message = await self.bot.db.query("SELECT message FROM welcome WHERE guild_id=$1 LIMIT 1", ctx.guild.id)
+    await self.bot.db.query("INSERT INTO welcome (guild_id,channel_id) VALUES ($1,$2) ON CONFLICT(guild_id) DO UPDATE SET channel_id=$2", str(ctx.guild.id), str(channel_id))
+    message = await self.bot.db.query("SELECT message FROM welcome WHERE guild_id=$1 LIMIT 1", str(ctx.guild.id))
     await ctx.reply(embed=embed(title=f"Welcome message will be sent to `{channel}`", description="" if message is not None else "Don't forget to set a welcome message"))
 
   @_welcome.command(name="message", extras={"examples": [r"Welcome to the server {user}, stay a while!", r"Welcome {user} to {server}", "A new member has joined the server!"]}, help="Set a message to greet new members to your server, message variables are `{user}`,`{server}`")
   @commands.guild_only()
   @commands.has_guild_permissions(manage_guild=True, manage_channels=True)
   async def _welcome_message(self, ctx: "MyContext", *, message: typing.Optional[str] = None):
-    if len(message) > 255:
+    if message is not None and len(message) > 255:
       await ctx.reply(embed=embed(title="Welcome messages can't be longer than 255 characters", color=MessageColors.ERROR))
-    await self.bot.db.query("INSERT INTO welcome (guild_id,message) VALUES ($1,$2) ON CONFLICT(guild_id) DO UPDATE SET message=$3", ctx.guild.id, message, message)
+    await self.bot.db.query("INSERT INTO welcome (guild_id,message) VALUES ($1,$2) ON CONFLICT(guild_id) DO UPDATE SET message=$2", str(ctx.guild.id), message)
     formated_message, message_variables = message, [r"{user}", r"{server}"]
-    if any(var in message.lower() for var in message_variables):
+    if message is not None and any(var in message.lower() for var in message_variables):
       for var in message_variables:
         if var == r"{user}":
           formated_message = f"@{ctx.author.name}".join(formated_message.split(var))
         elif var == r"{server}":
           formated_message = f"{ctx.guild.name}".join(formated_message.split(var))
-    channel_id = await self.bot.db.query("SELECT channel_id FROM welcome WHERE guild_id=$1 LIMIT 1", ctx.guild.id)
+    channel_id = await self.bot.db.query("SELECT channel_id FROM welcome WHERE guild_id=$1 LIMIT 1", str(ctx.guild.id))
     await ctx.reply(embed=embed(title="This servers welcome message is now", description=f"```{message}```\n\nThis will look like\n```{formated_message}```" + ("" if channel_id is not None else "\n\n**Don't forget to set a welcome channel**")))
 
   @commands.command(name="chatchannel", help="Set the current channel so that I will always try to respond with something")
@@ -200,12 +199,12 @@ class Moderation(commands.Cog):
     await ctx.send(**post)
 
   async def settings_bot_chat_channel(self, ctx):
-    chat_channel = await self.bot.db.query("SELECT chatchannel FROM servers WHERE id=$1 LIMIT 1", ctx.guild.id)
+    chat_channel = await self.bot.db.query("SELECT chatchannel FROM servers WHERE id=$1 LIMIT 1", str(ctx.guild.id))
     if chat_channel is None:
-      await self.bot.db.query("UPDATE servers SET chatchannel=$1 WHERE id=$2", ctx.channel.id, ctx.guild.id)
+      await self.bot.db.query("UPDATE servers SET chatchannel=$1 WHERE id=$2", str(ctx.channel.id), str(ctx.guild.id))
       return dict(embed=embed(title="I will now respond to every message in this channel"))
     else:
-      await self.bot.db.query("UPDATE servers SET chatchannel=$1 WHERE id=$2", None, ctx.guild.id)
+      await self.bot.db.query("UPDATE servers SET chatchannel=$1 WHERE id=$2", None, str(ctx.guild.id))
       return dict(embed=embed(title="I will no longer respond to all messages from this channel"))
 
   @commands.command(name="removeinvites", help="Automaticaly remove Discord invites from text channels", hidden=True)
@@ -213,19 +212,21 @@ class Moderation(commands.Cog):
   @commands.has_guild_permissions(manage_channels=True)
   @commands.bot_has_guild_permissions(manage_messages=True)
   async def norm_remove_discord_invites(self, ctx):
-    check = await self.bot.db.query("SELECT remove_invites FROM servers WHERE id=$1 LIMIT 1", ctx.guild.id)
+    check = await self.bot.db.query("SELECT remove_invites FROM servers WHERE id=$1 LIMIT 1", str(ctx.guild.id))
     if bool(check) is True:
-      await self.bot.db.query("UPDATE servers SET remove_invites=$1 WHERE id=$2", False, ctx.guild.id)
+      await self.bot.db.query("UPDATE servers SET remove_invites=$1 WHERE id=$2", False, str(ctx.guild.id))
+      # self.to_remove_invites[ctx.guild.id] = False
       await ctx.reply(embed=embed(title="I will no longer remove invites"))
     else:
-      await self.bot.db.query("UPDATE servers SET remove_invites=$1 WHERE id=$2", True, ctx.guild.id)
+      await self.bot.db.query("UPDATE servers SET remove_invites=$1 WHERE id=$2", True, str(ctx.guild.id))
+      # self.to_remove_invites[ctx.guild.id] = True
       await ctx.reply(embed=embed(title="I will begin to remove invites"))
 
   async def msg_remove_invites(self, msg: discord.Message):
     if not msg.guild or msg.author.bot:
       return
 
-    to_remove_invites = await self.bot.db.query(f"SELECT remove_invites FROM servers WHERE id={msg.guild.id} LIMIT 1")
+    to_remove_invites = await self.bot.db.query(f"SELECT remove_invites FROM servers WHERE id={str(msg.guild.id)}::text LIMIT 1")
     try:
       if bool(to_remove_invites) is True:
         reg = re.match(self.invite_reg, msg.clean_content, re.RegexFlag.MULTILINE + re.RegexFlag.IGNORECASE)
@@ -248,7 +249,7 @@ class Moderation(commands.Cog):
   @commands.has_guild_permissions(manage_channels=True)
   async def music_channel(self, ctx, voicechannel: typing.Optional[discord.VoiceChannel] = None):
     async with ctx.typing():
-      await self.bot.db.query("UPDATE servers SET musicChannel=$1 WHERE id=$2", voicechannel.id if voicechannel is not None else None, ctx.guild.id)
+      await self.bot.db.query("UPDATE servers SET musicChannel=$1 WHERE id=$2", voicechannel.id if voicechannel is not None else None, str(ctx.guild.id))
     if voicechannel is None:
       await ctx.reply(embed=embed(title="All the voice channels are my music channels 😈 (jk)"))
     else:
@@ -263,8 +264,8 @@ class Moderation(commands.Cog):
       await ctx.reply(embed=embed(title="time has to be above 0"))
       return
     async with ctx.typing():
-      await self.bot.db.query("UPDATE servers SET autoDeleteMSGs=$1 WHERE id=$2", time, ctx.guild.id)
-      self.bot.log.change_guild_delete(ctx.guild.id, time)
+      await self.bot.db.query("UPDATE servers SET autoDeleteMSGs=$1 WHERE id=$2", time, str(ctx.guild.id))
+      self.bot.log.change_guild_delete(str(ctx.guild.id), time)
     if time == 0:
       await ctx.reply(embed=embed(title="I will no longer delete command messages"))
     else:
@@ -291,68 +292,75 @@ class Moderation(commands.Cog):
     if bypass:
       return
     cleansed_msg = self.do_slugify(msg.clean_content)
-    blacklist = await self.bot.db.query("SELECT guild_id,word FROM blacklist")
+    words = await self.bot.db.query("SELECT words FROM blacklist WHERE guild_id=$1::text LIMIT 1", str(msg.guild.id))
+    if words is None or len(words) == 0:
+      return
     try:
-      if msg.guild.id in [i[0] for i in blacklist]:
-        for blacklisted_word in [i[1] for i in blacklist if i[0] == msg.guild.id]:
-          if blacklisted_word in cleansed_msg:
-            try:
-              await msg.delete()
-              return await msg.author.send(f"""Your message `{msg.content}` was removed for containing the blacklisted word `{blacklisted_word}`""")
-            except Exception as e:
-              await relay_info(f"Error when trying to remove message {type(e).__name__}: {e}", self.bot, logger=self.bot.log.log_errors)
+      for blacklisted_word in words:
+        if blacklisted_word in cleansed_msg:
+          try:
+            await msg.delete()
+            return await msg.author.send(f"""Your message `{msg.content}` was removed for containing the blacklisted word `{blacklisted_word}`""")
+          except Exception as e:
+            await relay_info(f"Error when trying to remove message {type(e).__name__}: {e}", self.bot, logger=self.bot.log.log_errors)
     except Exception as e:
       await relay_info(f"Error when trying to remove message (big) {type(e).__name__}: {e}", self.bot, logger=self.bot.log.log_errors)
 
   @commands.group(name="blacklist", aliases=["bl"], invoke_without_command=True, case_insensitive=True, help="Blacklist words from being sent in text channels")
   @commands.guild_only()
+  @commands.has_guild_permissions(manage_messages=True)
+  @commands.bot_has_guild_permissions(manage_messages=True)
   async def _blacklist(self, ctx: "MyContext"):
     await ctx.send_help(ctx.command)
     # await cmd_help(ctx, ctx.command)
 
   @_blacklist.command(name="add", aliases=["+"], extras={"examples": ["penis", "shit"]})
   @commands.guild_only()
-  @commands.has_guild_permissions(manage_guild=True)
+  @commands.has_guild_permissions(manage_messages=True)
+  @commands.bot_has_guild_permissions(manage_messages=True)
   async def _blacklist_add_word(self, ctx, *, word: str):
     cleansed_word = self.do_slugify(word)
-    if len(await self.bot.db.query("SELECT guild_id,word FROM blacklist WHERE guild_id=$1 AND word=$2", ctx.guild.id, cleansed_word)) > 0:
+    if len(await self.bot.db.query("SELECT words FROM blacklist WHERE guild_id=$1::text AND $2::text = ANY(words)", str(ctx.guild.id), cleansed_word)) > 0:
       return await ctx.reply(embed=embed(title="Can't add duplicate word", color=MessageColors.ERROR))
-    await self.bot.db.query("INSERT INTO blacklist (guild_id,word) VALUES ($1,$2) ON CONFLICT DO NOTHING", ctx.guild.id, cleansed_word)
+    await self.bot.db.query("INSERT INTO blacklist (guild_id,words) VALUES ($1::text,array[$2]::text[]) ON CONFLICT(guild_id) DO UPDATE SET words = array_append(blacklist.words, $2)", str(ctx.guild.id), cleansed_word)
     word = word
     await ctx.reply(embed=embed(title=f"Added `{word}` to the blacklist"))
 
   @_blacklist.command(name="remove", aliases=["-"], extras={"examples": ["penis", "shit"]})
   @commands.guild_only()
-  @commands.has_guild_permissions(manage_guild=True)
+  @commands.has_guild_permissions(manage_messages=True)
+  @commands.bot_has_guild_permissions(manage_messages=True)
   async def _blacklist_remove_word(self, ctx, *, word: str):
     cleansed_word = word
-    if cleansed_word not in [i[0] for i in await self.bot.db.query("SELECT word FROM blacklist WHERE guild_id=$1", ctx.guild.id)]:
-      return await ctx.reply(embed=embed(title="You don't seem to blacklisting that word"))
-    await self.bot.db.query("DELETE FROM blacklist WHERE (guild_id=$1 AND word=$2)", ctx.guild.id, cleansed_word)
+    if len(await self.bot.db.query("SELECT words FROM blacklist WHERE guild_id=$1 AND $2::text = ANY(words) LIMIT 1", str(ctx.guild.id), cleansed_word)) == 0:
+      return await ctx.reply(embed=embed(title="You don't seem to be blacklisting that word"))
+    await self.bot.db.query("UPDATE blacklist SET words = array_remove(words,$2::text) WHERE guild_id=$1", str(ctx.guild.id), cleansed_word)
     word = word
     await ctx.reply(embed=embed(title=f"Removed `{word}` from the blacklist"))
 
   @_blacklist.command(name="display", aliases=["list", "show"])
   @commands.guild_only()
-  @commands.has_guild_permissions(manage_guild=True)
+  @commands.has_guild_permissions(manage_messages=True)
+  @commands.bot_has_guild_permissions(manage_messages=True)
   async def _blacklist_display_words(self, ctx):
-    words = await self.bot.db.query("SELECT word FROM blacklist WHERE guild_id=$1", ctx.guild.id)
+    words = await self.bot.db.query("SELECT words FROM blacklist WHERE guild_id=$1 LIMIT 1", str(ctx.guild.id))
     if words == [] or words is None:
       return await ctx.reply(embed=embed(title=f"No blacklisted words yet, use `{ctx.prefix}blacklist add <word>` to get started"))
-    await ctx.reply(embed=embed(title="Blocked words", description='\n'.join(x[0] for x in words)))
+    await ctx.reply(embed=embed(title="Blocked words", description='\n'.join(x for x in words)))
 
   @_blacklist.command(name="clear")
   @commands.guild_only()
-  @commands.has_guild_permissions(manage_guild=True)
+  @commands.has_guild_permissions(administrator=True)
+  @commands.bot_has_guild_permissions(manage_messages=True)
   async def _blacklist_clear(self, ctx):
-    await self.bot.db.query("DELETE FROM blacklist WHERE guild_id=$1", ctx.guild.id)
+    await self.bot.db.query("DELETE FROM blacklist WHERE guild_id=$1", str(ctx.guild.id))
     await ctx.reply(embed=embed(title="Removed all blacklisted words"))
 
   @commands.command(name="kick", extras={"examples": ["@username @someone @someoneelse", "@thisguy", "12345678910 10987654321 @someone", "@someone I just really didn't like them", "@thisguy 12345678910 They were spamming general"]})
   @commands.bot_has_guild_permissions(kick_members=True)
   @commands.has_guild_permissions(kick_members=True)
-  async def norm_kick(self, ctx, members: commands.Greedy[discord.Member], *, reason: typing.Optional[str] = None):
-    await self.kick(ctx, members, reason)
+  async def norm_kick(self, ctx, member: discord.Member, *, reason: typing.Optional[str] = None):
+    await self.kick(ctx, member, reason)
 
   @cog_ext.cog_slash(
       name="kick",
@@ -380,12 +388,12 @@ class Moderation(commands.Cog):
 
   async def kick(self, ctx, members, reason=None, slash: bool = False):
     if isinstance(members, list) and len(members) == 0 and not slash:
-      await cmd_help(ctx, ctx.command)
+      return await cmd_help(ctx, ctx.command)
 
-    tokick = []
+    # tokick = []
 
     if not isinstance(members, list):
-      members = list(members)
+      members = [members]
 
     if self.bot.user in members:
       if slash:
@@ -411,29 +419,22 @@ class Moderation(commands.Cog):
           return await ctx.send(hidden=True, content="I am not able to kick a member with a role higher than my own permissions role(s)")
         return await ctx.reply(embed=embed(title="I am not able to kick a member with a role higher than my own permissions role(s)", color=MessageColors.ERROR))
 
-    if self.bot.user in members and not slash:
-      try:
-        await ctx.add_reaction("😢")
-      except BaseException:
-        pass
-      return
+    # kicks = []
+    # for member in members:
+    #   tokick.append(member.name)
+    #   kicks.append(member.kick(reason=f"{ctx.author}: {reason}"))
+    # await asyncio.gather(*kicks)
 
-    kicks = []
-    for member in members:
-      tokick.append(member.name)
-      kicks.append(member.kick(reason=f"{ctx.author}: {reason}"))
-    await asyncio.gather(*kicks)
+    await member.kick(reason=f"{ctx.author}: {reason}")
 
-    if slash:
-      return await ctx.send(embed=embed(title=f"Kicked `{', '.join(tokick)}`{(' for reason `' + reason+'`') if reason is not None else ''}"))
-    return await ctx.reply(embed=embed(title=f"Kicked `{', '.join(tokick)}`{(' for reason `' + reason+'`') if reason is not None else ''}"))
+    return await ctx.send(embed=embed(title=f"Kicked `{member}`{(' for reason `' + reason+'`') if reason is not None else ''}"))
+    # return await ctx.send(embed=embed(title=f"Kicked `{', '.join(tokick)}`{(' for reason `' + reason+'`') if reason is not None else ''}"))
 
   @commands.command(name="ban", extras={"examples": ["@username @someone @someoneelse Spam", "@thisguy The most spam i have ever seen", "12345678910 10987654321 @someone", "@someone They were annoying me", "123456789 2 Sus"]})
   @commands.bot_has_guild_permissions(ban_members=True)
   @commands.has_guild_permissions(ban_members=True)
-  async def norm_ban(self, ctx, members: commands.Greedy[discord.Member], delete_message_days: typing.Optional[int] = 0, *, reason: str = None):
-    post = await self.ban(ctx, members, reason, delete_message_days)
-    await ctx.reply(**post)
+  async def norm_ban(self, ctx, member: discord.Member, delete_message_days: typing.Optional[int] = 0, *, reason: str = None):
+    await ctx.reply(**await self.ban(ctx, member, reason, delete_message_days))
 
   @cog_ext.cog_slash(
       name="ban",
@@ -463,14 +464,15 @@ class Moderation(commands.Cog):
   @commands.has_guild_permissions(ban_members=True)
   @checks.slash(user=True, private=False)
   async def slash_ban(self, ctx, member, reason=None, delete_message_days=0):
-    post = await self.ban(ctx, member, reason, delete_message_days, True)
-    await ctx.send(**post)
+    ...
+    # post = await self.ban(ctx, member, reason, delete_message_days, True)
+    # await ctx.send(**post)
 
   async def ban(self, ctx, members, reason=None, delete_message_days=0, slash=False):
     if isinstance(members, list) and len(members) == 0 and not slash:
-      await cmd_help(ctx, ctx.command)
+      return await cmd_help(ctx, ctx.command)
 
-    toban = []
+    # toban = []
 
     if not isinstance(members, list):
       members = [members]
@@ -499,21 +501,22 @@ class Moderation(commands.Cog):
           return dict(hidden=True, content="I am not able to ban a member with a role higher than my own permissions role(s)")
         return dict(embed=embed(title="I am not able to ban a member with a role higher than my own permissions role(s)", color=MessageColors.ERROR))
 
-    if self.bot.user in members and not slash:
-      try:
-        await ctx.add_reaction("😢")
-      except BaseException:
-        pass
-      return
+    # if self.bot.user in members and not slash:
+    #   try:
+    #     await ctx.add_reaction("😢")
+    #   except BaseException:
+    #     pass
+    #   return
 
-    for member in members:
-      if member == ctx.author:
-        if slash:
-          return dict(hidden=True, content="Failed to ban yourself")
-        return dict(embed=embed(title="Failed to ban yourself", color=MessageColors.ERROR))
-      toban.append(member.name)
-      await member.ban(delete_message_days=delete_message_days, reason=f"{ctx.author}: {reason}")
-    return dict(embed=embed(title=f"Banned `{', '.join(toban)}`{(' with `'+str(delete_message_days)+'` messages deleted') if delete_message_days > 0 else ''}{(' for reason `'+reason+'`') if reason is not None else ''}"))
+    # for member in members:
+    if member == ctx.author:
+      if slash:
+        return dict(hidden=True, content="Failed to ban yourself")
+      return dict(embed=embed(title="Failed to ban yourself", color=MessageColors.ERROR))
+    # toban.append(member.name)
+    await member.ban(delete_message_days=delete_message_days, reason=f"{ctx.author}: {reason}")
+    return dict(embed=embed(title=f"Banned `{member}`{(' with `'+str(delete_message_days)+'` messages deleted') if delete_message_days > 0 else ''}{(' for reason `'+reason+'`') if reason is not None else ''}"))
+    # return dict(embed=embed(title=f"Banned `{', '.join(toban)}`{(' with `'+str(delete_message_days)+'` messages deleted') if delete_message_days > 0 else ''}{(' for reason `'+reason+'`') if reason is not None else ''}"))
 
   @commands.command(name="rolecall", aliases=["rc"], extras={"examples": ["@mods vc-1", "123456798910 vc-2 vc-1 10987654321", "@admins general @username @username"]}, help="Moves everyone with a specific role to a voicechannel. Objects that can be exluded are voicechannels,roles,and members")
   @commands.guild_only()
@@ -729,11 +732,11 @@ class Moderation(commands.Cog):
   @commands.guild_only()
   @commands.has_guild_permissions(manage_channels=True, manage_roles=True)
   @commands.bot_has_guild_permissions(view_channel=True, manage_channels=True, manage_roles=True)
-  async def norm_mute(self, ctx: "MyContext", members: commands.Greedy[discord.Member]):
-    if len(members) == 0:
-      return await cmd_help(ctx, ctx.command, "You're missing some arguments, here is how the command should look")
-    async with ctx.typing():
-      await self.mute(ctx, members)
+  async def norm_mute(self, ctx: "MyContext", member: discord.Member):
+    # if len(members) == 0:
+    #   return await cmd_help(ctx, ctx.command, "You're missing some arguments, here is how the command should look")
+    # async with ctx.typing():
+    await self.mute(ctx, member)
 
   @cog_ext.cog_slash(
       name="mute",
@@ -750,6 +753,8 @@ class Moderation(commands.Cog):
     await self.mute(ctx, [member], True)
 
   async def mute(self, ctx: "MyContext", members: [discord.Member], slash: bool = False):
+    if not isinstance(members, list):
+      members = [members]
     if len(members) == 0:
       if slash:
         return await ctx.send(hidden=True, embed=embed(title="Failed to find that member", color=MessageColors.ERROR))
@@ -787,11 +792,11 @@ class Moderation(commands.Cog):
   @commands.guild_only()
   @commands.has_guild_permissions(manage_channels=True, manage_roles=True)
   @commands.bot_has_guild_permissions(manage_channels=True, manage_roles=True)
-  async def norm_unmute(self, ctx: "MyContext", members: commands.Greedy[discord.Member]):
-    if len(members) == 0:
-      return await cmd_help(ctx, ctx.command, "You're missing some arguments, here is how the command should look")
-    async with ctx.typing():
-      await self.unmute(ctx, members)
+  async def norm_unmute(self, ctx: "MyContext", member: discord.Member):
+    # if len(members) == 0:
+    #   return await cmd_help(ctx, ctx.command, "You're missing some arguments, here is how the command should look")
+    # async with ctx.typing():
+    await self.unmute(ctx, member)
 
   @cog_ext.cog_slash(
       name="unmute",
@@ -806,6 +811,8 @@ class Moderation(commands.Cog):
     await self.unmute(ctx, [member], True)
 
   async def unmute(self, ctx, members: [discord.Member], slash: bool = False):
+    if not isinstance(members, list):
+      members = [members]
     roles = [r for r in await ctx.guild.fetch_roles() if r.name == "Muted" and not r.is_bot_managed() and not r.managed and not r.is_premium_subscriber() and not r.is_integration()]
     muted_role: discord.Role = roles[0] if len(roles) > 0 else None
     if not muted_role:
@@ -843,7 +850,7 @@ class Moderation(commands.Cog):
 
     final_lang = new_lang.alpha_2 if new_lang is not None else lang
     final_lang_name = new_lang.name if new_lang is not None else lang
-    await self.bot.db.query("UPDATE servers SET lang=$1 WHERE id=$2", final_lang, ctx.guild.id)
+    await self.bot.db.query("UPDATE servers SET lang=$1 WHERE id=$2", final_lang, str(ctx.guild.id))
     self.bot.log.change_guild_lang(ctx.guild, final_lang)
     return await ctx.reply(embed=embed(title=f"New language set to: `{final_lang_name}`"))
 

@@ -10,8 +10,6 @@ defaultPrefix = "!"
 
 description = "Hello, my name is Friday, I am a chatbot built with TensorFlow and Keras, meaning I enjoy conversations. I also have a few commands for fun and moderating your servers!"
 
-reloadable_bot = "Log"
-
 support_server_id = 707441352367013899
 
 
@@ -64,8 +62,7 @@ intents = discord.Intents(
     # invites=True,
 )
 
-member_cache = discord.MemberCacheFlags.none()
-member_cache.joined = True
+member_cache = discord.MemberCacheFlags(joined=True)
 
 # all_support_ranks = [item for item in support_ranks]
 
@@ -100,17 +97,16 @@ allowed_mentions = discord.AllowedMentions(roles=False, everyone=False, users=Tr
 
 games = [
     "Developing myself",
-    "Minecraft",
+    "Minecraft 1.18",
     "Super Smash Bros. Ultimate",
-    "Cyberpunk 2077",
-    "Forza Horizon 4",
-    "Red Dead Redemption 2",
+    "Cyberpunk 2078",
+    "Forza Horizon 6",
+    "Red Dead Redemption 3",
     "Grand Theft Auto V",
     "Grand Theft Auto VI",
     "Grand Theft Auto IV",
     "Grand Theft Auto III",
     "Ori and the Will of the Wisps",
-    "Animal Crossing New Horizons",
     "With the internet",
     "DOOM Eternal",
     "D&D (solo)",
@@ -121,7 +117,6 @@ games = [
     "with Machine Learning",
     "Escape from Tarkov",
     # "Giving out inspirational quotes",
-    "Among us",
     {
         "type": discord.ActivityType.listening, "content": "myself"
     },
