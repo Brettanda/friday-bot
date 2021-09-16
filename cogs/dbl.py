@@ -21,7 +21,7 @@ class VoteView(discord.ui.View):
   @discord.ui.button(label="Remind me", style=discord.ButtonStyle.primary, custom_id="voting_remind_me")
   async def voting_remind_me(self, button: discord.ui.Button, interaction: discord.Interaction):
     current_reminder = bool(await self.bot.db.query("SELECT to_remind FROM votes WHERE id=$1", interaction.user.id))
-    await self.bot.db.query("INSERT INTO votes (id,to_remind) VALUES ($1,$2) ON CONFLICT(id) DO UPDATE SET to_remind=$3", interaction.user.id, not current_reminder, not current_reminder)
+    await self.bot.db.query("INSERT INTO votes (id,to_remind) VALUES ($1,$2) ON CONFLICT(id) DO UPDATE SET to_remind=$3", str(interaction.user.id), not current_reminder, not current_reminder)
     if current_reminder is not True:
       await interaction.response.send_message(ephemeral=True, embed=embed(title="I will now DM you every 12 hours after you vote for when you can vote again"))
     elif current_reminder is True:
@@ -66,8 +66,8 @@ class TopGG(commands.Cog):
 
   @vote.command(name="remind", help="Whether or not to remind you of the next time that you can vote")
   async def vote_remind(self, ctx: "MyContext"):
-    current_reminder = bool(await self.bot.db.query("SELECT to_remind FROM votes WHERE id=$1", ctx.author.id))
-    await self.bot.db.query("INSERT INTO votes (id,to_remind) VALUES ($1,$2) ON CONFLICT(id) DO UPDATE SET to_remind=$3", ctx.author.id, not current_reminder, not current_reminder)
+    current_reminder = bool(await self.bot.db.query("SELECT to_remind FROM votes WHERE id=$1", str(ctx.author.id)))
+    await self.bot.db.query("INSERT INTO votes (id,to_remind) VALUES ($1,$2) ON CONFLICT(id) DO UPDATE SET to_remind=$3", str(ctx.author.id), not current_reminder, not current_reminder)
     if current_reminder is not True:
       await ctx.send(embed=embed(title="I will now DM you every 12 hours after you vote for when you can vote again"))
     elif current_reminder is True:
@@ -105,7 +105,7 @@ class TopGG(commands.Cog):
       self.bot.logger.info(f"Reminded {len(remind_user_ids)} users")
     if len(vote_user_ids) > 0:
       batch, to_purge = [], []
-      await self.bot.db.query(f"UPDATE votes SET has_reminded=false,voted_time=NULL WHERE id IN ({','.join(vote_user_ids)})")
+      await self.bot.db.query(f"""UPDATE votes SET has_reminded=false,voted_time=NULL WHERE id IN (`{"`,`".join(vote_user_ids)}')""")
       for user_id in vote_user_ids:
         get_member = self.bot.get_guild(config.support_server_id).get_member(user_id)
         member = get_member if get_member is not None else await self.bot.get_guild(config.support_server_id).fetch_member(user_id)
@@ -118,7 +118,7 @@ class TopGG(commands.Cog):
           else:
             to_purge.append(user_id)
       if len(to_purge) > 0:
-        await self.bot.db.query(f"DELETE FROM votes WHERE to_remind=false AND id IN ({','.join(to_purge)})")
+        await self.bot.db.query(f"""DELETE FROM votes WHERE to_remind=false AND id IN ('{"','".join(to_purge)}')""")
       if len(batch) > 0:
         await asyncio.gather(*batch)
 
@@ -131,7 +131,7 @@ class TopGG(commands.Cog):
   async def on_dbl_vote(self, data):
     self.bot.logger.info(f'Received an upvote, {data}')
     if data.get("user", None) is not None:
-      await self.bot.db.query("INSERT INTO votes (id,voted_time) VALUES ($1,$2) ON CONFLICT(id) DO UPDATE SET has_reminded=false,voted_time=$3", int(data["user"]), datetime.datetime.now(), datetime.datetime.now())
+      await self.bot.db.query("INSERT INTO votes (id,voted_time) VALUES ($1,$2) ON CONFLICT(id) DO UPDATE SET has_reminded=false,voted_time=$3", str(data["user"]), datetime.datetime.now(), datetime.datetime.now())
     if data.get("type", None) == "test" or int(data.get("user", None)) not in (215227961048170496, 813618591878086707):
       if data.get("user", None) is not None:
         support_server = self.bot.get_guild(config.support_server_id)
