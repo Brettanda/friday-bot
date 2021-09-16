@@ -12,6 +12,14 @@ description = "Hello, my name is Friday, I am a chatbot built with TensorFlow an
 
 support_server_id = 707441352367013899
 
+support_server_invites = {
+    "NTRuFjU": "General",
+    "xfMZ8q9k3J": "On Patreon",
+    "vqHBD3QCv2": "Top.gg",
+    "paMxRvvZFc": "On join",
+    "XP4avQ449V": "Website",
+}
+
 
 def welcome_message(bot: "Bot", *, prefix: str = defaultPrefix) -> dict:
   friday_emoji = bot.get_emoji(833507598413201459) if bot.get_emoji(833507598413201459) is not None else ''

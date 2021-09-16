@@ -202,7 +202,6 @@ class Log(commands.Cog):
     await self.bot.db.query(
           f"DELETE FROM servers WHERE id='{str(guild.id)}';"
           f"DELETE FROM blacklist WHERE guild_id='{str(guild.id)}';"
-          f"DELETE FROM nicknames WHERE guild_id='{str(guild.id)}';"
           f"DELETE FROM welcome WHERE guild_id='{str(guild.id)}';")
     await relay_info(f"I have been removed from a guild, making the total **{len(self.bot.guilds)}**", self.bot, short=f"I have been removed from a guild, making the total {len(self.bot.guilds)}", webhook=self.log_join, logger=self.logger)
 
