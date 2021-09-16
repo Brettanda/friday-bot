@@ -85,7 +85,7 @@ class Log(commands.Cog):
       self.bot_managers = {}
       for guild_id, role_id in await self.bot.db.query("SELECT id,bot_manager FROM servers"):
         if role_id is not None:
-          self.bot_managers.update({int(guild_id): int(role_id)})
+          self.bot_managers.update({str(guild_id): str(role_id)})
 
   def check_perms(self, ctx):
     if hasattr(ctx.channel, "type") and ctx.channel.type == discord.ChannelType.private:
@@ -126,18 +126,6 @@ class Log(commands.Cog):
   @commands.Cog.listener()
   async def on_connect(self):
     self.logger.debug("Connected")
-    #
-    # FIXME: I think this could delete some of the db with more than one cluster
-    #
-    if self.bot.cluster_idx == 0:
-      current = []
-      for guild in self.bot.guilds:
-        current.append(guild.id)
-        await self.bot.db.query(f"INSERT INTO servers (id,lang) VALUES ({guild.id},'{guild.preferred_locale.split('-')[0] if guild.preferred_locale is not None else 'en'}') ON CONFLICT DO NOTHING")
-      await self.bot.db.query(f"DELETE FROM servers WHERE id NOT IN ({','.join([str(i) for i in current])})")
-
-    for i, p in await self.bot.db.query("SELECT id,prefix FROM servers"):
-      self.bot.prefixes.update({int(i): str(p)})
 
   @commands.Cog.listener()
   async def on_ready(self):
@@ -184,7 +172,7 @@ class Log(commands.Cog):
   async def on_guild_join(self, guild: discord.Guild):
     while self.bot.is_closed():
       await asyncio.sleep(0.1)
-    await self.bot.db.query(f"INSERT INTO servers (id,lang) VALUES ({guild.id},'{guild.preferred_locale.split('-')[0]}') ON CONFLICT DO NOTHING")
+    await self.bot.db.query(f"INSERT INTO servers (id,lang) VALUES ({str(guild.id)},'{guild.preferred_locale.split('-')[0]}') ON CONFLICT DO NOTHING")
     priority_channels = []
     channels = []
     for channel in guild.text_channels:
@@ -212,9 +200,9 @@ class Log(commands.Cog):
       await asyncio.sleep(0.1)
     self.remove_guild(guild.id)
     await self.bot.db.query(
-          f"DELETE FROM servers WHERE id={guild.id};"
-          f"DELETE FROM blacklist WHERE id={guild.id};"
-          f"DELETE FROM welcome WHERE guild_id={guild.id};")
+          f"DELETE FROM servers WHERE id='{str(guild.id)}';"
+          f"DELETE FROM blacklist WHERE guild_id='{str(guild.id)}';"
+          f"DELETE FROM welcome WHERE guild_id='{str(guild.id)}';")
     await relay_info(f"I have been removed from a guild, making the total **{len(self.bot.guilds)}**", self.bot, short=f"I have been removed from a guild, making the total {len(self.bot.guilds)}", webhook=self.log_join, logger=self.logger)
 
   @commands.Cog.listener()
@@ -352,7 +340,7 @@ class Log(commands.Cog):
   def get_guild_delete_commands(self, guild: typing.Union[discord.Guild, int]) -> int:
     try:
       if guild is not None:
-        delete = self.bot.saved_guilds[guild.id if isinstance(guild, discord.Guild) else guild]["autoDeleteMSGs"]
+        delete = self.bot.saved_guilds[str(guild.id) if isinstance(guild, discord.Guild) else guild]["autoDeleteMSGs"]
         return delete if delete != 0 else None
     except KeyError:
       self.set_guild(guild)
@@ -363,19 +351,19 @@ class Log(commands.Cog):
       if guild is None:
         return False
       guild_id = guild.id if isinstance(guild, discord.Guild) else guild
-      if guild_id not in [int(item.id) for item in self.bot.guilds]:
+      if str(guild_id) not in [str(item.id) for item in self.bot.guilds]:
         return None
       if guild.id not in self.bot.saved_guilds:
         self.set_guild(guild,)
-      return self.bot.saved_guilds[guild.id if isinstance(guild, discord.Guild) else guild]["chatChannel"]
+      return self.bot.saved_guilds[str(guild.id) if isinstance(guild, discord.Guild) else guild]["chatChannel"]
     except KeyError:
       self.set_guild(guild)
-      return self.bot.saved_guilds[guild.id if isinstance(guild, discord.Guild) else guild]["chatChannel"]
+      return self.bot.saved_guilds[str(guild.id) if isinstance(guild, discord.Guild) else guild]["chatChannel"]
 
   def get_guild_tier(self, guild: typing.Union[discord.Guild, int]) -> str:
     try:
       if guild is not None:
-        guild = self.bot.saved_guilds.get(guild.id if isinstance(guild, discord.Guild) else guild, None)
+        guild = self.bot.saved_guilds.get(str(guild.id) if isinstance(guild, discord.Guild) else guild, None)
         return guild.get("tier", "free") if guild is not None else "free"
     except KeyError:
       self.set_guild(guild)
@@ -406,7 +394,7 @@ class Log(commands.Cog):
   def get_guild_lang(self, guild: typing.Union[discord.Guild, int]) -> str:
     try:
       if guild is not None:
-        guild = self.bot.saved_guilds.get(guild.id if isinstance(guild, discord.Guild) else guild, None)
+        guild = self.bot.saved_guilds.get(str(guild.id) if isinstance(guild, discord.Guild) else guild, None)
         lang = guild.get("lang", None) if guild is not None else None
         return lang if lang is not None else guild.preferred_locale.split("-")[0] if isinstance(guild, discord.Guild) else "en"
     except KeyError:
@@ -425,19 +413,19 @@ class Log(commands.Cog):
 
   def change_guild_delete(self, guild: typing.Union[discord.Guild, int], delete: int = 0) -> None:
     if guild is not None:
-      self.bot.saved_guilds[guild.id if isinstance(guild, discord.Guild) else guild]["autoDeleteMSGs"] = delete
+      self.bot.saved_guilds[str(guild.id) if isinstance(guild, discord.Guild) else guild]["autoDeleteMSGs"] = delete
 
   def change_guild_tier(self, guild: typing.Union[discord.Guild, int], premium: int = 0) -> None:
     if guild is not None:
-      self.bot.saved_guilds.get(guild.id if isinstance(guild, discord.Guild) else guild, None)["tier"] = premium
+      self.bot.saved_guilds.get(str(guild.id) if isinstance(guild, discord.Guild) else guild, None)["tier"] = premium
 
   def change_guild_chat_channel(self, guild: typing.Union[discord.Guild, int], chatChannel: int = None) -> None:
     if guild is not None:
-      self.bot.saved_guilds[guild.id if isinstance(guild, discord.Guild) else guild]["chatChannel"] = chatChannel
+      self.bot.saved_guilds[str(guild.id) if isinstance(guild, discord.Guild) else guild]["chatChannel"] = chatChannel
 
   def change_guild_lang(self, guild: typing.Union[discord.Guild, int], lang: str = None) -> None:
     if guild is not None:
-      self.bot.saved_guilds[guild.id if isinstance(guild, discord.Guild) else guild]["lang"] = lang if lang is not None else guild.preferred_locale.split("-")[0] if isinstance(guild, discord.Guild) else "en"
+      self.bot.saved_guilds[str(guild.id) if isinstance(guild, discord.Guild) else guild]["lang"] = lang if lang is not None else guild.preferred_locale.split("-")[0] if isinstance(guild, discord.Guild) else "en"
 
   def set_guild(
           self,
@@ -452,9 +440,9 @@ class Log(commands.Cog):
           lang: str = None) -> None:
     if guild is not None:
       guild = guild if isinstance(guild, discord.Guild) else self.bot.get_guild(guild)
-      self.bot.prefixes.update({int(guild.id): str(prefix)})
+      self.bot.prefixes.update({str(guild.id): str(prefix)})
       self.bot.saved_guilds.update(
-          {guild.id if isinstance(guild, discord.Guild) else guild: {
+          {str(guild.id) if isinstance(guild, discord.Guild) else guild: {
               "tier": tier,
               "patreon_user": patreon_user,
               "autoDeleteMSGs": autoDeleteMSG,
@@ -469,15 +457,15 @@ class Log(commands.Cog):
     if guild is None:
       return False
     guild_id = guild.id if isinstance(guild, discord.Guild) else guild
-    self.bot.saved_guilds.pop(guild_id, None)
-    self.bot.prefixes.pop(guild_id, None)
+    self.bot.saved_guilds.pop(str(guild_id), None)
+    self.bot.prefixes.pop(str(guild_id), None)
 
   async def set_all_guilds(self) -> None:
     # if not hasattr(self.bot, "saved_guilds") or len(self.bot.saved_guilds) != len(self.bot.guilds):
-    servers = await self.bot.db.query("SELECT id,tier,patreon_user,autoDeleteMSGs,chatChannel,lang FROM servers")
+    servers = await self.bot.db.query("SELECT id,tier,patreon_user,autoDeleteMSGs,max_mentions,max_messages,chatChannel,lang FROM servers")
     guilds = {}
-    for guild_id, tier, patreon_user, autoDeleteMSG, chatChannel, lang in servers:
-      guilds.update({int(guild_id): {"tier": str(tier), "patreon_user": int(patreon_user) if patreon_user is not None else None, "autoDeleteMSGs": int(autoDeleteMSG), "chatChannel": int(chatChannel) if chatChannel is not None else None, "lang": lang}})
+    for guild_id, tier, patreon_user, autoDeleteMSG, max_mentions, max_messages, chatChannel, lang in servers:
+      guilds.update({str(guild_id): {"tier": str(tier), "patreon_user": int(patreon_user) if patreon_user is not None else None, "autoDeleteMSGs": int(autoDeleteMSG), "max_mentions": int(max_mentions) if max_mentions is not None else None, "max_messages": max_messages, "chatChannel": int(chatChannel) if chatChannel is not None else None, "lang": lang}})
     self.bot.saved_guilds = guilds
     return guilds
 
