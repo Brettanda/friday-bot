@@ -49,7 +49,8 @@ async def guild_is_min_tier(bot: "Bot", guild: discord.Guild, tier: str = list(c
   #   raise commands.NoPrivateMessage()
   if guild is None:
     return False
-  guild_tier = bot.log.get_guild_tier(guild)
+  guild_tier = await bot.db.query("""SELECT tier FROM servers WHERE id=$1""", str(guild.id))
+  # guild_tier = bot.log.get_guild_tier(guild)
   tier_level = config.premium_tiers[tier]
   if guild_tier in list(config.premium_tiers)[tier_level:]:
     return True

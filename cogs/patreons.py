@@ -44,7 +44,7 @@ class Patreons(commands.Cog):
       if user_tier == list(config.premium_tiers)[1] and len(await self.bot.db.query("SELECT id,tier,patreon_user FROM servers WHERE patreon_user=$1", str(ctx.author.id))) >= 1:
         return await ctx.reply(embed=embed(title="You have already used your patronage on another server", color=MessageColors.ERROR))
       await self.bot.db.query("UPDATE servers SET tier=$1, patreon_user=$2 WHERE id=$3", str(user_tier), str(ctx.author.id), str(ctx.guild.id))
-      self.bot.log.change_guild_tier(ctx.guild.id, user_tier)
+      # self.bot.log.change_guild_tier(ctx.guild.id, user_tier)
       await ctx.reply(embed=embed(title="New server activated"))
     elif patreon_user == ctx.author.id:
       await ctx.reply(embed=embed(title="You have already activated this server"))
@@ -61,7 +61,7 @@ class Patreons(commands.Cog):
       # Maybe check if the patreon user is still in the guild?
       return await ctx.reply(embed=embed(title="Only the original patreon user can use this command"))
     await self.bot.db.query("UPDATE servers SET tier=$1, patreon_user=$2 WHERE id=$3", None, None, str(ctx.guild.id))
-    self.bot.log.change_guild_tier(ctx.guild.id, None)
+    # self.bot.log.change_guild_tier(ctx.guild.id, None)
     await ctx.reply(embed=embed(title="Server deactivated 😢"))
 
 
