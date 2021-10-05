@@ -2,7 +2,7 @@
 # import math
 import discord
 from discord import Embed
-from discord.ext import commands, flags
+from discord.ext import commands
 from discord.ext.menus import ListPageSource
 # from discord.utils import get
 
@@ -142,7 +142,8 @@ class Help(commands.HelpCommand):
       signature = self.context.clean_prefix + command.qualified_name + " "
 
       signature += (
-          "<args...>" if isinstance(command, flags.FlagCommand) else command.signature
+          # "<args...>" if isinstance(command, flags.FlagCommand) else command.signature
+          command.signature
       )
 
       embed.add_field(
