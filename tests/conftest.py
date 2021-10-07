@@ -1,8 +1,6 @@
 import asyncio
 import os
-import sys
 import pytest
-import typing
 
 import discord
 from discord.ext import commands
