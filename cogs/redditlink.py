@@ -50,8 +50,8 @@ class redditlink(commands.Cog):
     self.bot = bot
     self.emoji = "🔗"
     self.lock = asyncio.Lock()
-    self.pattern = r"https://www.reddit.com/r/[a-zA-Z0-9-_]+/comments/[a-zA-Z0-9]+/[a-zA-Z0-9_-]+"
-    self.patternspoiler = r"||https://www.reddit.com/r/[a-zA-Z0-9-_]+/comments/[a-zA-Z0-9]+/[a-zA-Z0-9_-]+||"
+    self.pattern = r"https:\/\/(?:www\.|)reddit.com\/r\/[a-zA-Z0-9-_]+\/comments\/[a-zA-Z0-9]+\/[a-zA-Z0-9_-]+"
+    self.patternspoiler = r"||https:\/\/(?:www\.|)reddit.com\/r\/[a-zA-Z0-9-_]+\/comments\/[a-zA-Z0-9]+\/[a-zA-Z0-9_-]+||"
     self.reddit = asyncpraw.Reddit(
         client_id=os.environ.get('REDDITCLIENTID'),
         client_secret=os.environ.get('REDDITCLIENTSECRET'),

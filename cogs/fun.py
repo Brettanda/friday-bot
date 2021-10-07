@@ -1,7 +1,7 @@
 import json
-import random
+# import random
 import typing
-import numpy as np
+import numpy.random as random
 import asyncio
 import datetime
 
@@ -156,7 +156,7 @@ class Fun(commands.Cog):
       8: "8️⃣"
   }
 
-  @commands.command(name="minesweeper", enabled=False, aliases=["ms"], help="Play minesweeper")
+  @commands.command(name="minesweeper", aliases=["ms"], help="Play minesweeper")
   async def norm_minesweeper(self, ctx, size: typing.Optional[int] = 5, bomb_count: typing.Optional[int] = 6):
     await ctx.reply(**await self.mine_sweeper(size, bomb_count))
 
@@ -177,15 +177,17 @@ class Fun(commands.Cog):
 
     if size > 9:
       raise exceptions.ArgumentTooLarge("Size cannot be larger than 9 due to the message character limit of Discord")
-    if bomb_count > size * size:
-      raise exceptions.ArgumentTooLarge("Bomb_count cannot be larger than the game board")
+    if bomb_count > size * size or bomb_count >= 81:
+      raise exceptions.ArgumentTooLarge("Bomb count cannot be larger than the game board")
+    if size <= 1 or bomb_count <= 1:
+      raise exceptions.ArgumentTooSmall("Bomb count and board size must be greater than 1")
 
     arr = [[0 for row in range(size)] for column in range(size)]
 
     # async with ctx.channel.typing():
     def get_xy():
       try:
-        return np.random.randint(0, size - 1), np.random.randint(0, size - 1)
+        return random.randint(0, size - 1), random.randint(0, size - 1)
       except Exception as e:
         self.bot.logger.critical("This is what caused the shutdown")
         raise e
