@@ -67,6 +67,11 @@ class FakeInteractionMessage:
     options = [f"{i.get('name', 'no-name')} {i.get('value', 'no-value')}" for i in self.interaction.data.get("options", [])]
     return f"/{self.interaction.data['name']} {', '.join(options)}"
 
+  async def add_reaction(self, *args, **kwargs) -> discord.Message.add_reaction:
+    if self.interaction.message is None:
+      self.interaction.message = await self.interaction.original_message()
+    return await self.interaction.message.add_reaction(*args, **kwargs)
+
   @property
   def clean_content(self) -> str:
     options = [f"{i.get('name', 'no-name')} {i.get('value', 'no-value')}" for i in self.interaction.data.get("options", [])]

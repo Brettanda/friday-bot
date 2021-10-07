@@ -122,10 +122,13 @@ jobs:
         CLIENT_ID: ${{ secrets.CLIENT_ID }}
         CLIENT_CERT_URL: ${{ secrets.CLIENT_CERT_URL }}
         GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
+        REDDITCLIENTID: ${{ secrets.REDDITCLIENTID }}
+        REDDITCLIENTSECRET: ${{ secrets.REDDITCLIENTSECRET }}
+        REDDITPASSWORD: ${{ secrets.REDDITPASSWORD }}
       run: |
         . ~/venv/bin/activate
         if [ -f friday-trans-key.json ]; then printf "Google file here"; fi
-        pytest
+        pytest test_will_it_blend.py
   docs-build:
     runs-on: ${{ matrix.os }}
     name: Docs Build ${{ matrix.os }}, Python ${{ matrix.python-version}}

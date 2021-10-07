@@ -36,73 +36,6 @@ class Support(commands.Cog, name="Support"):
   async def slash_donate(self, ctx):
     await ctx.send("https://www.patreon.com/bePatron?u=42649008", hidden=True)
 
-  # @commands.Cog.listener()
-  # async def on_interaction(self, interation):
-  #   if interation.user.bot:
-  #     return
-
-  #   if interation.guild.id != config.support_server_id:
-  #     return
-
-  #   print(interation)
-  #   return
-
-  @commands.Cog.listener()
-  async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
-    member = payload.member
-
-    if not self.bot.prod or not payload.guild_id:
-      return
-
-    if member is None:
-      try:
-        member = await self.bot.get_guild(payload.guild_id).fetch_member(payload.user_id)
-      except discord.NotFound:
-        return
-
-    if member.bot:
-      return
-
-    if payload.guild_id != 707441352367013899 or payload.channel_id != 707458929696702525 or payload.message_id != 707520808448294983:
-      return
-
-    if str(payload.emoji) != "📌":
-      return
-
-    role = member.guild.get_role(848626624365592636)
-    if role is None:
-      return
-
-    await member.add_roles(role, reason="Updates!")
-
-  @commands.Cog.listener()
-  async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent):
-    member = payload.member
-
-    if not self.bot.prod or not payload.guild_id:
-      return
-
-    if member is None:
-      try:
-        member = await self.bot.get_guild(payload.guild_id).fetch_member(payload.user_id)
-      except discord.NotFound:
-        return
-
-    if member.bot:
-      return
-
-    if payload.guild_id != 707441352367013899 or payload.channel_id != 707458929696702525 or payload.message_id != 707520808448294983:
-      return
-
-    if str(payload.emoji) != "📌":
-      return
-
-    role = member.guild.get_role(848626624365592636)
-    if role is None:
-      return
-
-    await member.remove_roles(role, reason="No more updates :(")
-
   @commands.Cog.listener()
   async def on_message(self, msg):
     # Reacts to any message in the updates channel in the development server
@@ -116,7 +49,7 @@ class Support(commands.Cog, name="Support"):
   @commands.Cog.listener()
   async def on_ready(self):
     guild: discord.Guild = self.bot.get_guild(config.support_server_id)
-    if guild.large and self.bot.intents.members and not guild.chunked:
+    if self.bot.intents.members and not guild.chunked:
       await guild.chunk(cache=True)
 
   @commands.Cog.listener("on_ready")

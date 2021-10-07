@@ -58,7 +58,7 @@ class TopGG(commands.Cog):
 
   @commands.group(name="vote", help="Get the link to vote for me on Top.gg", invoke_without_command=True)
   async def vote(self, ctx: "MyContext"):
-    prev_time = await self.bot.db.query("SELECT voted_time FROM votes WHERE id=$1 LIMIT 1", ctx.author.id)
+    prev_time = await self.bot.db.query("SELECT voted_time FROM votes WHERE id=$1 LIMIT 1", str(ctx.author.id))
     next_time = datetime.datetime.strptime(prev_time, "%Y-%m-%d %H:%M:%S.%f") if prev_time is not None else None
     time = next_time.timestamp() + datetime.timedelta(hours=12).seconds if next_time is not None else None
     vote_message = f"Your next vote time is: <t:{round(time)}:R>" if prev_time is not None else "You can vote now"

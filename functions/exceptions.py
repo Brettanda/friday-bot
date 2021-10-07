@@ -34,6 +34,11 @@ class ArgumentTooLarge(Base):
     super().__init__(message=message, *args, **kwargs)
 
 
+class ArgumentTooSmall(Base):
+  def __init__(self, message="That argument number is too small", *args, **kwargs):
+    super().__init__(message=message, *args, **kwargs)
+
+
 class CantSeeNewVoiceChannelType(Base):
   def __init__(self, message="I believe you are in a new type of voice channel that I can't join yet", *args, **kwargs):
     super().__init__(message=message, *args, **kwargs)
