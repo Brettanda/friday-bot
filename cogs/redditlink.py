@@ -179,7 +179,6 @@ class redditlink(commands.Cog):
 
     data = await self.reddit.submission(url=reg[0])
 
-
     link, linkdata, video = None, None, None
     # try:
     if data.media is not None and "reddit_video" in data.media:
