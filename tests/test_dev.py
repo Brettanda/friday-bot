@@ -7,9 +7,10 @@ if TYPE_CHECKING:
 
 
 @pytest.mark.asyncio
-async def test_reload(bot: "bot", channel: "channel"):
-  content = "!dev"
+@pytest.mark.parametrize("command", ["reload", "", "say", "reload all"])
+async def test_dev(bot: "bot", channel: "channel", command: str):
+  content = f"!dev {command}"
   await channel.send(content)
 
   with pytest.raises(asyncio.TimeoutError):
-    await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout / 2)
+    await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=1.0)

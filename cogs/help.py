@@ -137,6 +137,13 @@ class Help(commands.HelpCommand):
     embed.description = description
     # embed.set_footer()
 
+    if len(commands) == 0:
+      embed.add_field(
+        name="Commands",
+        value="No commands that you can use",
+        inline=False
+      )
+
     for command in commands:
       signature = self.context.clean_prefix + command.qualified_name + " "
 

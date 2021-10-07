@@ -44,6 +44,48 @@ async def test_language(bot: "bot", channel: "channel"):
   assert f_msg.embeds[0].title == "New language set to: `Spanish`" and l_msg.embeds[0].title == "New language set to: `English`"
 
 
+class TestRemoveInvites:
+  @pytest.mark.asyncio
+  @pytest.mark.dependency()
+  async def test_enable(self, bot: "bot", channel: "channel"):
+    content = "!removeinvites 1"
+    await channel.send(content)
+
+    msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
+    assert msg.embeds[0].title == "I will begin to remove invites"
+
+  @pytest.mark.asyncio
+  @pytest.mark.parametrize("content", ["https://discord.com/invite/NTRuFjU", "http://discord.com/invite/NTRuFjU", "https://discord.gg/NTRuFjU", "discord.com/invite/NTRuFjU", "discord.gg/NTRuFjU"])
+  @pytest.mark.dependency(depends=["test_enable"], scope='class')
+  async def test_external_guild(self, bot: "bot", channel: "channel", content: str):
+    msg = await channel.send(content)
+
+    msg = await bot.wait_for("raw_message_delete", check=lambda payload: pytest.raw_message_delete_check(payload, msg), timeout=pytest.timeout)
+    assert msg.cached_message.content == content if msg.cached_message is not None else 1
+
+  @pytest.mark.asyncio
+  @pytest.mark.dependency(depends=["test_enable"], scope='class')
+  async def test_xdisable(self, bot: "bot", channel: "channel"):
+    content = "!removeinvites 0"
+    await channel.send(content)
+
+    l_msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
+    assert l_msg.embeds[0].title == "I will no longer remove invites"
+
+
+@pytest.mark.asyncio
+async def test_deletecommandsafter(bot: "bot", channel: "channel"):
+  content = "!deletecommandsafter 120"
+  await channel.send(content)
+
+  f_msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
+  assert f_msg.embeds[0].title == "I will now delete commands after `120` seconds"
+  content = "!deletecommandsafter"
+  await channel.send(content)
+  l_msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
+  assert l_msg.embeds[0].title == "I will no longer delete command messages"
+
+
 class TestBlacklist:
   @pytest.mark.asyncio
   @pytest.mark.dependency()

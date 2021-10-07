@@ -1,7 +1,6 @@
 from discord.ext import commands
 # from discord_slash import cog_ext
 
-from .help import cmd_help
 from functions import checks, MessageColors, embed, config
 
 # import discord
@@ -15,15 +14,10 @@ class Patreons(commands.Cog):
   def __init__(self, bot: "Bot"):
     self.bot = bot
 
-  @commands.group(name="patreon", invoke_without_command=True)
+  @commands.group(name="patreon", description="Commands for Friday's Patrons", invoke_without_command=True)
   @commands.guild_only()
   async def norm_patreon(self, ctx):
-    await cmd_help(ctx, ctx.command)
-
-  @norm_patreon.command("test", hidden=True)
-  @checks.is_min_tier()
-  async def norm_test(self, ctx):
-    print("something x2")
+    await ctx.send_help(ctx.command)
 
   @norm_patreon.group("server", description="Activate the server that you would like to apply your patronage to", invoke_without_command=True)
   @commands.guild_only()

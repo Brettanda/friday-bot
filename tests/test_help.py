@@ -16,56 +16,52 @@ async def test_help(bot: "bot", channel: "channel"):
 
 
 @pytest.mark.asyncio
-async def test_command(bot, channel):
-  content = "!help ping"
+async def test_command_unknown(bot, channel):
+  content = "!help asd"
   await channel.send(content)
 
   msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
-  assert msg.embeds[0].title == "!ping"
-  assert msg.embeds[0].description == "Pong!"
+  assert msg.embeds[0].title == 'No command called "asd" found.'
 
 
 @pytest.mark.asyncio
-async def test_cog(bot, channel):
-  content = "!help Music"
+@pytest.mark.parametrize("command", ["ping", "souptime", "ban", "kick"])
+async def test_command(bot, channel, command: str):
+  content = f"!help {command}"
   await channel.send(content)
 
   msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
-  assert msg.embeds[0].title == "Music Commands"
+  assert msg.embeds[0].title == f"!{command}"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("cog", ["Music", "Moderation", "Dev", "TopGG"])
+async def test_cog(bot, channel, cog: str):
+  content = f"!help {cog}"
+  await channel.send(content)
+
+  msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
+  assert cog in msg.embeds[0].title
   assert len(msg.embeds[0].fields) > 0
 
 
 @pytest.mark.asyncio
-async def test_group(bot: "bot", channel: "channel"):
-  content = "!help blacklist"
+@pytest.mark.parametrize("group", ["blacklist", "custom", "welcome"])
+async def test_group(bot: "bot", channel: "channel", group: str):
+  content = f"!help {group}"
   await channel.send(content)
 
   msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
-  assert msg.embeds[0].title == "!blacklist"
+  assert msg.embeds[0].title == f"!{group}"
+  assert len(msg.embeds[0].fields) > 0
 
 
 @pytest.mark.asyncio
-async def test_group_alias(bot: "bot", channel: "channel"):
-  content = "!help bl"
+@pytest.mark.parametrize("subcommand", ["blacklist add", "welcome role", "custom add"])
+async def test_subcommand(bot: "bot", channel: "channel", subcommand: str):
+  content = f"!help {subcommand}"
   await channel.send(content)
 
   msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
-  assert msg.embeds[0].title == "!blacklist"
-
-
-@pytest.mark.asyncio
-async def test_subcommand(bot: "bot", channel: "channel"):
-  content = "!help blacklist add"
-  await channel.send(content)
-
-  msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
-  assert msg.embeds[0].title == "!blacklist add"
-
-
-@pytest.mark.asyncio
-async def test_subcommand_alias(bot: "bot", channel: "channel"):
-  content = "!help bl +"
-  await channel.send(content)
-
-  msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
-  assert msg.embeds[0].title == "!blacklist add"
+  assert msg.embeds[0].title == f"!{subcommand}"
+  assert len(msg.embeds[0].fields) > 0

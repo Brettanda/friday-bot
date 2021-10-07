@@ -331,6 +331,11 @@ class Fun(commands.Cog):
   @commands.bot_has_permissions(manage_messages=True)
   async def slash_poll(self, ctx, title, option1, option2, option3=None, option4=None, option5=None, option6=None, option7=None, option8=None, option9=None, option10=None):
     ...
+    # options = []
+    # for item in [option1, option2, option3, option4, option5, option6, option7, option8, option9, option10]:
+    #   if item is not None:
+    #     options.append(item)
+    # await self.poll(ctx, title, options, True)
 
   def bar(self, iteration, total, length=25, decimals=1, fill="█"):
     percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
