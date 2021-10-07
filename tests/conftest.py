@@ -67,7 +67,7 @@ def cleanup(request, bot, channel):
   def close():
     if not bot.was_online:
       asyncio.get_event_loop().run_until_complete(channel.send("!complete"))
-    asyncio.get_event_loop().run_until_complete(channel.purge(oldest_first=True))
+    asyncio.get_event_loop().run_until_complete(channel.purge(limit=200, oldest_first=True))
     asyncio.get_event_loop().run_until_complete(bot.close())
   request.addfinalizer(close)
 
