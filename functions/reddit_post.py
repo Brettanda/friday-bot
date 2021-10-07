@@ -1,6 +1,9 @@
 # import json
 import random
 import asyncio
+
+from discord_slash import SlashContext
+
 from . import MessageColors, embed
 
 from typing import Union
