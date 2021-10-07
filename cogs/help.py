@@ -10,7 +10,7 @@ from discord_slash import SlashContext
 import typing
 from typing_extensions import TYPE_CHECKING
 # from cogs.cleanup import get_delete_time
-from functions import MessageColors, Menu, views, MyContext
+from functions import MessageColors, Menu, views, MyContext, embed
 
 if TYPE_CHECKING:
   from index import Friday as Bot
@@ -125,9 +125,8 @@ class Help(commands.HelpCommand):
   def __init__(self):
     super().__init__(command_attrs={"help": "Show help about the bot, a command, or a category."}, case_insensitive=True)
 
-  async def on_help_command_error(self, ctx, error):
-    if isinstance(error, commands.CommandInvokeError):
-      await ctx.reply(str(error.original))
+  async def send_error_message(self, error):
+    return await self.context.reply(embed=embed(title=str(error), color=MessageColors.WARNING))
 
   def get_command_signature(self, command: commands.command) -> str:
     return self.context.clean_prefix + '\n!'.join(syntax(command, quotes=False).split('\n'))
@@ -168,7 +167,7 @@ class Help(commands.HelpCommand):
 
     return embed
 
-  async def command_callback(self, ctx: "MyContext", *, command: commands.Command = None):
+  async def command_callback(self, ctx: "MyContext", *, command=None):
     # await self.prepare_help_command(ctx, command)
     # bot: "Bot" = ctx.bot
 
@@ -281,7 +280,7 @@ class Help(commands.HelpCommand):
 
     embed = self.make_page_embed(
         filtered,
-        title=group.qualified_name,
+        title=self.context.clean_prefix + group.qualified_name,
         description=f"{group.description}\n\n{group.help}"
         if group.description
         else group.help or "No help found..."
@@ -305,69 +304,11 @@ class Help(commands.HelpCommand):
 
     await self.context.reply(embed=embed)
 
-  # def command_not_found()
 
-
-def setup(bot):
+def setup(bot: "Bot"):
   bot.old_help_command = bot.help_command
   bot.help_command = Help()
 
 
-def teardown(bot):
+def teardown(bot: "Bot"):
   bot.help_command = bot.old_help_command
-# class Help(commands.Cog):
-#   """The help command"""
-
-#   def __init__(self, bot: "Bot"):
-#     self.bot = bot
-#     self.bot.remove_command("help")
-
-#   @commands.command(name="help", aliases=["?", "commands"])  # , usage="<command/group>")
-#   async def norm_show_help(self, ctx, group: typing.Optional[str] = None, cmd: typing.Optional[str] = None):
-#     await self.show_help(ctx, group, cmd)
-
-#   @cog_ext.cog_slash(name="help")
-#   @checks.slash(user=True, private=True)
-#   async def slash_show_help(self, ctx, group: str = None, cmd: str = None):
-#     await ctx.defer()
-#     await self.show_help(ctx, group, cmd, True)
-
-#   async def show_help(self, ctx, group: str = None, cmd: str = None, slash: bool = False):
-#     """Shows this message."""
-
-#     if cmd is None:
-#       cmd = group
-
-#     delay = self.bot.log.get_guild_delete_commands(ctx.guild)
-#     if delay is not None and delay > 0 and not slash:
-#       await ctx.message.delete(delay=delay)
-#     if cmd is not None:
-#       for item in self.bot.commands:
-#         if cmd in item.aliases:
-#           cmd = item.name
-
-#     commands = []
-#     for com in self.bot.commands:
-#       try:
-#         if await com.can_run(ctx) and com.hidden is not True and com.enabled is not False:
-#           commands.append(com)
-#       except Exception:
-#         pass
-
-#     if cmd is None:
-#       menu = Menu(source=HelpMenu(ctx, commands),
-#                   delete_message_after=True,
-#                   clear_reactions_after=True,
-#                   timeout=delay if delay is not None and delay > 0 else 60)
-#       await menu.start(ctx)
-
-#     else:
-#       if (command := get(self.bot.commands, name=cmd)):
-#         await cmd_help(ctx, command)
-#       else:
-#         if slash:
-#           return await ctx.send(embed=embed(title=f"The command `{cmd}` does not exist", color=MessageColors.ERROR))
-#         await ctx.reply(embed=embed(title=f"The command `{cmd}` does not exist", color=MessageColors.ERROR))
-
-# def setup(bot):
-#   bot.add_cog(Help(bot))
