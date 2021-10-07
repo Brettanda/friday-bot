@@ -17,7 +17,6 @@ from discord_slash.model import SlashCommandOptionType
 from discord_slash.utils.manage_commands import create_option
 from typing_extensions import TYPE_CHECKING
 
-from cogs.help import cmd_help
 from functions import MessageColors, embed, checks, relay_info, config, MyContext
 
 if TYPE_CHECKING:
