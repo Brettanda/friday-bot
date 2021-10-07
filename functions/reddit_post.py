@@ -1,16 +1,6 @@
 # import json
 import random
 import asyncio
-import sys
-import asyncpraw
-import os
-
-import aiohttp
-import discord
-from discord.ext import commands
-
-from discord_slash import SlashContext
-
 from . import MessageColors, embed
 
 from typing import Union
