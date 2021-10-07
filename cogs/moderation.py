@@ -17,7 +17,6 @@ from discord_slash.model import SlashCommandOptionType
 from discord_slash.utils.manage_commands import create_option
 from typing_extensions import TYPE_CHECKING
 
-from cogs.help import cmd_help
 from functions import MessageColors, embed, checks, relay_info, config, MyContext
 
 if TYPE_CHECKING:
@@ -30,7 +29,7 @@ class Moderation(commands.Cog):
   def __init__(self, bot: "Bot"):
     self.bot = bot
 
-    self.invite_reg = r"(https?:\/\/)?(www\.)?(discord(app|)\.(gg)(\/invite|))\/[a-zA-Z0-9\-]+"
+    self.invite_reg = r"(http(s|)?:\/\/)?(www\.)?(discord(app|)\.(gg|com|net)(\/invite|))\/[a-zA-Z0-9\-]+"
 
     if not hasattr(self, "message_spam_control"):
       self.message_spam_control = {}
@@ -116,7 +115,7 @@ class Moderation(commands.Cog):
   # @commands.guild_only()
   # @commands.has_guild_permissions(manage_channels=True)
   # async def settings_bot(self, ctx):
-  #   await cmd_help(ctx, ctx.command)
+  #   await ctx.send_help(ctx.command)
 
   # @cog_ext.cog_slash(name="bot", description="Bot settings")
   # @commands.has_guild_permissions(manage_channels=True)
@@ -141,7 +140,7 @@ class Moderation(commands.Cog):
     await ctx.reply(embed=embed(
         title="Current Welcome Settings",
         fieldstitle=["Role", "Channel", "Message"],
-        fieldsval=[f"<@&{role_id}>"if role_id is not None else "None", f"<#{channel_id}>" if channel_id is not None else "None", f"{message}" if message != "" else "None"],
+        fieldsval=[f"<@&{role_id}>"if str(role_id) != str(None) else "None", f"<#{channel_id}>" if str(channel_id) != str(None) else "None", f"{message}" if message != "" else "None"],
         fieldsin=[False, False, False]
     ))
 
@@ -211,19 +210,20 @@ class Moderation(commands.Cog):
   @commands.guild_only()
   @commands.has_guild_permissions(manage_channels=True)
   @commands.bot_has_guild_permissions(manage_messages=True)
-  async def norm_remove_discord_invites(self, ctx):
-    check = await self.bot.db.query("SELECT remove_invites FROM servers WHERE id=$1 LIMIT 1", str(ctx.guild.id))
-    if bool(check) is True:
-      await self.bot.db.query("UPDATE servers SET remove_invites=$1 WHERE id=$2", False, str(ctx.guild.id))
-      # self.to_remove_invites[ctx.guild.id] = False
+  async def norm_remove_discord_invites(self, ctx: "MyContext", *, enable: typing.Union[bool, None] = None):
+    if enable is None:
+      check = await self.bot.db.query("SELECT remove_invites FROM servers WHERE id=$1 LIMIT 1", str(ctx.guild.id))
+      check = not bool(check)
+    else:
+      check = bool(enable)
+    await self.bot.db.query("UPDATE servers SET remove_invites=$1 WHERE id=$2", check, str(ctx.guild.id))
+    if bool(check) is False:
       await ctx.reply(embed=embed(title="I will no longer remove invites"))
     else:
-      await self.bot.db.query("UPDATE servers SET remove_invites=$1 WHERE id=$2", True, str(ctx.guild.id))
-      # self.to_remove_invites[ctx.guild.id] = True
       await ctx.reply(embed=embed(title="I will begin to remove invites"))
 
   async def msg_remove_invites(self, msg: discord.Message):
-    if not msg.guild or msg.author.bot:
+    if not msg.guild or (msg.author.bot and not msg.author.id == 892865928520413245):
       return
 
     to_remove_invites = await self.bot.db.query(f"SELECT remove_invites FROM servers WHERE id={str(msg.guild.id)}::text LIMIT 1")
@@ -312,7 +312,6 @@ class Moderation(commands.Cog):
   @commands.bot_has_guild_permissions(manage_messages=True)
   async def _blacklist(self, ctx: "MyContext"):
     await ctx.send_help(ctx.command)
-    # await cmd_help(ctx, ctx.command)
 
   @_blacklist.command(name="add", aliases=["+"], extras={"examples": ["penis", "shit"]})
   @commands.guild_only()
@@ -389,7 +388,7 @@ class Moderation(commands.Cog):
 
   async def kick(self, ctx, members, reason=None, slash: bool = False):
     if isinstance(members, list) and len(members) == 0 and not slash:
-      return await cmd_help(ctx, ctx.command)
+      return await ctx.send_help(ctx.command)
 
     # tokick = []
 
@@ -471,7 +470,7 @@ class Moderation(commands.Cog):
 
   async def ban(self, ctx, members, reason=None, delete_message_days=0, slash=False):
     if isinstance(members, list) and len(members) == 0 and not slash:
-      return await cmd_help(ctx, ctx.command)
+      return await ctx.send_help(ctx.command)
 
     # toban = []
 
@@ -721,10 +720,10 @@ class Moderation(commands.Cog):
 
   @commands.Cog.listener()
   async def on_message(self, msg: discord.Message):
-    if not msg.guild or msg.author.bot:
+    if not msg.guild or (msg.author.bot and not msg.author.id == 892865928520413245):
       return
     bypass = msg.author.guild_permissions.manage_guild if isinstance(msg.author, discord.Member) else False
-    if bypass:
+    if bypass and not msg.author.id == 892865928520413245:
       return
     await self.msg_remove_invites(msg)
     await self.check_blacklist(msg)
