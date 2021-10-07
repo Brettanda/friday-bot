@@ -17,7 +17,6 @@ topggpy==1.1.0
 decorator==4.4.2
 discord-ext-menus @ git+https://github.com/Rapptz/discord-ext-menus@6f2b873bf0d28903eb752aa1166b3aac26dc9007
 discord-py-slash-command @ git+https://github.com/Brettanda/discord-py-interactions
-discord-flags==1.5.2
 discord.py @ git+https://github.com/Rapptz/discord.py@0cc67e58eded2dd83841d6e4f62a4bc626348fb2
 # flair==0.8.0.post1
 flatbuffers==1.12
@@ -95,3 +94,7 @@ python-slugify==5.0.2
 profanity==1.1
 pyfiglet==0.8.post1
 asyncpg==0.23.0
+asyncpraw==7.4.0
+pytest
+pytest-asyncio==0.15.1
+pytest-dependency==0.5.1

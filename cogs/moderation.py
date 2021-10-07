@@ -332,7 +332,8 @@ class Moderation(commands.Cog):
   @commands.bot_has_guild_permissions(manage_messages=True)
   async def _blacklist_remove_word(self, ctx, *, word: str):
     cleansed_word = word
-    if len(await self.bot.db.query("SELECT words FROM blacklist WHERE guild_id=$1 AND $2::text = ANY(words) LIMIT 1", str(ctx.guild.id), cleansed_word)) == 0:
+    current_words = await self.bot.db.query("SELECT words FROM blacklist WHERE guild_id=$1 AND $2::text = ANY(words) LIMIT 1", str(ctx.guild.id), cleansed_word)
+    if current_words is None or len(current_words) == 0:
       return await ctx.reply(embed=embed(title="You don't seem to be blacklisting that word"))
     await self.bot.db.query("UPDATE blacklist SET words = array_remove(words,$2::text) WHERE guild_id=$1", str(ctx.guild.id), cleansed_word)
     word = word

@@ -1,51 +1,46 @@
 # import json
 import random
 import asyncio
-import sys
-
-import aiohttp
-import discord
-from discord.ext import commands
 
 from discord_slash import SlashContext
 
 from . import MessageColors, embed
+
+from typing import Union
+from typing_extensions import TYPE_CHECKING
+
+if TYPE_CHECKING:
+  from functions import MyContext
 
 posted = {}
 
 lock = asyncio.Lock()
 
 
-async def request(url):
-  async with aiohttp.ClientSession() as session:
-    async with session.get(
-        url,
-        headers={
-            'User-Agent':
-            f'DiscordBot (https://github.com/Rapptz/discord.py {discord.__version__}) Python/{sys.version_info.major}.{sys.version_info.minor} aiohttp/{aiohttp.__version__}'
-        }
-    ) as r:
-      if r.status == 200:
-        return await r.json()
-
-
-async def get_reddit_post(ctx: commands.Context or SlashContext, sub_reddits: str or list = None):  # ,hidden:bool=False):
+async def get_reddit_post(ctx: Union["MyContext", SlashContext], sub_reddits: Union[str, list] = None, reddit=None):  # ,hidden:bool=False):
+  if reddit is None:
+    raise TypeError("reddit must not be None")
   if sub_reddits is None:
     raise TypeError("sub_reddits must not be None")
 
-  url = "https://www.reddit.com/r/{}.json?sort=top&t=week".format(random.choice(sub_reddits))
+  sub = random.choice(sub_reddits)
+  # url = "https://www.reddit.com/r/{}.json?sort=top&t=week".format(sub)
 
   body = None
 
   # async with ctx.channel.typing():
-  try:
-    async with lock:
-      body = await request(url)
-  except BaseException:
-    # if hidden:
-      # return dict(content="Something went wrong, please try again.")
-    # else:
-    return dict(embed=embed(title="Something went wrong, please try again.", color=MessageColors.ERROR))
+  # try:
+  body = [i async for i in (await reddit.subreddit(sub)).top("week", params={"count": random.randrange(1000)}, limit=100)]
+  # async for submission in body:
+  #   print(submission.title)
+  # post, = [submission async for submission in body.top("week")]  # , params={"count": random.randrange(1000), "limit": 1}):
+  # posts += post
+  #   body = await request(url)
+  # except Exception:
+  #   if hidden:
+  #     return dict(content="Something went wrong, please try again.")
+  #   else:
+  #   return dict(embed=embed(title="Something went wrong, please try again.", color=MessageColors.ERROR))
 
   if ctx.channel is not None and str(ctx.channel.type) == "private":
     thisposted = ctx.channel.id
@@ -55,24 +50,24 @@ async def get_reddit_post(ctx: commands.Context or SlashContext, sub_reddits: st
     thisposted = ctx.channel_id
 
   if ctx.channel is not None and str(ctx.channel.type) == "private" or ctx.channel is not None and ctx.channel.nsfw:
-    allowed = body["data"]["children"]
+    allowed = body
   else:
     allowed = []
-    for post in body["data"]["children"]:
-      if not post["data"]["over_18"] and post["data"]["link_flair_text"] != "MODPOST" and post["data"]["link_flair_text"] != "Long":
+    for post in body:
+      if not post.over_18 and post.link_flair_text != "MODPOST" and post.link_flair_text != "Long":
         allowed.append(post)
 
   x = 0
   for post in allowed:
-    if "https://i.redd.it/" not in post["data"]["url"]:
+    if "https://i.redd.it/" not in post.url:
       del allowed[x]
     else:
       try:
-        if len(posted[thisposted]) > 0 and post["data"].get("permalink") in posted[thisposted]:
+        if len(posted[thisposted]) > 0 and post.permalink in posted[thisposted]:
           del allowed[x]
       except KeyError:
         posted[thisposted] = []
-        if len(posted[thisposted]) > 0 and post["data"].get("permalink") in posted[thisposted]:
+        if len(posted[thisposted]) > 0 and post.permalink in posted[thisposted]:
           del allowed[x]
     x += 1
 
@@ -81,7 +76,7 @@ async def get_reddit_post(ctx: commands.Context or SlashContext, sub_reddits: st
     postinquestion = allowed[randNum]
 
     try:
-      if postinquestion["data"].get("permalink") in posted[thisposted]:
+      if postinquestion.permalink in posted[thisposted]:
         pickPost()
     except KeyError:
       pass
@@ -90,11 +85,11 @@ async def get_reddit_post(ctx: commands.Context or SlashContext, sub_reddits: st
 
   topost = pickPost()
   try:
-    posted[thisposted].append(topost["data"].get("permalink"))
+    posted[thisposted].append(topost.permalink)
   except KeyError:
-    posted[thisposted] = [topost["data"].get("permalink")]
+    posted[thisposted] = [topost.permalink]
 
-  data = topost["data"]
+  data = topost
   # print(data["url"])
   # if hidden:
   #   return dict(
@@ -104,10 +99,10 @@ async def get_reddit_post(ctx: commands.Context or SlashContext, sub_reddits: st
   # else:
   return dict(
       embed=embed(
-          title=data.get("title"),
-          url="https://reddit.com" + data["permalink"],
+          title=data.title,
+          url="https://reddit.com" + data.permalink,
           # author_name="u/"+data.get("author"),
-          image=data["url"],
+          image=data.url,
           color=MessageColors.MEME
       )
   )

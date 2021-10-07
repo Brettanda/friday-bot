@@ -1,7 +1,7 @@
 import json
-import random
+# import random
 import typing
-import numpy as np
+import numpy.random as random
 import asyncio
 import datetime
 
@@ -156,7 +156,7 @@ class Fun(commands.Cog):
       8: "8️⃣"
   }
 
-  @commands.command(name="minesweeper", enabled=False, aliases=["ms"], help="Play minesweeper")
+  @commands.command(name="minesweeper", aliases=["ms"], help="Play minesweeper")
   async def norm_minesweeper(self, ctx, size: typing.Optional[int] = 5, bomb_count: typing.Optional[int] = 6):
     await ctx.reply(**await self.mine_sweeper(size, bomb_count))
 
@@ -177,15 +177,17 @@ class Fun(commands.Cog):
 
     if size > 9:
       raise exceptions.ArgumentTooLarge("Size cannot be larger than 9 due to the message character limit of Discord")
-    if bomb_count > size * size:
-      raise exceptions.ArgumentTooLarge("Bomb_count cannot be larger than the game board")
+    if bomb_count > size * size or bomb_count >= 81:
+      raise exceptions.ArgumentTooLarge("Bomb count cannot be larger than the game board")
+    if size <= 1 or bomb_count <= 1:
+      raise exceptions.ArgumentTooSmall("Bomb count and board size must be greater than 1")
 
     arr = [[0 for row in range(size)] for column in range(size)]
 
     # async with ctx.channel.typing():
     def get_xy():
       try:
-        return np.random.randint(0, size - 1), np.random.randint(0, size - 1)
+        return random.randint(0, size - 1), random.randint(0, size - 1)
       except Exception as e:
         self.bot.logger.critical("This is what caused the shutdown")
         raise e
@@ -293,17 +295,20 @@ class Fun(commands.Cog):
       9: "🔟"
   }
 
-  @commands.command(name="poll", extras={"examples": ["\"this is a title\" 1;;2;;3"]}, help="Make a poll. Seperate the options with `;;`")
+  @commands.command(name="poll", extras={"examples": ["\"this is a title\" '1' '2' '3'"]}, help="Make a poll. Contain each option in qoutes `'option' `'option 2'``")
   # @commands.group(name="poll", extras={"examples": ["\"this is a title\" 1;;2;;3"]}, help="Make a poll. Seperate the options with `;;`")
   @commands.guild_only()
   @commands.bot_has_permissions(manage_messages=True)
-  async def norm_poll(self, ctx, title, *, options: str = None):
-    options = options.split(";;")
+  async def norm_poll(self, ctx: "MyContext", title: str, option1: str = None, option2: str = None, option3: str = None, option4: str = None, option5: str = None, option6: str = None, option7: str = None, option8: str = None, option9: str = None, option10: str = None):
+    options = []
+    for item in [option1, option2, option3, option4, option5, option6, option7, option8, option9, option10]:
+      if item is not None:
+        options.append(item)
 
     if len(options) < 2:
       return await ctx.reply(embed=embed(title="Please choose 2 or more options for this poll", color=MessageColors.ERROR))
 
-    await self.poll(ctx, title, options)
+    await self.poll(ctx, title, options, ctx.is_interaction())
 
   @cog_ext.cog_slash(
       name="poll",
@@ -325,11 +330,7 @@ class Fun(commands.Cog):
   @checks.slash(user=True, private=False)
   @commands.bot_has_permissions(manage_messages=True)
   async def slash_poll(self, ctx, title, option1, option2, option3=None, option4=None, option5=None, option6=None, option7=None, option8=None, option9=None, option10=None):
-    options = []
-    for item in [option1, option2, option3, option4, option5, option6, option7, option8, option9, option10]:
-      if item is not None:
-        options.append(item)
-    await self.poll(ctx, title, options, True)
+    ...
 
   def bar(self, iteration, total, length=25, decimals=1, fill="█"):
     percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
@@ -337,7 +338,7 @@ class Fun(commands.Cog):
     bar = fill * filledLength + '░' * (length - filledLength)
     return f"\r |{bar}| {percent}%"
 
-  async def poll(self, ctx, title, options=None, slash=False):
+  async def poll(self, ctx: "MyContext", title, options=None, slash=False):
     x = 0
     titles = []
     vals = []
@@ -347,18 +348,15 @@ class Fun(commands.Cog):
       vals.append(f"{self.bar(0,1)}")
       ins.append(False)
       x += 1
-    try:
-      if slash:
-        message = await ctx.send(embed=embed(title=f"Poll: {title}", fieldstitle=titles, fieldsval=vals, fieldsin=ins))
-      else:
-        message = await ctx.reply(embed=embed(title=f"Poll: {title}", fieldstitle=titles, fieldsval=vals, fieldsin=ins))
-    except Exception as e:
-      raise e
+    if not ctx.is_interaction():
+      message = await ctx.send(embed=embed(title=f"Poll: {title}", fieldstitle=titles, fieldsval=vals, fieldsin=ins))
     else:
-      x = 0
-      for _ in options:
-        await message.add_reaction(self.POLLEMOTES[x])
-        x += 1
+      message = await ctx.send(embed=embed(title=f"Poll: {title}", fieldstitle=titles, fieldsval=vals, fieldsin=ins))
+      message = ctx.message
+    x = 0
+    for _ in options:
+      await message.add_reaction(self.POLLEMOTES[x])
+      x += 1
 
   @commands.Cog.listener("on_raw_reaction_add")
   @commands.Cog.listener("on_raw_reaction_remove")

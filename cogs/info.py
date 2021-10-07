@@ -69,6 +69,7 @@ class Info(commands.Cog):
             title=ctx.guild.name + " - Info",
             thumbnail=ctx.guild.icon.url,
             fieldstitle=["Server Name", "Members", "Server ID", "Region", "Created", "Verification level", "Roles"],
+            # fieldsval=[f"```py\n{ctx.guild.name}```", f"```py\n{ctx.guild.member_count}```", f"```py\n{ctx.guild.id}```", f"```py\n{ctx.guild.region}```", f'```py\n{ctx.guild.created_at.strftime("%b %d, %Y")}```', f"```py\n{ctx.guild.verification_level}```", f"```py\n{len(ctx.guild.roles)}```"]
             fieldsval=[ctx.guild.name, ctx.guild.member_count, ctx.guild.id, ctx.guild.region, ctx.guild.created_at.strftime("%b %d, %Y"), ctx.guild.verification_level, len(ctx.guild.roles)]
         )
     )
@@ -88,7 +89,7 @@ class Info(commands.Cog):
         title=f"{member.name} - Info",
         thumbnail=member.avatar.url,
         fieldstitle=["Name", "Nickname", "Mention", "Role count", "Created", "Joined", "Top Role", "Pending Verification"],
-        fieldsval=[member.name, member.nick, member.mention, len(member.roles), member.created_at.strftime("%b %d, %Y"), member.joined_at.strftime("%b %d, %Y"), member.top_role.mention, member.pending],
+        fieldsval=[member.name, str(member.nick), member.mention, len(member.roles), member.created_at.strftime("%b %d, %Y"), member.joined_at.strftime("%b %d, %Y"), member.top_role.mention, member.pending],
         color=member.color if member.color.value != 0 else MessageColors.DEFAULT
     ))
 
