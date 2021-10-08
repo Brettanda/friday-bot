@@ -67,7 +67,7 @@ class Info(commands.Cog):
     return await ctx.send(
         embed=embed(
             title=ctx.guild.name + " - Info",
-            thumbnail=ctx.guild.icon.url,
+            thumbnail=ctx.guild.icon.url if ctx.guild.icon is not None else None,
             fieldstitle=["Server Name", "Members", "Server ID", "Region", "Created", "Verification level", "Roles"],
             # fieldsval=[f"```py\n{ctx.guild.name}```", f"```py\n{ctx.guild.member_count}```", f"```py\n{ctx.guild.id}```", f"```py\n{ctx.guild.region}```", f'```py\n{ctx.guild.created_at.strftime("%b %d, %Y")}```', f"```py\n{ctx.guild.verification_level}```", f"```py\n{len(ctx.guild.roles)}```"]
             fieldsval=[ctx.guild.name, ctx.guild.member_count, ctx.guild.id, ctx.guild.region, ctx.guild.created_at.strftime("%b %d, %Y"), ctx.guild.verification_level, len(ctx.guild.roles)]
