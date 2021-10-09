@@ -46,6 +46,8 @@ ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
 
 
 class redditlink(commands.Cog):
+  """Extract the media from Reddit posts with Friday's Reddit command and more"""
+
   def __init__(self, bot: "Bot"):
     self.bot = bot
     self.emoji = "🔗"

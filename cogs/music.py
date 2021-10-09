@@ -65,6 +65,8 @@ ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
 
 
 class Music(commands.Cog):
+  """Listen to your favourite music and audio clips with Friday's music commands"""
+
   def __init__(self, bot: "Bot"):
     self.bot = bot
 
