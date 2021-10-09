@@ -1,5 +1,5 @@
 ---
-title: Info | Friday
+title: Info
 
 ---
 # Info

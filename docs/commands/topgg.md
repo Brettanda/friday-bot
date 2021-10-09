@@ -1,5 +1,5 @@
 ---
-title: Topgg | Friday
+title: Topgg
 descrtiption: Handles interactions with the top.gg API
 ---
 # Topgg

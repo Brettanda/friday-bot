@@ -1,5 +1,5 @@
 ---
-title: Support | Friday
+title: Support
 descrtiption: Every thing related to the Friday development server
 ---
 # Support

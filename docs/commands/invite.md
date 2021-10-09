@@ -1,5 +1,5 @@
 ---
-title: Invite | Friday
+title: Invite
 descrtiption: Invite Friday to your server
 ---
 # Invite

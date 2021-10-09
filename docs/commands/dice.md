@@ -1,5 +1,5 @@
 ---
-title: Dice | Friday
+title: Dice
 descrtiption: Roll some dice
 ---
 # Dice

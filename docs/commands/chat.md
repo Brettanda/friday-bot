@@ -1,5 +1,5 @@
 ---
-title: Chat | Friday
+title: Chat
 
 ---
 # Chat
