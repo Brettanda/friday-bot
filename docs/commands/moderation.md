@@ -1,6 +1,6 @@
 ---
 title: Moderation
-descrtiption: Manage your server with these commands
+description: Manage your server with these commands
 ---
 # Moderation
 

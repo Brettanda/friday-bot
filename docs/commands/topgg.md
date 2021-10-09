@@ -1,6 +1,6 @@
 ---
 title: Topgg
-descrtiption: Handles interactions with the top.gg API
+description: Handles interactions with the top.gg API
 ---
 # Topgg
 
