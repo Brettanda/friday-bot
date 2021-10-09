@@ -1,10 +1,10 @@
 ---
 title: Patreons
-
+description: Exlusive command for Friday's Patreon Patrons
 ---
 # Patreons
 
-
+Exlusive command for Friday's Patreon Patrons
 
 ## Patreon
 

@@ -1,10 +1,10 @@
 ---
 title: Fun
-description: Fun things like games
+description: Fun games and other commands to give more life to your Discord server.
 ---
 # Fun
 
-Fun things like games
+Fun games and other commands to give more life to your Discord server.
 
 ## Coinflip
 

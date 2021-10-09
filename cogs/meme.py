@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 
 class Meme(commands.Cog):
-  """Memes"""
+  """Get a meme hand delivered to you with Friday's meme command"""
 
   def __init__(self, bot: "Bot"):
     self.bot = bot

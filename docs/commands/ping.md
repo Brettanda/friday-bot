@@ -1,10 +1,10 @@
 ---
 title: Ping
-
+description: Ping? Pong!
 ---
 # Ping
 
-
+Ping? Pong!
 
 ## Ping
 

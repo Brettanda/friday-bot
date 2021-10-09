@@ -1,10 +1,10 @@
 ---
 title: Meme
-description: Memes
+description: Get a meme hand delivered to you with Friday's meme command
 ---
 # Meme
 
-Memes
+Get a meme hand delivered to you with Friday's meme command
 
 ## Meme
 

@@ -1,10 +1,10 @@
 ---
 title: Dice
-description: Roll some dice
+description: Roll some dice with advantage or just do some basic math.
 ---
 # Dice
 
-Roll some dice
+Roll some dice with advantage or just do some basic math.
 
 ## Dice
 
