@@ -1,6 +1,6 @@
 ---
 title: Support
-descrtiption: Every thing related to the Friday development server
+description: Every thing related to the Friday development server
 ---
 # Support
 

@@ -1,6 +1,6 @@
 ---
 title: Issue
-descrtiption: Report your issues you have with Friday
+description: Report your issues you have with Friday
 ---
 # Issue
 

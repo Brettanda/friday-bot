@@ -1,6 +1,6 @@
 ---
 title: Fun
-descrtiption: Fun things like games
+description: Fun things like games
 ---
 # Fun
 
