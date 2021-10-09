@@ -1,6 +1,7 @@
 import asyncio
 import os
 import pytest
+import time
 
 import discord
 from discord.ext import commands
@@ -70,6 +71,12 @@ def cleanup(request, bot, channel):
   request.addfinalizer(close)
 
 
+@pytest.fixture(autouse=True)
+def slow_down_tests():
+  yield
+  time.sleep(0.5)
+
+
 @pytest.fixture(scope="session")
 async def channel(bot: commands.Bot) -> discord.TextChannel:
   return await bot.fetch_channel(892840236781015120)
@@ -88,10 +95,15 @@ async def user(bot: commands.Bot) -> discord.User:
 def msg_check(msg: discord.Message, content: str = None) -> bool:
   is_reference = (msg.reference is not None and msg.reference.cached_message is not None and msg.reference.cached_message.author.id == 892865928520413245)
   if content is not None and is_reference:
-    return msg.channel.id == 892840236781015120 and msg.author.id == 751680714948214855 and is_reference and content == msg.reference.cached_message.content
+    return msg.channel.id == 892840236781015120 and msg.author.id == 751680714948214855 and is_reference and content.strip() == msg.reference.cached_message.content
   return msg.channel.id == 892840236781015120 and msg.author.id == 751680714948214855 and is_reference
+
+
+def raw_message_delete_check(payload: discord.RawMessageDeleteEvent, msg: discord.Message) -> bool:
+  return payload.message_id == msg.id
 
 
 def pytest_configure():
   pytest.timeout = 8.0
   pytest.msg_check = msg_check
+  pytest.raw_message_delete_check = raw_message_delete_check

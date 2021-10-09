@@ -1,3 +1,7 @@
+---
+title: Moderation | Friday
+descrtiption: Manage your server with these commands
+---
 # Moderation
 
 Manage your server with these commands

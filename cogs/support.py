@@ -11,7 +11,7 @@ import discord
 
 
 class Support(commands.Cog, name="Support"):
-  """Every thing related to the [Friday development server](//discord.gg/XP4avQ449V)"""
+  """Every thing related to the Friday development server"""
 
   def __init__(self, bot: "Bot"):
     self.bot = bot

@@ -24,12 +24,18 @@ async def test_souptime(bot: "bot", channel: "channel"):
 
 
 @pytest.mark.asyncio
-async def test_rockpaperscissors(bot: "bot", channel: "channel"):
-  content = "!rps rock"
+@pytest.mark.parametrize("choice", ["rock", "paper", "scissors", "", "asd"])
+async def test_rockpaperscissors(bot: "bot", channel: "channel", choice):
+  content = f"!rps {choice}"
   await channel.send(content)
 
   msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
-  assert "The winner of this round is:" in msg.embeds[0].description
+  if choice == "asd":
+    assert "`asd` is not Rock, Paper, Scissors. Please choose one of those three." in msg.embeds[0].title
+  elif choice == "":
+    assert "You're missing some arguments, here is how the command should look" in msg.embeds[0].title
+  else:
+    assert "The winner of this round is:" in msg.embeds[0].description
 
 
 @pytest.mark.asyncio

@@ -1,3 +1,7 @@
+---
+title: Fun | Friday
+descrtiption: Fun things like games
+---
 # Fun
 
 Fun things like games
@@ -74,7 +78,7 @@ ms
 
 ## Poll
 
-Make a poll. Seperate the options with `;;`
+Make a poll. Contain each option in qoutes `'option' `'option 2'``
 
 ??? check "Has a slash command to match"
 	Learn more about [slash commands](/#slash-commands)
@@ -82,13 +86,13 @@ Make a poll. Seperate the options with `;;`
 Usage:
 
 ```md
-!poll <title> <options>
+!poll <title> <option1> <option2> <option3> <option4> <option5> <option6> <option7> <option8> <option9> <option10>
 ```
 
 Examples:
 
 ```md
-!poll "this is a title" 1;;2;;3
+!poll "this is a title" '1' '2' '3'
 ```
 
 ## Rockpaperscissors

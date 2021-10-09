@@ -1,7 +1,7 @@
 # https://squidfunk.github.io/mkdocs-material/setup/setting-up-navigation/
 
 site_name: Friday Bot Docs
-site_url: https://docs.friday-bot.com
+site_url: https://friday-bot.com
 docs_dir: docs
 repo_url: https://github.com/Brettanda/friday-bot
 repo_name: brettanda/friday-bot
@@ -51,6 +51,7 @@ markdown_extensions:
   - pymdownx.emoji:
       emoji_index: !!python/name:materialx.emoji.twemoji
       emoji_generator: !!python/name:materialx.emoji.to_svg
+  - meta
   - admonition
   - pymdownx.details
   - pymdownx.highlight
