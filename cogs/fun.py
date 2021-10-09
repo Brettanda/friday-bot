@@ -25,7 +25,7 @@ with open('./config.json') as f:
 
 
 class Fun(commands.Cog):
-  """Fun things like games"""
+  """Fun games and other commands to give more life to your Discord server."""
 
   def __init__(self, bot: "Bot"):
     self.bot = bot

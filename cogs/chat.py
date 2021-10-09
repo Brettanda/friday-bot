@@ -23,6 +23,8 @@ profanity.get_words
 
 
 class Chat(commands.Cog):
+  """Chat with Friday, say something on Friday's behalf, and more with the chat commands."""
+
   def __init__(self, bot: "Bot"):
     self.bot = bot
     if not hasattr(self, "translate_client"):

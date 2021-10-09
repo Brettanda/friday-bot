@@ -1,10 +1,10 @@
 ---
 title: Chat
-
+description: Chat with Friday, say something on Friday's behalf, and more with the chat commands.
 ---
 # Chat
 
-
+Chat with Friday, say something on Friday's behalf, and more with the chat commands.
 
 ## Reset
 

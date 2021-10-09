@@ -10,6 +10,8 @@ if TYPE_CHECKING:
 
 
 class Ping(commands.Cog):
+  """Ping? Pong!"""
+
   def __init__(self, bot: "Bot"):
     self.bot = bot
 
