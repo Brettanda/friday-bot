@@ -11,6 +11,8 @@ if TYPE_CHECKING:
 
 
 class Patreons(commands.Cog):
+  """Exlusive command for Friday's Patreon Patrons"""
+
   def __init__(self, bot: "Bot"):
     self.bot = bot
 
