@@ -1,5 +1,5 @@
 ---
-title: Redditlink | Friday
+title: Redditlink
 
 ---
 # Redditlink

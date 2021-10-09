@@ -1,5 +1,5 @@
 ---
-title: Moderation | Friday
+title: Moderation
 descrtiption: Manage your server with these commands
 ---
 # Moderation

@@ -1,5 +1,5 @@
 ---
-title: Ping | Friday
+title: Ping
 
 ---
 # Ping

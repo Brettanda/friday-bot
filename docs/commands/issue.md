@@ -1,5 +1,5 @@
 ---
-title: Issue | Friday
+title: Issue
 descrtiption: Report your issues you have with Friday
 ---
 # Issue

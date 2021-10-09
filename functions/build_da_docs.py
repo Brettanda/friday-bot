@@ -23,7 +23,7 @@ def build(bot: "Friday", prefix: str = "!"):
   for cog in sorted(cogs, key=lambda x: x.qualified_name):
     cog_name = cog.qualified_name
     with open(f"docs/commands/{cog_name.lower().replace(' ','_')}.md", "w") as f:
-      f.write(f"---\ntitle: {cog_name.capitalize()} | Friday\n{('descrtiption: '+cog.description) if cog.description != '' else ''}\n---\n")
+      f.write(f"---\ntitle: {cog_name.capitalize()}\n{('descrtiption: '+cog.description) if cog.description != '' else ''}\n---\n")
       f.write(f"# {cog_name.capitalize()}\n\n{cog.description}\n")
       for com in sorted(commands, key=lambda x: x.name):
         if com.hidden is False and com.enabled is True and com.cog_name == cog_name:
