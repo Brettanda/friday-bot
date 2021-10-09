@@ -1,5 +1,5 @@
 ---
-title: Meme | Friday
+title: Meme
 descrtiption: Memes
 ---
 # Meme

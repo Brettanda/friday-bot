@@ -1,5 +1,5 @@
 ---
-title: Music | Friday
+title: Music
 
 ---
 # Music

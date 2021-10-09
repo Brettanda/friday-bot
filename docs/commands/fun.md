@@ -1,5 +1,5 @@
 ---
-title: Fun | Friday
+title: Fun
 descrtiption: Fun things like games
 ---
 # Fun

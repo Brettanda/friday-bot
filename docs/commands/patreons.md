@@ -1,5 +1,5 @@
 ---
-title: Patreons | Friday
+title: Patreons
 
 ---
 # Patreons
