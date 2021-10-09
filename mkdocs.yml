@@ -1,7 +1,7 @@
 # https://squidfunk.github.io/mkdocs-material/setup/setting-up-navigation/
 
 site_name: Friday Bot Docs
-site_url: https://friday-bot.com
+site_url: https://docs.friday-bot.com
 docs_dir: docs
 repo_url: https://github.com/Brettanda/friday-bot
 repo_name: brettanda/friday-bot
@@ -65,7 +65,7 @@ extra_css:
   - stylesheets/extra.css
   - https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.2/styles/default.min.css
 extra:
-  # homepage: //friday-bot.com
+  homepage: https://friday-bot.com
   # analytics:
   #   provider: google
   #   property: G-41TXJVRWT0
