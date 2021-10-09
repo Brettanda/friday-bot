@@ -14,6 +14,8 @@ if TYPE_CHECKING:
 
 
 class Info(commands.Cog):
+  """Grab information about your Discord server members with Friday's information commands"""
+
   def __init__(self, bot: "Bot"):
     self.bot = bot
 

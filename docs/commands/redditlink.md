@@ -1,10 +1,10 @@
 ---
 title: Redditlink
-
+description: Extract the media from Reddit posts with Friday's Reddit command and more
 ---
 # Redditlink
 
-
+Extract the media from Reddit posts with Friday's Reddit command and more
 
 ## Redditextract
 

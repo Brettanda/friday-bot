@@ -1,10 +1,10 @@
 ---
 title: Music
-
+description: Listen to your favourite music and audio clips with Friday's music commands
 ---
 # Music
 
-
+Listen to your favourite music and audio clips with Friday's music commands
 
 ## Custom
 

@@ -1,10 +1,10 @@
 ---
 title: Info
-
+description: Grab information about your Discord server members with Friday's information commands
 ---
 # Info
 
-
+Grab information about your Discord server members with Friday's information commands
 
 ## Info
 
