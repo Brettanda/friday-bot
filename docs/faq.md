@@ -1,3 +1,7 @@
+---
+description: Have a question about Friday? Check here if you have a frequently asked question.
+---
+
 # FAQ
 
 ## Why is Friday not responding to me
