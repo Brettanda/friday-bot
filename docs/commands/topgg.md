@@ -1,3 +1,7 @@
+---
+title: Topgg | Friday
+descrtiption: Handles interactions with the top.gg API
+---
 # Topgg
 
 Handles interactions with the top.gg API

@@ -1,3 +1,7 @@
+---
+title: Redditlink | Friday
+
+---
 # Redditlink
 
 

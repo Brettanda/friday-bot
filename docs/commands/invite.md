@@ -1,3 +1,7 @@
+---
+title: Invite | Friday
+descrtiption: Invite Friday to your server
+---
 # Invite
 
 Invite Friday to your server

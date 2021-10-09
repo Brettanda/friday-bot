@@ -1,3 +1,7 @@
+---
+title: Issue | Friday
+descrtiption: Report your issues you have with Friday
+---
 # Issue
 
 Report your issues you have with Friday
