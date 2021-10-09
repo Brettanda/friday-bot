@@ -1,6 +1,10 @@
+---
+title: Support | Friday
+descrtiption: Every thing related to the Friday development server
+---
 # Support
 
-Every thing related to the [Friday development server](//discord.gg/XP4avQ449V)
+Every thing related to the Friday development server
 
 ## Donate
 

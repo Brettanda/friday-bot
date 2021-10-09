@@ -1,3 +1,7 @@
+---
+title: Dice | Friday
+descrtiption: Roll some dice
+---
 # Dice
 
 Roll some dice
