@@ -1,6 +1,6 @@
 ---
 title: Meme
-descrtiption: Memes
+description: Memes
 ---
 # Meme
 

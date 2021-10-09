@@ -1,6 +1,6 @@
 ---
 title: Dice
-descrtiption: Roll some dice
+description: Roll some dice
 ---
 # Dice
 
