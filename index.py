@@ -6,7 +6,7 @@ import aiohttp
 from importlib import reload
 
 import discord
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 from discord.ext import commands
 from dotenv import load_dotenv
 
