@@ -109,12 +109,18 @@ jobs:
         DBDATABASELOCAL: ${{ secrets.DBDATABASELOCAL }}
         TOKENTEST: ${{ secrets.TOKENTEST }}
         DBLWEBHOOKPASS: ${{ secrets.DBLWEBHOOKPASS }}
-        WEBHOOKSPAM: ${{ secrets.WEBHOOKSPAM }}
-        WEBHOOKISSUES: ${{ secrets.WEBHOOKISSUES }}
-        WEBHOOKINFO: ${{ secrets.WEBHOOKINFO }}
-        WEBHOOKERRORS: ${{ secrets.WEBHOOKERRORS }}
-        WEBHOOKCHAT: ${{ secrets.WEBHOOKCHAT }}
-        WEBHOOKJOIN: ${{ secrets.WEBHOOKJOIN }}
+        WEBHOOKSPAMID: ${{ secrets.WEBHOOKSPAMID }}
+        WEBHOOKISSUESID: ${{ secrets.WEBHOOKISSUESID }}
+        WEBHOOKINFOID: ${{ secrets.WEBHOOKINFOID }}
+        WEBHOOKERRORSID: ${{ secrets.WEBHOOKERRORSID }}
+        WEBHOOKCHATID: ${{ secrets.WEBHOOKCHATID }}
+        WEBHOOKJOINID: ${{ secrets.WEBHOOKJOINID }}
+        WEBHOOKSPAMTOKEN: ${{ secrets.WEBHOOKSPAMTOKEN }}
+        WEBHOOKISSUESTOKEN: ${{ secrets.WEBHOOKISSUESTOKEN }}
+        WEBHOOKINFOTOKEN: ${{ secrets.WEBHOOKINFOTOKEN }}
+        WEBHOOKERRORSTOKEN: ${{ secrets.WEBHOOKERRORSTOKEN }}
+        WEBHOOKCHATTOKEN: ${{ secrets.WEBHOOKCHATTOKEN }}
+        WEBHOOKJOINTOKEN: ${{ secrets.WEBHOOKJOINTOKEN }}
         PROJECT_ID: ${{ secrets.PROJECT_ID }}
         PRIVATE_KEY_ID: ${{ secrets.PRIVATE_KEY_ID }}
         PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
