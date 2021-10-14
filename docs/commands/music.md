@@ -19,6 +19,7 @@ Usage:
 !custom|c <name>
 !custom|c add <name> <url>
 !custom|c change <name> <url>
+!custom|c clear 
 !custom|c list 
 !custom|c remove <name>
 ```
@@ -55,6 +56,17 @@ Aliases:
 
 ```md
 replace
+```
+
+### Clear
+
+??? missing "Does not have a slash command to match"
+	Learn more about [slash commands](/#slash-commands)
+
+Usage:
+
+```md
+!custom clear 
 ```
 
 ### List
