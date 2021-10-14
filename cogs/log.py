@@ -373,7 +373,7 @@ class Log(commands.Cog):
     if user.id == self.bot.owner_id:
       return list(config.premium_tiers)[-1]
     if user is not None:
-      member = await self.bot.get_guild(config.support_server_id).fetch_member(user.id)
+      member = await self.bot.get_or_fetch_member(self.bot.get_guild(config.support_server_id), user.id)
       if member is None:
         raise exceptions.NotInSupportServer()
       roles = [role.id for role in member.roles]
