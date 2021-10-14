@@ -373,7 +373,7 @@ class Log(commands.Cog):
     if user.id == self.bot.owner_id:
       return list(config.premium_tiers)[-1]
     if user is not None:
-      member = await self.bot.get_guild(config.support_server_id).fetch_member(user.id)
+      member = await self.bot.get_or_fetch_member(self.bot.get_guild(config.support_server_id), user.id)
       if member is None:
         raise exceptions.NotInSupportServer()
       roles = [role.id for role in member.roles]
@@ -475,27 +475,27 @@ class Log(commands.Cog):
 
   @discord.utils.cached_property
   def log_chat(self) -> discord.Webhook:
-    return discord.Webhook.from_url(os.environ.get("WEBHOOKCHAT"), session=self.bot.session)
+    return discord.Webhook.partial(os.environ.get("WEBHOOKCHATID"), os.environ.get("WEBHOOKCHATTOKEN"), session=self.bot.session)
 
   @discord.utils.cached_property
   def log_info(self) -> discord.Webhook:
-    return discord.Webhook.from_url(os.environ.get("WEBHOOKINFO"), session=self.bot.session)
+    return discord.Webhook.partial(os.environ.get("WEBHOOKINFOID"), os.environ.get("WEBHOOKINFOTOKEN"), session=self.bot.session)
 
   @discord.utils.cached_property
   def log_issues(self) -> discord.Webhook:
-    return discord.Webhook.from_url(os.environ.get("WEBHOOKISSUES"), session=self.bot.session)
+    return discord.Webhook.partial(os.environ.get("WEBHOOKISSUESID"), os.environ.get("WEBHOOKISSUESTOKEN"), self.bot.session)
 
   @discord.utils.cached_property
   def log_errors(self) -> discord.Webhook:
-    return discord.Webhook.from_url(os.environ.get("WEBHOOKERRORS"), session=self.bot.session)
+    return discord.Webhook.partial(os.environ.get("WEBHOOKERRORSID"), os.environ.get("WEBHOOKERRORSTOKEN"), session=self.bot.session)
 
   @discord.utils.cached_property
   def log_bumps(self) -> discord.Webhook:
-    return discord.Webhook.from_url(os.environ.get("WEBHOOKBUMPS"), session=self.bot.session)
+    return discord.Webhook.partial(os.environ.get("WEBHOOKBUMPSID"), os.environ.get("WEBHOOKBUMPSTOKEN"), session=self.bot.session)
 
   @discord.utils.cached_property
   def log_join(self) -> discord.Webhook:
-    return discord.Webhook.from_url(os.environ.get("WEBHOOKJOIN"), session=self.bot.session)
+    return discord.Webhook.partial(os.environ.get("WEBHOOKJOINID"), os.environ.get("WEBHOOKJOINTOKEN"), session=self.bot.session)
 
   async def log_spammer(self, ctx, message, retry_after, *, notify=False):
     guild_id = getattr(ctx.guild, "id", None)

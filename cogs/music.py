@@ -655,12 +655,14 @@ class Music(commands.Cog):
     try:
       async with ctx.typing():
         sounds = await self.bot.db.query("SELECT customSounds FROM servers WHERE id=$1 LIMIT 1", str(ctx.guild.id))
-        sounds = json.loads(sounds)
+        sounds = [json.loads(x) for x in sounds]
     except Exception:
       await ctx.reply(embed=embed(title=f"The custom sound `{name}` has not been set, please add it with `{ctx.prefix}custom|c add <name> <url>`", color=MessageColors.ERROR))
     else:
-      if sounds is not None and name in sounds:
-        await ctx.invoke(self.bot.get_command("play"), query=sounds[name])
+      i = next((index for (index, d) in enumerate(sounds) if d["name"] == name), None)
+      if sounds is not None and i is not None:
+        sound = sounds[i]
+        await ctx.invoke(self.bot.get_command("play"), query=sound["url"])
       else:
         await ctx.reply(embed=embed(title=f"The sound `{name}` has not been added, please check the `custom list` command", color=MessageColors.ERROR))
 
@@ -679,16 +681,14 @@ class Music(commands.Cog):
       return
 
     async with ctx.typing():
-      name = "".join(name.split(" ")).lower()
-      sounds = (await self.bot.db.query("SELECT customSounds FROM servers WHERE id=$1 LIMIT 1", str(ctx.guild.id)))
+      name: str = "".join(name.split(" ")).lower()
+      sounds: list = (await self.bot.db.query("SELECT customSounds FROM servers WHERE id=$1 LIMIT 1", str(ctx.guild.id)))
       if sounds == "" or sounds is None:
-        sounds = r"{}"
-      sounds = json.loads(sounds)
-      if name in sounds:
-        await ctx.reply(embed=embed(title=f"`{name}` was already added, please choose another", color=MessageColors.ERROR))
-        return
-      sounds.update({name: url})
-      await self.bot.db.query("UPDATE servers SET customSounds=$1 WHERE id=$2", json.dumps(sounds), str(ctx.guild.id))
+        sounds = []
+      if name in [json.loads(x)["name"] for x in sounds]:
+        return await ctx.reply(embed=embed(title=f"`{name}` was already added, please choose another", color=MessageColors.ERROR))
+      sounds.append(json.dumps({"name": name, "url": url}))
+      await self.bot.db.query("UPDATE servers SET customSounds=$1::json[] WHERE id=$2::text", sounds, str(ctx.guild.id))
     await ctx.reply(embed=embed(title=f"I will now play `{url}` for the command `{ctx.prefix}{ctx.command.parent} {name}`"))
 
   @custom.command(name="list")
@@ -698,10 +698,10 @@ class Music(commands.Cog):
       sounds = await self.bot.db.query("SELECT customSounds FROM servers WHERE id=$1 LIMIT 1", str(ctx.guild.id))
       if sounds is None:
         raise exceptions.NoCustomSoundsFound("There are no custom sounds for this server (yet)")
-      sounds = json.loads(sounds)
+      sounds = [json.loads(x) for x in sounds]
       result = ""
       for sound in sounds:
-        result += f"```{sound} -> {sounds[sound]}```"
+        result += f"```{sound['name']} -> {sound['url']}```"
       if result == "":
         result = "There are no custom sounds for this server (yet)"
     await ctx.reply(embed=embed(title="The list of custom sounds", description=result))
@@ -731,13 +731,21 @@ class Music(commands.Cog):
       async with ctx.typing():
         name = "".join(name.split(" ")).lower()
         sounds = await self.bot.db.query("SELECT customSounds FROM servers WHERE id=$1 LIMIT 1", str(ctx.guild.id))
-        sounds = json.loads(sounds)
-        del sounds[name]
-        await self.bot.db.query("UPDATE servers SET customSounds=$1 WHERE id=$2", json.dumps(sounds), str(ctx.guild.id))
+        sounds = [json.loads(x) for x in sounds]
+        sounds.pop(next((index for (index, d) in enumerate(sounds) if d["name"] == name), None))
+        await self.bot.db.query("UPDATE servers SET customSounds=$1::json[] WHERE id=$2", [json.dumps(x) for x in sounds], str(ctx.guild.id))
     except KeyError:
       await ctx.reply(embed=embed(title=f"Could not find the custom command `{name}`", color=MessageColors.ERROR))
     else:
       await ctx.reply(embed=embed(title=f"Removed the custom sound `{name}`"))
+
+  @custom.command(name="clear")
+  @commands.guild_only()
+  @commands.has_guild_permissions(manage_channels=True)
+  async def custom_clear(self, ctx):
+    async with ctx.typing():
+      await self.bot.db.query("UPDATE servers SET customsounds=NULL WHERE id=$1", str(ctx.guild.id))
+    await ctx.send(embed=embed(title="Cleared this servers custom commands"))
 
 
 def setup(bot):

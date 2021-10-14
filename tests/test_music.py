@@ -8,28 +8,22 @@ if TYPE_CHECKING:
 
 # @pytest.mark.parametrize("bot,voice_channel,channel", [bot, voice_channel, channel])
 @pytest.mark.asyncio
-@pytest.mark.dependency()
-async def test_play(bot: "bot", voice_channel: "voice_channel", channel: "channel"):
-  await voice_channel.connect()
-  content = "!p https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+@pytest.mark.parametrize("url", ["https://www.youtube.com/watch?v=dQw4w9WgXcQ", "https://www.youtube.com/watch?v=jCQd6YqTnOk&list=PLQSoWXSpjA3_FFnFo4yWTtVbZrMkbm-h7", "https://www.youtube.com/watch?v=2ZIpFytCSVc"])
+@pytest.mark.dependency(name="test_play")
+async def test_play(bot: "bot", voice_channel: "voice_channel", channel: "channel", url: str):
+  try:
+    await voice_channel.connect()
+  except discord.ClientException:
+    pass
+  content = f"!p {url}"
   await channel.send(content)
 
   msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
-  assert msg.embeds[0].title == "Now playing: **Rick Astley - Never Gonna Give You Up (Official Music Video)**"
+  assert "Now playing: **" in msg.embeds[0].title or "Added to queue: **" in msg.embeds[0].title
 
 
 @pytest.mark.asyncio
 @pytest.mark.dependency(depends=["test_play"])
-async def test_more_for_queue(bot: "bot", voice_channel: "voice_channel", channel: "channel"):
-  content = "!p https://www.youtube.com/watch?v=2ZIpFytCSVc"
-  await channel.send(content)
-
-  msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
-  assert msg.embeds[0].title == "Added to queue: **Bruh Sound Effect #2**"
-
-
-@pytest.mark.asyncio
-@pytest.mark.dependency(depends=["test_play", "test_more_for_queue"])
 async def test_queue(bot: "bot", voice_channel: "voice_channel", channel: "channel"):
   content = "!queue"
   await channel.send(content)
@@ -58,13 +52,14 @@ class TestCustomSounds:
     assert msg.embeds[0].title == "You're missing some arguments, here is how the command should look"
 
   @pytest.mark.asyncio
-  @pytest.mark.dependency()
-  async def test_add(self, bot: "bot", channel: "channel"):
-    content = "!c add bruh https://www.youtube.com/watch?v=2ZIpFytCSVc"
+  @pytest.mark.dependency(name="test_add", scope="class")
+  @pytest.mark.parametrize("name,url", [["bruh", "https://www.youtube.com/watch?v=2ZIpFytCSVc"], ["rick", "https://www.youtube.com/watch?v=dQw4w9WgXcQ"]])
+  async def test_add(self, bot: "bot", channel: "channel", name: str, url: str):
+    content = f"!c add {name} {url}"
     await channel.send(content)
 
     msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
-    assert msg.embeds[0].title == "I will now play `https://www.youtube.com/watch?v=2ZIpFytCSVc` for the command `!custom bruh`"
+    assert msg.embeds[0].title == f"I will now play `{url}` for the command `!custom {name}`"
 
   @pytest.mark.asyncio
   @pytest.mark.dependency(depends=["test_add"], scope="class")
@@ -92,9 +87,20 @@ class TestCustomSounds:
     assert msg.embeds[0].title == "The list of custom sounds"
 
   @pytest.mark.asyncio
-  async def test_remove(self, bot: "bot", channel: "channel"):
-    content = "!c remove bruh"
+  @pytest.mark.dependency(depends=["test_add"], scope="class")
+  @pytest.mark.parametrize("name", ["bruh", "rick"])
+  async def test_remove(self, bot: "bot", channel: "channel", name: str):
+    content = f"!c remove {name}"
     await channel.send(content)
 
     msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
-    assert msg.embeds[0].title == "Removed the custom sound `bruh`" or msg.embeds[0].title == "Could not find the custom command"
+    assert msg.embeds[0].title == f"Removed the custom sound `{name}`" or msg.embeds[0].title == "Could not find the custom command"
+
+  @pytest.mark.asyncio
+  @pytest.mark.depenency(depends=["test_add"], scope="class")
+  async def test_clear(self, bot: "bot", channel: "channel"):
+    content = "!c clear"
+    await channel.send(content)
+
+    msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
+    assert msg.embeds[0].title == "Cleared this servers custom commands"
