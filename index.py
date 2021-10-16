@@ -6,7 +6,7 @@ import aiohttp
 from importlib import reload
 
 import discord
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 from discord.ext import commands
 from dotenv import load_dotenv
 
@@ -124,13 +124,31 @@ class Friday(commands.AutoShardedBot):
 
     await self.process_commands(ctx)
 
+  async def get_or_fetch_member(self, guild: discord.Guild, member_id: int) -> Optional[discord.Member]:
+    member = guild.get_member(member_id)
+    if member is not None:
+      return member
+
+    shard = self.get_shard(guild.shard_id)
+    if shard.is_ws_ratelimited():
+      try:
+        member = await guild.fetch_member(member_id)
+      except discord.HTTPException:
+        return None
+      else:
+        return member
+
+    members = await guild.query_members(limit=1, user_ids=[member_id], cache=True)
+    if not members:
+      return None
+    return members[0]
+
   async def on_error(self, event_method, *args, **kwargs):
     return await self.log.on_error(event_method, *args, **kwargs)
 
   async def close(self):
-    self.logger.info("Shutting down")
+    await super().close()
     await self.session.close()
-    return await super().close()
 
 
 if __name__ == "__main__":

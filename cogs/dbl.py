@@ -107,8 +107,7 @@ class TopGG(commands.Cog):
       batch, to_purge = [], []
       await self.bot.db.query(f"""UPDATE votes SET has_reminded=false,voted_time=NULL WHERE id IN (`{"`,`".join(vote_user_ids)}')""")
       for user_id in vote_user_ids:
-        get_member = self.bot.get_guild(config.support_server_id).get_member(user_id)
-        member = get_member if get_member is not None else await self.bot.get_guild(config.support_server_id).fetch_member(user_id)
+        member = await self.bot.get_or_fetch_member(self.bot.get_guild(config.support_server_id), user_id)
         if member is not None:
           self.bot.logger.info(f"Vote expired for {user_id}")
           try:
@@ -135,8 +134,7 @@ class TopGG(commands.Cog):
     if data.get("type", None) == "test" or int(data.get("user", None)) not in (215227961048170496, 813618591878086707):
       if data.get("user", None) is not None:
         support_server = self.bot.get_guild(config.support_server_id)
-        get_member = support_server.get_member(data["user"]) if support_server is not None else None
-        member = get_member if get_member is not None else await support_server.fetch_member(data["user"]) if support_server is not None else None
+        member = await self.bot.get_or_fetch_member(support_server, data["user"])
         if member is not None:
           role = member.guild.get_role(self.vote_role)
           await member.add_roles(role, reason="Voted on Top.gg")

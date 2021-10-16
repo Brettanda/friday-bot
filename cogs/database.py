@@ -33,7 +33,7 @@ class Database(commands.Cog):
             "customjoinleave text NULL",
             "chatchannel text NULL DEFAULT NULL",
             "musicchannel text NULL DEFAULT NULL",
-            "customsounds json NULL",
+            "customsounds json[] NULL",
             r"toprole json NOT NULL DEFAULT '{}'",
             r"roles json[] NOT NULL DEFAULT '{}'",
             r"text_channels json[] NOT NULL DEFAULT '{}'",
@@ -100,7 +100,7 @@ class Database(commands.Cog):
       for guild in self.bot.guilds:
         current.append(str(guild.id))
         if guild.me is None:
-          me = await guild.fetch_member(self.bot.user.id)
+          me = await self.bot.get_or_fetch_member(guild, self.bot.user.id)
           if me.top_role is None:
             toprole = {}
           else:
@@ -177,7 +177,7 @@ class Database(commands.Cog):
           await self.query(f"ALTER TABLE {table} ADD COLUMN {column};")
 
   async def query(self, query: str, *params) -> Union[str, None, list]:
-    async with self.connection.acquire() as mycursor:
+    async with self.connection.acquire(timeout=300.0) as mycursor:
       if "select" in query.lower():
         result = await mycursor.fetch(query, *params)
       else:

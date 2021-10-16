@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 
 def user_is_tier(tier: str) -> "_CheckDecorator":
-  async def predicate(ctx) -> bool:
+  async def predicate(ctx: "MyContext") -> bool:
     return True
   return commands.check(predicate)
 
@@ -25,14 +25,12 @@ def is_min_tier(tier: str = list(config.premium_tiers)[1]) -> "_CheckDecorator":
   if tier_level is None:
     raise TypeError(f"Invalid tier name: {tier}")
 
-  async def predicate(ctx) -> bool:
+  async def predicate(ctx: "MyContext") -> bool:
     if ctx.author.id == ctx.bot.owner_id:
       return True
-    member = None
-    try:
-      guild = ctx.bot.get_guild(config.support_server_id)
-      member = guild.get_member(ctx.author.id) if guild.get_member(ctx.author.id) is not None else await guild.fetch_member(ctx.author.id)
-    except discord.HTTPException:
+    guild = ctx.bot.get_guild(config.support_server_id)
+    member = await ctx.bot.get_or_fetch_member(guild, ctx.author.id)
+    if member is None:
       raise exceptions.NotInSupportServer()
     if await user_is_min_tier(ctx.bot, member, tier) or await guild_is_min_tier(ctx.bot, ctx.guild, tier):
       return True
@@ -66,7 +64,9 @@ async def user_is_min_tier(bot: "Bot", user: Union[discord.User, discord.Member]
     member = None
     try:
       guild = bot.get_guild(config.support_server_id)
-      member = guild.get_member(user.id) if guild.get_member(user.id) is not None else await guild.fetch_member(user.id)
+      member = await bot.get_or_fetch_member(guild, user.id)
+      if member is None:
+        return False
     except Exception:
       return False
     user = member
@@ -89,8 +89,11 @@ async def user_is_min_tier(bot: "Bot", user: Union[discord.User, discord.Member]
 def is_supporter() -> "_CheckDecorator":
   """" Checks if the user has the 'is supporting' role that ALL patrons get"""
 
-  async def predicate(ctx) -> bool:
-    member = await ctx.bot.get_guild(config.support_server_id).fetch_member(ctx.author.id)
+  async def predicate(ctx: "MyContext") -> bool:
+    guild = ctx.bot.get_guild(config.support_server_id)
+    member = await ctx.bot.get_or_fetch_member(guild, ctx.author.id)
+    if member is None:
+      return False
     if await user_is_supporter(ctx.bot, member):
       return True
     else:
@@ -110,8 +113,11 @@ async def user_is_supporter(bot: "Bot", user: discord.User) -> bool:
 
 
 def is_supporter_or_voted() -> "_CheckDecorator":
-  async def predicate(ctx) -> bool:
-    member = await ctx.bot.get_guild(config.support_server_id).fetch_member(ctx.author.id)
+  async def predicate(ctx: "MyContext") -> bool:
+    support_guild = ctx.bot.get_guild(config.support_server_id)
+    member = await ctx.bot.get_or_fetch_member(support_guild, ctx.author.id)
+    if member is None:
+      return False
     if await user_is_supporter(ctx.bot, member):
       return True
     elif await user_voted(ctx.bot, member):
