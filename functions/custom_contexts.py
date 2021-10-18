@@ -1,6 +1,7 @@
 from discord_slash import SlashContext
 from discord.ext.commands import Context
 import discord
+import io
 import typing
 from typing_extensions import TYPE_CHECKING
 
