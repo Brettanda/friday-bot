@@ -16,6 +16,9 @@ class ChooseGame(commands.Cog):
     self.bot = bot
     self.choose_game.start()
 
+  def __repr__(self):
+    return "<cogs.ChooseGame>"
+
   @tasks.loop(minutes=10.0)
   async def choose_game(self):
     # This might run per shard

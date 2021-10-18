@@ -37,6 +37,9 @@ class Moderation(commands.Cog):
     if not hasattr(self, "message_spam_control_counter"):
       self.message_spam_control_counter = {}
 
+  def __repr__(self):
+    return "<cogs.Moderation>"
+
   def cog_check(self, ctx):
     if ctx.guild is None:
       raise commands.NoPrivateMessage("This command can only be used within a guild")

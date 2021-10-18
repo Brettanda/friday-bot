@@ -15,6 +15,9 @@ class Invite(commands.Cog):
     self.bot = bot
     self.id = 476303446547365891 if self.bot.prod else 760615464300445726 if self.bot.canary else 751680714948214855
 
+  def __repr__(self):
+    return "<cogs.Invite>"
+
   @cached_property
   def link(self):
     return oauth_url(self.id, permissions=config.invite_permissions, scopes=["bot", "applications.commands"])

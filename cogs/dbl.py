@@ -44,8 +44,8 @@ class TopGG(commands.Cog):
     self.vote_role = 834347369998843904
     self.vote_url = "https://top.gg/bot/476303446547365891/vote"
 
-    if self.bot.prod:
-      self.update_stats.start()
+  def __repr__(self):
+    return "<cogs.TopGG>"
 
   def cog_unload(self):
     self.update_votes.cancel()

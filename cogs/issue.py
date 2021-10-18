@@ -47,6 +47,9 @@ class Issue(commands.Cog):
   def __init__(self, bot: "Bot"):
     self.bot = bot
 
+  def __repr__(self):
+    return "<cogs.Issue>"
+
   @commands.Cog.listener()
   async def on_ready(self):
     if not self.bot.views_loaded:

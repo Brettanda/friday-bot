@@ -26,10 +26,8 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
   def __init__(self, bot: "Bot"):
     self.bot = bot
 
-  def cog_check(self, ctx):
-    if self.bot.owner_id == ctx.author.id:
-      return True
-    raise commands.NotOwner("You do not own this bot and cannot use this command")
+  def __repr__(self):
+    return "<cogs.Dev>"
 
   @commands.group(name="dev", invoke_without_command=True)
   async def norm_dev(self, ctx):

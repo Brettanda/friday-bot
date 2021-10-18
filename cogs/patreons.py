@@ -16,6 +16,9 @@ class Patreons(commands.Cog):
   def __init__(self, bot: "Bot"):
     self.bot = bot
 
+  def __repr__(self):
+    return "<cogs.Patreon>"
+
   @commands.group(name="patreon", description="Commands for Friday's Patrons", invoke_without_command=True)
   @commands.guild_only()
   async def norm_patreon(self, ctx):
