@@ -15,6 +15,9 @@ class Ping(commands.Cog):
   def __init__(self, bot: "Bot"):
     self.bot = bot
 
+  def __repr__(self):
+    return "<cogs.Ping>"
+
   @commands.command(name="ping", help="Pong!")
   async def norm_ping(self, ctx):
     await self.ping(ctx)

@@ -4,6 +4,7 @@ import inspect
 import datetime
 import discord
 import asyncio
+import io
 # import mysql.connector
 
 import typing
@@ -36,6 +37,21 @@ GENERAL_CHANNEL_NAMES = {"welcome", "general", "lounge", "chat", "talk", "main"}
 #   return True
 
 formatter = logging.Formatter("%(levelname)s:%(name)s: %(message)s")
+
+
+class CustomWebhook(discord.Webhook):
+  async def safe_send(self, content: str, *, escape_mentions=True, **kwargs) -> typing.Optional[discord.WebhookMessage]:
+    """something"""
+
+    if escape_mentions:
+      content = discord.utils.escape_mentions(content)
+
+    if len(content) > 2000:
+      fp = io.BytesIO(content.encode())
+      kwargs.pop("file", None)
+      return await self.send(file=discord.File(fp, filename="message_too_long.txt"), **kwargs)
+    else:
+      return await self.send(content, **kwargs)
 
 
 class Log(commands.Cog):
@@ -79,6 +95,9 @@ class Log(commands.Cog):
     # self.check_for_mydb.start()
 
     self.bot.add_check(self.check_perms)
+
+  def __repr__(self):
+    return "<cogs.Log>"
 
   async def setup(self) -> None:
     if not hasattr(self, "bot_managers"):
@@ -470,32 +489,28 @@ class Log(commands.Cog):
     return guilds
 
   @discord.utils.cached_property
-  def log_spam(self) -> discord.Webhook:
-    return discord.Webhook.from_url(os.environ.get("WEBHOOKSPAM"), session=self.bot.session)
+  def log_chat(self) -> CustomWebhook:
+    return CustomWebhook.partial(os.environ.get("WEBHOOKCHATID"), os.environ.get("WEBHOOKCHATTOKEN"), session=self.bot.session)
 
   @discord.utils.cached_property
-  def log_chat(self) -> discord.Webhook:
-    return discord.Webhook.partial(os.environ.get("WEBHOOKCHATID"), os.environ.get("WEBHOOKCHATTOKEN"), session=self.bot.session)
+  def log_info(self) -> CustomWebhook:
+    return CustomWebhook.partial(os.environ.get("WEBHOOKINFOID"), os.environ.get("WEBHOOKINFOTOKEN"), session=self.bot.session)
 
   @discord.utils.cached_property
-  def log_info(self) -> discord.Webhook:
-    return discord.Webhook.partial(os.environ.get("WEBHOOKINFOID"), os.environ.get("WEBHOOKINFOTOKEN"), session=self.bot.session)
+  def log_issues(self) -> CustomWebhook:
+    return CustomWebhook.partial(os.environ.get("WEBHOOKISSUESID"), os.environ.get("WEBHOOKISSUESTOKEN"), self.bot.session)
 
   @discord.utils.cached_property
-  def log_issues(self) -> discord.Webhook:
-    return discord.Webhook.partial(os.environ.get("WEBHOOKISSUESID"), os.environ.get("WEBHOOKISSUESTOKEN"), self.bot.session)
+  def log_errors(self) -> CustomWebhook:
+    return CustomWebhook.partial(os.environ.get("WEBHOOKERRORSID"), os.environ.get("WEBHOOKERRORSTOKEN"), session=self.bot.session)
 
   @discord.utils.cached_property
-  def log_errors(self) -> discord.Webhook:
-    return discord.Webhook.partial(os.environ.get("WEBHOOKERRORSID"), os.environ.get("WEBHOOKERRORSTOKEN"), session=self.bot.session)
+  def log_bumps(self) -> CustomWebhook:
+    return CustomWebhook.partial(os.environ.get("WEBHOOKBUMPSID"), os.environ.get("WEBHOOKBUMPSTOKEN"), session=self.bot.session)
 
   @discord.utils.cached_property
-  def log_bumps(self) -> discord.Webhook:
-    return discord.Webhook.partial(os.environ.get("WEBHOOKBUMPSID"), os.environ.get("WEBHOOKBUMPSTOKEN"), session=self.bot.session)
-
-  @discord.utils.cached_property
-  def log_join(self) -> discord.Webhook:
-    return discord.Webhook.partial(os.environ.get("WEBHOOKJOINID"), os.environ.get("WEBHOOKJOINTOKEN"), session=self.bot.session)
+  def log_join(self) -> CustomWebhook:
+    return CustomWebhook.partial(os.environ.get("WEBHOOKJOINID"), os.environ.get("WEBHOOKJOINTOKEN"), session=self.bot.session)
 
   async def log_spammer(self, ctx, message, retry_after, *, notify=False):
     guild_id = getattr(ctx.guild, "id", None)
@@ -507,9 +522,9 @@ class Log(commands.Cog):
     if hasattr(ctx.command, 'on_error'):
       return
 
-    # if ctx.cog:
-      # if ctx.cog._get_overridden_method(ctx.cog.cog_command_error) is not None:
-      # return
+    if ctx.cog:
+      if ctx.cog._get_overridden_method(ctx.cog.cog_command_error) is not None:
+        return
 
     delete = self.get_guild_delete_commands(ctx.guild)
     error_text = getattr(error, 'original', error)
@@ -597,17 +612,12 @@ class Log(commands.Cog):
     if "Missing Access" in str(trace):
       return
 
-    with open("err.log", "w") as f:
-      f.write(trace)
-      f.close()
-
     print(trace)
     logging.error(trace)
     await relay_info(
         f"```bash\n{trace}```",
         self.bot,
         short="Error sent",
-        file="err.log",
         webhook=self.log_errors
     )
 

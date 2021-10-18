@@ -27,6 +27,9 @@ class Meme(commands.Cog):
     )
     self.reddit.read_only = True
 
+  def __repr__(self):
+    return "<cogs.Meme>"
+
   # @commands.max_concurrency(1,commands.BucketType.channel,wait=False)
   @commands.command(name="meme", aliases=["shitpost"], help="Meme time")
   @commands.cooldown(1, 1, commands.BucketType.user)

@@ -22,6 +22,9 @@ class DatedEvents(commands.Cog):
     self.dated_events.start()
     # self.events = bot.loop.create_task(self.dated_events(),name="Dated events")
 
+  def __repr__(self):
+    return "<cogs.DatedEvents>"
+
   @tasks.loop(hours=1.0)
   async def dated_events(self):
     if not self.bot.prod:

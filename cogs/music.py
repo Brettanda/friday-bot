@@ -70,6 +70,9 @@ class Music(commands.Cog):
   def __init__(self, bot: "Bot"):
     self.bot = bot
 
+  def __repr__(self):
+    return "<cogs.Music>"
+
   async def tryagain(self, ctx):
     # if isinstance(ctx, SlashContext):
       # await ctx.send(embed=embed(title="Something went wrong, please try again later", color=MessageColors.ERROR))

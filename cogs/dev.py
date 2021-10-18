@@ -12,7 +12,7 @@ from discord.ext import commands
 from typing_extensions import TYPE_CHECKING
 # from discord_slash.utils.manage_commands import create_option, create_choice
 
-from cogs.help import cmd_help, syntax
+from cogs.help import syntax
 from functions import embed, build_docs  # , query  # , MessageColors
 from functions import MyContext, views
 
@@ -26,14 +26,30 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
   def __init__(self, bot: "Bot"):
     self.bot = bot
 
-  def cog_check(self, ctx):
-    if self.bot.owner_id == ctx.author.id:
-      return True
-    raise commands.NotOwner("You do not own this bot and cannot use this command")
+  def __repr__(self):
+    return "<cogs.Dev>"
+
+  async def cog_check(self, ctx: "MyContext") -> bool:
+    return await self.bot.is_owner(ctx.author)
+
+  async def cog_command_error(self, ctx, error):
+    if isinstance(error, commands.CheckFailure):
+      return self.bot.logger.warning("Someone found a dev command")
+    return await ctx.send(error)
+
+  async def run_process(self, command):
+    try:
+      process = await asyncio.create_subprocess_shell(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+      result = await process.communicate()
+    except NotImplementedError:
+      process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+      result = await self.bot.loop.run_in_executor(None, process.communicate)
+
+    return [output.decode() for output in result]
 
   @commands.group(name="dev", invoke_without_command=True)
   async def norm_dev(self, ctx):
-    await cmd_help(ctx, ctx.command)
+    await ctx.send_help(ctx.command)
 
   # @cog_ext.cog_slash(name="dev",guild_ids=[243159711237537802,805579185879121940])
   # async def slash_dev(self,ctx):
@@ -290,15 +306,6 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     else:
       seperator = "/"
     await ctx.reply(file=discord.File(fp=f"{thispath}{seperator}commands.html", filename="commands.html"))
-
-  @norm_dev.command(name="db")
-  async def database(self, ctx: "MyContext"):
-    thispath = os.getcwd()
-    if "\\" in thispath:
-      seperator = "\\\\"
-    else:
-      seperator = "/"
-    await ctx.reply(file=discord.File(fp=f"{thispath}{seperator}friday.db", filename="db.db"))
 
   @norm_dev.command(name="graph")
   async def graph(self, ctx):

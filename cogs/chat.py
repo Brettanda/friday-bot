@@ -52,6 +52,9 @@ class Chat(commands.Cog):
     # if not hasattr(self, "chat_spam_control"):
     #   self.chat_spam_control = commands.CooldownMapping.from_cooldown(5, 15.0, commands.BucketType.channel)
 
+  def __repr__(self):
+    return "<cogs.Chat>"
+
   async def setup(self) -> None:
     ...
 

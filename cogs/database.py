@@ -33,7 +33,7 @@ class Database(commands.Cog):
             "customjoinleave text NULL",
             "chatchannel text NULL DEFAULT NULL",
             "musicchannel text NULL DEFAULT NULL",
-            "customsounds json[] NULL",
+            r"customsounds json[] NOT NULL DEFAULT '{}'",
             r"toprole json NOT NULL DEFAULT '{}'",
             r"roles json[] NOT NULL DEFAULT '{}'",
             r"text_channels json[] NOT NULL DEFAULT '{}'",
@@ -69,6 +69,9 @@ class Database(commands.Cog):
     if self.bot.cluster_idx == 0:
       self.loop.run_until_complete(self.create_tables())
       self.loop.run_until_complete(self.sync_table_columns())
+
+  def __repr__(self):
+    return "<cogs.Database>"
 
   async def setup(self):
     hostname = 'localhost' if self.bot.prod or self.bot.canary else os.environ["DBHOSTNAME"]
