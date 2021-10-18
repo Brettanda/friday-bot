@@ -10,6 +10,8 @@ from functions import embed, config, MyContext
 if TYPE_CHECKING:
   from index import Friday as Bot
 
+VOTE_ROLE = 834347369998843904
+
 
 class VoteView(discord.ui.View):
   def __init__(self, parent: "TopGG", *, timeout=None):
@@ -41,7 +43,6 @@ class TopGG(commands.Cog):
         self.bot.topgg_webhook.run(5000)
       self.update_votes.start()
 
-    self.vote_role = 834347369998843904
     self.vote_url = "https://top.gg/bot/476303446547365891/vote"
 
   def __repr__(self):
@@ -49,12 +50,23 @@ class TopGG(commands.Cog):
 
   def cog_unload(self):
     self.update_votes.cancel()
-    self.update_stats.cancel()
 
   @commands.Cog.listener()
   async def on_ready(self):
     if not self.bot.views_loaded:
       self.bot.add_view(VoteView(self))
+    if self.bot.prod:
+      await self.update_stats()
+
+  @commands.Cog.listener()
+  async def on_guild_join(self, guild):
+    if self.bot.prod:
+      await self.update_stats()
+
+  @commands.Cog.listener()
+  async def on_guild_remove(self, guild):
+    if self.bot.prod:
+      await self.update_stats()
 
   @commands.group(name="vote", help="Get the link to vote for me on Top.gg", invoke_without_command=True)
   async def vote(self, ctx: "MyContext"):
@@ -73,7 +85,6 @@ class TopGG(commands.Cog):
     elif current_reminder is True:
       await ctx.send(embed=embed(title="I will stop DMing you for voting reminders 😢"))
 
-  @tasks.loop(minutes=30.0)
   async def update_stats(self):
     if not self.bot.ready:
       return
@@ -111,7 +122,7 @@ class TopGG(commands.Cog):
         if member is not None:
           self.bot.logger.info(f"Vote expired for {user_id}")
           try:
-            await member.remove_roles(member.guild.get_role(self.vote_role), reason="Vote expired")
+            await member.remove_roles(member.guild.get_role(VOTE_ROLE), reason="Vote expired")
           except Exception:
             pass
           else:
@@ -136,7 +147,7 @@ class TopGG(commands.Cog):
         support_server = self.bot.get_guild(config.support_server_id)
         member = await self.bot.get_or_fetch_member(support_server, data["user"])
         if member is not None:
-          role = member.guild.get_role(self.vote_role)
+          role = member.guild.get_role(VOTE_ROLE)
           await member.add_roles(role, reason="Voted on Top.gg")
       await self.bot.log.log_bumps.send(
           username=self.bot.user.name,
