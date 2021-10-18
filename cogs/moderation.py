@@ -1,13 +1,12 @@
 import asyncio
 import typing
-import re
+
 # import datetime
 # import validators
 from slugify import slugify
 import pycountry
 
 import discord
-# import datetime
 
 # from PIL import Image, ImageDraw
 # https://code-maven.com/create-images-with-python-pil-pillow
@@ -28,8 +27,6 @@ class Moderation(commands.Cog):
 
   def __init__(self, bot: "Bot"):
     self.bot = bot
-
-    self.invite_reg = r"(http(s|)?:\/\/)?(www\.)?(discord(app|)\.(gg|com|net)(\/invite|))\/[a-zA-Z0-9\-]+"
 
     if not hasattr(self, "message_spam_control"):
       self.message_spam_control = {}
@@ -103,44 +100,6 @@ class Moderation(commands.Cog):
     else:
       await self.bot.db.query("UPDATE servers SET chatchannel=$1 WHERE id=$2", None, str(ctx.guild.id))
       return dict(embed=embed(title="I will no longer respond to all messages from this channel"))
-
-  @commands.command(name="removeinvites", help="Automaticaly remove Discord invites from text channels", hidden=True)
-  @commands.guild_only()
-  @commands.has_guild_permissions(manage_channels=True)
-  @commands.bot_has_guild_permissions(manage_messages=True)
-  async def norm_remove_discord_invites(self, ctx: "MyContext", *, enable: typing.Union[bool, None] = None):
-    if enable is None:
-      check = await self.bot.db.query("SELECT remove_invites FROM servers WHERE id=$1 LIMIT 1", str(ctx.guild.id))
-      check = not bool(check)
-    else:
-      check = bool(enable)
-    await self.bot.db.query("UPDATE servers SET remove_invites=$1 WHERE id=$2", check, str(ctx.guild.id))
-    if bool(check) is False:
-      await ctx.reply(embed=embed(title="I will no longer remove invites"))
-    else:
-      await ctx.reply(embed=embed(title="I will begin to remove invites"))
-
-  async def msg_remove_invites(self, msg: discord.Message):
-    if not msg.guild or (msg.author.bot and not msg.author.id == 892865928520413245):
-      return
-
-    to_remove_invites = await self.bot.db.query(f"SELECT remove_invites FROM servers WHERE id={str(msg.guild.id)}::text LIMIT 1")
-    try:
-      if bool(to_remove_invites) is True:
-        reg = re.match(self.invite_reg, msg.clean_content, re.RegexFlag.MULTILINE + re.RegexFlag.IGNORECASE)
-        check = bool(reg)
-        if check:
-          try:
-            if discord.utils.resolve_invite(reg.string) in [inv.code for inv in await msg.guild.invites()]:
-              return
-          except discord.Forbidden or discord.HTTPException:
-            pass
-          try:
-            await msg.delete()
-          except discord.Forbidden:
-            pass
-    except KeyError:
-      pass
 
   @commands.command(name="musicchannel", help="Set the channel where I can join and play music. If none then I will join any VC", hidden=True)
   @commands.is_owner()
@@ -613,7 +572,6 @@ class Moderation(commands.Cog):
     bypass = before.author.guild_permissions.manage_guild
     if bypass:
       return
-    await self.msg_remove_invites(after)
     await self.check_blacklist(after)
 
   @commands.Cog.listener()
@@ -623,7 +581,6 @@ class Moderation(commands.Cog):
     bypass = msg.author.guild_permissions.manage_guild if isinstance(msg.author, discord.Member) else False
     if bypass and not msg.author.id == 892865928520413245:
       return
-    await self.msg_remove_invites(msg)
     await self.check_blacklist(msg)
 
   @commands.command(name="mute", extras={"examples": ["@Motostar @steve", "@steve 9876543210", "@Motostar", "0123456789"]}, help="Mute a member from text channels")
