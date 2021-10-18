@@ -67,6 +67,7 @@ class Database(commands.Cog):
     self.update_local_values.start()
     self.loop.run_until_complete(self.setup())
     if self.bot.cluster_idx == 0:
+
   def __repr__(self):
     return "<cogs.Database>"
 
