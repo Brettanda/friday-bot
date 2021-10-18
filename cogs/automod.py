@@ -2,9 +2,8 @@ import discord
 from discord.ext import commands
 
 import re
-import datetime
 
-from functions import embed, MyContext, MessageColors
+from functions import embed, MyContext
 
 import typing
 
