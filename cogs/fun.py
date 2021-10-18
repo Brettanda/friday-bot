@@ -38,6 +38,9 @@ class Fun(commands.Cog):
     # self.timeouter = None
     # self.timeoutCh = None
 
+  def __repr__(self):
+    return "<cogs.Fun>"
+
   async def setup(self) -> None:
     self.countdowns = await self.bot.db.query("SELECT guild,channel,message,title,time FROM countdowns")
 
