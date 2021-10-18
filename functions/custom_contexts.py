@@ -129,3 +129,14 @@ class MyContext(Context):
 
   async def send(self, content: str = None, *, delete_original: bool = False, **kwargs) -> typing.Union[discord.Message, FakeInteractionMessage]:
     return await self.reply(content, delete_original=delete_original, **kwargs)
+
+  async def safe_send(self, content: str, *, escape_mentions=True, **kwargs) -> typing.Optional[typing.Union[discord.Message, FakeInteractionMessage]]:
+    if escape_mentions:
+      content = discord.utils.escape_mentions(content)
+
+    if len(content) > 2000:
+      fp = io.BytesIO(content.encode())
+      kwargs.pop("file", None)
+      return await self.send(file=discord.File(fp, filename="message_too_long.txt"), **kwargs)
+    else:
+      return await self.send(content, **kwargs)
