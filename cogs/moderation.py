@@ -302,12 +302,12 @@ class Moderation(commands.Cog):
     await self.bot.db.query("DELETE FROM blacklist WHERE guild_id=$1", str(ctx.guild.id))
     await ctx.reply(embed=embed(title="Removed all blacklisted words"))
 
-  @commands.command(name="kick", extras={"examples": ["@username", "@thisguy", "12345678910 ", "@someone I just really didn't like them", "12345678910 They were spamming general"]})
+  @commands.command(name="kick", extras={"examples": ["@username @someone @someoneelse", "@thisguy", "12345678910 10987654321 @someone", "@someone I just really didn't like them", "@thisguy 12345678910 They were spamming general"]})
   @commands.guild_only()
   @commands.bot_has_guild_permissions(kick_members=True)
   @commands.has_guild_permissions(kick_members=True)
-  async def norm_kick(self, ctx, member: discord.Member, *, reason: ActionReason = None):
-    await self.kick(ctx, member, reason)
+  async def norm_kick(self, ctx, members: commands.Greedy[discord.Member], *, reason: typing.Optional[ActionReason] = None):
+    await self.kick(ctx, members, reason)
 
   @cog_ext.cog_slash(
       name="kick",
@@ -333,21 +333,11 @@ class Moderation(commands.Cog):
   async def slash_kick(self, ctx, member: discord.Member, reason=None):
     await self.kick(ctx, [member], reason, True)
 
-  async def kick(self, ctx, member: discord.Member, reason: ActionReason = None):
+  async def kick(self, ctx, members: commands.Greedy[discord.Member], *, reason: typing.Optional[ActionReason] = None):
+    if not isinstance(members, list):
+      members = [members]
     if reason is None:
       reason = f"Kicked by {ctx.author} (ID: {ctx.author.id})"
-
-    await ctx.guild.kick(member, reason=reason)
-    await ctx.send(embed=embed(title="Kicked Successfully"))
-
-  @commands.command(name="multikick", extras={"examples": ["@username @someone @someoneelse", "@thisguy", "12345678910 10987654321 @someone", "@someone I just really didn't like them", "@thisguy 12345678910 They were spamming general"]})
-  @commands.guild_only()
-  @commands.bot_has_guild_permissions(kick_members=True)
-  @commands.has_guild_permissions(kick_members=True)
-  async def multikick(self, ctx, members: commands.Greedy[discord.Member], *, reason: ActionReason = None):
-    if reason is None:
-      reason = f"Kicked by {ctx.author} (ID: {ctx.author.id})"
-
     if len(members) == 0:
       return await ctx.send(embed=embed(title="Missing members to kick.", color=MessageColors.ERROR))
 
@@ -364,7 +354,7 @@ class Moderation(commands.Cog):
   @commands.guild_only()
   @commands.bot_has_guild_permissions(ban_members=True)
   @commands.has_guild_permissions(ban_members=True)
-  async def norm_ban(self, ctx, members: commands.Greedy[MemberID], *, reason: ActionReason = None):
+  async def norm_ban(self, ctx, members: commands.Greedy[MemberID], *, reason: typing.Optional[ActionReason] = None):
     return await self.ban(ctx, members, reason)
 
   @cog_ext.cog_slash(
