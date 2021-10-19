@@ -22,6 +22,58 @@ if TYPE_CHECKING:
   from index import Friday as Bot
 
 
+def can_execute_action(ctx, user, target):
+  return user.id == ctx.bot.owner_id or \
+         user == ctx.guild.owner or \
+         user.top_role > target.top_role
+
+
+class MemberID(commands.Converter):
+  async def convert(self, ctx, argument):
+    try:
+      m = await commands.MemberConverter().convert(ctx, argument)
+    except commands.BadArgument:
+      try:
+        member_id = int(argument, base=10)
+      except ValueError:
+        raise commands.BadArgument(f"{argument} is not a valid member or member ID.") from None
+      else:
+        m = await ctx.bot.get_or_fetch_member(ctx.guild, member_id)
+        if m is None:
+          # is hackban
+          return type("_HackBan", (), {"id": member_id, "__str__": lambda s: f"Member ID {s.id}"})()
+    if not can_execute_action(ctx, ctx.author, m):
+      raise commands.BadArgument("You cannot do this action on this user due to role hierarchy.")
+    return m
+
+
+class BannedMember(commands.Converter):
+  async def convert(self, ctx, argument):
+    if argument.isdigit():
+      member_id = int(argument, base=10)
+      try:
+        return await ctx.guild.fetch_ban(discord.Object(id=member_id))
+      except discord.NotFound:
+        raise commands.BadArgument("This member has not been banned before.") from None
+
+    ban_list = await ctx.guild.bans()
+    entity = discord.utils.find(lambda u: str(u.user) == argument, ban_list)
+
+    if entity is None:
+      raise commands.BadArgument("This member has not been banned before.")
+    return entity
+
+
+class ActionReason(commands.Converter):
+  async def convert(self, ctx, argument):
+    ret = f"{ctx.author} (ID: {ctx.author.id}): {argument}"
+
+    if len(ret) > 512:
+      reason_max = 512 - len(ret) + len(argument)
+      raise commands.BadArgument(f"Reason is too long ({len(argument)}/{reason_max})")
+    return ret
+
+
 class Moderation(commands.Cog):
   """Manage your server with these commands"""
 
@@ -41,6 +93,18 @@ class Moderation(commands.Cog):
     if ctx.guild is None:
       raise commands.NoPrivateMessage("This command can only be used within a guild")
     return True
+
+  async def cog_command_error(self, ctx, error):
+    if isinstance(error, commands.BadArgument):
+      await ctx.send(embed=embed(title=error, color=MessageColors.ERROR))
+    elif isinstance(error, commands.CommandInvokeError):
+      original = error.original
+      if isinstance(original, discord.Forbidden):
+        await ctx.send(embed=embed(title="Bot doesn't have permission to execute this action.", color=MessageColors.ERROR))
+      elif isinstance(original, discord.NotFound):
+        await ctx.send(embed=embed(title=f"This entity does not exist: {original.text}", color=MessageColors.ERROR))
+      elif isinstance(original, discord.HTTPException):
+        await ctx.send(embed=embed(title="An unexpected error occured. Try again later?", color=MessageColors.ERROR))
 
   # @commands.command(name="mute")
   # @commands.is_owner()
@@ -213,10 +277,11 @@ class Moderation(commands.Cog):
     await self.bot.db.query("DELETE FROM blacklist WHERE guild_id=$1", str(ctx.guild.id))
     await ctx.reply(embed=embed(title="Removed all blacklisted words"))
 
-  @commands.command(name="kick", extras={"examples": ["@username @someone @someoneelse", "@thisguy", "12345678910 10987654321 @someone", "@someone I just really didn't like them", "@thisguy 12345678910 They were spamming general"]})
+  @commands.command(name="kick", extras={"examples": ["@username", "@thisguy", "12345678910 ", "@someone I just really didn't like them", "12345678910 They were spamming general"]})
+  @commands.guild_only()
   @commands.bot_has_guild_permissions(kick_members=True)
   @commands.has_guild_permissions(kick_members=True)
-  async def norm_kick(self, ctx, member: discord.Member, *, reason: typing.Optional[str] = None):
+  async def norm_kick(self, ctx, member: discord.Member, *, reason: ActionReason = None):
     await self.kick(ctx, member, reason)
 
   @cog_ext.cog_slash(
@@ -243,55 +308,39 @@ class Moderation(commands.Cog):
   async def slash_kick(self, ctx, member: discord.Member, reason=None):
     await self.kick(ctx, [member], reason, True)
 
-  async def kick(self, ctx, members, reason=None, slash: bool = False):
-    if isinstance(members, list) and len(members) == 0 and not slash:
-      return await ctx.send_help(ctx.command)
+  async def kick(self, ctx, member: discord.Member, reason: ActionReason = None):
+    if reason is None:
+      reason = f"Kicked by {ctx.author} (ID: {ctx.author.id})"
 
-    # tokick = []
+    await ctx.guild.kick(member, reason=reason)
+    await ctx.send(embed=embed(title="Kicked Successfully"))
 
-    if not isinstance(members, list):
-      members = [members]
+  @commands.command(name="multikick", extras={"examples": ["@username @someone @someoneelse", "@thisguy", "12345678910 10987654321 @someone", "@someone I just really didn't like them", "@thisguy 12345678910 They were spamming general"]})
+  @commands.guild_only()
+  @commands.bot_has_guild_permissions(kick_members=True)
+  @commands.has_guild_permissions(kick_members=True)
+  async def multikick(self, ctx, members: commands.Greedy[discord.Member], *, reason: ActionReason = None):
+    if reason is None:
+      reason = f"Kicked by {ctx.author} (ID: {ctx.author.id})"
 
-    if self.bot.user in members:
-      if slash:
-        return await ctx.send(hidden=True, content="But I don't want to kick myself 😭")
-      return await ctx.reply(embed=embed(title="But I don't want to kick myself 😭", color=MessageColors.ERROR))
+    if len(members) == 0:
+      return await ctx.send(embed=embed(title="Missing members to kick.", color=MessageColors.ERROR))
 
-    if ctx.author in members:
-      if slash:
-        return await ctx.send(hidden=True, content="Failed to kick yourself")
-      return await ctx.reply(embed=embed(title="Failed to kick yourself", color=MessageColors.ERROR))
-
+    failed = 0
     for member in members:
-      pos = ctx.guild.me.top_role.position
-      uspos = member.top_role.position
+      try:
+        await ctx.guild.kick(member, reason=reason)
+      except discord.HTTPException:
+        failed += 1
 
-      if pos == uspos:
-        if slash:
-          return await ctx.send(hidden=True, content="I am not able to kick a member in the same highest role as me.")
-        return await ctx.reply(embed=embed(title="I am not able to kick a member in the same highest role as me.", color=MessageColors.ERROR))
+    await ctx.send(embed=embed(title=f"Kicked {len(members) - failed}/{len(members)} members"))
 
-      if pos < uspos:
-        if slash:
-          return await ctx.send(hidden=True, content="I am not able to kick a member with a role higher than my own permissions role(s)")
-        return await ctx.reply(embed=embed(title="I am not able to kick a member with a role higher than my own permissions role(s)", color=MessageColors.ERROR))
-
-    # kicks = []
-    # for member in members:
-    #   tokick.append(member.name)
-    #   kicks.append(member.kick(reason=f"{ctx.author}: {reason}"))
-    # await asyncio.gather(*kicks)
-
-    await member.kick(reason=f"{ctx.author}: {reason}")
-
-    return await ctx.send(embed=embed(title=f"Kicked `{member}`{(' for reason `' + reason+'`') if reason is not None else ''}"))
-    # return await ctx.send(embed=embed(title=f"Kicked `{', '.join(tokick)}`{(' for reason `' + reason+'`') if reason is not None else ''}"))
-
-  @commands.command(name="ban", extras={"examples": ["@username @someone @someoneelse Spam", "@thisguy The most spam i have ever seen", "12345678910 10987654321 @someone", "@someone They were annoying me", "123456789 2 Sus"]})
+  @commands.command(name="ban", extras={"examples": ["@username Spam", "@thisguy The most spam i have ever seen", "12345678910", "@someone They were annoying me", "123456789 2 Sus"]})
+  @commands.guild_only()
   @commands.bot_has_guild_permissions(ban_members=True)
   @commands.has_guild_permissions(ban_members=True)
-  async def norm_ban(self, ctx, member: discord.Member, delete_message_days: typing.Optional[int] = 0, *, reason: str = None):
-    await ctx.reply(**await self.ban(ctx, member, reason, delete_message_days))
+  async def norm_ban(self, ctx, member: MemberID, *, reason: ActionReason = None):
+    return await self.ban(ctx, member, reason)
 
   @cog_ext.cog_slash(
       name="ban",
@@ -309,71 +358,55 @@ class Moderation(commands.Cog):
               SlashCommandOptionType.STRING,
               False
           ),
-          create_option(
-              "delete_message_days",
-              "The number of days of messages to remove from this user",
-              SlashCommandOptionType.INTEGER,
-              False
-          )
       ]
   )
   @checks.bot_has_guild_permissions(ban_members=True)
   @commands.has_guild_permissions(ban_members=True)
   @checks.slash(user=True, private=False)
-  async def slash_ban(self, ctx, member, reason=None, delete_message_days=0):
+  async def slash_ban(self, ctx, member, reason=None):
     ...
     # post = await self.ban(ctx, member, reason, delete_message_days, True)
     # await ctx.send(**post)
 
-  async def ban(self, ctx, members, reason=None, delete_message_days=0, slash=False):
-    if isinstance(members, list) and len(members) == 0 and not slash:
-      return await ctx.send_help(ctx.command)
+  async def ban(self, ctx, member: MemberID, reason: ActionReason = None):
+    if reason is None:
+      reason = f"Banned by {ctx.author} (ID: {ctx.author.id})"
 
-    # toban = []
+    await ctx.guild.ban(member, reason=reason)
+    await ctx.send(embed=embed(title="Banned Successfully"))
 
-    if not isinstance(members, list):
-      members = [members]
+  @commands.command("multiban", extras={"examples": ["@username @someone @someoneelse Spam", "@thisguy The most spam i have ever seen", "12345678910 10987654321 @someone", "@someone They were annoying me", "123456789 2 Sus"]})
+  @commands.guild_only()
+  @commands.bot_has_guild_permissions(ban_members=True)
+  @commands.has_guild_permissions(ban_members=True)
+  async def multiban(self, ctx, members: commands.Greedy[MemberID], *, reason: ActionReason = None):
+    if reason is None:
+      reason = f"Banned by {ctx.author} (ID: {ctx.author.id})"
 
-    if self.bot.user in members and slash:
-      if slash:
-        return dict(hidden=True, content="But I don't want to ban myself 😭")
-      return dict(embed=embed(title="But I don't want to ban myself 😭"))
+    if len(members) == 0:
+      return await ctx.send(embed=embed(title="Missing members to ban.", color=MessageColors.ERROR))
 
-    if ctx.author in members:
-      if slash:
-        return dict(hidden=True, content="Failed to ban yourself")
-      return dict(embed=embed(title="Failed to ban yourself", color=MessageColors.ERROR))
-
+    failed = 0
     for member in members:
-      pos = ctx.guild.me.top_role.position
-      uspos = member.top_role.position
+      try:
+        await ctx.guild.ban(member, reason=reason)
+      except discord.HTTPException:
+        failed += 1
 
-      if pos == uspos:
-        if slash:
-          return dict(hidden=True, content="I am not able to ban a member in the same highest role as me.")
-        return dict(embed=embed(title="I am not able to ban a member in the same highest role as me.", color=MessageColors.ERROR))
+    await ctx.send(embed=embed(title=f"Banned {len(members) - failed}/{len(members)} members."))
 
-      if pos < uspos:
-        if slash:
-          return dict(hidden=True, content="I am not able to ban a member with a role higher than my own permissions role(s)")
-        return dict(embed=embed(title="I am not able to ban a member with a role higher than my own permissions role(s)", color=MessageColors.ERROR))
+  @commands.command("unban")
+  @commands.guild_only()
+  @commands.bot_has_guild_permissions(ban_members=True)
+  @commands.has_guild_permissions(ban_members=True)
+  async def unban(self, ctx, member: BannedMember, *, reason: ActionReason = None):
+    if reason is None:
+      reason = f"Unbanned by {ctx.author} (ID: {ctx.author.id})"
 
-    # if self.bot.user in members and not slash:
-    #   try:
-    #     await ctx.add_reaction("😢")
-    #   except BaseException:
-    #     pass
-    #   return
-
-    # for member in members:
-    if member == ctx.author:
-      if slash:
-        return dict(hidden=True, content="Failed to ban yourself")
-      return dict(embed=embed(title="Failed to ban yourself", color=MessageColors.ERROR))
-    # toban.append(member.name)
-    await member.ban(delete_message_days=delete_message_days, reason=f"{ctx.author}: {reason}")
-    return dict(embed=embed(title=f"Banned `{member}`{(' with `'+str(delete_message_days)+'` messages deleted') if delete_message_days > 0 else ''}{(' for reason `'+reason+'`') if reason is not None else ''}"))
-    # return dict(embed=embed(title=f"Banned `{', '.join(toban)}`{(' with `'+str(delete_message_days)+'` messages deleted') if delete_message_days > 0 else ''}{(' for reason `'+reason+'`') if reason is not None else ''}"))
+    await ctx.guild.unban(member.user, reason=reason)
+    if member.reason:
+      return await ctx.send(embed=embed(title=f"Unbanned {member.user} (ID: {member.user.id})", description=f"Previously banned for `{member.reason}`."))
+    await ctx.send(embed=embed(title=f"Unbanned {member.user} (ID: {member.user.id})."))
 
   @commands.command(name="rolecall", aliases=["rc"], extras={"examples": ["@mods vc-1", "123456798910 vc-2 vc-1 10987654321", "@admins general @username @username"]}, help="Moves everyone with a specific role to a voicechannel. Objects that can be exluded are voicechannels,roles,and members")
   @commands.guild_only()
