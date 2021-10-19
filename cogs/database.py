@@ -38,6 +38,7 @@ class Database(commands.Cog):
             r"toprole json NOT NULL DEFAULT '{}'",
             r"roles json[] NOT NULL DEFAULT '{}'",
             r"text_channels json[] NOT NULL DEFAULT '{}'",
+            "reddit_extract boolean DEFAULT false",
         ],
         "votes": [
             "id text PRIMARY KEY NOT NULL",
