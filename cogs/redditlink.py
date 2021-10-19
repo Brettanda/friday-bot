@@ -80,15 +80,20 @@ class redditlink(commands.Cog):
     if not message.guild:
       return
 
-    if (await self.bot.get_context(message)).command is not None:
-      return
-
     reg = re.findall(self.pattern, message.content)
     # spoiler = re.findall(self.patternspoiler,ctx.content)
 
     if len(reg) != 1:
       return
 
+    if message.guild:
+      db_enabled = await self.bot.db.query("SELECT reddit_extract FROM servers WHERE id=$1 LIMIT 1", str(message.guild.id))
+      if not db_enabled:
+        return
+
+    ctx: "MyContext" = await self.bot.get_context(message)
+    if ctx.command is not None:
+      return
     body = await self.reddit.submission(url=reg[0])
 
     data, video, embeded, image = body, None, None, None
@@ -148,7 +153,7 @@ class redditlink(commands.Cog):
         await message.reply(embed=embed(title="Something went wrong", description="Please try again later. I have notified my boss of this error", color=MessageColors.ERROR), mention_author=False)
         raise e
 
-  @commands.command(name="redditextract", help="Extracts the media from the reddit post")
+  @commands.group(name="redditextract", help="Extracts the media from the reddit post", invoke_without_command=True)
   async def norm_extract(self, ctx: "MyContext", link: str):
     if not ctx.is_interaction():
       try:
@@ -158,6 +163,15 @@ class redditlink(commands.Cog):
         return await self.extract(query=link, command=True, ctx=ctx, guild=ctx.guild, channel=ctx.channel)
 
     return await self.extract(query=link, command=True, ctx=ctx, guild=ctx.guild, channel=ctx.channel)
+
+  @norm_extract.command("enable", help="Enable or disabled Friday's reddit link extraction. (When disabled Friday won't react to reddit links.)")
+  @commands.guild_only()
+  @commands.has_guild_permissions(manage_messages=True)
+  async def extract_toggle(self, ctx, enable: bool):
+    await self.bot.db.query("UPDATE servers SET reddit_extract=$1 WHERE id=$2", enable, str(ctx.guild.id))
+    if enable:
+      return await ctx.send(embed=embed(title="I will now react to Reddit links", description="For me to then extract a reddit link the author of the message must react with the same emoji Friday did.\nFriday also requires add_reaction permissions (if not already) for this to work."))
+    await ctx.send(embed=embed(title="I will no longer react to Reddit links.", description="The Reddit extract commands will still work."))
 
   @cog_ext.cog_slash(name="redditextract", description="Extracts the file from the reddit post")
   async def slash_extract(self, ctx, link: str):

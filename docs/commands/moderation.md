@@ -14,7 +14,7 @@ Manage your server with these commands
 Usage:
 
 ```md
-!ban <members>... [delete_message_days=0] <reason>
+!ban <members>... [reason]
 ```
 
 Examples:
@@ -274,7 +274,8 @@ Mute a member from text channels
 Usage:
 
 ```md
-!mute <members>...
+!mute <member>... <reason>
+!mute role <role>
 ```
 
 Examples:
@@ -284,6 +285,19 @@ Examples:
 !mute @steve 9876543210
 !mute @Motostar
 !mute 0123456789
+```
+
+### Role
+
+??? missing "Does not have a slash command to match"
+	Learn more about [slash commands](/#slash-commands)
+
+Set the role to be applied to members that get muted
+
+Usage:
+
+```md
+!mute role <role>
 ```
 
 ## Prefix
@@ -334,6 +348,17 @@ Examples:
 !rolecall @admins general @username @username
 ```
 
+## Unban
+
+??? missing "Does not have a slash command to match"
+	Learn more about [slash commands](/#slash-commands)
+
+Usage:
+
+```md
+!unban <member> <reason>
+```
+
 ## Unmute
 
 Unmute a member from text channels
@@ -344,7 +369,7 @@ Unmute a member from text channels
 Usage:
 
 ```md
-!unmute <members>...
+!unmute <members>... <reason>
 ```
 
 Examples:
@@ -355,4 +380,3 @@ Examples:
 !unmute @Motostar
 !unmute 0123456789
 ```
-
