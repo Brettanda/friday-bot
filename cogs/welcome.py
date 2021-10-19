@@ -64,7 +64,7 @@ class Welcome(commands.Cog):
 
   async def add_welcome_role(self, member: discord.Member) -> None:
     role_id = await self.bot.db.query("SELECT role_id FROM welcome WHERE guild_id=$1 LIMIT 1", str(member.guild.id))
-    if role_id is None or str(role_id).lower() == "null":
+    if role_id is None or str(role_id).lower() == "null" or str(role_id).lower() == "none":
       return
     role = member.guild.get_role(int(role_id))
     if role is None:
