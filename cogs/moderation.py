@@ -383,7 +383,9 @@ class Moderation(commands.Cog):
     # post = await self.ban(ctx, member, reason, delete_message_days, True)
     # await ctx.send(**post)
 
-  async def ban(self, ctx, members: list, reason: ActionReason = None):
+  async def ban(self, ctx, members: commands.Greedy[discord.Member], reason: ActionReason = None):
+    if not isinstance(members, list):
+      members = [members]
     if reason is None:
       reason = f"Banned by {ctx.author} (ID: {ctx.author.id})"
 
