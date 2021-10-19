@@ -74,6 +74,29 @@ class ActionReason(commands.Converter):
     return ret
 
 
+class NoMuteRole(commands.CommandError):
+  def __init__(self):
+    super().__init__("This server does not have a mute role set up.")
+
+
+def can_mute():
+  async def predicate(ctx):
+    is_owner = await ctx.bot.is_owner(ctx.author)
+    if ctx.guild is None:
+      return False
+
+    if not ctx.author.guild_permissions.manage_roles and not is_owner:
+      return False
+
+    role_id = await ctx.db.query("SELECT mute_role FROM servers WHERE id=$1 LIMIT 1", str(ctx.guild.id))
+    role = ctx.guild.get_role(eval(role_id))
+    if role is None:
+      raise NoMuteRole()
+
+    return ctx.author.top_role > role or ctx.author.guild_permissions.manage_roles or is_owner
+  return commands.check(predicate)
+
+
 class Moderation(commands.Cog):
   """Manage your server with these commands"""
 
@@ -105,6 +128,8 @@ class Moderation(commands.Cog):
         await ctx.send(embed=embed(title=f"This entity does not exist: {original.text}", color=MessageColors.ERROR))
       elif isinstance(original, discord.HTTPException):
         await ctx.send(embed=embed(title="An unexpected error occured. Try again later?", color=MessageColors.ERROR))
+    elif isinstance(error, NoMuteRole):
+      await ctx.send(embed=embed(title=error, color=MessageColors.ERROR))
 
   # @commands.command(name="mute")
   # @commands.is_owner()
@@ -335,12 +360,12 @@ class Moderation(commands.Cog):
 
     await ctx.send(embed=embed(title=f"Kicked {len(members) - failed}/{len(members)} members"))
 
-  @commands.command(name="ban", extras={"examples": ["@username Spam", "@thisguy The most spam i have ever seen", "12345678910", "@someone They were annoying me", "123456789 2 Sus"]})
+  @commands.command("ban", extras={"examples": ["@username @someone @someoneelse Spam", "@thisguy The most spam i have ever seen", "12345678910 10987654321 @someone", "@someone They were annoying me", "123456789 2 Sus"]})
   @commands.guild_only()
   @commands.bot_has_guild_permissions(ban_members=True)
   @commands.has_guild_permissions(ban_members=True)
-  async def norm_ban(self, ctx, member: MemberID, *, reason: ActionReason = None):
-    return await self.ban(ctx, member, reason)
+  async def norm_ban(self, ctx, members: commands.Greedy[MemberID], *, reason: ActionReason = None):
+    return await self.ban(ctx, members, reason)
 
   @cog_ext.cog_slash(
       name="ban",
@@ -368,18 +393,7 @@ class Moderation(commands.Cog):
     # post = await self.ban(ctx, member, reason, delete_message_days, True)
     # await ctx.send(**post)
 
-  async def ban(self, ctx, member: MemberID, reason: ActionReason = None):
-    if reason is None:
-      reason = f"Banned by {ctx.author} (ID: {ctx.author.id})"
-
-    await ctx.guild.ban(member, reason=reason)
-    await ctx.send(embed=embed(title="Banned Successfully"))
-
-  @commands.command("multiban", extras={"examples": ["@username @someone @someoneelse Spam", "@thisguy The most spam i have ever seen", "12345678910 10987654321 @someone", "@someone They were annoying me", "123456789 2 Sus"]})
-  @commands.guild_only()
-  @commands.bot_has_guild_permissions(ban_members=True)
-  @commands.has_guild_permissions(ban_members=True)
-  async def multiban(self, ctx, members: commands.Greedy[MemberID], *, reason: ActionReason = None):
+  async def ban(self, ctx, members: list, reason: ActionReason = None):
     if reason is None:
       reason = f"Banned by {ctx.author} (ID: {ctx.author.id})"
 
@@ -392,7 +406,6 @@ class Moderation(commands.Cog):
         await ctx.guild.ban(member, reason=reason)
       except discord.HTTPException:
         failed += 1
-
     await ctx.send(embed=embed(title=f"Banned {len(members) - failed}/{len(members)} members."))
 
   @commands.command("unban")
@@ -616,21 +629,28 @@ class Moderation(commands.Cog):
       return
     await self.check_blacklist(msg)
 
-  @commands.command(name="mute", extras={"examples": ["@Motostar @steve", "@steve 9876543210", "@Motostar", "0123456789"]}, help="Mute a member from text channels")
+  # TODO: Add a timeout
+
+  @commands.group(name="mute", extras={"examples": ["@Motostar @steve", "@steve 9876543210", "@Motostar", "0123456789"]}, help="Mute a member from text channels", invoke_without_command=True)
+  @commands.guild_only()
+  @can_mute()
+  async def norm_mute(self, ctx: "MyContext", member: commands.Greedy[discord.Member], *, reason: ActionReason = None):
+    await self.mute(ctx, member, reason)
+
+  @norm_mute.group("role", help="Set the role to be applied to members that get muted")
   @commands.guild_only()
   @commands.has_guild_permissions(manage_channels=True, manage_roles=True)
   @commands.bot_has_guild_permissions(view_channel=True, manage_channels=True, manage_roles=True)
-  async def norm_mute(self, ctx: "MyContext", member: discord.Member):
-    # if len(members) == 0:
-    #   return await cmd_help(ctx, ctx.command, "You're missing some arguments, here is how the command should look")
-    # async with ctx.typing():
-    await self.mute(ctx, member)
+  async def mute_role(self, ctx: "MyContext", *, role: discord.Role):
+    await self.bot.db.query("UPDATE servers SET mute_role=$1 WHERE id=$2", str(role.id), str(ctx.guild.id))
+    await ctx.send(embed=embed(title=f"Friday will not use `{role}` as the new mute role"))
 
   @cog_ext.cog_slash(
       name="mute",
-      description="Mute a member from text channels",
+      description="Add a mute role to a member",
       options=[
-          create_option(name="member", description="The member to mute", option_type=SlashCommandOptionType.USER, required=True)
+          create_option(name="member", description="The member to mute", option_type=SlashCommandOptionType.USER, required=True),
+          create_option(name="reason", description="The reason for the mute", option_type=SlashCommandOptionType.STRING, required=False)
       ]
   )
   @commands.has_guild_permissions(manage_channels=True, manage_roles=True)
@@ -640,57 +660,38 @@ class Moderation(commands.Cog):
     await ctx.defer(hidden=True)
     await self.mute(ctx, [member], True)
 
-  async def mute(self, ctx: "MyContext", members: [discord.Member], slash: bool = False):
+  async def mute(self, ctx: "MyContext", members: commands.Greedy[discord.Member], reason: ActionReason = None, slash: bool = False):
     if not isinstance(members, list):
       members = [members]
+
+    if reason is None:
+      reason = f"Mute done by {ctx.author} (ID: {ctx.author.id})"
+
+    role_id = await ctx.db.query("SELECT mute_role FROM servers WHERE id=$1 LIMIT 1", str(ctx.guild.id))
+    role = discord.Object(id=eval(role_id))
     if len(members) == 0:
-      if slash:
-        return await ctx.send(hidden=True, embed=embed(title="Failed to find that member", color=MessageColors.ERROR))
-      return await ctx.send(embed=embed(title="Failed to find that member", color=MessageColors.ERROR))
-    roles = [r for r in await ctx.guild.fetch_roles() if r.name == "Muted" and not r.is_bot_managed() and not r.managed and not r.is_premium_subscriber() and not r.is_integration()]
-    muted_role: discord.Role = roles[0] if len(roles) > 0 else None
-    if muted_role is None:
-      muted_role: discord.Role = await ctx.guild.create_role(name="Muted", permissions=discord.Permissions.none(), colour=discord.Colour.light_grey(), hoist=False, mentionable=False)
-      try:
-        for channel in ctx.guild.channels:
-          await channel.set_permissions(muted_role, send_messages=False, use_private_threads=False, use_threads=False, speak=False, add_reactions=False)
-      except discord.Forbidden:
-        await muted_role.delete()
-        return await ctx.send(embed=embed(title="I require Administrator permissions to build this `Muted` role.", color=MessageColors.ERROR))
-    has_been_muted, not_muted = [], []
+      return await ctx.send(embed=embed(title="Missing members to mute.", color=MessageColors.ERROR))
+
+    failed = 0
     for member in members:
-      if muted_role in member.roles:
-        not_muted.append(member.name)
-      else:
-        try:
-          await member.add_roles(muted_role)
-        except Exception as e:
-          raise e
-        else:
-          has_been_muted.append(member.name)
-    if len(has_been_muted) == 0 and len(not_muted) > 0:
-      if slash:
-        return await ctx.send(hidden=True, embed=embed(title=f"Already muted: `{', '.join(not_muted)}`", color=MessageColors.ERROR))
-      return await ctx.send(embed=embed(title=f"Already muted: `{', '.join(not_muted)}`", color=MessageColors.ERROR))
-    if slash:
-      return await ctx.send(hidden=True, embed=embed(title=f"`{', '.join(has_been_muted)}` {'has' if len(has_been_muted) <= 1 else 'have'} been muted.", description="" if len(not_muted) == 0 else ("Already muted: " + ", ".join(not_muted) + "`")))
-    await ctx.send(embed=embed(title=f"`{', '.join(has_been_muted)}` {'has' if len(has_been_muted) <= 1 else 'have'} been muted.", description="" if len(not_muted) == 0 else ("Already muted: `" + ", ".join(not_muted) + "`")))
+      try:
+        await member.add_roles(role, reason=reason)
+      except discord.HTTPException:
+        failed += 1
+    await ctx.send(embed=embed(title=f"Muted {len(members) - failed}/{len(members)} members."))
 
   @commands.command(name="unmute", extras={"examples": ["@Motostar @steve", "@steve 9876543210", "@Motostar", "0123456789"]}, help="Unmute a member from text channels")
   @commands.guild_only()
-  @commands.has_guild_permissions(manage_channels=True, manage_roles=True)
-  @commands.bot_has_guild_permissions(manage_channels=True, manage_roles=True)
-  async def norm_unmute(self, ctx: "MyContext", member: discord.Member):
-    # if len(members) == 0:
-    #   return await cmd_help(ctx, ctx.command, "You're missing some arguments, here is how the command should look")
-    # async with ctx.typing():
-    await self.unmute(ctx, member)
+  @can_mute()
+  async def norm_unmute(self, ctx: "MyContext", members: commands.Greedy[discord.Member], *, reason: ActionReason = None):
+    await self.unmute(ctx, members, reason)
 
   @cog_ext.cog_slash(
       name="unmute",
       description="Unmute a member from text channels",
       options=[
-          create_option(name="member", description="The member to unmute", option_type=SlashCommandOptionType.USER, required=True)
+          create_option(name="member", description="The member to unmute", option_type=SlashCommandOptionType.USER, required=True),
+          create_option(name="reason", description="The reason for the unmute", option_type=SlashCommandOptionType.STRING, required=False)
       ]
   )
   @checks.slash(user=True, private=False)
@@ -698,31 +699,26 @@ class Moderation(commands.Cog):
     await ctx.defer(hidden=True)
     await self.unmute(ctx, [member], True)
 
-  async def unmute(self, ctx, members: [discord.Member], slash: bool = False):
+  async def unmute(self, ctx, members: commands.Greedy[discord.Member], reason: ActionReason = None, slash: bool = False):
     if not isinstance(members, list):
       members = [members]
-    roles = [r for r in await ctx.guild.fetch_roles() if r.name == "Muted" and not r.is_bot_managed() and not r.managed and not r.is_premium_subscriber() and not r.is_integration()]
-    muted_role: discord.Role = roles[0] if len(roles) > 0 else None
-    if not muted_role:
-      return await ctx.send(embed=embed(title="No one has been muted yet", colors=MessageColors.ERROR))
-    has_been_unmuted, not_unmuted = [], []
+
+    if reason is None:
+      reason = f"Unmute done by {ctx.author} (ID: {ctx.author.id})"
+
+    role_id = await ctx.db.query("SELECT mute_role FROM servers WHERE id=$1 LIMIT 1", str(ctx.guild.id))
+    role = discord.Object(id=eval(role_id))
+    if len(members) == 0:
+      return await ctx.send(embed=embed(title="Missing members to unmute.", color=MessageColors.ERROR))
+
+    failed = 0
     for member in members:
-      if muted_role not in member.roles:
-        not_unmuted.append(member.name)
-      else:
-        try:
-          await member.remove_roles(muted_role)
-        except Exception as e:
-          raise e
-        else:
-          has_been_unmuted.append(member.name)
-    if len(has_been_unmuted) == 0 and len(not_unmuted) > 0:
-      if slash:
-        return await ctx.send(hidden=True, embed=embed(title=f"Wasn't muted: `{', '.join(not_unmuted)}`", color=MessageColors.ERROR))
-      return await ctx.send(embed=embed(title=f"Wasn't muted: `{', '.join(not_unmuted)}`", color=MessageColors.ERROR))
-    if slash:
-      return await ctx.send(hidden=True, embed=embed(title=f"`{', '.join(has_been_unmuted)}` {'has' if len(has_been_unmuted) <= 1 else 'have'} been unmuted.", description="" if len(not_unmuted) == 0 else ("Wasn't muted: " + ", ".join(not_unmuted) + "`")))
-    await ctx.send(embed=embed(title=f"`{', '.join(has_been_unmuted)}` {'has' if len(has_been_unmuted) <= 1 else 'have'} been unmuted.", description="" if len(not_unmuted) == 0 else ("Wasn't muted: " + ", ".join(not_unmuted) + "`")))
+      try:
+        await member.remove_roles(role, reason=reason)
+      except discord.HTTPException:
+        failed += 1
+
+    await ctx.send(embed=embed(title=f"Unmuted {len(members) - failed}/{len(members)} members"))
 
   @commands.command(name="language", extras={"examples": ["en", "es", "english", "spanish"]}, aliases=["lang"], help="Change the language that I will speak")
   # @commands.cooldown(1, 3600, commands.BucketType.guild)

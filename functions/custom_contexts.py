@@ -92,6 +92,10 @@ class FakeInteractionMessage:
 
 
 class MyContext(Context):
+  @property
+  def db(self):
+    return self.bot.db
+
   def is_interaction(self) -> bool:
     return isinstance(self.message, FakeInteractionMessage)
 
