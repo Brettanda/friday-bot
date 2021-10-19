@@ -633,7 +633,7 @@ class Moderation(commands.Cog):
   @commands.bot_has_guild_permissions(view_channel=True, manage_channels=True, manage_roles=True)
   async def mute_role(self, ctx: "MyContext", *, role: discord.Role):
     await self.bot.db.query("UPDATE servers SET mute_role=$1 WHERE id=$2", str(role.id), str(ctx.guild.id))
-    await ctx.send(embed=embed(title=f"Friday will not use `{role}` as the new mute role"))
+    await ctx.send(embed=embed(title=f"Friday will now use `{role}` as the new mute role"))
 
   @cog_ext.cog_slash(
       name="mute",
