@@ -637,13 +637,54 @@ class Moderation(commands.Cog):
   async def norm_mute(self, ctx: "MyContext", member: commands.Greedy[discord.Member], *, reason: ActionReason = None):
     await self.mute(ctx, member, reason)
 
-  @norm_mute.group("role", help="Set the role to be applied to members that get muted")
+  @norm_mute.group("role", help="Set the role to be applied to members that get muted", invoke_without_command=True)
   @commands.guild_only()
   @commands.has_guild_permissions(manage_channels=True, manage_roles=True)
   @commands.bot_has_guild_permissions(view_channel=True, manage_channels=True, manage_roles=True)
-  async def mute_role(self, ctx: "MyContext", *, role: discord.Role):
+  async def mute_role(self, ctx: "MyContext", *, role: typing.Optional[discord.Role] = None):
+    await self.bot.db.query("UPDATE servers SET mute_role=$1 WHERE id=$2", str(role.id) if role is not None else None, str(ctx.guild.id))
+    if role is not None:
+      return await ctx.send(embed=embed(title=f"Friday will now use `{role}` as the new mute role"))
+    await ctx.send(embed=embed(title="The saved mute role has been removed"))
+
+  @mute_role.command("create", help="Don't have a muted role? Let Friday create a basic one for you.")
+  @commands.guild_only()
+  @commands.has_guild_permissions(manage_channels=True, manage_roles=True)
+  @commands.bot_has_guild_permissions(view_channel=True, manage_channels=True, manage_roles=True)
+  @commands.cooldown(1, 60.0, commands.BucketType.guild)
+  async def mute_role_create(self, ctx: "MyContext", *, name: typing.Optional[str] = "Muted"):
+    current_role = await self.bot.db.query("SELECT mute_role FROM servers WHERE id=$1 LIMIT 1", str(ctx.guild.id))
+    if current_role is not None:
+      return await ctx.send(embed=embed(title="There is already a saved role.", color=MessageColors.ERROR))
+
+    if current_role is not None and ctx.guild.get_role(int(current_role, base=10)) is not None:
+      return await ctx.send(embed=embed(title="This server already has a mute role.", color=MessageColors.ERROR))
+
+    try:
+      role = await ctx.guild.create_role(name=name, reason=f"Mute Role created by {ctx.author} (ID: {ctx.author.id})")
+    except discord.HTTPException as e:
+      return await ctx.send(embed=embed(title="An error occurred", description=str(e), color=MessageColors.ERROR))
+
     await self.bot.db.query("UPDATE servers SET mute_role=$1 WHERE id=$2", str(role.id), str(ctx.guild.id))
-    await ctx.send(embed=embed(title=f"Friday will now use `{role}` as the new mute role"))
+
+    confirm = await ctx.prompt("Would you like to update the channel overwrites")
+    if not confirm:
+      return await ctx.send(embed=embed(title="Mute role successfully created."))
+
+    async with ctx.typing():
+      success, failed, skipped = 0, 0, 0
+      for channel in ctx.guild.channels:
+        perms = channel.permissions_for(ctx.guild.me)
+        if perms.manage_roles:
+          try:
+            await channel.set_permissions(role, send_messages=False, send_messages_in_threads=False, create_public_threads=False, create_private_threads=False, speak=False, add_reactions=False, reason=f"Mute role overwrites by {ctx.author} (ID: {ctx.author.id})")
+          except discord.HTTPException:
+            failed += 1
+          else:
+            success += 1
+        else:
+          skipped += 1
+      await ctx.send(embed=embed(title="Mute role successfully created.", description=f"Overwrites:\nUpdated: {success}, Failed: {failed}, Skipped: {skipped}"))
 
   # @cog_ext.cog_slash(
   #     name="mute",
@@ -668,7 +709,7 @@ class Moderation(commands.Cog):
       reason = f"Mute done by {ctx.author} (ID: {ctx.author.id})"
 
     role_id = await ctx.db.query("SELECT mute_role FROM servers WHERE id=$1 LIMIT 1", str(ctx.guild.id))
-    role = discord.Object(id=eval(role_id))
+    role = discord.Object(id=int(role_id, base=10) if role_id is not None else None)
     if len(members) == 0:
       return await ctx.send(embed=embed(title="Missing members to mute.", color=MessageColors.ERROR))
 
