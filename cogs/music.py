@@ -21,7 +21,7 @@ import time
 # from cogs.cleanup import get_delete_time
 
 # from .help import cmd_help
-from functions import embed, MessageColors, exceptions, checks, MyContext  # , relay_info
+from functions import embed, MessageColors, exceptions, MyContext  # , relay_info
 
 
 def can_play(ctx: "MyContext"):

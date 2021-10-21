@@ -17,7 +17,7 @@ from nextcord.ext import commands
 # from discord_slash.utils.manage_components import create_select, create_select_option, create_button, create_actionrow
 from typing_extensions import TYPE_CHECKING
 
-from functions import MessageColors, embed, checks, relay_info, config, MyContext
+from functions import MessageColors, embed, relay_info, config, MyContext
 
 if TYPE_CHECKING:
   from index import Friday as Bot

@@ -1,6 +1,5 @@
 import sys
 import logging
-import inspect
 import datetime
 import nextcord as discord
 import asyncio
@@ -10,7 +9,6 @@ import io
 import typing
 from typing import TYPE_CHECKING
 from nextcord.ext import commands  # , tasks
-from nextcord.ext.commands.view import StringView
 # from discord_slash.http import SlashCommandRequest
 from functions import MessageColors, embed, relay_info, exceptions, config, views, MyContext  # , FakeInteractionMessage
 import traceback
