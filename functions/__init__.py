@@ -9,7 +9,6 @@ from .custom_pages import Menu
 from .reply import msg_reply
 from .time import timeit
 from .relay import relay_info
-from .reddit_post import get_reddit_post
 from .build_da_docs import build as build_docs
 from . import views
 dev_guilds = [243159711237537802, 707441352367013899, 215346091321720832]
