@@ -432,44 +432,6 @@ class Fun(commands.Cog):
   #   if not message.embeds[0].title.startswith("Poll: "):
   #     return await ctx.send(embed=embed(title="That message is not a poll", color=MessageColors.ERROR))
 
-  @commands.command(name="gametime", help="Ping a role that is attached to a game and see who wants to play")
-  @commands.guild_only()
-  async def norm_game_time(self, ctx, role: discord.Role, *, message: str = None):
-    await self.game_time(ctx, role, message)
-
-  # @cog_ext.cog_slash(
-  #     name="gametime",
-  #     description="Ping a role that's attached to a game and see who wants to play",
-  #     options=[
-  #         create_option("role", "Which role to mention", SlashCommandOptionType.ROLE, True),
-  #         create_option("message", "Add a message to follow the mention", SlashCommandOptionType.STRING, False)
-  #     ]
-  # )
-  # @checks.slash(user=True, private=False)
-  # async def slash_game_time(self, ctx, role, message=None):
-  #   await self.game_time(ctx, role, message, True)
-
-  async def game_time(self, ctx, role, message=None, slash=False):
-    if role not in ctx.author.roles:
-      if slash:
-        return await ctx.send(hidden=True, content="Since this command is ment for game roles and you don't have that role, I will not go through with this command")
-      return await ctx.reply(embed=embed(title="Since this command is ment for game roles and you don't have that role, I will not go through with this command", color=MessageColors.ERROR))
-
-    mention_perm = ctx.channel.permissions_for(ctx.author).mention_everyone
-    if not role.mentionable and not mention_perm:
-      if slash:
-        return await ctx.send(hidden=True, content="You don't have permission to mention that role")
-      return await ctx.reply(embed=embed(title="You don't have permission to mention that role", color=MessageColors.ERROR))
-
-    if slash:
-      message = await ctx.send(content=f"{role.mention} {message if message is not None else ''}", allowed_mentions=discord.AllowedMentions(roles=True, everyone=False, users=False))
-    else:
-      await ctx.message.delete()
-      message = await ctx.reply(content=f"{role.mention} {message if message is not None else ''}", allowed_mentions=discord.AllowedMentions(roles=True, everyone=False, users=False))
-
-    await message.add_reaction("👍")
-    await message.add_reaction("👎")
-
   def get_time(self, now: int, future: int):
     time = datetime.timedelta(seconds=future - now)
     sec = time.seconds
