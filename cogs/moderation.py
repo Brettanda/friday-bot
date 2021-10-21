@@ -341,7 +341,7 @@ class Moderation(commands.Cog):
   # async def slash_kick(self, ctx, member: discord.Member, reason=None):
   #   await self.kick(ctx, [member], reason)
 
-  async def kick(self, ctx, members: commands.Greedy[discord.Member], *, reason: typing.Optional[ActionReason] = None):
+  async def kick(self, ctx, members: commands.Greedy[discord.Member], reason: typing.Optional[ActionReason] = None):
     if not isinstance(members, list):
       members = [members]
     if reason is None:
