@@ -1,10 +1,10 @@
 import os
 import asyncpraw
 
-from discord.ext import commands
-from discord_slash import SlashContext, cog_ext
+from nextcord.ext import commands
+# from interactions import Context as SlashContext, cog_ext
 
-from functions import get_reddit_post, checks, MyContext
+from functions import get_reddit_post, MyContext  # , checks
 from typing_extensions import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -39,10 +39,10 @@ class Meme(commands.Cog):
         return await ctx.reply(**await get_reddit_post(ctx, self.subs, self.reddit))
     await ctx.reply(**await get_reddit_post(ctx, self.subs, self.reddit))
 
-  @cog_ext.cog_slash(name="meme", description="Meme time")
-  @checks.slash(user=True, private=True)
-  async def slash_meme(self, ctx: SlashContext):
-    await ctx.send(**await get_reddit_post(ctx, self.subs, self.reddit))
+  # @cog_ext.cog_slash(name="meme", description="Get a meme hand delivered to you")
+  # @checks.slash(user=True, private=True)
+  # async def slash_meme(self, ctx: SlashContext):
+  #   await ctx.send(**await get_reddit_post(ctx, self.subs, self.reddit))
 
 
 def setup(bot):

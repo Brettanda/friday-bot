@@ -15,9 +15,11 @@ colorama==0.4.4
 d20==1.0.4
 topggpy==1.1.0
 decorator==4.4.2
-discord-ext-menus @ git+https://github.com/Rapptz/discord-ext-menus@6f2b873bf0d28903eb752aa1166b3aac26dc9007
-discord-py-slash-command @ git+https://github.com/Brettanda/discord-py-interactions
-discord.py @ git+https://github.com/Rapptz/discord.py@0cc67e58eded2dd83841d6e4f62a4bc626348fb2
+# discord-ext-menus @ git+https://github.com/Rapptz/discord-ext-menus@6f2b873bf0d28903eb752aa1166b3aac26dc9007
+# discord-py-slash-command @ git+https://github.com/Brettanda/discord-py-interactions
+# discord.py @ git+https://github.com/Rapptz/discord.py@0cc67e58eded2dd83841d6e4f62a4bc626348fb2
+nextcord==2.0.0a3
+nextcord-ext-menus==1.3.2
 # flair==0.8.0.post1
 flatbuffers==1.12
 ftfy==5.9

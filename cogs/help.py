@@ -1,13 +1,12 @@
 # import itertools
 # import math
-import discord
-from discord import Embed
-from discord.ext import commands
-from discord.ext.menus import ListPageSource
+import nextcord as discord
+from nextcord import Embed
+from nextcord.ext import commands
+from nextcord.ext.menus import ListPageSource
 # from discord.utils import get
 
-from discord_slash import SlashContext
-import typing
+# from interactions import Context as SlashContext
 from typing_extensions import TYPE_CHECKING
 # from cogs.cleanup import get_delete_time
 from functions import MessageColors, Menu, views, MyContext, embed
@@ -104,21 +103,6 @@ class HelpMenu(ListPageSource):
       fields.append((entry.cog_name or "No description", syntax(entry)))
 
     return await self.write_page(menu, fields)
-
-
-async def cmd_help(ctx: typing.Union[commands.Context, SlashContext], command: commands.Command, message: str = None):
-  embed = Embed(
-      title=message or f"Help with `{command}`",
-      description=syntax(command),
-      color=MessageColors.DEFAULT if message is None else MessageColors.ERROR
-  )
-  # embed.add_field(name="Command description", value=command.help)
-  embed.add_field(name="Command description", value=command.description or "None", inline=False)
-  embed.add_field(name="Command examples", value="```md\n" + ("\n".join(get_examples(command, ctx.prefix)) or "None") + "\n```", inline=False)
-  if isinstance(ctx, SlashContext):
-    await ctx.send(embed=embed)
-  else:
-    await ctx.reply(embed=embed)
 
 
 class Help(commands.HelpCommand):

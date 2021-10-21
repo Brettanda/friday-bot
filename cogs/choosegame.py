@@ -1,8 +1,8 @@
 import asyncio
 from numpy import random
 
-import discord
-from discord.ext import tasks, commands
+import nextcord as discord
+from nextcord.ext import tasks, commands
 from functions import config
 
 from typing_extensions import TYPE_CHECKING

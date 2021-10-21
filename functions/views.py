@@ -1,4 +1,4 @@
-import discord
+import nextcord as discord
 # from typing_extensions import TYPE_CHECKING
 
 # if TYPE_CHECKING:

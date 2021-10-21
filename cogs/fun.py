@@ -5,10 +5,10 @@ import numpy.random as random
 import asyncio
 import datetime
 
-import discord
-from discord.ext import commands, tasks
-from discord_slash import cog_ext, SlashContext
-from discord_slash.utils.manage_commands import create_choice, create_option, SlashCommandOptionType
+import nextcord as discord
+from nextcord.ext import commands, tasks
+# from discord_slash import cog_ext, SlashContext
+# from discord_slash.utils.manage_commands import create_choice, create_option, SlashCommandOptionType
 
 # sys.path.insert(1, os.path.join(sys.path[0], '..'))
 from pyfiglet import figlet_format
@@ -87,37 +87,38 @@ class Fun(commands.Cog):
   async def norm_rockpaperscissors(self, ctx: "MyContext", choice: str):
     await self.rock_paper_scissors(ctx, choice)
 
-  @cog_ext.cog_slash(
-      name="rockpaperscissors",
-      options=[
-          create_option(
-              "choice",
-              description="Rock Paper or Scissors",
-              option_type=3,
-              required=True,
-              choices=[
-                  create_choice(
-                      "rock",
-                      "Rock"
-                  ),
-                  create_choice(
-                      "paper",
-                      "Paper"
-                  ),
-                  create_choice(
-                      "scissors",
-                      "Scissors"
-                  )
-              ]
-          )
-      ]
-  )
-  @checks.slash(user=False, private=True)
-  async def slash_rockpaperscissors(self, ctx, choice: str):
-    await ctx.defer()
-    await self.rock_paper_scissors(ctx, choice)
+  # @cog_ext.cog_slash(
+  #     name="rockpaperscissors",
+  #     options=[
+  #         create_option(
+  #             "choice",
+  #             description="Rock Paper or Scissors",
+  #             option_type=3,
+  #             required=True,
+  #             choices=[
+  #                 create_choice(
+  #                     "rock",
+  #                     "Rock"
+  #                 ),
+  #                 create_choice(
+  #                     "paper",
+  #                     "Paper"
+  #                 ),
+  #                 create_choice(
+  #                     "scissors",
+  #                     "Scissors"
+  #                 )
+  #             ]
+  #         )
+  #     ]
+  # )
+  # @checks.slash(user=False, private=True)
+  # async def slash_rockpaperscissors(self, ctx, choice: str):
+  #   await ctx.defer()
+  #   await self.rock_paper_scissors(ctx, choice)
 
-  async def rock_paper_scissors(self, ctx: typing.Union["MyContext", SlashContext], args: str) -> None:
+  # , SlashContext
+  async def rock_paper_scissors(self, ctx: "MyContext", args: str) -> None:
     arg = args.lower()
 
     if arg not in self.rpsoptions:
@@ -163,17 +164,17 @@ class Fun(commands.Cog):
   async def norm_minesweeper(self, ctx, size: typing.Optional[int] = 5, bomb_count: typing.Optional[int] = 6):
     await ctx.reply(**await self.mine_sweeper(size, bomb_count))
 
-  @cog_ext.cog_slash(
-      name="minesweeper",
-      description="Minesweeper",
-      options=[
-          create_option("size", "SizeXSize", SlashCommandOptionType.INTEGER, False),
-          create_option("bomb_count", "Amount of bombs", SlashCommandOptionType.INTEGER, False)
-      ]
-  )
-  @checks.slash(user=False, private=True)
-  async def slash_minesweeper(self, ctx, size: int = 5, bomb_count: int = 3):
-    await ctx.send(**await self.mine_sweeper(size, bomb_count))
+  # @cog_ext.cog_slash(
+  #     name="minesweeper",
+  #     description="Minesweeper",
+  #     options=[
+  #         create_option("size", "SizeXSize", SlashCommandOptionType.INTEGER, False),
+  #         create_option("bomb_count", "Amount of bombs", SlashCommandOptionType.INTEGER, False)
+  #     ]
+  # )
+  # @checks.slash(user=False, private=True)
+  # async def slash_minesweeper(self, ctx, size: int = 5, bomb_count: int = 3):
+  #   await ctx.send(**await self.mine_sweeper(size, bomb_count))
 
   async def mine_sweeper(self, size: int = 5, bomb_count: int = 3):
     """Source for this command: https://medium.com/swlh/this-is-how-to-create-a-simple-minesweeper-game-in-python-af02077a8de"""
@@ -246,10 +247,10 @@ class Fun(commands.Cog):
     await ctx.reply(**self.souptime())
 
   # @commands.cooldown(1,7, commands.BucketType.user)
-  @cog_ext.cog_slash(name='souptime', description="Soup!")
-  @checks.slash(user=False, private=True)
-  async def slash_souptime(self, ctx):
-    await ctx.send(**self.souptime())
+  # @cog_ext.cog_slash(name='souptime', description="Soup!")
+  # @checks.slash(user=False, private=True)
+  # async def slash_souptime(self, ctx):
+  #   await ctx.send(**self.souptime())
 
   def souptime(self):
     return dict(embed=embed(
@@ -263,13 +264,13 @@ class Fun(commands.Cog):
   async def norm_coinflip(self, ctx):
     await ctx.reply(embed=embed(title="The coin landed on: " + random.choice(["Heads", "Tails"])))
 
-  @cog_ext.cog_slash(
-      name="coinflip",
-      description="Flip a coin"
-  )
-  @checks.slash(user=False, private=True)
-  async def slash_coinflip(self, ctx):
-    await ctx.send(embed=embed(title="The coin landed on: " + random.choice(["Heads", "Tails"])))
+  # @cog_ext.cog_slash(
+  #     name="coinflip",
+  #     description="Flip a coin"
+  # )
+  # @checks.slash(user=False, private=True)
+  # async def slash_coinflip(self, ctx):
+  #   await ctx.send(embed=embed(title="The coin landed on: " + random.choice(["Heads", "Tails"])))
 
   # @commands.command(name="mostroles", description="Show the server members with the most roles")
   # async def norm_mostroles(self, ctx):
@@ -313,32 +314,32 @@ class Fun(commands.Cog):
 
     await self.poll(ctx, title, options, ctx.is_interaction())
 
-  @cog_ext.cog_slash(
-      name="poll",
-      description="Make a poll",
-      options=[
-          create_option("title", "The title of the poll", SlashCommandOptionType.STRING, True),
-          create_option("option1", "Option for the poll", SlashCommandOptionType.STRING, True),
-          create_option("option2", "Option for the poll", SlashCommandOptionType.STRING, True),
-          create_option("option3", "Option for the poll", SlashCommandOptionType.STRING, False),
-          create_option("option4", "Option for the poll", SlashCommandOptionType.STRING, False),
-          create_option("option5", "Option for the poll", SlashCommandOptionType.STRING, False),
-          create_option("option6", "Option for the poll", SlashCommandOptionType.STRING, False),
-          create_option("option7", "Option for the poll", SlashCommandOptionType.STRING, False),
-          create_option("option8", "Option for the poll", SlashCommandOptionType.STRING, False),
-          create_option("option9", "Option for the poll", SlashCommandOptionType.STRING, False),
-          create_option("option10", "Option for the poll", SlashCommandOptionType.STRING, False),
-      ]
-  )
-  @checks.slash(user=True, private=False)
-  @commands.bot_has_permissions(manage_messages=True)
-  async def slash_poll(self, ctx, title, option1, option2, option3=None, option4=None, option5=None, option6=None, option7=None, option8=None, option9=None, option10=None):
-    ...
-    # options = []
-    # for item in [option1, option2, option3, option4, option5, option6, option7, option8, option9, option10]:
-    #   if item is not None:
-    #     options.append(item)
-    # await self.poll(ctx, title, options, True)
+  # @cog_ext.cog_slash(
+  #     name="poll",
+  #     description="Make a poll",
+  #     options=[
+  #         create_option("title", "The title of the poll", SlashCommandOptionType.STRING, True),
+  #         create_option("option1", "Option for the poll", SlashCommandOptionType.STRING, True),
+  #         create_option("option2", "Option for the poll", SlashCommandOptionType.STRING, True),
+  #         create_option("option3", "Option for the poll", SlashCommandOptionType.STRING, False),
+  #         create_option("option4", "Option for the poll", SlashCommandOptionType.STRING, False),
+  #         create_option("option5", "Option for the poll", SlashCommandOptionType.STRING, False),
+  #         create_option("option6", "Option for the poll", SlashCommandOptionType.STRING, False),
+  #         create_option("option7", "Option for the poll", SlashCommandOptionType.STRING, False),
+  #         create_option("option8", "Option for the poll", SlashCommandOptionType.STRING, False),
+  #         create_option("option9", "Option for the poll", SlashCommandOptionType.STRING, False),
+  #         create_option("option10", "Option for the poll", SlashCommandOptionType.STRING, False),
+  #     ]
+  # )
+  # @checks.slash(user=True, private=False)
+  # @commands.bot_has_permissions(manage_messages=True)
+  # async def slash_poll(self, ctx, title, option1, option2, option3=None, option4=None, option5=None, option6=None, option7=None, option8=None, option9=None, option10=None):
+  #   ...
+  #   # options = []
+  #   # for item in [option1, option2, option3, option4, option5, option6, option7, option8, option9, option10]:
+  #   #   if item is not None:
+  #   #     options.append(item)
+  #   # await self.poll(ctx, title, options, True)
 
   def bar(self, iteration, total, length=25, decimals=1, fill="█"):
     percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
@@ -436,17 +437,17 @@ class Fun(commands.Cog):
   async def norm_game_time(self, ctx, role: discord.Role, *, message: str = None):
     await self.game_time(ctx, role, message)
 
-  @cog_ext.cog_slash(
-      name="gametime",
-      description="Ping a role that's attached to a game and see who wants to play",
-      options=[
-          create_option("role", "Which role to mention", SlashCommandOptionType.ROLE, True),
-          create_option("message", "Add a message to follow the mention", SlashCommandOptionType.STRING, False)
-      ]
-  )
-  @checks.slash(user=True, private=False)
-  async def slash_game_time(self, ctx, role, message=None):
-    await self.game_time(ctx, role, message, True)
+  # @cog_ext.cog_slash(
+  #     name="gametime",
+  #     description="Ping a role that's attached to a game and see who wants to play",
+  #     options=[
+  #         create_option("role", "Which role to mention", SlashCommandOptionType.ROLE, True),
+  #         create_option("message", "Add a message to follow the mention", SlashCommandOptionType.STRING, False)
+  #     ]
+  # )
+  # @checks.slash(user=True, private=False)
+  # async def slash_game_time(self, ctx, role, message=None):
+  #   await self.game_time(ctx, role, message, True)
 
   async def game_time(self, ctx, role, message=None, slash=False):
     if role not in ctx.author.roles:

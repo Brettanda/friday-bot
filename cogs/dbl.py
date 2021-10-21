@@ -1,9 +1,9 @@
 import os
-import discord
-import topgg
+import nextcord as discord
+# import topgg
 import asyncio
 import datetime
-from discord.ext import commands, tasks
+from nextcord.ext import commands, tasks
 from typing_extensions import TYPE_CHECKING
 from functions import embed, config, MyContext
 
@@ -36,12 +36,12 @@ class TopGG(commands.Cog):
   def __init__(self, bot: "Bot"):
     self.bot = bot
     self.token = os.getenv("TOKENDBL")
-    self.topgg = topgg.DBLClient(self.bot, self.token, autopost=False)
-    if self.bot.cluster_idx == 0:
-      if not hasattr(self.bot, "topgg_webhook"):
-        self.bot.topgg_webhook = topgg.WebhookManager(self.bot).dbl_webhook("/dblwebhook", os.environ["DBLWEBHOOKPASS"])
-        self.bot.topgg_webhook.run(5000)
-      self.update_votes.start()
+    # self.topgg = topgg.DBLClient(self.bot, self.token, autopost=False)
+    # if self.bot.cluster_idx == 0:
+    #   if not hasattr(self.bot, "topgg_webhook"):
+    #     self.bot.topgg_webhook = topgg.WebhookManager(self.bot).dbl_webhook("/dblwebhook", os.environ["DBLWEBHOOKPASS"])
+    #     self.bot.topgg_webhook.run(5000)
+    #   self.update_votes.start()
 
     self.vote_url = "https://top.gg/bot/476303446547365891/vote"
 

@@ -1,5 +1,5 @@
-from discord.ext import commands
-from discord_slash import cog_ext
+from nextcord.ext import commands
+# from discord_slash import cog_ext
 
 from functions import config  # ,embed
 from typing_extensions import TYPE_CHECKING
@@ -7,7 +7,7 @@ from typing_extensions import TYPE_CHECKING
 if TYPE_CHECKING:
   from index import Friday as Bot
 
-import discord
+import nextcord as discord
 
 
 class Support(commands.Cog, name="Support"):
@@ -24,17 +24,17 @@ class Support(commands.Cog, name="Support"):
   async def norm_support(self, ctx):
     await ctx.reply("https://discord.gg/NTRuFjU")
 
-  @cog_ext.cog_slash(name="support", description="Support server link")
-  async def slash_support(self, ctx):
-    await ctx.send("https://discord.gg/NTRuFjU", hidden=True)
+  # @cog_ext.cog_slash(name="support", description="Support server link")
+  # async def slash_support(self, ctx):
+  #   await ctx.send("https://discord.gg/NTRuFjU", hidden=True)
 
   @commands.command(name="donate", help="Get the Patreon link for Friday")
   async def norm_donate(self, ctx):
     await ctx.reply("https://www.patreon.com/bePatron?u=42649008")
 
-  @cog_ext.cog_slash(name="donate", description="Get the Patreon link for Friday")
-  async def slash_donate(self, ctx):
-    await ctx.send("https://www.patreon.com/bePatron?u=42649008", hidden=True)
+  # @cog_ext.cog_slash(name="donate", description="Get the Patreon link for Friday")
+  # async def slash_donate(self, ctx):
+  #   await ctx.send("https://www.patreon.com/bePatron?u=42649008", hidden=True)
 
   @commands.Cog.listener()
   async def on_message(self, msg):

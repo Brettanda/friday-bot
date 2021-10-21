@@ -1,5 +1,5 @@
-from discord.ext import commands
-from discord_slash import cog_ext
+from nextcord.ext import commands
+# from discord_slash import cog_ext
 
 from functions import embed
 
@@ -22,9 +22,9 @@ class Ping(commands.Cog):
   async def norm_ping(self, ctx):
     await self.ping(ctx)
 
-  @cog_ext.cog_slash(name="ping", description="Ping!")
-  async def slash_ping(self, ctx):
-    await self.ping(ctx, True)
+  # @cog_ext.cog_slash(name="ping", description="Ping!")
+  # async def slash_ping(self, ctx):
+  #   await self.ping(ctx, True)
 
   async def ping(self, ctx, slash: bool = False):
     latency = f"{self.bot.get_shard(ctx.guild.shard_id).latency*1000:,.0f}" if ctx.guild is not None else f"{self.bot.latency*1000:,.0f}"

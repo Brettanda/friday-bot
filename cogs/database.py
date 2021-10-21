@@ -2,8 +2,8 @@ import asyncpg
 import os
 import json
 
-import discord
-from discord.ext import commands, tasks
+import nextcord as discord
+from nextcord.ext import commands, tasks
 from typing_extensions import TYPE_CHECKING
 from typing import Union
 

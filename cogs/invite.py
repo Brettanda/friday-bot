@@ -1,6 +1,6 @@
-from discord.utils import oauth_url, cached_property
-from discord.ext import commands
-from discord_slash import cog_ext
+from nextcord.utils import oauth_url, cached_property
+from nextcord.ext import commands
+# from discord_slash import cog_ext
 from functions import config, embed
 from typing_extensions import TYPE_CHECKING
 
@@ -26,9 +26,9 @@ class Invite(commands.Cog):
   async def _norm_invite(self, ctx):
     await ctx.reply(embed=embed(title="Invite me :)", description=f"[Invite link]({self.link})"))
 
-  @cog_ext.cog_slash(name="invite", description="Get the invite link to add me to your server")
-  async def _slash_invite(self, ctx):
-    await ctx.send(embed=embed(title="Invite me :)", description=f"[Invite link]({self.link})"))
+  # @cog_ext.cog_slash(name="invite", description="Get the invite link to add me to your server")
+  # async def _slash_invite(self, ctx):
+  #   await ctx.send(embed=embed(title="Invite me :)", description=f"[Invite link]({self.link})"))
 
 
 def setup(bot):

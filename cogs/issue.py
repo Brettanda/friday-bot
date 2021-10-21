@@ -1,9 +1,9 @@
-import discord
+import nextcord as discord
 
-from discord.ext import commands
-from discord_slash import cog_ext
+from nextcord.ext import commands
+# from discord_slash import cog_ext
 
-from functions import embed, relay_info, checks, MessageColors
+from functions import embed, relay_info, MessageColors  # ,checks
 from typing_extensions import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -60,10 +60,10 @@ class Issue(commands.Cog):
   async def norm_issue(self, ctx, *, issue: str):
     await self.issue(ctx, issue)
 
-  @cog_ext.cog_slash(name="issue", description="If you have an issue or noticed a bug with Friday, this will send a message to the developer.")
-  @checks.slash(user=True, private=False)
-  async def slash_issue(self, ctx, *, issue: str):
-    await self.issue(ctx, issue, True)
+  # @cog_ext.cog_slash(name="issue", description="If you have an issue or noticed a bug with Friday, this will send a message to the developer.")
+  # @checks.slash(user=True, private=False)
+  # async def slash_issue(self, ctx, *, issue: str):
+  #   await self.issue(ctx, issue, True)
 
   async def issue(self, ctx, issue: str, slash=False):
     await ctx.send("Please confirm your feedback.", embed=embed(title="Are you sure you would like to submit this issue?", description=f"{issue}"), view=Confirm(self.bot))

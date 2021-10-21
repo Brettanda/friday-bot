@@ -6,20 +6,28 @@ import typing
 from slugify import slugify
 import pycountry
 
-import discord
+import nextcord as discord
 
 # from PIL import Image, ImageDraw
 # https://code-maven.com/create-images-with-python-pil-pillow
-from discord.ext import commands
-from discord_slash import SlashContext, cog_ext
-from discord_slash.model import SlashCommandOptionType
-from discord_slash.utils.manage_commands import create_option
+from nextcord.ext import commands
+# from interactions import Context as SlashContext, cog_ext, ComponentContext
+# from discord_slash.model import SlashCommandOptionType
+# from discord_slash.utils.manage_commands import create_option, create_choice
+# from discord_slash.utils.manage_components import create_select, create_select_option, create_button, create_actionrow
 from typing_extensions import TYPE_CHECKING
 
 from functions import MessageColors, embed, checks, relay_info, config, MyContext
 
 if TYPE_CHECKING:
   from index import Friday as Bot
+
+
+# def persona_options() -> list:
+#   options = []
+#   for i in config.personas:
+#     options.append(create_choice(i[0], i[1]))
+#   return options
 
 
 def can_execute_action(ctx, user, target):
@@ -173,13 +181,13 @@ class Moderation(commands.Cog):
     post = await self.settings_bot_chat_channel(ctx)
     await ctx.reply(**post)
 
-  @cog_ext.cog_slash(name="chatchannel", description="Set the current text channel so that I will always try to respond")
-  @commands.has_guild_permissions(manage_channels=True)
-  @checks.slash(user=True, private=False)
-  async def slash_chatchannel(self, ctx):
-    await ctx.defer()
-    post = await self.settings_bot_chat_channel(ctx)
-    await ctx.send(**post)
+  # @cog_ext.cog_slash(name="chatchannel", description="Set the current text channel so that I will always try to respond")
+  # @commands.has_guild_permissions(manage_channels=True)
+  # @checks.slash(user=True, private=False)
+  # async def slash_chatchannel(self, ctx):
+  #   await ctx.defer()
+  #   post = await self.settings_bot_chat_channel(ctx)
+  #   await ctx.send(**post)
 
   async def settings_bot_chat_channel(self, ctx):
     chat_channel = await self.bot.db.query("SELECT chatchannel FROM servers WHERE id=$1 LIMIT 1", str(ctx.guild.id))
@@ -309,29 +317,29 @@ class Moderation(commands.Cog):
   async def norm_kick(self, ctx, members: commands.Greedy[discord.Member], *, reason: typing.Optional[ActionReason] = None):
     await self.kick(ctx, members, reason)
 
-  @cog_ext.cog_slash(
-      name="kick",
-      description="Kick a member from the server",
-      options=[
-          create_option(
-              "member",
-              "The member to kick",
-              SlashCommandOptionType.USER,
-              True
-          ),
-          create_option(
-              "reason",
-              "The reason for kicking these member(s)",
-              SlashCommandOptionType.STRING,
-              False
-          )
-      ]
-  )
-  @checks.bot_has_guild_permissions(kick_members=True)
-  @commands.has_guild_permissions(kick_members=True)
-  @checks.slash(user=True, private=False)
-  async def slash_kick(self, ctx, member: discord.Member, reason=None):
-    await self.kick(ctx, [member], reason, True)
+  # @cog_ext.cog_slash(
+  #     name="kick",
+  #     description="Kick a member from the server",
+  #     options=[
+  #         create_option(
+  #             "member",
+  #             "The member to kick",
+  #             SlashCommandOptionType.USER,
+  #             True
+  #         ),
+  #         create_option(
+  #             "reason",
+  #             "The reason for kicking these member(s)",
+  #             SlashCommandOptionType.STRING,
+  #             False
+  #         )
+  #     ]
+  # )
+  # @checks.bot_has_guild_permissions(kick_members=True)
+  # @commands.has_guild_permissions(kick_members=True)
+  # @checks.slash(user=True, private=False)
+  # async def slash_kick(self, ctx, member: discord.Member, reason=None):
+  #   await self.kick(ctx, [member], reason)
 
   async def kick(self, ctx, members: commands.Greedy[discord.Member], *, reason: typing.Optional[ActionReason] = None):
     if not isinstance(members, list):
@@ -357,31 +365,32 @@ class Moderation(commands.Cog):
   async def norm_ban(self, ctx, members: commands.Greedy[MemberID], *, reason: typing.Optional[ActionReason] = None):
     return await self.ban(ctx, members, reason)
 
-  @cog_ext.cog_slash(
-      name="ban",
-      description="Ban a member from the server",
-      options=[
-          create_option(
-              "member",
-              "The member to ban",
-              SlashCommandOptionType.USER,
-              True
-          ),
-          create_option(
-              "reason",
-              "The reason for banning",
-              SlashCommandOptionType.STRING,
-              False
-          ),
-      ]
-  )
-  @checks.bot_has_guild_permissions(ban_members=True)
-  @commands.has_guild_permissions(ban_members=True)
-  @checks.slash(user=True, private=False)
-  async def slash_ban(self, ctx, member, reason=None):
-    ...
-    # post = await self.ban(ctx, member, reason, delete_message_days, True)
-    # await ctx.send(**post)
+  # @cog_ext.cog_slash(
+  #     name="ban",
+  #     description="Ban a member from the server",
+  #     options=[
+  #         create_option(
+  #             "member",
+  #             "The member to ban",
+  #             SlashCommandOptionType.USER,
+  #             True
+  #         ),
+  #         create_option(
+  #             "reason",
+  #             "The reason for banning",
+  #             SlashCommandOptionType.STRING,
+  #             False
+  #         ),
+  #     ]
+  # )
+  # @checks.bot_has_guild_permissions(ban_members=True)
+  # @commands.has_guild_permissions(ban_members=True)
+  # @checks.slash(user=True, private=False)
+  # async def slash_ban(self, ctx, member, reason=None):
+  #   # SLASH COMMANDS PROBABLY WONT WORK WITH COMMANDS.GREEDY LISTS
+  #   ...
+  #   # post = await self.ban(ctx, member, reason, delete_message_days, True)
+  #   # await ctx.send(**post)
 
   async def ban(self, ctx, members: commands.Greedy[discord.Member], reason: ActionReason = None):
     if not isinstance(members, list):
@@ -421,29 +430,28 @@ class Moderation(commands.Cog):
     post = await self.rolecall(ctx, role, voicechannel, exclusions)
     await ctx.reply(**post)
 
-  @cog_ext.cog_slash(
-      name="rolecall",
-      description="Moves everyone with a specific role to a voicechannel.",
-      options=[
-          create_option("role", "The role to rolecall", SlashCommandOptionType.ROLE, True),
-          create_option("voicechannel", "The voice channel to move members to", SlashCommandOptionType.CHANNEL, True),
-          create_option("exclusion1", "A member that you don't want moved", SlashCommandOptionType.USER, False),
-          create_option("exclusion2", "A member that you don't want moved", SlashCommandOptionType.USER, False),
-          create_option("exclusion3", "A member that you don't want moved", SlashCommandOptionType.USER, False),
-          create_option("exclusion4", "A member that you don't want moved", SlashCommandOptionType.USER, False),
-          create_option("exclusion5", "A member that you don't want moved", SlashCommandOptionType.USER, False)
-      ]
-  )
-  @checks.bot_has_guild_permissions(move_members=True)
-  @commands.has_guild_permissions(move_members=True)
-  @checks.slash(user=False, private=False)
-  async def slash_rolecall(self, ctx, role, voicechannel, exclusion1=None, exclusion2=None, exclusion3=None, exclusion4=None, exclusion5=None):
-    exclusions = []
-    for item in [exclusion1, exclusion2, exclusion3, exclusion4, exclusion5]:
-      if item is not None:
-        exclusions.append(item)
-    post = await self.rolecall(ctx, role, voicechannel, exclusions)
-    await ctx.send(**post)
+  # @cog_ext.cog_slash(
+  #     name="rolecall",
+  #     description="Moves everyone with a specific role to a voicechannel.",
+  #     options=[
+  #         create_option("role", "The role to rolecall", SlashCommandOptionType.ROLE, True),
+  #         create_option("voicechannel", "The voice channel to move members to", SlashCommandOptionType.CHANNEL, True),
+  #         create_option("exclusion1", "A member that you don't want moved", SlashCommandOptionType.USER, False),
+  #         create_option("exclusion2", "A member that you don't want moved", SlashCommandOptionType.USER, False),
+  #         create_option("exclusion3", "A member that you don't want moved", SlashCommandOptionType.USER, False),
+  #         create_option("exclusion4", "A member that you don't want moved", SlashCommandOptionType.USER, False),
+  #         create_option("exclusion5", "A member that you don't want moved", SlashCommandOptionType.USER, False)
+  #     ]
+  # )
+  # @checks.bot_has_guild_permissions(move_members=True)
+  # @commands.has_guild_permissions(move_members=True)
+  # @checks.slash(user=False, private=False)
+  # async def slash_rolecall(self, ctx, role, voicechannel, exclusion1=None, exclusion2=None, exclusion3=None, exclusion4=None, exclusion5=None):
+  #   exclusions = []
+  #   for item in [exclusion1, exclusion2, exclusion3, exclusion4, exclusion5]:
+  #     if item is not None:
+  #       exclusions.append(item)
+  #   await self.rolecall(ctx, role, voicechannel, exclusions)
 
   async def rolecall(self, ctx, role, voicechannel, exclusions=None):
     if ctx.author.permissions_in(voicechannel).view_channel is not True:
@@ -469,29 +477,29 @@ class Moderation(commands.Cog):
   async def norm_massmove(self, ctx, tochannel: typing.Union[discord.VoiceChannel, discord.StageChannel] = None, fromchannel: typing.Optional[typing.Union[discord.VoiceChannel, discord.StageChannel]] = None):
     await self.mass_move(ctx, tochannel, fromchannel)
 
-  @cog_ext.cog_slash(
-      name="move",
-      description="Move users from one voice channel to another",
-      options=[
-          create_option(
-              "tochannel",
-              "The voice channel to move to",
-              SlashCommandOptionType.CHANNEL,
-              True
-          ),
-          create_option(
-              "fromchannel",
-              "The voice channel to move from",
-              SlashCommandOptionType.CHANNEL,
-              False
-          )
-      ],
-  )
-  @checks.bot_has_guild_permissions(move_members=True)
-  @commands.has_guild_permissions(move_members=True)
-  @checks.slash(user=True, private=False)
-  async def slash_massmove(self, ctx, tochannel, fromchannel=None):
-    await self.mass_move(ctx, tochannel, fromchannel)
+  # @cog_ext.cog_slash(
+  #     name="move",
+  #     description="Move users from one voice channel to another",
+  #     options=[
+  #         create_option(
+  #             "tochannel",
+  #             "The voice channel to move to",
+  #             SlashCommandOptionType.CHANNEL,
+  #             True
+  #         ),
+  #         create_option(
+  #             "fromchannel",
+  #             "The voice channel to move from",
+  #             SlashCommandOptionType.CHANNEL,
+  #             False
+  #         )
+  #     ],
+  # )
+  # @checks.bot_has_guild_permissions(move_members=True)
+  # @commands.has_guild_permissions(move_members=True)
+  # @checks.slash(user=True, private=False)
+  # async def slash_massmove(self, ctx, tochannel, fromchannel=None):
+  #   await self.mass_move(ctx, tochannel, fromchannel)
 
   async def mass_move(self, ctx: "MyContext", toChannel: discord.VoiceChannel, fromChannel: discord.VoiceChannel = None):
     if (fromChannel is not None and not isinstance(fromChannel, (discord.VoiceChannel, discord.StageChannel))) or (toChannel is not None and not isinstance(toChannel, (discord.VoiceChannel, discord.StageChannel))):
@@ -541,19 +549,19 @@ class Moderation(commands.Cog):
     post = await self.lock(ctx, voicechannel)
     await ctx.reply(**post)
 
-  @cog_ext.cog_slash(
-      name="lock",
-      description="Sets your voice channels user limit to the current number of occupants",
-      options=[
-          create_option("voicechannel", "The voice channel you wish to lock", SlashCommandOptionType.CHANNEL, required=False)
-      ]
-  )
-  @checks.bot_has_guild_permissions(manage_channels=True)
-  @commands.has_guild_permissions(manage_channels=True)
-  @checks.slash(user=True, private=False)
-  async def slash_lock(self, ctx, *, voicechannel=None):
-    post = await self.lock(ctx, voicechannel)
-    await ctx.send(hidden=True, **post)
+  # @cog_ext.cog_slash(
+  #     name="lock",
+  #     description="Sets your voice channels user limit to the current number of occupants",
+  #     options=[
+  #         create_option("voicechannel", "The voice channel you wish to lock", SlashCommandOptionType.CHANNEL, required=False)
+  #     ]
+  # )
+  # @checks.bot_has_guild_permissions(manage_channels=True)
+  # @commands.has_guild_permissions(manage_channels=True)
+  # @checks.slash(user=True, private=False)
+  # async def slash_lock(self, ctx, *, voicechannel=None):
+  #   post = await self.lock(ctx, voicechannel)
+  #   await ctx.send(hidden=True, **post)
 
   async def lock(self, ctx, voicechannel: typing.Optional[discord.VoiceChannel] = None):
     # await ctx.guild.chunk(cache=False)
@@ -637,20 +645,20 @@ class Moderation(commands.Cog):
     await self.bot.db.query("UPDATE servers SET mute_role=$1 WHERE id=$2", str(role.id), str(ctx.guild.id))
     await ctx.send(embed=embed(title=f"Friday will now use `{role}` as the new mute role"))
 
-  @cog_ext.cog_slash(
-      name="mute",
-      description="Add a mute role to a member",
-      options=[
-          create_option(name="member", description="The member to mute", option_type=SlashCommandOptionType.USER, required=True),
-          create_option(name="reason", description="The reason for the mute", option_type=SlashCommandOptionType.STRING, required=False)
-      ]
-  )
-  @commands.has_guild_permissions(manage_channels=True, manage_roles=True)
-  @checks.bot_has_guild_permissions(view_channel=True, manage_channels=True, manage_roles=True)
-  @checks.slash(user=True, private=False)
-  async def slash_mute(self, ctx: SlashContext, member: discord.Member):
-    await ctx.defer(hidden=True)
-    await self.mute(ctx, [member], True)
+  # @cog_ext.cog_slash(
+  #     name="mute",
+  #     description="Add a mute role to a member",
+  #     options=[
+  #         create_option(name="member", description="The member to mute", option_type=SlashCommandOptionType.USER, required=True),
+  #         create_option(name="reason", description="The reason for the mute", option_type=SlashCommandOptionType.STRING, required=False)
+  #     ]
+  # )
+  # @commands.has_guild_permissions(manage_channels=True, manage_roles=True)
+  # @checks.bot_has_guild_permissions(view_channel=True, manage_channels=True, manage_roles=True)
+  # @checks.slash(user=True, private=False)
+  # async def slash_mute(self, ctx: SlashContext, member: discord.Member):
+  #   await ctx.defer(hidden=True)
+  #   await self.mute(ctx, [member], True)
 
   async def mute(self, ctx: "MyContext", members: commands.Greedy[discord.Member], reason: ActionReason = None, slash: bool = False):
     if not isinstance(members, list):
@@ -678,18 +686,18 @@ class Moderation(commands.Cog):
   async def norm_unmute(self, ctx: "MyContext", members: commands.Greedy[discord.Member], *, reason: ActionReason = None):
     await self.unmute(ctx, members, reason)
 
-  @cog_ext.cog_slash(
-      name="unmute",
-      description="Unmute a member from text channels",
-      options=[
-          create_option(name="member", description="The member to unmute", option_type=SlashCommandOptionType.USER, required=True),
-          create_option(name="reason", description="The reason for the unmute", option_type=SlashCommandOptionType.STRING, required=False)
-      ]
-  )
-  @checks.slash(user=True, private=False)
-  async def slash_unmute(self, ctx, member: discord.Member):
-    await ctx.defer(hidden=True)
-    await self.unmute(ctx, [member], True)
+  # @cog_ext.cog_slash(
+  #     name="unmute",
+  #     description="Unmute a member from text channels",
+  #     options=[
+  #         create_option(name="member", description="The member to unmute", option_type=SlashCommandOptionType.USER, required=True),
+  #         create_option(name="reason", description="The reason for the unmute", option_type=SlashCommandOptionType.STRING, required=False)
+  #     ]
+  # )
+  # @checks.slash(user=True, private=False)
+  # async def slash_unmute(self, ctx, member: discord.Member):
+  #   await ctx.defer(hidden=True)
+  #   await self.unmute(ctx, [member], True)
 
   async def unmute(self, ctx, members: commands.Greedy[discord.Member], reason: ActionReason = None, slash: bool = False):
     if not isinstance(members, list):
