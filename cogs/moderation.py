@@ -503,24 +503,18 @@ class Moderation(commands.Cog):
 
   async def mass_move(self, ctx: "MyContext", toChannel: discord.VoiceChannel, fromChannel: discord.VoiceChannel = None):
     if (fromChannel is not None and not isinstance(fromChannel, (discord.VoiceChannel, discord.StageChannel))) or (toChannel is not None and not isinstance(toChannel, (discord.VoiceChannel, discord.StageChannel))):
-      if isinstance(ctx, SlashContext):
-        return dict(hidden=True, content="Please only select voice channels for moving")
-      return dict(embed=embed(title="Please only select voice channels for moving", color=MessageColors.ERROR))
+      # if isinstance(ctx, SlashContext):
+      #   return await ctx.send(hidden=True, content="Please only select voice channels for moving")
 
     if fromChannel is None and ctx.author.voice is not None and ctx.author.voice.channel is not None and ctx.author.voice.channel == toChannel:
-      if isinstance(ctx, SlashContext):
-        return dict(hidden=True, content="Please select a voice channel different from the one you are already in to move to")
-      return dict(embed=embed(title="Please select a voice channel different from the one you are already in to move to", color=MessageColors.ERROR))
+      # if isinstance(ctx, SlashContext):
+      #   return await ctx.send(hidden=True, content="Please select a voice channel different from the one you are already in to move to")
 
-    if ctx.author.permissions_in(toChannel).view_channel is not True:
-      if isinstance(ctx, SlashContext):
-        return dict(hidden=True, content="Trying to connect to a channel you can't view 🤔\nIm going to have to stop you right there")
-      return dict(embed=embed(title="Trying to connect to a channel you can't view 🤔", description="Im going to have to stop you right there", color=MessageColors.ERROR))
+      # if isinstance(ctx, SlashContext):
+      #   return await ctx.send(hidden=True, content="Trying to connect to a channel you can't view 🤔\nIm going to have to stop you right there")
 
-    if ctx.author.permissions_in(toChannel).connect is not True:
-      if isinstance(ctx, SlashContext):
-        return dict(hidden=True, content=f"You don't have permission to connect to `{toChannel}` so I can't complete this command")
-      return dict(embed=embed(title=f"You don't have permission to connect to `{toChannel}` so I can't complete this command", color=MessageColors.ERROR))
+      # if isinstance(ctx, SlashContext):
+      #   return await ctx.send(hidden=True, content=f"You don't have permission to connect to `{toChannel}` so I can't complete this command")
 
     try:
       if fromChannel is None:
@@ -567,19 +561,19 @@ class Moderation(commands.Cog):
     # await ctx.guild.chunk(cache=False)
     if voicechannel is None:
       if ctx.author.voice is None:
-        if isinstance(ctx, SlashContext):
-          return dict(content="You either need to specify a voicechannel or be connected to one")
+        # if isinstance(ctx, SlashContext):
+        #   return dict(content="You either need to specify a voicechannel or be connected to one")
         return dict(embed=embed(title="You either need to specify a voicechannel or be connected to one", color=MessageColors.ERROR))
       voicechannel = ctx.author.voice.channel
     if voicechannel.user_limit > 0:
       await voicechannel.edit(user_limit=0)
-      if isinstance(ctx, SlashContext):
-        return dict(content=f"Unlocked `{voicechannel}`")
+      # if isinstance(ctx, SlashContext):
+      #   return dict(content=f"Unlocked `{voicechannel}`")
       return dict(embed=embed(title=f"Unlocked `{voicechannel}`"))
     else:
       await voicechannel.edit(user_limit=len(voicechannel.members))
-      if isinstance(ctx, SlashContext):
-        return dict(content=f"Locked `{voicechannel}`")
+      # if isinstance(ctx, SlashContext):
+      #   return dict(content=f"Locked `{voicechannel}`")
       return dict(embed=embed(title=f"Locked `{voicechannel}`"))
 
   @commands.command(name="begone", extras={"examples": ["https://discord.com/channels/707441352367013899/707458929696702525/707520808448294983", "707520808448294983"]}, help="Delete unwanted message that I send")
