@@ -92,6 +92,43 @@ class FakeInteractionMessage:
     return self.interaction._state
 
 
+class ConfirmationView(discord.ui.View):
+  def __init__(self, *, timeout: float, author_id: int, ctx: Context, delete_after: bool) -> None:
+    super().__init__(timeout=timeout)
+    self.value: Optional[bool] = None
+    self.delete_after: bool = delete_after
+    self.author_id: int = author_id
+    self.ctx: Context = ctx
+    self.message: Optional[discord.Message] = None
+
+  async def interaction_check(self, interaction: discord.Interaction) -> bool:
+    if interaction.user and interaction.user.id == self.author_id:
+      return True
+    else:
+      await interaction.response.send_message('This confirmation dialog is not for you.', ephemeral=True)
+      return False
+
+  async def on_timeout(self) -> None:
+    if self.delete_after and self.message:
+      await self.message.delete()
+
+  @discord.ui.button(emoji="\N{HEAVY CHECK MARK}", label='Confirm', custom_id="confirmation_true", style=discord.ButtonStyle.green)
+  async def confirm(self, button: discord.ui.Button, interaction: discord.Interaction):
+    self.value = True
+    await interaction.response.defer()
+    if self.delete_after:
+      await interaction.delete_original_message()
+    self.stop()
+
+  @discord.ui.button(emoji="\N{HEAVY MULTIPLICATION X}", label='Cancel', custom_id="confirmation_false", style=discord.ButtonStyle.red)
+  async def cancel(self, button: discord.ui.Button, interaction: discord.Interaction):
+    self.value = False
+    await interaction.response.defer()
+    if self.delete_after:
+      await interaction.delete_original_message()
+    self.stop()
+
+
 class MyContext(Context):
   @property
   def db(self):
@@ -100,7 +137,19 @@ class MyContext(Context):
   def is_interaction(self) -> bool:
     return isinstance(self.message, FakeInteractionMessage)
 
-  async def reply(self, content: str = None, *, delete_original: bool = False, **kwargs) -> typing.Union[discord.Message, FakeInteractionMessage]:
+  async def prompt(self, message: str, *, timeout: float = 60.0, delete_after: bool = True, author_id: Optional[int] = None) -> Optional[bool]:
+    author_id = author_id or self.author.id
+    view = ConfirmationView(
+        timeout=timeout,
+        delete_after=delete_after,
+        ctx=self,
+        author_id=author_id
+    )
+    view.message = await self.send(message, view=view)
+    await view.wait()
+    return view.value
+
+  async def reply(self, content: str = None, *, delete_original: bool = False, **kwargs) -> Optional[Union[discord.Message, FakeInteractionMessage]]:
     ignore_coms = ["log", "help", "meme", "issue", "reactionrole", "minesweeper", "poll", "confirm", "souptime", "say", "countdown"]
     if not hasattr(kwargs, "delete_after") and self.command is not None and self.command.name not in ignore_coms and self.message.type.name != "application_command":
       if hasattr(self.bot, "get_guild_delete_commands"):
