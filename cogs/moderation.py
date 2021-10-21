@@ -512,10 +512,12 @@ class Moderation(commands.Cog):
       #   return await ctx.send(hidden=True, content="Please select a voice channel different from the one you are already in to move to")
       return await ctx.send(embed=embed(title="Please select a voice channel different from the one you are already in to move to", color=MessageColors.ERROR))
 
+    if toChannel.permissions_for(ctx.author).view_channel is not True:
       # if isinstance(ctx, SlashContext):
       #   return await ctx.send(hidden=True, content="Trying to connect to a channel you can't view 🤔\nIm going to have to stop you right there")
       return await ctx.send(embed=embed(title="Trying to connect to a channel you can't view 🤔", description="Im going to have to stop you right there", color=MessageColors.ERROR))
 
+    if toChannel.permissions_for(ctx.author).connect is not True:
       # if isinstance(ctx, SlashContext):
       #   return await ctx.send(hidden=True, content=f"You don't have permission to connect to `{toChannel}` so I can't complete this command")
       return await ctx.send(embed=embed(title=f"You don't have permission to connect to `{toChannel}` so I can't complete this command", color=MessageColors.ERROR))
@@ -524,9 +526,9 @@ class Moderation(commands.Cog):
       if fromChannel is None:
         fromChannel = ctx.author.voice.channel
     except BaseException:
-      if isinstance(ctx, SlashContext):
-        return dict(hidden=True, content="To move users from one channel to another, you need to be connected to one or specify the channel to send from.")
-      return dict(embed=embed(title="To move users from one channel to another, you need to be connected to one or specify the channel to send from.", color=MessageColors.ERROR))
+      # if isinstance(ctx, SlashContext):
+      #   return await ctx.send(hidden=True, content="To move users from one channel to another, you need to be connected to one or specify the channel to send from.")
+      return await ctx.send(embed=embed(title="To move users from one channel to another, you need to be connected to one or specify the channel to send from.", color=MessageColors.ERROR))
 
     memberCount = len(fromChannel.members)
 
