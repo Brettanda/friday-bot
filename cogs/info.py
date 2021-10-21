@@ -1,6 +1,7 @@
 import nextcord as discord
 import datetime
 import typing
+import psutil
 from nextcord.ext import commands
 # from discord_slash import cog_ext
 # from discord_slash.model import SlashCommandOptionType
@@ -47,12 +48,12 @@ class Info(commands.Cog):
     return await ctx.send(
         embed=embed(
             title=f"{self.bot.user.name} - About",
-            thumbnail=self.bot.user.avatar.url if hasattr(self.bot.user, "avatar") else self.bot.user.avatar_url if hasattr(self.bot.user, "avatar_url") else None,
-            author_icon=owner.avatar.url if hasattr(owner, "avatar") else owner.avatar_url if hasattr(owner, "avatar_url") else None,
+            thumbnail=self.bot.user.display_avatar.url,
+            author_icon=owner.display_avatar.url,
             author_name=owner,
             description="Big thanks to all Patrons!",
-            fieldstitle=["Servers joined", "Latency", "Shards", "Loving Life", "Uptime", "Existed since"],
-            fieldsval=[len(self.bot.guilds), f"{(self.bot.get_shard(ctx.guild.shard_id).latency if ctx.guild else self.bot.latency)*1000:,.0f} ms", self.bot.shard_count, "True", uptime, self.bot.user.created_at.strftime("%b %d, %Y")],
+            fieldstitle=["Servers joined", "Latency", "Shards", "Loving Life", "Uptime", "CPU/RAM", "Existed since"],
+            fieldsval=[len(self.bot.guilds), f"{(self.bot.get_shard(ctx.guild.shard_id).latency if ctx.guild else self.bot.latency)*1000:,.0f} ms", self.bot.shard_count, "True", uptime, f"CPU: {psutil.cpu_percent()}%\nRAM: {psutil.virtual_memory()[2]}%", self.bot.user.created_at.strftime("%b %d, %Y")],
             # fieldstitle=["Username","Guilds joined","Status","Latency","Shards","Audio Nodes","Loving Life","Existed since"],
             # fieldsval=[self.bot.user.name,len(self.bot.guilds),ctx.guild.me.activity.name if ctx.guild.me.activity is not None else None,f"{self.bot.latency*1000:,.0f} ms",self.bot.shard_count,len(self.bot.wavelink.nodes),"True",self.bot.user.created_at]
         ), view=views.Links()
