@@ -3,8 +3,8 @@ import os
 import pytest
 import time
 
-import discord
-from discord.ext import commands
+import nextcord as discord
+from nextcord.ext import commands
 from dotenv import load_dotenv
 
 load_dotenv()

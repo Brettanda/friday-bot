@@ -1,4 +1,4 @@
-import discord
+import nextcord as discord
 from typing_extensions import TYPE_CHECKING
 from .myembed import embed
 from . import views
@@ -47,8 +47,8 @@ invite_permissions = discord.Permissions(
     ban_members=True,
     send_messages=True,
     manage_threads=True,
-    use_threads=True,
-    use_private_threads=True,
+    send_messages_in_threads=True,
+    create_private_threads=True,
     manage_messages=True,
     embed_links=True,
     attach_files=True,

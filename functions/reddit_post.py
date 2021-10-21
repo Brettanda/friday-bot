@@ -2,7 +2,7 @@
 import random
 import asyncio
 
-from discord_slash import SlashContext
+# from interactions import Context as SlashContext
 
 from . import MessageColors, embed
 
@@ -17,7 +17,8 @@ posted = {}
 lock = asyncio.Lock()
 
 
-async def get_reddit_post(ctx: Union["MyContext", SlashContext], sub_reddits: Union[str, list] = None, reddit=None):  # ,hidden:bool=False):
+# SlashContext
+async def get_reddit_post(ctx: Union["MyContext"], sub_reddits: Union[str, dict] = None, reddit=None):  # ,hidden:bool=False):
   if reddit is None:
     raise TypeError("reddit must not be None")
   if sub_reddits is None:

@@ -1,5 +1,5 @@
 import youtube_dl
-import discord
+import nextcord as discord
 import asyncio
 # import urllib
 # import aiohttp
@@ -10,8 +10,8 @@ import os
 import asyncpraw
 
 # import ffmpeg
-from discord.ext import commands
-from discord_slash import cog_ext
+from nextcord.ext import commands
+# from discord_slash import cog_ext
 
 from functions import MessageColors, embed
 from typing_extensions import TYPE_CHECKING
@@ -173,10 +173,10 @@ class redditlink(commands.Cog):
       return await ctx.send(embed=embed(title="I will now react to Reddit links", description="For me to then extract a reddit link the author of the message must react with the same emoji Friday did.\nFriday also requires add_reaction permissions (if not already) for this to work."))
     await ctx.send(embed=embed(title="I will no longer react to Reddit links.", description="The Reddit extract commands will still work."))
 
-  @cog_ext.cog_slash(name="redditextract", description="Extracts the file from the reddit post")
-  async def slash_extract(self, ctx, link: str):
-    await ctx.defer()
-    await self.extract(query=link, command=True, ctx=ctx, guild=ctx.guild, channel=ctx.channel)
+  # @cog_ext.cog_slash(name="redditextract", description="Extracts the file from the reddit post")
+  # async def slash_extract(self, ctx, link: str):
+  #   await ctx.defer()
+  #   await self.extract(query=link, command=True, ctx=ctx, guild=ctx.guild, channel=ctx.channel)
 
   async def extract(self, query, command: bool = False, payload: discord.RawReactionActionEvent = None, ctx: "MyContext" = None, guild=None, channel: discord.TextChannel = None, message: discord.Message = None):
     if ctx is None and message is not None:

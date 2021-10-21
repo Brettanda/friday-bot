@@ -3,8 +3,8 @@ import os
 # import sys
 from datetime import date
 
-# import discord
-from discord.ext import tasks, commands
+# import nextcord as discord
+from nextcord.ext import tasks, commands
 
 # from functions import embed
 from typing_extensions import TYPE_CHECKING

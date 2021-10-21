@@ -1,38 +1,39 @@
-from discord_slash import SlashContext
-from discord.ext.commands import Context
-import discord
+from __future__ import annotations
+# from interactions import Context as SlashContext
+from nextcord.ext.commands import Context
+import nextcord as discord
 import io
-import typing
+from typing import Optional, Union
 from typing_extensions import TYPE_CHECKING
 
 if TYPE_CHECKING:
   from index import Friday as Bot
 
 
-class MySlashContext(SlashContext):
-  def __init__(self):
-    self.reply = self.reply
+# class MySlashContext(SlashContext):
+#   def __init__(self):
+#     self.reply = self.reply
 
-  async def reply(self, content=None, **kwargs):
-    await self.send(content, **kwargs)
-    # if not hasattr(kwargs,"delete_after") and self.command.name not in ["meme","issue","reactionrole","minesweeper"]:
-    #   delete = await get_delete_time(self)
-    #   delete = delete if delete is not None and delete != 0 else None
-    #   if delete != None:
-    #     kwargs.update({"delete_after":delete})
-    #     await self.message.delete(delay=delete)
-    # try:
-    #   return await self.message.reply(content,**kwargs)
-    # except discord.Forbidden as e:
-    #   if "Cannot reply without permission" in str(e):
-    #     return await self.message.channel.send(content,**kwargs)
-    #   else:
-    #     raise e
-    # except discord.HTTPException as e:
-    #   if "Unknown message" in str(e):
-    #     return await self.message.channel.send(content,**kwargs)
-    #   else:
-    #     raise e
+#   async def reply(self, content=None, **kwargs):
+#     await self.send(content, **kwargs)
+#     # if not hasattr(kwargs,"delete_after") and self.command.name not in ["meme","issue","reactionrole","minesweeper"]:
+#     #   delete = await get_delete_time(self)
+#     #   delete = delete if delete is not None and delete != 0 else None
+#     #   if delete != None:
+#     #     kwargs.update({"delete_after":delete})
+#     #     await self.message.delete(delay=delete)
+#     # try:
+#     #   return await self.message.reply(content,**kwargs)
+#     # except discord.Forbidden as e:
+#     #   if "Cannot reply without permission" in str(e):
+#     #     return await self.message.channel.send(content,**kwargs)
+#     #   else:
+#     #     raise e
+#     # except discord.HTTPException as e:
+#     #   if "Unknown message" in str(e):
+#     #     return await self.message.channel.send(content,**kwargs)
+#     #   else:
+#     #     raise e
 
 
 class FakeInteractionMessage:
@@ -44,11 +45,11 @@ class FakeInteractionMessage:
     super().__init__()
 
   @property
-  def bot(self) -> typing.Union["Bot", discord.Client, discord.AutoShardedClient]:
+  def bot(self) -> Union["Bot", discord.Client, discord.AutoShardedClient]:
     return self._bot
 
   @property
-  def channel(self) -> typing.Union[discord.TextChannel, discord.DMChannel]:
+  def channel(self) -> Union[discord.TextChannel, discord.DMChannel]:
     return self.interaction.channel
 
   @property
@@ -56,7 +57,7 @@ class FakeInteractionMessage:
     return self.interaction.guild
 
   @property
-  def author(self) -> typing.Union[discord.User, discord.Member]:
+  def author(self) -> Union[discord.User, discord.Member]:
     return self.interaction.user
 
   @property
@@ -91,6 +92,43 @@ class FakeInteractionMessage:
     return self.interaction._state
 
 
+class ConfirmationView(discord.ui.View):
+  def __init__(self, *, timeout: float, author_id: int, ctx: Context, delete_after: bool) -> None:
+    super().__init__(timeout=timeout)
+    self.value: Optional[bool] = None
+    self.delete_after: bool = delete_after
+    self.author_id: int = author_id
+    self.ctx: Context = ctx
+    self.message: Optional[discord.Message] = None
+
+  async def interaction_check(self, interaction: discord.Interaction) -> bool:
+    if interaction.user and interaction.user.id == self.author_id:
+      return True
+    else:
+      await interaction.response.send_message('This confirmation dialog is not for you.', ephemeral=True)
+      return False
+
+  async def on_timeout(self) -> None:
+    if self.delete_after and self.message:
+      await self.message.delete()
+
+  @discord.ui.button(emoji="\N{HEAVY CHECK MARK}", label='Confirm', custom_id="confirmation_true", style=discord.ButtonStyle.green)
+  async def confirm(self, button: discord.ui.Button, interaction: discord.Interaction):
+    self.value = True
+    await interaction.response.defer()
+    if self.delete_after:
+      await interaction.delete_original_message()
+    self.stop()
+
+  @discord.ui.button(emoji="\N{HEAVY MULTIPLICATION X}", label='Cancel', custom_id="confirmation_false", style=discord.ButtonStyle.red)
+  async def cancel(self, button: discord.ui.Button, interaction: discord.Interaction):
+    self.value = False
+    await interaction.response.defer()
+    if self.delete_after:
+      await interaction.delete_original_message()
+    self.stop()
+
+
 class MyContext(Context):
   @property
   def db(self):
@@ -99,7 +137,19 @@ class MyContext(Context):
   def is_interaction(self) -> bool:
     return isinstance(self.message, FakeInteractionMessage)
 
-  async def reply(self, content: str = None, *, delete_original: bool = False, **kwargs) -> typing.Union[discord.Message, FakeInteractionMessage]:
+  async def prompt(self, message: str, *, timeout: float = 60.0, delete_after: bool = True, author_id: Optional[int] = None) -> Optional[bool]:
+    author_id = author_id or self.author.id
+    view = ConfirmationView(
+        timeout=timeout,
+        delete_after=delete_after,
+        ctx=self,
+        author_id=author_id
+    )
+    view.message = await self.send(message, view=view)
+    await view.wait()
+    return view.value
+
+  async def reply(self, content: str = None, *, delete_original: bool = False, **kwargs) -> Optional[Union[discord.Message, FakeInteractionMessage]]:
     ignore_coms = ["log", "help", "meme", "issue", "reactionrole", "minesweeper", "poll", "confirm", "souptime", "say", "countdown"]
     if not hasattr(kwargs, "delete_after") and self.command is not None and self.command.name not in ignore_coms and self.message.type.name != "application_command":
       if hasattr(self.bot, "get_guild_delete_commands"):
@@ -132,10 +182,10 @@ class MyContext(Context):
       except (discord.Forbidden, discord.HTTPException):
         pass
 
-  async def send(self, content: str = None, *, delete_original: bool = False, **kwargs) -> typing.Union[discord.Message, FakeInteractionMessage]:
+  async def send(self, content: str = None, *, delete_original: bool = False, **kwargs) -> Optional[Union[discord.Message, FakeInteractionMessage]]:
     return await self.reply(content, delete_original=delete_original, **kwargs)
 
-  async def safe_send(self, content: str, *, escape_mentions=True, **kwargs) -> typing.Optional[typing.Union[discord.Message, FakeInteractionMessage]]:
+  async def safe_send(self, content: str, *, escape_mentions=True, **kwargs) -> Optional[Union[discord.Message, FakeInteractionMessage]]:
     if escape_mentions:
       content = discord.utils.escape_mentions(content)
 

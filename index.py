@@ -5,9 +5,10 @@ import sys
 import aiohttp
 from importlib import reload
 
-import discord
+import nextcord as discord
 from typing import TYPE_CHECKING, Optional
-from discord.ext import commands
+# import interactions
+from nextcord.ext import commands
 from dotenv import load_dotenv
 
 import cogs

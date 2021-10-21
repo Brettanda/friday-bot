@@ -2,8 +2,8 @@ import asyncio
 import logging
 import os
 
-import discord
-from discord.ext import tasks
+import nextcord as discord
+from nextcord.ext import tasks
 from dotenv import load_dotenv
 
 from index import Friday

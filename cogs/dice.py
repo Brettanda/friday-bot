@@ -1,9 +1,9 @@
 import d20
 
-from discord.ext import commands
-from discord_slash import cog_ext
+from nextcord.ext import commands
+# from discord_slash import cog_ext
 
-from functions import embed, MessageColors, checks
+from functions import embed, MessageColors  # , checks
 
 from functions import MyContext
 
@@ -21,10 +21,10 @@ class Dice(commands.Cog):
 
     return await self.dice(ctx, roll)
 
-  @cog_ext.cog_slash(name="dice", description="D&D dice rolling")
-  @checks.slash(user=False, private=True)
-  async def slash_dice(self, ctx: "MyContext", *, roll: str):
-    return await self.dice(ctx, roll)
+  # @cog_ext.cog_slash(name="dice", description="D&D dice rolling")
+  # @checks.slash(user=False, private=True)
+  # async def slash_dice(self, ctx: "MyContext", *, roll: str):
+  #   return await self.dice(ctx, roll)
 
   async def dice(self, ctx: "MyContext", roll):
     roll = roll.lower()

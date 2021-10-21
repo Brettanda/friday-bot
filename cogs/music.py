@@ -1,10 +1,10 @@
 # import sys
 # import os
-import discord
-from discord.ext.commands import Cog
-from discord.ext import commands
+import nextcord as discord
+from nextcord.ext.commands import Cog
+from nextcord.ext import commands
 
-from discord_slash import cog_ext  # , SlashContext
+# from discord_slash import cog_ext  # , SlashContext
 # from discord_slash.utils.manage_commands import create_option, SlashCommandOptionType
 from typing_extensions import TYPE_CHECKING
 
@@ -21,7 +21,7 @@ import time
 # from cogs.cleanup import get_delete_time
 
 # from .help import cmd_help
-from functions import embed, MessageColors, exceptions, checks, MyContext  # , relay_info
+from functions import embed, MessageColors, exceptions, MyContext  # , relay_info
 
 
 def can_play(ctx: "MyContext"):
@@ -255,10 +255,10 @@ class Music(commands.Cog):
   async def norm_play(self, ctx, *, query: str):
     await self.play(ctx, query)
 
-  @cog_ext.cog_slash(name="play", description="Play some epic music")
-  @checks.slash(user=True, private=False)
-  async def slash_play(self, ctx, query: str):
-    await self.play(ctx, query, True)
+  # @cog_ext.cog_slash(name="play", description="Play some epic music")
+  # @checks.slash(user=True, private=False)
+  # async def slash_play(self, ctx, query: str):
+  #   await self.play(ctx, query, True)
 
   async def play(self, ctx: "MyContext", query: str, slash=False):
     # await ctx.guild.chunk(cache=False)
@@ -345,10 +345,10 @@ class Music(commands.Cog):
   async def norm_stop(self, ctx):
     await self.stop(ctx)
 
-  @cog_ext.cog_slash(name="stop", description="Stops the music")
-  @checks.slash(user=True, private=False)
-  async def slash_stop(self, ctx):
-    await self.stop(ctx, True)
+  # @cog_ext.cog_slash(name="stop", description="Stops the music")
+  # @checks.slash(user=True, private=False)
+  # async def slash_stop(self, ctx):
+  #   await self.stop(ctx, True)
 
   async def stop(self, ctx: "MyContext", slash=False):
     can_play = await self.can_play(ctx)
@@ -391,10 +391,10 @@ class Music(commands.Cog):
       pass
     await self.skip(ctx)
 
-  @cog_ext.cog_slash(name="skip", description="Skips the current song")
-  @checks.slash(user=True, private=False)
-  async def slash_skip(self, ctx):
-    await self.skip(ctx, True)
+  # @cog_ext.cog_slash(name="skip", description="Skips the current song")
+  # @checks.slash(user=True, private=False)
+  # async def slash_skip(self, ctx):
+  #   await self.skip(ctx, True)
 
   async def skip(self, ctx: "MyContext", slash=False):
     can_play = await self.can_play(ctx)
@@ -457,10 +457,10 @@ class Music(commands.Cog):
   async def norm_queue(self, ctx):
     await self.queue(ctx)
 
-  @cog_ext.cog_slash(name="queue", description="Shows the current queue of music")
-  @checks.slash(user=True, private=False)
-  async def slash_queue(self, ctx):
-    await self.queue(ctx, True)
+  # @cog_ext.cog_slash(name="queue", description="Shows the current queue of music")
+  # @checks.slash(user=True, private=False)
+  # async def slash_queue(self, ctx):
+  #   await self.queue(ctx, True)
 
   async def queue(self, ctx, slash=False):
     can_play = await self.can_play(ctx)
@@ -498,10 +498,10 @@ class Music(commands.Cog):
   async def norm_pause(self, ctx):
     await self.pause(ctx)
 
-  @cog_ext.cog_slash(name="pause", description="Pause the current track")
-  @checks.slash(user=True, private=False)
-  async def slash_pause(self, ctx):
-    await self.pause(ctx, True)
+  # @cog_ext.cog_slash(name="pause", description="Pause the current track")
+  # @checks.slash(user=True, private=False)
+  # async def slash_pause(self, ctx):
+  #   await self.pause(ctx, True)
 
   async def pause(self, ctx, slash=False):
     can_play = await self.can_play(ctx)
@@ -531,10 +531,10 @@ class Music(commands.Cog):
   async def norm_resume(self, ctx):
     await self.resume(ctx)
 
-  @cog_ext.cog_slash(name="resume", description="Resume the current track")
-  @checks.slash(user=True, private=False)
-  async def slash_resume(self, ctx):
-    await self.resume(ctx, True)
+  # @cog_ext.cog_slash(name="resume", description="Resume the current track")
+  # @checks.slash(user=True, private=False)
+  # async def slash_resume(self, ctx):
+  #   await self.resume(ctx, True)
 
   async def resume(self, ctx, slash=False):
     can_play = await self.can_play(ctx)

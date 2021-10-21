@@ -1,19 +1,16 @@
 import sys
 import logging
-import inspect
 import datetime
-import discord
+import nextcord as discord
 import asyncio
 import io
 # import mysql.connector
 
 import typing
 from typing import TYPE_CHECKING
-from discord.ext import commands  # , tasks
-from discord.ext.commands.view import StringView
-from discord_slash import SlashContext, SlashCommand, ComponentContext
-from cogs.help import cmd_help
-from functions import MessageColors, embed, relay_info, exceptions, config, views, MyContext, FakeInteractionMessage
+from nextcord.ext import commands  # , tasks
+# from discord_slash.http import SlashCommandRequest
+from functions import MessageColors, embed, relay_info, exceptions, config, views, MyContext  # , FakeInteractionMessage
 import traceback
 
 from collections import Counter
@@ -73,8 +70,8 @@ class Log(commands.Cog):
     if not hasattr(self, "_auto_spam_count"):
       self._auto_spam_count = Counter()
 
-    if not hasattr(self.bot, "slash"):
-      self.bot.slash = SlashCommand(self.bot, sync_commands=True, sync_on_cog_reload=True)
+    # if not hasattr(self.bot, "slash"):
+    #   self.bot.slash = SlashCommand(self.bot, sync_commands=True, sync_on_cog_reload=True)  # , debug_guild=243159711237537802)
 
     self.bot.process_commands = self.process_commands
     # self.bot.on_error = self.on_error
@@ -242,84 +239,85 @@ class Log(commands.Cog):
   async def on_slash_command(self, ctx):
     self.logger.info(f"Slash Command: {ctx.command} {ctx.kwargs}")
 
-  @commands.Cog.listener()
-  async def on_slash_command_error(self, ctx: SlashContext, ex):
-    if not ctx.responded:
-      if ctx._deffered_hidden or not ctx.deferred:
-        await ctx.send(hidden=True, content=str(ex) or "An error has occured, try again later.")
-      else:
-        await ctx.send(embed=embed(title=str(ex) or "An error has occured, try again later.", color=MessageColors.ERROR))
-    if not isinstance(ex, (
-            discord.NotFound,
-            commands.CheckFailure,
-            commands.MissingPermissions,
-            commands.BotMissingPermissions,
-            commands.NoPrivateMessage,
-            commands.MaxConcurrencyReached)) and (not hasattr(ex, "log") or (hasattr(ex, "log") and ex.log is True)):
-      raise ex
+  # @commands.Cog.listener()
+  # async def on_slash_command_error(self, ctx: SlashContext, ex):
+  #   print(ex)
+  #   if not ctx.responded:
+  #     if ctx._deffered_hidden or not ctx.deferred:
+  #       await ctx.send(hidden=True, content=str(ex) or "An error has occured, try again later.")
+  #     else:
+  #       await ctx.send(embed=embed(title=str(ex) or "An error has occured, try again later.", color=MessageColors.ERROR))
+  #   if not isinstance(ex, (
+  #           discord.NotFound,
+  #           commands.CheckFailure,
+  #           commands.MissingPermissions,
+  #           commands.BotMissingPermissions,
+  #           commands.NoPrivateMessage,
+  #           commands.MaxConcurrencyReached)) and (not hasattr(ex, "log") or (hasattr(ex, "log") and ex.log is True)):
+  #     raise ex
 
-  async def convert_param(self, ctx: SlashContext, option, param):
-    value = option["value"]
-    if param.annotation != inspect.Parameter.empty:
-      value = await commands.run_converters(ctx, param.annotation, value, 0)
-    return value
+  # async def convert_param(self, ctx: SlashContext, option, param):
+  #   value = option["value"]
+  #   if param.annotation != inspect.Parameter.empty:
+  #     value = await commands.run_converters(ctx, param.annotation, value, 0)
+  #   return value
 
   @commands.Cog.listener()
   async def on_interaction(self, interaction: discord.Interaction):
     if interaction.type != discord.InteractionType.application_command:
       self.logger.info(f"Interaction: {interaction.data.get('custom_id','No ID')} {interaction.type}")
 
-    if interaction.type == discord.InteractionType.application_command:
-      command = self.bot.get_command(interaction.data["name"])
+    # if interaction.type == discord.InteractionType.application_command:
+    #   command = self.bot.get_command(interaction.data["name"])
 
-      if command is None:
-        return await relay_info(f"Missing slash command: {interaction.data['name']}", self.bot, webhook=self.log_errors)
+    #   if command is None:
+    #     return await relay_info(f"Missing slash command: {interaction.data['name']}", self.bot, webhook=self.log_errors)
 
-      ctx = MyContext(prefix="/", view=StringView(interaction.data["name"]), bot=self.bot, message=FakeInteractionMessage(self.bot, interaction))
-      options = {option["name"]: option for option in interaction.data.get("options", {})}
-      params, kwargs = [], {}
-      for name, param in command.clean_params.items():
-        option = options.get(name)
-        if not option:
-          option = param.default
-        else:
-          option = await self.convert_param(ctx, option, param)
-        if param.kind == inspect.Parameter.KEYWORD_ONLY:
-          kwargs[name] = option
-        else:
-          params.append(option)
+    #   ctx = MyContext(prefix="/", view=StringView(interaction.data["name"]), bot=self.bot, message=FakeInteractionMessage(self.bot, interaction))
+    #   options = {option["name"]: option for option in interaction.data.get("options", {})}
+    #   params, kwargs = [], {}
+    #   for name, param in command.clean_params.items():
+    #     option = options.get(name)
+    #     if not option:
+    #       option = param.default
+    #     else:
+    #       option = await self.convert_param(ctx, option, param)
+    #     if param.kind == inspect.Parameter.KEYWORD_ONLY:
+    #       kwargs[name] = option
+    #     else:
+    #       params.append(option)
 
-      async def fallback():
-        await asyncio.sleep(2)
-        if interaction.response.is_done():
-          return
-        try:
-          await interaction.response.defer()
-        except Exception:
-          pass
-      self.bot.loop.create_task(fallback())
-      try:
-        self.bot.dispatch("command", ctx)
-        if await command.can_run(ctx):
-          await command(ctx, *params, **kwargs)
-      except Exception as e:
-        self.bot.dispatch("command_error", ctx, e)
+    #   async def fallback():
+    #     await asyncio.sleep(2)
+    #     if interaction.response.is_done():
+    #       return
+    #     try:
+    #       await interaction.response.defer()
+    #     except Exception:
+    #       pass
+    #   self.bot.loop.create_task(fallback())
+    #   try:
+    #     self.bot.dispatch("command", ctx)
+    #     if await command.can_run(ctx):
+    #       await command(ctx, *params, **kwargs)
+    #   except Exception as e:
+    #     self.bot.dispatch("command_error", ctx, e)
 
-  @commands.Cog.listener()
-  async def on_component_callback_error(self, ctx: ComponentContext, ex: Exception):
-    if not ctx.responded:
-      if ctx._deferred_hidden or not ctx.deferred:
-        await ctx.send(hidden=True, content=str(ex) or "An error has occured, try again later.")
-      else:
-        await ctx.send(embed=embed(title=str(ex) or "An error has occured, try again later.", color=MessageColors.ERROR))
-    if not isinstance(ex, (
-            discord.NotFound,
-            commands.CheckFailure,
-            commands.MissingPermissions,
-            commands.BotMissingPermissions,
-            commands.NoPrivateMessage,
-            commands.MaxConcurrencyReached)) and (not hasattr(ex, "log") or (hasattr(ex, "log") and ex.log is True)):
-      raise ex
+  # @commands.Cog.listener()
+  # async def on_component_callback_error(self, ctx: ComponentContext, ex: Exception):
+  #   if not ctx.responded:
+  #     if ctx._deferred_hidden or not ctx.deferred:
+  #       await ctx.send(hidden=True, content=str(ex) or "An error has occured, try again later.")
+  #     else:
+  #       await ctx.send(embed=embed(title=str(ex) or "An error has occured, try again later.", color=MessageColors.ERROR))
+  #   if not isinstance(ex, (
+  #           discord.NotFound,
+  #           commands.CheckFailure,
+  #           commands.MissingPermissions,
+  #           commands.BotMissingPermissions,
+  #           commands.NoPrivateMessage,
+  #           commands.MaxConcurrencyReached)) and (not hasattr(ex, "log") or (hasattr(ex, "log") and ex.log is True)):
+  #     raise ex
 
   async def process_commands(self, message):
     ctx = await self.bot.get_context(message)
@@ -518,7 +516,8 @@ class Log(commands.Cog):
 
   @commands.Cog.listener()
   async def on_command_error(self, ctx: "MyContext", error):
-    slash = True if isinstance(ctx, SlashContext) or (hasattr(ctx, "is_interaction") and ctx.is_interaction) else False
+    # slash = True if isinstance(ctx, SlashContext) or (hasattr(ctx, "is_interaction") and ctx.is_interaction) else False
+    slash = False
     if hasattr(ctx.command, 'on_error'):
       return
 
@@ -532,7 +531,8 @@ class Log(commands.Cog):
       print("Someone found a dev command")
       logging.info("Someone found a dev command")
     elif isinstance(error, commands.MissingRequiredArgument):
-      await cmd_help(ctx, ctx.command, "You're missing some arguments, here is how the command should look")
+      await ctx.send_help(ctx.command)
+      # await cmd_help(ctx, ctx.command, "You're missing some arguments, here is how the command should look")
     elif isinstance(error, commands.CommandNotFound):
       # await ctx.reply(embed=embed(title=f"Command `{ctx.message.content}` was not found",color=MessageColors.ERROR))
       return
@@ -563,7 +563,8 @@ class Log(commands.Cog):
     #   else:
     #     await ctx.reply(embed=embed(title=str(error) or "This command has been disabled", color=MessageColors.ERROR), delete_after=delete)
     elif isinstance(error, commands.TooManyArguments):
-      await cmd_help(ctx, ctx.command, str(error) or "Too many arguments were passed for this command, here is how the command should look", delete_after=delete)
+      await ctx.send_help(ctx.command)
+      # await cmd_help(ctx, ctx.command, str(error) or "Too many arguments were passed for this command, here is how the command should look", delete_after=delete)
     # elif isinstance(error,commands.CommandError) or isinstance(error,commands.CommandInvokeError):
     #   await ctx.reply(embed=embed(title=f"{error}",color=MessageColors.ERROR))
     elif isinstance(error, (discord.Forbidden, discord.NotFound, commands.MissingPermissions, commands.BotMissingPermissions, commands.MaxConcurrencyReached)) or (hasattr(error, "log") and error.log is False):

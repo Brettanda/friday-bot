@@ -1,13 +1,13 @@
-import discord
+import nextcord as discord
 
 from typing import TYPE_CHECKING, Union
-from discord.ext import commands
-from discord_slash import SlashContext
+from nextcord.ext import commands
+# from interactions import Context as SlashContext
 from . import exceptions, config
 from .custom_contexts import MyContext
 
 if TYPE_CHECKING:
-  from discord.ext.commands.core import _CheckDecorator
+  from nextcord.ext.commands.core import _CheckDecorator
 
   from index import Friday as Bot
 
@@ -158,15 +158,16 @@ def bot_has_guild_permissions(**perms) -> "_CheckDecorator":
 
 
 def slash(user: bool = False, private: bool = True) -> "_CheckDecorator":
-  async def predicate(ctx: SlashContext) -> bool:
-    if user is True and ctx.guild_id and ctx.guild is None and ctx.channel is None:
-      raise exceptions.OnlySlashCommands()
+  # async def predicate(ctx: SlashContext) -> bool:
+  #   if user is True and ctx.guild_id and ctx.guild is None and ctx.channel is None:
+  #     raise exceptions.OnlySlashCommands()
 
-    if not private and not ctx.guild and not ctx.guild_id and ctx.channel_id:
-      raise commands.NoPrivateMessage()
+  #   if not private and not ctx.guild and not ctx.guild_id and ctx.channel_id:
+  #     raise commands.NoPrivateMessage()
 
-    return True
-  return commands.check(predicate)
+  #   return True
+  # return commands.check(predicate)
+  return False
 
 
 # def bot_has_permissions(**perms) -> "_CheckDecorator":

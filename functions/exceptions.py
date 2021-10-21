@@ -1,4 +1,4 @@
-from discord.ext.commands import CommandError
+from nextcord.ext.commands import CommandError
 # from discord_slash.error import SlashCommandError
 
 
