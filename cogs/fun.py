@@ -299,7 +299,7 @@ class Fun(commands.Cog):
       9: "🔟"
   }
 
-  @commands.command(name="poll", extras={"examples": ["\"this is a title\" '1' '2' '3'"]}, help="Make a poll. Contain each option in qoutes `'option' `'option 2'``")
+  @commands.command(name="poll", extras={"examples": ["\"this is a title\" '1' '2' '3'"]}, help="Make a poll. Contain each option in qoutes `'option' 'option 2'`")
   # @commands.group(name="poll", extras={"examples": ["\"this is a title\" 1;;2;;3"]}, help="Make a poll. Seperate the options with `;;`")
   @commands.guild_only()
   @commands.bot_has_permissions(manage_messages=True)
