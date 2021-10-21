@@ -3,7 +3,7 @@ from __future__ import annotations
 from nextcord.ext.commands import Context
 import nextcord as discord
 import io
-import typing
+from typing import Optional, Union
 from typing_extensions import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -45,11 +45,11 @@ class FakeInteractionMessage:
     super().__init__()
 
   @property
-  def bot(self) -> typing.Union["Bot", discord.Client, discord.AutoShardedClient]:
+  def bot(self) -> Union["Bot", discord.Client, discord.AutoShardedClient]:
     return self._bot
 
   @property
-  def channel(self) -> typing.Union[discord.TextChannel, discord.DMChannel]:
+  def channel(self) -> Union[discord.TextChannel, discord.DMChannel]:
     return self.interaction.channel
 
   @property
@@ -57,7 +57,7 @@ class FakeInteractionMessage:
     return self.interaction.guild
 
   @property
-  def author(self) -> typing.Union[discord.User, discord.Member]:
+  def author(self) -> Union[discord.User, discord.Member]:
     return self.interaction.user
 
   @property
@@ -182,10 +182,10 @@ class MyContext(Context):
       except (discord.Forbidden, discord.HTTPException):
         pass
 
-  async def send(self, content: str = None, *, delete_original: bool = False, **kwargs) -> typing.Union[discord.Message, FakeInteractionMessage]:
+  async def send(self, content: str = None, *, delete_original: bool = False, **kwargs) -> Optional[Union[discord.Message, FakeInteractionMessage]]:
     return await self.reply(content, delete_original=delete_original, **kwargs)
 
-  async def safe_send(self, content: str, *, escape_mentions=True, **kwargs) -> typing.Optional[typing.Union[discord.Message, FakeInteractionMessage]]:
+  async def safe_send(self, content: str, *, escape_mentions=True, **kwargs) -> Optional[Union[discord.Message, FakeInteractionMessage]]:
     if escape_mentions:
       content = discord.utils.escape_mentions(content)
 

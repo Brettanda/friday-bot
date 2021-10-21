@@ -505,16 +505,20 @@ class Moderation(commands.Cog):
     if (fromChannel is not None and not isinstance(fromChannel, (discord.VoiceChannel, discord.StageChannel))) or (toChannel is not None and not isinstance(toChannel, (discord.VoiceChannel, discord.StageChannel))):
       # if isinstance(ctx, SlashContext):
       #   return await ctx.send(hidden=True, content="Please only select voice channels for moving")
+      return await ctx.send(embed=embed(title="Please only select voice channels for moving", color=MessageColors.ERROR))
 
     if fromChannel is None and ctx.author.voice is not None and ctx.author.voice.channel is not None and ctx.author.voice.channel == toChannel:
       # if isinstance(ctx, SlashContext):
       #   return await ctx.send(hidden=True, content="Please select a voice channel different from the one you are already in to move to")
+      return await ctx.send(embed=embed(title="Please select a voice channel different from the one you are already in to move to", color=MessageColors.ERROR))
 
       # if isinstance(ctx, SlashContext):
       #   return await ctx.send(hidden=True, content="Trying to connect to a channel you can't view 🤔\nIm going to have to stop you right there")
+      return await ctx.send(embed=embed(title="Trying to connect to a channel you can't view 🤔", description="Im going to have to stop you right there", color=MessageColors.ERROR))
 
       # if isinstance(ctx, SlashContext):
       #   return await ctx.send(hidden=True, content=f"You don't have permission to connect to `{toChannel}` so I can't complete this command")
+      return await ctx.send(embed=embed(title=f"You don't have permission to connect to `{toChannel}` so I can't complete this command", color=MessageColors.ERROR))
 
     try:
       if fromChannel is None:
