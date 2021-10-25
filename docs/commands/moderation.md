@@ -237,6 +237,19 @@ Examples:
 !language spanish
 ```
 
+## Last
+
+Gets the last member to leave a voice channel.
+
+??? missing "Does not have a slash command to match"
+	Learn more about [slash commands](/#slash-commands)
+
+Usage:
+
+```md
+!last [voice_channel]
+```
+
 ## Massmove
 
 Move everyone from one voice channel to another

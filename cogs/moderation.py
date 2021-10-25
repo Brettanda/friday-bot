@@ -110,6 +110,8 @@ class Moderation(commands.Cog):
 
   def __init__(self, bot: "Bot"):
     self.bot = bot
+    
+    self.last_to_leave_vc = {}
 
     if not hasattr(self, "message_spam_control"):
       self.message_spam_control = {}
@@ -138,6 +140,16 @@ class Moderation(commands.Cog):
         await ctx.send(embed=embed(title="An unexpected error occured. Try again later?", color=MessageColors.ERROR))
     elif isinstance(error, NoMuteRole):
       await ctx.send(embed=embed(title=error, color=MessageColors.ERROR))
+
+  @commands.Cog.listener()
+  async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
+    if after.channel:
+      return
+    time = discord.utils.utcnow()  # .astimezone(datetime.timezone.utc).replace(tzinfo=datetime.timezone.utc)
+    if before.channel.id not in self.last_to_leave_vc:
+      self.last_to_leave_vc.update({before.channel.id: {"member": member, "time": time.timestamp()}})
+    else:
+      self.last_to_leave_vc[before.channel.id] = {"member": member, "time": time.timestamp()}
 
   # @commands.command(name="mute")
   # @commands.is_owner()
@@ -224,6 +236,21 @@ class Moderation(commands.Cog):
       await ctx.reply(embed=embed(title="I will no longer delete command messages"))
     else:
       await ctx.reply(embed=embed(title=f"I will now delete commands after `{time}` seconds"))
+
+  @commands.command(name="last", help="Gets the last member to leave a voice channel.")
+  @commands.guild_only()
+  async def last_member(self, ctx: "MyContext", *, voice_channel: typing.Optional[discord.VoiceChannel] = None):
+    if voice_channel is None and ctx.author.voice is None:
+      return await ctx.reply(embed=embed(title="You must either select a voice channel or be in one.", color=MessageColors.ERROR))
+    if voice_channel is None:
+      voice_channel = ctx.author.voice.channel
+    if not isinstance(voice_channel, discord.VoiceChannel):
+      return await ctx.reply(embed=embed(title="That is not a voice channel.", color=MessageColors.ERROR))
+    try:
+      member = self.last_to_leave_vc[voice_channel.id]
+    except KeyError:
+      return await ctx.reply(embed=embed(title=f"Failed to get the last member to leave `{voice_channel}`.", color=MessageColors.ERROR))
+    await ctx.reply(embed=embed(title=f"`{member['member']}` left `{voice_channel}` <t:{int(member['time'])}:R>."))
 
   # @commands.command(name="clear",description="Deletes my messages and commands (not including the meme command)")
   # @commands.has_permissions(manage_messages = True)
