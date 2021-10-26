@@ -44,19 +44,6 @@ Aliases:
 cd
 ```
 
-## Gametime
-
-Ping a role that is attached to a game and see who wants to play
-
-??? missing "Does not have a slash command to match"
-	Learn more about [slash commands](/#slash-commands)
-
-Usage:
-
-```md
-!gametime <role> <message>
-```
-
 ## Minesweeper
 
 Play minesweeper
