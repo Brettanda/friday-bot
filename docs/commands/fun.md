@@ -10,7 +10,7 @@ Fun games and other commands to give more life to your Discord server.
 
 Flip a coin
 
-??? check "Has a slash command to match"
+??? missing "Does not have a slash command to match"
 	Learn more about [slash commands](/#slash-commands)
 
 Usage:
@@ -61,7 +61,7 @@ Usage:
 
 Play minesweeper
 
-??? check "Has a slash command to match"
+??? missing "Does not have a slash command to match"
 	Learn more about [slash commands](/#slash-commands)
 
 Usage:
@@ -80,7 +80,7 @@ ms
 
 Make a poll. Contain each option in qoutes `'option' `'option 2'``
 
-??? check "Has a slash command to match"
+??? missing "Does not have a slash command to match"
 	Learn more about [slash commands](/#slash-commands)
 
 Usage:
@@ -99,7 +99,7 @@ Examples:
 
 Play Rock Paper Scissors with Friday
 
-??? check "Has a slash command to match"
+??? missing "Does not have a slash command to match"
 	Learn more about [slash commands](/#slash-commands)
 
 Usage:
@@ -118,7 +118,7 @@ rps
 
 Soup Time
 
-??? check "Has a slash command to match"
+??? missing "Does not have a slash command to match"
 	Learn more about [slash commands](/#slash-commands)
 
 Usage:

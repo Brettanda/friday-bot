@@ -10,7 +10,7 @@ Roll some dice with advantage or just do some basic math.
 
 D&D dice rolling
 
-??? check "Has a slash command to match"
+??? missing "Does not have a slash command to match"
 	Learn more about [slash commands](/#slash-commands)
 
 Usage:

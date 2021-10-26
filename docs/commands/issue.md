@@ -10,7 +10,7 @@ Report your issues you have with Friday
 
 If you have an issue or noticed a bug with Friday, this will send a message to the developer.
 
-??? check "Has a slash command to match"
+??? missing "Does not have a slash command to match"
 	Learn more about [slash commands](/#slash-commands)
 
 Usage:
