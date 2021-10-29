@@ -284,7 +284,6 @@ class AutoMod(commands.Cog):
     else:
       await ctx.reply(embed=embed(title="I will begin to remove invites"))
 
-
   @commands.group(name="mentionspam", extras={"examples": ["3", "5", "10"]}, aliases=["maxmentions", "maxpings"], help="Set the max amount of mentions one user can send per message before muting the author", invoke_without_command=True)
   @commands.guild_only()
   @commands.has_guild_permissions(manage_channels=True, manage_messages=True, manage_roles=True)

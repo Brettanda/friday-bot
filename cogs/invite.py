@@ -31,7 +31,7 @@ class Invite(commands.Cog):
 
   @commands.command("invite", help="Get the invite link to add me to your server")
   async def _norm_invite(self, ctx):
-    await ctx.reply(embed=embed(title="Invite me :)"),view=InviteButtons(self.link))
+    await ctx.reply(embed=embed(title="Invite me :)"), view=InviteButtons(self.link))
 
   # @cog_ext.cog_slash(name="invite", description="Get the invite link to add me to your server")
   # async def _slash_invite(self, ctx):

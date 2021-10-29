@@ -3,14 +3,7 @@ import typing
 
 # import datetime
 # import validators
-from slugify import slugify
 import pycountry
-
-import nextcord as discord
-
-# from PIL import Image, ImageDraw
-# https://code-maven.com/create-images-with-python-pil-pillow
-from nextcord.ext import commands
 # from interactions import Context as SlashContext, cog_ext, ComponentContext
 # from discord_slash.model import SlashCommandOptionType
 # from discord_slash.utils.manage_commands import create_option, create_choice
@@ -21,7 +14,6 @@ from functions import MessageColors, embed, relay_info, config, MyContext
 
 if TYPE_CHECKING:
   from index import Friday as Bot
-
 
 # def persona_options() -> list:
 #   options = []
@@ -110,7 +102,7 @@ class Moderation(commands.Cog):
 
   def __init__(self, bot: "Bot"):
     self.bot = bot
-    
+
     self.last_to_leave_vc = {}
 
     if not hasattr(self, "message_spam_control"):

@@ -100,3 +100,4 @@ asyncpraw==7.4.0
 pytest
 pytest-asyncio==0.15.1
 pytest-dependency==0.5.1
+lru-dict==1.1.7
