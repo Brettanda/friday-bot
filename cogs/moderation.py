@@ -1,13 +1,14 @@
 import asyncio
 import typing
 
-# import datetime
+import nextcord as discord
 # import validators
 import pycountry
 # from interactions import Context as SlashContext, cog_ext, ComponentContext
 # from discord_slash.model import SlashCommandOptionType
 # from discord_slash.utils.manage_commands import create_option, create_choice
 # from discord_slash.utils.manage_components import create_select, create_select_option, create_button, create_actionrow
+from nextcord.ext import commands
 from typing_extensions import TYPE_CHECKING
 
 from functions import MessageColors, embed, relay_info, config, MyContext
