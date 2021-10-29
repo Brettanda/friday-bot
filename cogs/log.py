@@ -352,7 +352,7 @@ class Log(commands.Cog):
     await self.bot.invoke(ctx)
 
   def get_prefixes(self) -> [str]:
-    return [*[g for g in self.bot.prefixes.values() if g != "!"], *["/", "!", "%", ">", "?", "-", "(", ")"]]
+    return ["/", "!", "f!", "!f", "%", ">", "?", "-", "(", ")"]
 
   def get_guild_delete_commands(self, guild: typing.Union[discord.Guild, int]) -> int:
     try:
