@@ -137,7 +137,7 @@ class MyContext(Context):
   def is_interaction(self) -> bool:
     return isinstance(self.message, FakeInteractionMessage)
 
-  async def prompt(self, message: str, *, timeout: float = 60.0, delete_after: bool = True, author_id: Optional[int] = None) -> Optional[bool]:
+  async def prompt(self, message: str, *, timeout: float = 60.0, delete_after: bool = True, author_id: Optional[int] = None, **kwargs) -> Optional[bool]:
     author_id = author_id or self.author.id
     view = ConfirmationView(
         timeout=timeout,
@@ -145,7 +145,7 @@ class MyContext(Context):
         ctx=self,
         author_id=author_id
     )
-    view.message = await self.send(message, view=view)
+    view.message = await self.send(message, view=view, **kwargs)
     await view.wait()
     return view.value
 

@@ -101,7 +101,7 @@ del
 
 Pause the current track
 
-??? check "Has a slash command to match"
+??? missing "Does not have a slash command to match"
 	Learn more about [slash commands](/#slash-commands)
 
 Usage:
@@ -114,7 +114,7 @@ Usage:
 
 Follow this command with the title of a song to search for it or just paste the Youtube/SoundCloud url if the search gives and undesirable result
 
-??? check "Has a slash command to match"
+??? missing "Does not have a slash command to match"
 	Learn more about [slash commands](/#slash-commands)
 
 Usage:
@@ -133,7 +133,7 @@ p,add
 
 shows the song queue
 
-??? check "Has a slash command to match"
+??? missing "Does not have a slash command to match"
 	Learn more about [slash commands](/#slash-commands)
 
 Usage:
@@ -146,7 +146,7 @@ Usage:
 
 Resume the current track
 
-??? check "Has a slash command to match"
+??? missing "Does not have a slash command to match"
 	Learn more about [slash commands](/#slash-commands)
 
 Usage:
@@ -159,7 +159,7 @@ Usage:
 
 Skips the current song
 
-??? check "Has a slash command to match"
+??? missing "Does not have a slash command to match"
 	Learn more about [slash commands](/#slash-commands)
 
 Usage:
@@ -172,7 +172,7 @@ Usage:
 
 Stops the currently playing music
 
-??? check "Has a slash command to match"
+??? missing "Does not have a slash command to match"
 	Learn more about [slash commands](/#slash-commands)
 
 Usage:

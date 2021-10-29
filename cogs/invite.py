@@ -1,3 +1,4 @@
+import nextcord as discord
 from nextcord.utils import oauth_url, cached_property
 from nextcord.ext import commands
 # from discord_slash import cog_ext
@@ -6,6 +7,12 @@ from typing_extensions import TYPE_CHECKING
 
 if TYPE_CHECKING:
   from index import Friday as Bot
+
+
+class InviteButtons(discord.ui.View):
+  def __init__(self, link: str):
+    super().__init__(timeout=None)
+    self.add_item(discord.ui.Button(emoji="\N{HEAVY PLUS SIGN}", label="Invite me!", style=discord.ButtonStyle.link, url=link, row=1))
 
 
 class Invite(commands.Cog):
@@ -24,7 +31,7 @@ class Invite(commands.Cog):
 
   @commands.command("invite", help="Get the invite link to add me to your server")
   async def _norm_invite(self, ctx):
-    await ctx.reply(embed=embed(title="Invite me :)", description=f"[Invite link]({self.link})"))
+    await ctx.reply(embed=embed(title="Invite me :)"), view=InviteButtons(self.link))
 
   # @cog_ext.cog_slash(name="invite", description="Get the invite link to add me to your server")
   # async def _slash_invite(self, ctx):

@@ -352,7 +352,7 @@ class Log(commands.Cog):
     await self.bot.invoke(ctx)
 
   def get_prefixes(self) -> [str]:
-    return [*[g for g in self.bot.prefixes.values() if g != "!"], *["/", "!", "%", ">", "?", "-", "(", ")"]]
+    return ["/", "!", "f!", "!f", "%", ">", "?", "-", "(", ")"]
 
   def get_guild_delete_commands(self, guild: typing.Union[discord.Guild, int]) -> int:
     try:
@@ -457,7 +457,6 @@ class Log(commands.Cog):
           lang: str = None) -> None:
     if guild is not None:
       guild = guild if isinstance(guild, discord.Guild) else self.bot.get_guild(guild)
-      self.bot.prefixes.update({str(guild.id): str(prefix)})
       self.bot.saved_guilds.update(
           {str(guild.id) if isinstance(guild, discord.Guild) else guild: {
               "tier": tier,
@@ -475,7 +474,6 @@ class Log(commands.Cog):
       return False
     guild_id = guild.id if isinstance(guild, discord.Guild) else guild
     self.bot.saved_guilds.pop(str(guild_id), None)
-    self.bot.prefixes.pop(str(guild_id), None)
 
   async def set_all_guilds(self) -> None:
     # if not hasattr(self.bot, "saved_guilds") or len(self.bot.saved_guilds) != len(self.bot.guilds):

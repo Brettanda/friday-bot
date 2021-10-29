@@ -8,7 +8,7 @@ Manage your server with these commands
 
 ## Ban
 
-??? check "Has a slash command to match"
+??? missing "Does not have a slash command to match"
 	Learn more about [slash commands](/#slash-commands)
 
 Usage:
@@ -48,110 +48,11 @@ Examples:
 !begone 707520808448294983
 ```
 
-## Blacklist
-
-Blacklist words from being sent in text channels
-
-??? missing "Does not have a slash command to match"
-	Learn more about [slash commands](/#slash-commands)
-
-Usage:
-
-```md
-!blacklist|bl 
-!blacklist|bl add <word>
-!blacklist|bl clear 
-!blacklist|bl display 
-!blacklist|bl remove <word>
-```
-
-Aliases:
-
-```md
-bl
-```
-
-### Add
-
-??? missing "Does not have a slash command to match"
-	Learn more about [slash commands](/#slash-commands)
-
-Usage:
-
-```md
-!blacklist add|+ <word>
-```
-
-Aliases:
-
-```md
-+
-```
-
-Examples:
-
-```md
-!blacklist add penis
-!bl + shit
-```
-
-### Clear
-
-??? missing "Does not have a slash command to match"
-	Learn more about [slash commands](/#slash-commands)
-
-Usage:
-
-```md
-!blacklist clear 
-```
-
-### Display
-
-??? missing "Does not have a slash command to match"
-	Learn more about [slash commands](/#slash-commands)
-
-Usage:
-
-```md
-!blacklist display|list|show 
-```
-
-Aliases:
-
-```md
-list,show
-```
-
-### Remove
-
-??? missing "Does not have a slash command to match"
-	Learn more about [slash commands](/#slash-commands)
-
-Usage:
-
-```md
-!blacklist remove|- <word>
-```
-
-Aliases:
-
-```md
--
-```
-
-Examples:
-
-```md
-!blacklist remove penis
-!bl - shit
-```
-
 ## Chatchannel
 
 Set the current channel so that I will always try to respond with something
 
-??? check "Has a slash command to match"
+??? missing "Does not have a slash command to match"
 	Learn more about [slash commands](/#slash-commands)
 
 Usage:
@@ -189,7 +90,7 @@ Examples:
 
 ## Kick
 
-??? check "Has a slash command to match"
+??? missing "Does not have a slash command to match"
 	Learn more about [slash commands](/#slash-commands)
 
 Usage:
@@ -237,11 +138,24 @@ Examples:
 !language spanish
 ```
 
+## Last
+
+Gets the last member to leave a voice channel.
+
+??? missing "Does not have a slash command to match"
+	Learn more about [slash commands](/#slash-commands)
+
+Usage:
+
+```md
+!last [voice_channel]
+```
+
 ## Massmove
 
 Move everyone from one voice channel to another
 
-??? check "Has a slash command to match"
+??? missing "Does not have a slash command to match"
 	Learn more about [slash commands](/#slash-commands)
 
 Usage:
@@ -268,7 +182,7 @@ Examples:
 
 Mute a member from text channels
 
-??? check "Has a slash command to match"
+??? missing "Does not have a slash command to match"
 	Learn more about [slash commands](/#slash-commands)
 
 Usage:
@@ -325,7 +239,7 @@ Examples:
 
 Moves everyone with a specific role to a voicechannel. Objects that can be exluded are voicechannels,roles,and members
 
-??? check "Has a slash command to match"
+??? missing "Does not have a slash command to match"
 	Learn more about [slash commands](/#slash-commands)
 
 Usage:
@@ -363,7 +277,7 @@ Usage:
 
 Unmute a member from text channels
 
-??? check "Has a slash command to match"
+??? missing "Does not have a slash command to match"
 	Learn more about [slash commands](/#slash-commands)
 
 Usage:
