@@ -189,15 +189,15 @@ Usage:
 
 ```md
 !mute <member>... <reason>
-!mute role <role>
+!mute role [role]
 ```
 
 Examples:
 
 ```md
-!mute @Motostar @steve
+!mute @Motostar @steve they were annoying me
 !mute @steve 9876543210
-!mute @Motostar
+!mute @Motostar spamming general
 !mute 0123456789
 ```
 
@@ -211,7 +211,8 @@ Set the role to be applied to members that get muted
 Usage:
 
 ```md
-!mute role <role>
+!mute role [role]
+!mute role create [name='Muted']
 ```
 
 ## Prefix
@@ -289,7 +290,7 @@ Usage:
 Examples:
 
 ```md
-!unmute @Motostar @steve
+!unmute @Motostar @steve they said sorry
 !unmute @steve 9876543210
 !unmute @Motostar
 !unmute 0123456789

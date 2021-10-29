@@ -132,7 +132,7 @@ Examples:
 
 ```md
 !contentspam 3 5
-!contentspam 5 15
+!contentspam 15 17
 ```
 
 ### Disable
@@ -179,6 +179,35 @@ Examples:
 !contentspam punishment ban delete
 ```
 
+## Invitespam
+
+Automaticaly remove Discord invites (originating from external servers) from text channels. Not giving an argument will display the current setting.
+
+??? missing "Does not have a slash command to match"
+	Learn more about [slash commands](/#slash-commands)
+
+Usage:
+
+```md
+!invitespam|removeinvites [enable]
+```
+
+Aliases:
+
+```md
+removeinvites
+```
+
+Examples:
+
+```md
+!invitespam
+!removeinvites 1
+!invitespam 0
+!removeinvites true
+!invitespam false
+```
+
 ## Mentionspam
 
 Set the max amount of mentions one user can send per message before muting the author
@@ -189,7 +218,7 @@ Set the max amount of mentions one user can send per message before muting the a
 Usage:
 
 ```md
-!mentionspam|maxmentions|maxpings <mentions_per_message>
+!mentionspam|maxmentions|maxpings <mention_count> <seconds>
 !mentionspam|maxmentions|maxpings disable 
 !mentionspam|maxmentions|maxpings punishment [punishments='mute']
 ```
@@ -276,8 +305,8 @@ maxmessages,ratelimit
 Examples:
 
 ```md
-!messagespam 3 10
-!maxmessages 5 15
+!messagespam 3 5
+!maxmessages 10 12
 ```
 
 ### Disable
@@ -322,27 +351,4 @@ Examples:
 !maxmessages punishment ban
 !ratelimit punishments delete kick
 !messagespam punishment ban delete
-```
-
-## Removeinvites
-
-Automaticaly remove Discord invites (originating from external servers) from text channels. Not giving an argument will display the current setting.
-
-??? missing "Does not have a slash command to match"
-	Learn more about [slash commands](/#slash-commands)
-
-Usage:
-
-```md
-!removeinvites [enable]
-```
-
-Examples:
-
-```md
-!removeinvites
-!removeinvites 1
-!removeinvites 0
-!removeinvites true
-!removeinvites false
 ```
