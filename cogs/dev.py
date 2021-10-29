@@ -2,7 +2,8 @@ import asyncio
 import os
 import shutil
 import subprocess
-import typing
+import copy
+from typing import Optional, Union
 # import traceback
 # import io
 # import textwrap
@@ -14,28 +15,48 @@ from typing_extensions import TYPE_CHECKING
 
 from cogs.help import syntax
 from functions import embed, build_docs  # , query  # , MessageColors
-from functions import MyContext, views
+from functions import MyContext, views, MessageColors
 
 if TYPE_CHECKING:
   from index import Friday as Bot
 
 
+class GlobalChannel(commands.Converter):
+  async def convert(self, ctx, argument):
+    try:
+      return await commands.TextChannelConverter().convert(ctx, argument)
+    except commands.BadArgument:
+      # Not found... so fall back to ID + global lookup
+      try:
+        channel_id = int(argument, base=10)
+      except ValueError:
+        raise commands.BadArgument(f'Could not find a channel by ID {argument!r}.')
+      else:
+        channel = ctx.bot.get_channel(channel_id)
+        if channel is None:
+          raise commands.BadArgument(f'Could not find a channel by ID {argument!r}.')
+        return channel
+
+
 class Dev(commands.Cog, command_attrs=dict(hidden=True)):
   """Commands used by and for the developer"""
 
-  def __init__(self, bot: "Bot"):
+  def __init__(self, bot: "Bot") -> None:
     self.bot = bot
 
-  def __repr__(self):
+  def __repr__(self) -> str:
     return "<cogs.Dev>"
 
   async def cog_check(self, ctx: "MyContext") -> bool:
-    return await self.bot.is_owner(ctx.author)
+    return await self.bot.is_owner(ctx.author) or ctx.author.id == 892865928520413245
 
-  async def cog_command_error(self, ctx, error):
+  async def cog_command_error(self, ctx: "MyContext", error):
     if isinstance(error, commands.CheckFailure):
-      return self.bot.logger.warning("Someone found a dev command")
-    return await ctx.send(error)
+      self.bot.logger.warning("Someone found a dev command")
+    elif isinstance(error, commands.MissingRequiredArgument):
+      await ctx.send(embed=embed(title=error, color=MessageColors.ERROR))
+    else:
+      await ctx.send(f"```py\n{error}\n```")
 
   async def run_process(self, command):
     try:
@@ -57,7 +78,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
   #   await ctx.send("help")
 
   @norm_dev.command(name="say")
-  async def say(self, ctx, channel: typing.Optional[discord.TextChannel] = None, *, say: str):
+  async def say(self, ctx, channel: Optional[discord.TextChannel] = None, *, say: str):
     channel = ctx.channel if channel is None else channel
     try:
       await ctx.message.delete()
@@ -123,17 +144,13 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       except BaseException:
         pass
 
-  @norm_dev.command(name="status")
-  async def status(self):
-    """Sends the status of the machine running Friday"""
-    print("")
-
   @norm_dev.command(name="restart")
-  #
-  # This could not work when clusters
-  #
   async def restart(self, ctx, force: bool = False):
     # global restartPending,songqueue
+
+    #     systemctl daemon-reload
+    # systemctl restart friday.service
+
     if self.bot.restartPending is True and force is False:
       await ctx.reply(embed=embed(title="A restart is already pending"))
       return
@@ -166,9 +183,6 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       subprocess.Popen([f"{thispath}{seperator}restart.sh"], stdin=subprocess.PIPE)
 
   @norm_dev.group(name="reload", invoke_without_command=True)
-  #
-  # This could not work when clusters
-  #
   async def reload(self, ctx, command: str):
     async with ctx.typing():
       com = self.bot.get_command(command)
@@ -178,9 +192,6 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     await ctx.reply(embed=embed(title=f"Cog *{command}* has been reloaded"))
 
   @reload.command(name="all")
-  #
-  # This could not work when clusters
-  #
   async def reload_all(self, ctx):
     async with ctx.typing():
       await self.bot.reload_cogs()
@@ -188,27 +199,18 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     await ctx.reply(embed=embed(title="All cogs have been reloaded"))
 
   @reload.command(name="slash")
-  #
-  # This could not work when clusters
-  #
   async def reload_slash(self, ctx):
     async with ctx.typing():
       await self.bot.slash.sync_all_commands()
     await ctx.reply(embed=embed(title="Slash commands synced"))
 
   @norm_dev.command(name="load")
-  #
-  # This could not work when clusters
-  #
   async def load(self, ctx, command: str):
     async with ctx.typing():
       self.bot.load_extension(f"cogs.{command.lower()}")
     await ctx.reply(embed=embed(title=f"Cog *{command}* has been loaded"))
 
   @norm_dev.command(name="unload")
-  #
-  # This could not work when clusters
-  #
   async def unload(self, ctx, command: str):
     async with ctx.typing():
       self.bot.unload_extension(f"cogs.{command.lower()}")
@@ -224,10 +226,12 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
   #     self.bot.logger.error(error)
 
   @norm_dev.command(name="update")
-  #
-  # This could not work when clusters
-  #
   async def update(self, ctx):
+    async with ctx.typing():
+      stdout, stderr = await self.run_process("git reset --hard && git pull")
+
+    if stdout.startswith("Already up-to-date."):
+      return await ctx.send(stdout)
     message = await ctx.reply(embed=embed(title="Updating..."))
     thispath = os.getcwd()
     if "\\" in thispath:
@@ -273,6 +277,26 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     #         f.write(f"Description: ```{com.description or 'None'}```\n\n")
     #   f.close()
     # await ctx.reply(file=discord.File(fp=f"{thispath}{seperator}docs{seperator}commands.md", filename="commands.md"))
+
+  @norm_dev.command(name="sudo")
+  async def sudo(self, ctx: "MyContext", channel: Optional[GlobalChannel], user: Union[discord.Member, discord.User], *, command: str):
+    msg = copy.copy(ctx.message)
+    channel = channel or ctx.channel
+    msg.channel = channel
+    msg.author = user
+    msg.content = ctx.prefix + command
+    new_ctx = await self.bot.get_context(msg, cls=type(ctx))
+    await self.bot.invoke(new_ctx)
+
+  @norm_dev.command(name="do", aliases=["repeat"])
+  async def do(self, ctx: "MyContext", times: int, *, command: str):
+    msg = copy.copy(ctx.message)
+    msg.content = ctx.prefix + command
+
+    new_ctx = await self.bot.get_context(msg, cls=type(ctx))
+
+    for i in range(times):
+      await new_ctx.reinvoke()
 
   @norm_dev.command(name="mysql")
   async def mysql(self, ctx, *, string: str):
