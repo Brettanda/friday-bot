@@ -66,7 +66,6 @@ class Database(commands.Cog):
             "words text[]"
         ],
     }
-    self.update_local_values.start()
     self.loop.run_until_complete(self.setup())
     if self.bot.cluster_idx == 0:
       self.loop.run_until_complete(self.create_tables())
@@ -156,18 +155,6 @@ class Database(commands.Cog):
       roles = json.dumps(roles)
     toprole = json.dumps(toprole)
     await self.query("""UPDATE servers SET toprole=$1::json, roles=array[$2]::json[] WHERE id=$3""", toprole, roles, str(after.guild.id))
-
-  @tasks.loop(minutes=1)
-  async def update_local_values(self):
-    prefixes = {}
-    for i, p in await self.query("SELECT id,prefix FROM servers"):
-      prefixes.update({str(i): str(p)})
-
-    self.bot.prefixes = prefixes
-
-  @update_local_values.before_loop
-  async def update_local_values_before(self):
-    await self.bot.wait_until_ready()
 
   async def create_tables(self):
     for table in self.columns:

@@ -27,13 +27,7 @@ dead_nodes_sent = False
 
 async def get_prefix(bot: "Friday", message: discord.Message):
   if message.guild is not None:
-    if str(message.guild.id) in bot.prefixes:
-      return commands.when_mentioned_or(bot.prefixes[str(message.guild.id)])(bot, message)
-    else:
-      current = await bot.db.query("SELECT prefix FROM servers WHERE id=$1", str(message.guild.id))
-      bot.prefixes[message.guild.id] = str(current)
-      bot.logger.warning(f"{message.guild.id}'s prefix was {bot.prefixes.get(str(message.guild.id), None)} and is now {current}")
-      return commands.when_mentioned_or(bot.prefixes[str(message.guild.id)])(bot, message)
+    return commands.when_mentioned_or(await bot.get_guild_prefix(message.guild.id))(bot, message)
   return commands.when_mentioned_or(functions.config.defaultPrefix)(bot, message)
 
 
@@ -69,7 +63,6 @@ class Friday(commands.AutoShardedBot):
     self.canary = True if len(sys.argv) > 1 and (sys.argv[1] == "--canary") else False
     self.ready = False
 
-    self.prefixes = {}
     self.load_extension("cogs.database")
     self.load_extension("cogs.log")
     self.loop.run_until_complete(self.setup(True))
@@ -101,6 +94,13 @@ class Friday(commands.AutoShardedBot):
           self.load_extension(f"cogs.{cog}")
         except Exception as e:
           self.logger.error(f"Failed to load extenstion {cog} with \n {e}")
+
+  @functions.cache(maxsize=256)
+  async def get_guild_prefix(self, guild_id: int) -> str:
+    try:
+      return await self.db.query("SELECT prefix FROM servers WHERE id=$1 LIMIT 1", str(guild_id))
+    except Exception:
+      return functions.config.defaultPrefix
 
   async def reload_cogs(self):
     self.ready = False
