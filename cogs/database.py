@@ -129,9 +129,6 @@ class Database(commands.Cog):
         await self.query(f"""INSERT INTO servers (id,lang,toprole,roles,text_channels) VALUES ({str(guild.id)},'{guild.preferred_locale.split('-')[0] if guild.preferred_locale is not None else 'en'}',$1::json,array[$2]::json[],array[$3]::json[]) ON CONFLICT(id) DO UPDATE SET toprole=$1::json,roles=array[$2]::json[], text_channels=array[$3]::json[]""", toprole, roles, text_channels)
       await self.query(f"""DELETE FROM servers WHERE id NOT IN ('{"','".join([str(i) for i in current])}')""")
 
-    for i, p in await self.query("SELECT id,prefix FROM servers"):
-      self.bot.prefixes.update({str(i): str(p)})
-
   @commands.Cog.listener()
   async def on_guild_channel_update(self, before: discord.abc.GuildChannel, after: discord.abc.GuildChannel):
     if not isinstance(after, discord.TextChannel):
