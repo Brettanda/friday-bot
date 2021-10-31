@@ -23,6 +23,7 @@ load_dotenv()
 TOKEN = os.environ.get('TOKENTEST')
 
 dead_nodes_sent = False
+formatter = logging.Formatter("%(levelname)s:%(name)s: %(message)s")
 
 
 async def get_prefix(bot: "Friday", message: discord.Message):
