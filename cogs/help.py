@@ -4,7 +4,6 @@ import nextcord as discord
 from nextcord import Embed
 from nextcord.ext import commands
 from nextcord.ext.menus import ListPageSource, MenuPages
-import asyncio
 # from discord.utils import get
 
 # from interactions import Context as SlashContext
