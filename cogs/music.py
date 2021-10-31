@@ -82,6 +82,7 @@ class Player(wavelink.Player):
   async def connect(self, channel: Union[discord.VoiceChannel, discord.StageChannel], self_deaf: bool = True) -> Union[discord.VoiceChannel, discord.StageChannel]:
     try:
       await self.ctx.guild.change_voice_state(channel=channel, self_deaf=self_deaf)
+      self.channel_id = channel.id
     except asyncio.TimeoutError:
       raise VoiceConnectionError(f"Connecting to channel: `{channel}` timed out.")
 
@@ -109,7 +110,7 @@ class Player(wavelink.Player):
 
     try:
       self.waiting = True
-      with async_timeout.timeout(300):
+      with async_timeout.timeout(60):
         track = await self.queue.get()
     except asyncio.TimeoutError:
       # No music has been played for 5 minutes, cleanup and disconnect...
@@ -125,7 +126,7 @@ class Player(wavelink.Player):
     if not track:
       return
 
-    channel = self.bot.get_channel(int(self.channel_id))
+    channel = self.bot.get_channel(self.channel_id)
     qsize = self.queue.qsize()
 
     try:
@@ -138,7 +139,7 @@ class Player(wavelink.Player):
         thumbnail=track.thumbnail,
         url=track.uri,
         fieldstitle=["Duration", "Queue Length", "Volume", "Requested By", "DJ", "Channel"],
-        fieldsval=[duration, str(qsize), f"**`{self.volume}%`**", f"{track.requester.mention}", f"{self.dj.mention}", f"{channel.mention}"],
+        fieldsval=[duration, str(qsize), f"**`{self.volume}%`**", f"{track.requester.mention}", f"{self.dj.mention if self.dj else None}", f"{channel.mention if channel else None}"],
         color=MessageColors.MUSIC)
 
   async def teardown(self):
@@ -350,10 +351,9 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
   async def cog_before_invoke(self, ctx: MyContext):
     player: Player = self.bot.wavelink.get_player(ctx.guild.id, cls=Player, ctx=ctx)
 
-    if player.ctx:
-      if player.ctx.channel != ctx.channel:
-        await ctx.send(embed=embed(title=f"You must be in `{player.ctx.channel}` for this session.", color=MessageColors.ERROR))
-        raise IncorrectChannelError
+    if player.ctx and player.ctx.channel != ctx.channel:
+      await ctx.send(embed=embed(title=f"You must be in `{player.ctx.channel}` for this session.", color=MessageColors.ERROR))
+      raise IncorrectChannelError
     if ctx.command.name == "connect" and not player.ctx:
       return
     elif self.is_privileged(ctx):
@@ -373,7 +373,7 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
 
   def required(self, ctx: MyContext):
     player: Player = self.bot.wavelink.get_player(ctx.guild.id, cls=Player, ctx=ctx)
-    channel = self.bot.get_channel(int(player.channel_id))
+    channel = self.bot.get_channel(player.channel_id)
     required = math.ceil((len(channel.members) - 1) / 2.5)
 
     if ctx.command.name == "stop":
