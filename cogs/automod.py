@@ -140,7 +140,7 @@ class AutoMod(commands.Cog):
 
   @cache()
   async def get_guild_config(self, guild_id: int) -> Optional[Config]:
-    query = "SELECT id,autodeletemsgs,max_mentions,max_messages,max_content,remove_invites,mute_role FROM servers WHERE id=$1 LIMIT 1;"
+    query = "SELECT * FROM servers WHERE id=$1 LIMIT 1;"
     blquery = "SELECT * FROM blacklist WHERE guild_id=$1 LIMIT 1;"
     async with self.bot.db.pool.acquire(timeout=300.0) as conn:
       record = await conn.fetchrow(query, str(guild_id))

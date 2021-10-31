@@ -155,7 +155,7 @@ class Moderation(commands.Cog):
 
   @cache()
   async def get_guild_config(self, guild_id: int) -> Optional[Config]:
-    query = "SELECT id,chatchannel,lang,mute_role FROM servers WHERE id=$1 LIMIT 1;"
+    query = "SELECT * FROM servers WHERE id=$1 LIMIT 1;"
     async with self.bot.db.pool.acquire(timeout=300.0) as conn:
       record = await conn.fetchrow(query, str(guild_id))
       self.bot.logger.debug(f"PostgreSQL Query: \"{query}\" + {str(guild_id)}")
