@@ -775,7 +775,6 @@ class Moderation(commands.Cog):
   #         return await msg.add_reaction("🔁")
 
   @norm_chatchannel.after_invoke
-  @norm_settings_persona.after_invoke
   @music_channel.after_invoke
   @delete_commands_after.after_invoke
   @mute_role.after_invoke
