@@ -1,5 +1,5 @@
 absl-py==0.11.0
-aiohttp==3.7.4
+aiohttp==3.7.4.post0
 appdirs==1.4.4
 astroid==2.4.2
 astunparse==1.6.3
@@ -82,8 +82,8 @@ typing-extensions==3.7.4.3
 unicode==2.8
 urllib3==1.26.5
 validators==0.18.2
-wavelink==0.9.9
-Werkzeug==1.0.1
+wavelink @ git+https://github.com/Brettanda/Wavelink@master
+Werkzeug>=1.0.1
 wrapt==1.12.1
 yarl==1.6.3
 youtube-dl==2021.1.24.1
