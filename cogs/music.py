@@ -66,9 +66,10 @@ class Player(wavelink.Player):
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
 
-    self.ctx: MyContext = kwargs.get("ctx", None)
+    self.ctx: Optional[MyContext] = kwargs.get("ctx", None)
     self.dj: Optional[discord.Member] = self.ctx.author if self.ctx else None
 
+    self.current_title = None
     self.queue = asyncio.Queue()
 
     self.waiting = False
@@ -79,12 +80,15 @@ class Player(wavelink.Player):
     self.shuffle_votes = set()
     self.stop_votes = set()
 
-  async def connect(self, channel: Union[discord.VoiceChannel, discord.StageChannel], self_deaf: bool = True) -> Union[discord.VoiceChannel, discord.StageChannel]:
-    try:
-      await self.ctx.guild.change_voice_state(channel=channel, self_deaf=self_deaf)
-      self.channel_id = channel.id
-    except asyncio.TimeoutError:
-      raise VoiceConnectionError(f"Connecting to channel: `{channel}` timed out.")
+  async def connect(self, channel: Union[discord.VoiceChannel, discord.StageChannel], self_deaf: bool = True, *, ctx: MyContext = None) -> Union[discord.VoiceChannel, discord.StageChannel]:
+    if not self.ctx:
+      self.ctx = ctx
+      self.dj = ctx.author
+    guild = self.bot.get_guild(self.guild_id)
+    if not guild:
+      raise wavelink.errors.InvalidIDProvided(f'No guild found for id <{self.guild_id}>')
+    self.channel_id = channel.id
+    await self._get_shard_socket(guild.shard_id).voice_state(self.guild_id, str(channel.id), self_deaf=self_deaf)
 
     return channel
 
@@ -96,7 +100,8 @@ class Player(wavelink.Player):
     if not guild:
       raise wavelink.errors.InvalidIDProvided(f'No guild found for id <{self.guild_id}>')
 
-    await self.ctx.guild.change_voice_state(channel=None)
+    self.channel_id = None
+    await self._get_shard_socket(guild.shard_id).voice_state(self.guild_id, None)
 
   async def do_next(self):
     if self.is_playing or self.waiting:
@@ -116,6 +121,13 @@ class Player(wavelink.Player):
       # No music has been played for 5 minutes, cleanup and disconnect...
       return await self.teardown()
 
+    channel = self.bot.get_channel(self.channel_id)
+    if channel and channel.type == discord.ChannelType.stage_voice and not channel.instance:
+      await channel.create_instance(topic=track.title, reason="Music time!")
+    elif channel and channel.type == discord.ChannelType.stage_voice and channel.instance is not None and self.current_title and channel.instance.topic == self.current_title:
+      await channel.instance.edit(topic=track.title, reason="Next track!")
+
+    self.current_title = track.title
     await self.play(track)
     self.waiting = False
 
@@ -323,7 +335,7 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
   async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
     # TODO: when moved to another voice channel, Friday will some times just stop playing music until !pause and !resume are executed
     if member == self.bot.user:
-      if after.channel is not None and after.channel.type == discord.ChannelType.stage_voice:
+      if before.channel != after.channel and after.channel is not None and after.channel.type == discord.ChannelType.stage_voice:
         await member.edit(suppress=False)
 
     # if not player:
@@ -402,7 +414,7 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
     if channel is None:
       raise NoChannelProvided
 
-    await player.connect(channel)
+    await player.connect(channel, ctx=ctx)
 
   @commands.command(name="play", aliases=["p", "add"], extras={"examples": ["https://youtu.be/dQw4w9WgXcQ"]}, usage="<url/title>", help="Follow this command with the title of a song to search for it or just paste the Youtube/SoundCloud url if the search gives and undesirable result")
   @commands.guild_only()
