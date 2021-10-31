@@ -1,14 +1,11 @@
 import asyncio
-import copy
 import datetime
 import json
 import math
 import os
 import re
-from json import dumps
 from typing import List, Literal, Optional, Union
 
-import aiohttp
 import async_timeout
 import nextcord as discord
 import validators

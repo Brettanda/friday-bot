@@ -63,6 +63,7 @@ class Config:
       await self.mute(msg.author)
     return await msg.channel.send(embed=embed(title=f"Punishments applied: `{', '.join(punishments)}` to {msg.author}", description=f"Action taked for reason: `{reason}`"))
 
+
 class CooldownByContent(commands.CooldownMapping):
   def _bucket_key(self, msg):
     return (msg.channel.id, msg.content)

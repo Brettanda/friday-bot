@@ -11,7 +11,7 @@ import pycountry
 from nextcord.ext import commands
 from typing_extensions import TYPE_CHECKING
 
-from functions import (MessageColors, MyContext, cache, checks, config, embed,
+from functions import (MessageColors, MyContext, cache, config, embed,
                        relay_info)
 
 if TYPE_CHECKING:
