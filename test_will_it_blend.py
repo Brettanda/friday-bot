@@ -75,7 +75,7 @@ logger.setLevel(logging.INFO)
 
 
 def test_will_it_blend():
-  bot = Friday_testing(logging=logger)
+  bot = Friday_testing(logger=logger)
   loop = asyncio.get_event_loop()
   try:
     loop.run_until_complete(bot.start(TOKEN))
