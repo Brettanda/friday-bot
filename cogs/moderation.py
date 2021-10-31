@@ -108,6 +108,7 @@ class Config:
 
     self.bot = bot
     self.id: int = int(record["id"], base=10)
+    self.muted_members = set(record["muted_members"] or [])
     self.mute_role_id = int(record["mute_role"], base=10) if record["mute_role"] else None
     return self
 

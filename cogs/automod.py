@@ -16,7 +16,7 @@ INVITE_REG = re.compile(r"(http(s|)?:\/\/)?(www\.)?(discord(app|)\.(gg|com|net)(
 
 
 class Config:
-  __slots__ = ("bot", "id", "autodeletemsgs", "max_mentions", "max_messages", "max_content", "remove_invites", "blacklisted_words", "mute_role_id")
+  __slots__ = ("bot", "id", "autodeletemsgs", "max_mentions", "max_messages", "max_content", "remove_invites", "blacklisted_words", "mute_role_id", "muted_members")
 
   @classmethod
   async def from_record(cls, record, blacklist, bot):
@@ -30,6 +30,7 @@ class Config:
     self.max_content = json.loads(record["max_content"]) if record["max_content"] else None
     self.remove_invites: bool = record["remove_invites"]
     self.blacklisted_words: List[str] = blacklist["words"] if blacklist else []
+    self.muted_members = set(record["muted_members"] or [])
     self.mute_role_id = int(record["mute_role"], base=10) if record["mute_role"] else None
     return self
 
@@ -37,6 +38,9 @@ class Config:
   def mute_role(self):
     guild = self.bot.get_guild(self.id)
     return guild and self.mute_role_id and guild.get_role(self.mute_role_id)
+
+  def is_muted(self, member: discord.Member) -> bool:
+    return member.id in [int(i, base=10) for i in self.muted_members]
 
   async def mute(self, member: discord.Member, reason: str = "Auto-mute for spamming.") -> None:
     if self.mute_role_id:
@@ -212,6 +216,40 @@ class AutoMod(commands.Cog):
     if config.max_messages is not None and config.max_content != {}:
       if spam.is_spamming(msg):
         return await config.apply_punishment(msg.guild, msg, config.max_messages["punishments"], reason="Spamming messages.")
+
+  @commands.Cog.listener()
+  async def on_member_join(self, member: discord.Member):
+    guild_id = member.guild.id
+    config = await self.get_guild_config(guild_id)
+    if config is None:
+      return
+
+    if config.is_muted(member):
+      return await config.mute(member, "Member was previously muted.")
+
+  @commands.Cog.listener()
+  async def on_member_update(self, before: discord.Member, after: discord.Member):
+    if before.roles == after.roles:
+      return
+
+    guild_id = after.guild.id
+    config = await self.get_guild_config(guild_id)
+    if config is None:
+      return
+
+    if config.mute_role_id is None:
+      return
+
+    before_has = before._roles.has(config.mute_role_id)
+    after_has = after._roles.has(config.mute_role_id)
+
+    if before_has == after_has:
+      return
+
+    if after_has:
+      await self.bot.db.query("UPDATE servers SET muted_members=array_append(muted_members, $1) WHERE id=$2", str(after.id), str(guild_id))
+    else:
+      await self.bot.db.query("UPDATE servers SET muted_members=array_remove(muted_members, $1) WHERE id=$2", str(after.id), str(guild_id))
 
   @commands.Cog.listener()
   async def on_guild_role_delete(self, role: discord.Role):
