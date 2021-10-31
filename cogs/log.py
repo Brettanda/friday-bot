@@ -33,8 +33,6 @@ GENERAL_CHANNEL_NAMES = {"welcome", "general", "lounge", "chat", "talk", "main"}
 #     raise commands.CheckFailure("Currently I am disabled, my boss has been notified, please try again later :)")
 #   return True
 
-formatter = logging.Formatter("%(levelname)s:%(name)s: %(message)s")
-
 
 class CustomWebhook(discord.Webhook):
   async def safe_send(self, content: str, *, escape_mentions=True, **kwargs) -> typing.Optional[discord.WebhookMessage]:
@@ -70,24 +68,13 @@ class Log(commands.Cog):
     if not hasattr(self, "_auto_spam_count"):
       self._auto_spam_count = Counter()
 
+    self.logger = self.bot.logger
+
     # if not hasattr(self.bot, "slash"):
     #   self.bot.slash = SlashCommand(self.bot, sync_commands=True, sync_on_cog_reload=True)  # , debug_guild=243159711237537802)
 
     self.bot.process_commands = self.process_commands
     # self.bot.on_error = self.on_error
-
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setFormatter(formatter)
-    filehandler = logging.FileHandler("logging.log", encoding="utf-8")
-    filehandler.setFormatter(logging.Formatter("%(asctime)s:%(name)s:%(levelname)-8s%(message)s"))
-
-    self.logger = logging.getLogger(f"Cluster#{self.bot.cluster_name}")
-    self.logger.handlers = [handler, filehandler]
-    self.logger.setLevel(logging.INFO)
-
-    # dlog = logging.getLogger("discord")
-    # dlog.handlers = [handler]
-    # dlog.setLevel(logging.INFO)
 
     # self.check_for_mydb.start()
 
@@ -477,10 +464,10 @@ class Log(commands.Cog):
 
   async def set_all_guilds(self) -> None:
     # if not hasattr(self.bot, "saved_guilds") or len(self.bot.saved_guilds) != len(self.bot.guilds):
-    servers = await self.bot.db.query("SELECT id,tier,patreon_user,autoDeleteMSGs,max_mentions,max_messages,chatChannel,lang FROM servers")
+    servers = await self.bot.db.query("SELECT id,tier,patreon_user,autoDeleteMSGs,chatChannel,lang FROM servers")
     guilds = {}
-    for guild_id, tier, patreon_user, autoDeleteMSG, max_mentions, max_messages, chatChannel, lang in servers:
-      guilds.update({str(guild_id): {"tier": str(tier), "patreon_user": int(patreon_user) if patreon_user is not None else None, "autoDeleteMSGs": int(autoDeleteMSG), "max_mentions": int(max_mentions) if max_mentions is not None else None, "max_messages": max_messages, "chatChannel": int(chatChannel) if chatChannel is not None else None, "lang": lang}})
+    for guild_id, tier, patreon_user, autoDeleteMSG, chatChannel, lang in servers:
+      guilds.update({str(guild_id): {"tier": str(tier), "patreon_user": int(patreon_user) if patreon_user is not None else None, "autoDeleteMSGs": int(autoDeleteMSG), "chatChannel": int(chatChannel) if chatChannel is not None else None, "lang": lang}})
     self.bot.saved_guilds = guilds
     return guilds
 
@@ -514,96 +501,47 @@ class Log(commands.Cog):
 
   @commands.Cog.listener()
   async def on_command_error(self, ctx: "MyContext", error):
-    # slash = True if isinstance(ctx, SlashContext) or (hasattr(ctx, "is_interaction") and ctx.is_interaction) else False
-    slash = False
     if hasattr(ctx.command, 'on_error'):
       return
 
-    if ctx.cog:
-      if ctx.cog._get_overridden_method(ctx.cog.cog_command_error) is not None:
-        return
+    # if ctx.cog and ctx.cog._get_overridden_method(ctx.cog.cog_command_error) is not None:
+    #   return
 
     delete = self.get_guild_delete_commands(ctx.guild)
     error_text = getattr(error, 'original', error)
-    if isinstance(error, commands.NotOwner):
-      print("Someone found a dev command")
-      logging.info("Someone found a dev command")
-    elif isinstance(error, commands.MissingRequiredArgument):
+    if isinstance(error, (commands.MissingRequiredArgument, commands.TooManyArguments)):
       await ctx.send_help(ctx.command)
-      # await cmd_help(ctx, ctx.command, "You're missing some arguments, here is how the command should look")
-    elif isinstance(error, commands.CommandNotFound):
-      # await ctx.reply(embed=embed(title=f"Command `{ctx.message.content}` was not found",color=MessageColors.ERROR))
+    elif isinstance(error, (commands.CommandNotFound, commands.NotOwner)):
       return
-    # elif isinstance(error,commands.RoleNotFound):
-    #   await ctx.reply(embed=embed(title=f"{error}",color=MessageColors.ERROR))
+    elif isinstance(error, (commands.BotMissingPermissions, commands.MissingPermissions, commands.RoleNotFound)):
+      await ctx.send(embed=embed(title=error, color=MessageColors.ERROR))
     elif isinstance(error, commands.CommandOnCooldown):
-      if slash:
-        await ctx.send(embed=embed(title=f"This command is on a cooldown, please wait {error.retry_after:,.2f} sec(s)", color=MessageColors.ERROR), delete_after=30)
-      else:
-        await ctx.reply(embed=embed(title=f"This command is on a cooldown, please wait {error.retry_after:,.2f} sec(s)", color=MessageColors.ERROR), delete_after=30)
-      if hasattr(ctx.message, "delete"):
-        await ctx.message.delete(delay=30)
+      retry_after = discord.utils.utcnow() + datetime.timedelta(seconds=error.retry_after)
+      await ctx.send(embed=embed(title=f"This command is on a cooldown, and will be available <t:{int(retry_after.timestamp())}:R>", color=MessageColors.ERROR), delete_after=60)
+      # if hasattr(ctx.message, "delete"):
+      #   await ctx.message.delete(delay=60)
     elif isinstance(error, commands.NoPrivateMessage):
-      if slash:
-        await ctx.send(embed=embed(title="This command does not work in non-server text channels", color=MessageColors.ERROR), delete_after=delete)
-      else:
-        await ctx.reply(embed=embed(title="This command does not work in non-server text channels", color=MessageColors.ERROR), delete_after=delete)
-    # elif isinstance(error, commands.ChannelNotFound):
-    #   if slash:
-    #     await ctx.send(embed=embed(title=str(error), color=MessageColors.ERROR), delete_after=delete)
-    #   else:
-    #     await ctx.reply(embed=embed(title=str(error), color=MessageColors.ERROR), delete_after=delete)
-      # await ctx.reply(embed=embed(title="Could not find that channel",description="Make sure it is the right channel type",color=MessageColors.ERROR))
+      await ctx.send(embed=embed(title="This command does not work in non-server text channels", color=MessageColors.ERROR), delete_after=delete)
     elif isinstance(error, commands.DisabledCommand):
       await ctx.send(embed=embed(title=error_text, description="Please check the #updates channel in the support server for more info", color=MessageColors.ERROR))
-    #   if slash:
-    #     await ctx.send(embed=embed(title=str(error) or "This command has been disabled", color=MessageColors.ERROR), delete_after=delete)
-    #   else:
-    #     await ctx.reply(embed=embed(title=str(error) or "This command has been disabled", color=MessageColors.ERROR), delete_after=delete)
-    elif isinstance(error, commands.TooManyArguments):
-      await ctx.send_help(ctx.command)
-      # await cmd_help(ctx, ctx.command, str(error) or "Too many arguments were passed for this command, here is how the command should look", delete_after=delete)
-    # elif isinstance(error,commands.CommandError) or isinstance(error,commands.CommandInvokeError):
-    #   await ctx.reply(embed=embed(title=f"{error}",color=MessageColors.ERROR))
-    elif isinstance(error, (discord.Forbidden, discord.NotFound, commands.MissingPermissions, commands.BotMissingPermissions, commands.MaxConcurrencyReached)) or (hasattr(error, "log") and error.log is False):
-      try:
-        if slash:
-          await ctx.send(embed=embed(title=f"{error_text}", color=MessageColors.ERROR), delete_after=delete)
-        else:
-          await ctx.reply(embed=embed(title=f"{error_text}", color=MessageColors.ERROR), delete_after=delete)
-      except discord.Forbidden:
-        try:
-          if slash:
-            await ctx.send(f"{error_text}", delete_after=delete)
-          else:
-            await ctx.reply(f"{error_text}", delete_after=delete)
-        except discord.Forbidden:
-          logging.warning("well guess i just can't respond then")
-    else:
-      try:
-        if slash:
-          await ctx.send(embed=embed(title=f"{error_text}", color=MessageColors.ERROR), delete_after=delete)
-        else:
-          await ctx.reply(embed=embed(title=f"{error_text}", color=MessageColors.ERROR), delete_after=delete)
-      except discord.Forbidden:
-        try:
-          if slash:
-            await ctx.send(f"{error_text}", delete_after=delete)
-          else:
-            await ctx.reply(f"{error_text}", delete_after=delete)
-        except discord.Forbidden:
-          print("well guess i just can't respond then")
-          logging.warning("well guess i just can't respond then")
-      raise error
-      # trace = traceback.format_exception(type(error), error, error.__traceback__)
-      # print(''.join(trace))
-      # logging.error(''.join(trace))
-      # await relay_info(
-      #     f"```bash\n{''.join(trace)}```",
-      #     self.bot,
-      #     short="Error sent",
-      #     webhook=self.log_errors
-      # )
+    elif isinstance(error, commands.CommandInvokeError):
+      original = error.original
+      if not isinstance(original, discord.HTTPException):
+        print(f"In {ctx.command.qualified_name}:", file=sys.stderr)
+        traceback.print_tb(original.__traceback__)
+        print(f"{original.__class__.__name__}: {original}", file=sys.stderr)
+    elif isinstance(error, commands.ArgumentParsingError):
+      await ctx.send(embed=embed(title=error, color=MessageColors.ERROR))
+    # else:
+    #   try:
+    #     await ctx.send(embed=embed(title=f"{error_text}", color=MessageColors.ERROR), delete_after=delete)
+    #   except discord.Forbidden:
+    #     try:
+    #       await ctx.send(f"{error_text}", delete_after=delete)
+    #     except discord.Forbidden:
+    #       print("well guess i just can't respond then")
+    #       logging.warning("well guess i just can't respond then")
+    #   raise error
 
   @commands.Cog.listener()
   async def on_error(self, event, *args, **kwargs):
@@ -611,7 +549,6 @@ class Log(commands.Cog):
     if "Missing Access" in str(trace):
       return
 
-    print(trace)
     logging.error(trace)
     await relay_info(
         f"```bash\n{trace}```",

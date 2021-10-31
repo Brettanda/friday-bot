@@ -36,6 +36,7 @@ class Friday(commands.AutoShardedBot):
     self.cluster_name = kwargs.pop("cluster_name", None)
     self.cluster_idx = kwargs.pop("cluster_idx", 0)
     self.should_start = kwargs.pop("start", False)
+    self._logger = kwargs.pop("logger")
 
     self.loop = asyncio.new_event_loop()
     asyncio.set_event_loop(self.loop)
@@ -71,22 +72,22 @@ class Friday(commands.AutoShardedBot):
       self.run(kwargs["token"])
 
   @property
-  def log(self) -> "Log":
+  def log(self) -> Optional["Log"]:
     return self.get_cog("Log")
 
   @property
-  def logger(self):
-    return self.log.logger
+  def logger(self) -> logging.Logger:
+    return self._logger
 
   @property
-  def db(self) -> "Database":
+  def db(self) -> Optional["Database"]:
     return self.get_cog("Database")
 
   async def get_context(self, message, *, cls=None) -> functions.MyContext:
     return await super().get_context(message, cls=functions.MyContext)
 
   async def setup(self, load_extentions: bool = False):
-    self.session: aiohttp.ClientSession() = aiohttp.ClientSession()
+    self.session: aiohttp.ClientSession() = aiohttp.ClientSession(loop=self.loop)
 
     if load_extentions:
       for cog in cogs.default:
@@ -120,7 +121,7 @@ class Friday(commands.AutoShardedBot):
     if not self.ready:
       return
 
-    if ctx.author.bot:
+    if ctx.author.bot and not ctx.author.id == 892865928520413245:
       return
 
     await self.process_commands(ctx)
@@ -154,7 +155,15 @@ class Friday(commands.AutoShardedBot):
 
 if __name__ == "__main__":
   print(f"Python version: {sys.version}")
-  bot = Friday()
+  handler = logging.StreamHandler(sys.stdout)
+  handler.setFormatter(formatter)
+  filehandler = logging.FileHandler("logging.log", encoding="utf-8")
+  filehandler.setFormatter(logging.Formatter("%(asctime)s:%(name)s:%(levelname)-8s%(message)s"))
+
+  logger = logging.getLogger("Friday")
+  logger.handlers = [handler, filehandler]
+  logger.setLevel(logging.INFO)
+  bot = Friday(logger=logger)
   if len(sys.argv) > 1:
     if sys.argv[1] == "--prod" or sys.argv[1] == "--production":
       TOKEN = os.environ.get("TOKEN")
