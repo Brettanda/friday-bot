@@ -52,6 +52,7 @@ class Friday(commands.AutoShardedBot):
         member_cache_flags=functions.config.member_cache,
         chunk_guilds_at_startup=False,
         allowed_mentions=functions.config.allowed_mentions,
+        enable_debug_events=True,
         # heartbeat_timeout=150.0,
         loop=self.loop, **kwargs
     )
