@@ -14,6 +14,8 @@ if TYPE_CHECKING:
 
 INVITE_REG = re.compile(r"(http(s|)?:\/\/)?(www\.)?(discord(app|)\.(gg|com|net)(\/invite|))\/[a-zA-Z0-9\-]+", re.RegexFlag.MULTILINE + re.RegexFlag.IGNORECASE)
 
+PUNISHMENT_TYPES = ["kick", "ban", "mute"]
+
 
 class Config:
   __slots__ = ("bot", "id", "autodeletemsgs", "max_mentions", "max_messages", "max_content", "remove_invites", "blacklisted_words", "mute_role_id", "muted_members")
@@ -403,22 +405,22 @@ class AutoMod(commands.Cog):
     await self.bot.db.query("UPDATE servers SET max_mentions=$1 WHERE id=$2", json.dumps({"mentions": mention_count, "seconds": seconds, "punishments": punishments}), str(ctx.guild.id))
     await ctx.reply(embed=embed(title=f"I will now apply the punishments `{', '.join(punishments)}` to members that mention `>={mention_count}` within `{seconds}` seconds."))
 
-  @max_mentions.command(name="punishment", aliases=["punishments"], extras={"examples": ["delete", "mute", "kick", "ban", "delete kick", "ban delete"]}, help="Set the punishment for the max amount of mentions one user can send per message. Combining kick,ban and/or mute will only apply one of them.")
+  @max_mentions.command(name="punishment", aliases=["punishments"], extras={"examples": PUNISHMENT_TYPES}, help="Set the punishment for the max amount of mentions one user can send per message. Combining kick,ban and/or mute will only apply one of them.")
   @commands.guild_only()
   @commands.has_guild_permissions(manage_channels=True, manage_messages=True, manage_roles=True)
   @commands.bot_has_guild_permissions(manage_messages=True, manage_roles=True)
-  async def max_mentions_punishment(self, ctx: "MyContext", *, punishments: Optional[str] = "mute"):
-    punishments = [i for i in punishments.split(" ") if i.lower() in ["delete", "mute", "kick", "ban"]]
-    if len(punishments) == 0:
-      return await ctx.send(embed=embed(title="Punishment must be either delete, mute, kick, ban or some combination of those.", color=MessageColors.ERROR))
+  async def max_mentions_punishment(self, ctx: "MyContext", *, action: str):
+    action = [i for i in action.split(" ") if i.lower() in PUNISHMENT_TYPES]
+    if len(action) == 0:
+      return await ctx.send(embed=embed(title=f"The action must be one of the following: {', '.join(PUNISHMENT_TYPES)}", color=MessageColors.ERROR))
     current = await self.bot.db.query("SELECT max_mentions FROM servers WHERE id=$1 LIMIT 1", str(ctx.guild.id))
     if current is None or current == "null":
       current = {}
     else:
       current = json.loads(current)
-    current.update({"punishments": punishments})
+    current.update({"punishments": action})
     await self.bot.db.query("UPDATE servers SET max_mentions=$1 WHERE id=$2", json.dumps(current), str(ctx.guild.id))
-    await ctx.reply(embed=embed(title=f"New punishment for max amount of mentions in a single message is `{', '.join(punishments)}`"))
+    await ctx.reply(embed=embed(title=f"New punishment for max amount of mentions in a single message is `{', '.join(action)}`"))
 
   @max_mentions.command(name="disable", help="Disable the max amount of mentions per message for this server.")
   @commands.guild_only()
@@ -447,23 +449,23 @@ class AutoMod(commands.Cog):
       return await ctx.reply(embed=embed(title="I will no longer delete messages"))
     await ctx.reply(embed=embed(title=f"I will now `{', '.join(punishments)}` messages matching the same author that are sent more than the rate of `{message_rate}` message, for every `{seconds}` seconds."))
 
-  @max_spam.command(name="punishment", aliases=["punishments"], extras={"examples": ["delete", "mute", "kick", "ban", "delete kick", "ban delete"]}, help="Set the punishment for the max amount of message every x seconds. Combining kick,ban and/or mute will only apply one of them.")
+  @max_spam.command(name="punishment", aliases=["punishments"], extras={"examples": PUNISHMENT_TYPES}, help="Set the punishment for the max amount of message every x seconds. Combining kick,ban and/or mute will only apply one of them.")
   @commands.guild_only()
   @commands.has_guild_permissions(manage_channels=True, manage_messages=True, manage_roles=True)
   @commands.bot_has_guild_permissions(manage_messages=True, manage_roles=True)
-  async def max_spam_punishment(self, ctx: "MyContext", *, punishments: Optional[str] = "mute"):
-    punishments = [i for i in punishments.split(" ") if i.lower() in ["delete", "mute", "kick", "ban"]]
-    if len(punishments) == 0:
-      return await ctx.send(embed=embed(title="Punishment must be either delete, mute, kick, ban or some combination of those.", color=MessageColors.ERROR))
+  async def max_spam_punishment(self, ctx: "MyContext", *, action: str):
+    action = [i for i in action.split(" ") if i.lower() in PUNISHMENT_TYPES]
+    if len(action) == 0:
+      return await ctx.send(embed=embed(title=f"The action must be one of the following: {', '.join(PUNISHMENT_TYPES)}.", color=MessageColors.ERROR))
     current = await self.bot.db.query("SELECT max_messages FROM servers WHERE id=$1 LIMIT 1", str(ctx.guild.id))
     if current is None or current == "null":
       current = {}
     else:
       current = json.loads(current)
-    current.update({"punishments": punishments})
+    current.update({"punishments": action})
     await self.bot.db.query("UPDATE servers SET max_messages=$1 WHERE id=$2", json.dumps(current), str(ctx.guild.id))
     await self.get_guild_config.cache.delete(ctx.guild.id)
-    await ctx.reply(embed=embed(title=f"New punishment(s) for spam is `{', '.join(punishments)}`"))
+    await ctx.reply(embed=embed(title=f"New punishment(s) for spam is `{', '.join(action)}`"))
 
   @max_spam.command(name="disable", help="Disable the max amount of messages per x seconds by the same member for this server.")
   @commands.guild_only()
@@ -490,22 +492,22 @@ class AutoMod(commands.Cog):
     await self.bot.db.query("UPDATE servers SET max_content=$1 WHERE id=$2", value, str(ctx.guild.id))
     await ctx.reply(embed=embed(title=f"I will now delete messages matching the same content that are sent more than the rate of `{message_rate}` message, for every `{seconds}` seconds."))
 
-  @max_content_spam.command(name="punishment", aliases=["punishments"], extras={"examples": ["delete", "mute", "kick", "ban", "delete kick", "ban delete"]}, help="Set the punishment for the max amount of message every x seconds. Combining kick,ban and/or mute will only apply one of them.")
+  @max_content_spam.command(name="punishment", aliases=["punishments"], extras={"examples": PUNISHMENT_TYPES}, help="Set the punishment for the max amount of message every x seconds. Combining kick,ban and/or mute will only apply one of them.")
   @commands.guild_only()
   @commands.has_guild_permissions(manage_channels=True, manage_messages=True, manage_roles=True)
   @commands.bot_has_guild_permissions(manage_messages=True, manage_roles=True)
-  async def max_content_spam_punishment(self, ctx: "MyContext", *, punishments: Optional[str] = "mute"):
-    punishments = [i for i in punishments.split(" ") if i.lower() in ["delete", "mute", "kick", "ban"]]
-    if len(punishments) == 0:
-      return await ctx.send(embed=embed(title="Punishment must be either delete, mute, kick, ban or some combination of those.", color=MessageColors.ERROR))
+  async def max_content_spam_punishment(self, ctx: "MyContext", *, action: str):
+    action = [i for i in action.split(" ") if i.lower() in PUNISHMENT_TYPES]
+    if len(action) == 0:
+      return await ctx.send(embed=embed(title=f"The action must be one of the following: {', '.join(PUNISHMENT_TYPES)}.", color=MessageColors.ERROR))
     current = await self.bot.db.query("SELECT max_content FROM servers WHERE id=$1 LIMIT 1", str(ctx.guild.id))
     if current is None or current == "null":
       current = {}
     else:
       current = json.loads(current)
-    current.update({"punishments": punishments})
+    current.update({"punishments": action})
     await self.bot.db.query("UPDATE servers SET max_content=$1 WHERE id=$2", json.dumps(current), str(ctx.guild.id))
-    await ctx.reply(embed=embed(title=f"New punishment(s) for content spam is `{', '.join(punishments)}`"))
+    await ctx.reply(embed=embed(title=f"New punishment(s) for content spam is `{', '.join(action)}`"))
 
   @max_content_spam.command(name="disable", help="Disable the max amount of messages per x seconds with the same content for this server.")
   @commands.guild_only()

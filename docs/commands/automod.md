@@ -125,7 +125,7 @@ Usage:
 ```md
 !contentspam <message_rate> <seconds>
 !contentspam disable 
-!contentspam punishment [punishments='mute']
+!contentspam punishment <action>
 ```
 
 Examples:
@@ -158,7 +158,7 @@ Set the punishment for the max amount of message every x seconds. Combining kick
 Usage:
 
 ```md
-!contentspam punishment|punishments [punishments='mute']
+!contentspam punishment|punishments <action>
 ```
 
 Aliases:
@@ -170,13 +170,9 @@ punishments
 Examples:
 
 ```md
-!contentspam punishment
-!contentspam punishments delete
+!contentspam punishment kick
+!contentspam punishments ban
 !contentspam punishment mute
-!contentspam punishments kick
-!contentspam punishment ban
-!contentspam punishments delete kick
-!contentspam punishment ban delete
 ```
 
 ## Invitespam
@@ -220,7 +216,7 @@ Usage:
 ```md
 !mentionspam|maxmentions|maxpings <mention_count> <seconds>
 !mentionspam|maxmentions|maxpings disable 
-!mentionspam|maxmentions|maxpings punishment [punishments='mute']
+!mentionspam|maxmentions|maxpings punishment <action>
 ```
 
 Aliases:
@@ -260,7 +256,7 @@ Set the punishment for the max amount of mentions one user can send per message.
 Usage:
 
 ```md
-!mentionspam punishment|punishments [punishments='mute']
+!mentionspam punishment|punishments <action>
 ```
 
 Aliases:
@@ -272,13 +268,9 @@ punishments
 Examples:
 
 ```md
-!mentionspam punishment
-!maxmentions punishments delete
+!mentionspam punishment kick
+!maxmentions punishments ban
 !maxpings punishment mute
-!mentionspam punishments kick
-!maxmentions punishment ban
-!maxpings punishments delete kick
-!mentionspam punishment ban delete
 ```
 
 ## Messagespam
@@ -293,7 +285,7 @@ Usage:
 ```md
 !messagespam|maxmessages|ratelimit <message_rate> <seconds>
 !messagespam|maxmessages|ratelimit disable 
-!messagespam|maxmessages|ratelimit punishment [punishments='mute']
+!messagespam|maxmessages|ratelimit punishment <action>
 ```
 
 Aliases:
@@ -332,7 +324,7 @@ Set the punishment for the max amount of message every x seconds. Combining kick
 Usage:
 
 ```md
-!messagespam punishment|punishments [punishments='mute']
+!messagespam punishment|punishments <action>
 ```
 
 Aliases:
@@ -344,11 +336,7 @@ punishments
 Examples:
 
 ```md
-!messagespam punishment
-!maxmessages punishments delete
+!messagespam punishment kick
+!maxmessages punishments ban
 !ratelimit punishment mute
-!messagespam punishments kick
-!maxmessages punishment ban
-!ratelimit punishments delete kick
-!messagespam punishment ban delete
 ```
