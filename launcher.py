@@ -53,7 +53,7 @@ class Launcher:
     self.keep_alive = None
     self.init = time.perf_counter()
 
-  def get_shard_count(self):
+  def get_shard_count(self) -> int:
     data = requests.get(
         "https://discord.com/api/v9/gateway/bot",
         headers={
@@ -141,17 +141,9 @@ class Launcher:
 
 class Cluster:
   def __init__(self, launcher, name, shard_ids, max_shards):
-    self.launcher = launcher
+    self.launcher: Launcher = launcher
     self.process = None
-    self.kwargs = dict(
-        token=TOKEN,
-        shard_ids=shard_ids,
-        shard_count=max_shards,
-        cluster_name=name,
-        cluster_idx=CLUSER_NAMES.index(name),
-        start=True
-    )
-    self.name = name
+    self.name: str = name
     self.logger = logging.getLogger(f"Cluster#{name}")
     self.logger.setLevel(logging.INFO)
     hdlr = logging.StreamHandler()
@@ -160,6 +152,15 @@ class Cluster:
     fhdlr.setFormatter(logging.Formatter("%(asctime)s:%(levelname)s:%(name)s: %(message)s"))
     self.logger.handlers = [hdlr, fhdlr]
     self.logger.info(f"Initialized with shard ids {shard_ids}, total shards {max_shards}")
+    self.kwargs = dict(
+        token=TOKEN,
+        shard_ids=shard_ids,
+        shard_count=max_shards,
+        cluster_name=name,
+        cluster_idx=CLUSER_NAMES.index(name),
+        logger=self.logger,
+        start=True
+    )
 
   # def wait_close(self):
   #   return self.process.join()
