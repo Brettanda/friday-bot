@@ -35,10 +35,7 @@ class Database(commands.Cog):
             "chatchannel text NULL DEFAULT NULL",
             "musicchannel text NULL DEFAULT NULL",
             "mute_role text NULL DEFAULT NULL",
-            r"customsounds json[] NOT NULL DEFAULT '{}'",
-            r"toprole json NOT NULL DEFAULT '{}'",
-            r"roles json[] NOT NULL DEFAULT '{}'",
-            r"text_channels json[] NOT NULL DEFAULT '{}'",
+            r"muted_members text[] DEFAULT array[]::text[]",
             "reddit_extract boolean DEFAULT false",
         ],
         "votes": [

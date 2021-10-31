@@ -6,6 +6,25 @@ description: Listen to your favourite music and audio clips with Friday's music 
 
 Listen to your favourite music and audio clips with Friday's music commands
 
+## Connect
+
+Join a voice channel
+
+??? missing "Does not have a slash command to match"
+	Learn more about [slash commands](/#slash-commands)
+
+Usage:
+
+```md
+!connect|join [channel]
+```
+
+Aliases:
+
+```md
+join
+```
+
 ## Custom
 
 Play sounds/songs without looking for the url everytime
@@ -97,9 +116,47 @@ Aliases:
 del
 ```
 
+## Equalizer
+
+Change the players equalizer.
+
+??? missing "Does not have a slash command to match"
+	Learn more about [slash commands](/#slash-commands)
+
+Usage:
+
+```md
+!equalizer|eq <equalizer>
+```
+
+Aliases:
+
+```md
+eq
+```
+
+## Nowplaying
+
+Update the player controller.
+
+??? missing "Does not have a slash command to match"
+	Learn more about [slash commands](/#slash-commands)
+
+Usage:
+
+```md
+!nowplaying|np|now_playing|current 
+```
+
+Aliases:
+
+```md
+np,now_playing,current
+```
+
 ## Pause
 
-Pause the current track
+Pause the currently playing song.
 
 ??? missing "Does not have a slash command to match"
 	Learn more about [slash commands](/#slash-commands)
@@ -129,6 +186,12 @@ Aliases:
 p,add
 ```
 
+Examples:
+
+```md
+!play https://youtu.be/dQw4w9WgXcQ
+```
+
 ## Queue
 
 shows the song queue
@@ -139,12 +202,18 @@ shows the song queue
 Usage:
 
 ```md
-!queue 
+!queue|que 
+```
+
+Aliases:
+
+```md
+que
 ```
 
 ## Resume
 
-Resume the current track
+Resume a currently paused player.
 
 ??? missing "Does not have a slash command to match"
 	Learn more about [slash commands](/#slash-commands)
@@ -153,6 +222,25 @@ Usage:
 
 ```md
 !resume 
+```
+
+## Shuffle
+
+Shuffle the players queue.
+
+??? missing "Does not have a slash command to match"
+	Learn more about [slash commands](/#slash-commands)
+
+Usage:
+
+```md
+!shuffle|mix 
+```
+
+Aliases:
+
+```md
+mix
 ```
 
 ## Skip
@@ -185,4 +273,42 @@ Aliases:
 
 ```md
 disconnect
+```
+
+## Swap_dj
+
+Swap the current DJ to another member in the voice channel.
+
+??? missing "Does not have a slash command to match"
+	Learn more about [slash commands](/#slash-commands)
+
+Usage:
+
+```md
+!swap_dj|swap <member>
+```
+
+Aliases:
+
+```md
+swap
+```
+
+## Volume
+
+Change the players volume, between 1 and 100.
+
+??? missing "Does not have a slash command to match"
+	Learn more about [slash commands](/#slash-commands)
+
+Usage:
+
+```md
+!volume|v|vol <vol>
+```
+
+Aliases:
+
+```md
+v,vol
 ```

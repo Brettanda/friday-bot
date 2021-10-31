@@ -1,19 +1,67 @@
+import json
+import re
+from typing import List, Optional, Union
+
 import nextcord as discord
 from nextcord.ext import commands
-
-import re
-import json
 from slugify import slugify
-
-from functions import embed, MyContext, MessageColors, relay_info
-
-from typing import Optional, Union, List
 from typing_extensions import TYPE_CHECKING
+
+from functions import MessageColors, MyContext, cache, embed, relay_info
 
 if TYPE_CHECKING:
   from index import Friday as Bot
 
-INVITE_REG = r"(http(s|)?:\/\/)?(www\.)?(discord(app|)\.(gg|com|net)(\/invite|))\/[a-zA-Z0-9\-]+"
+INVITE_REG = re.compile(r"(http(s|)?:\/\/)?(www\.)?(discord(app|)\.(gg|com|net)(\/invite|))\/[a-zA-Z0-9\-]+", re.RegexFlag.MULTILINE + re.RegexFlag.IGNORECASE)
+
+PUNISHMENT_TYPES = ["kick", "ban", "mute"]
+
+
+class Config:
+  __slots__ = ("bot", "id", "autodeletemsgs", "max_mentions", "max_messages", "max_content", "remove_invites", "blacklisted_words", "mute_role_id", "muted_members")
+
+  @classmethod
+  async def from_record(cls, record, blacklist, bot):
+    self = cls()
+
+    self.bot: "Bot" = bot
+    self.id: int = int(record["id"], base=10)
+    self.autodeletemsgs = record["autodeletemsgs"]
+    self.max_mentions = json.loads(record["max_mentions"]) if record["max_mentions"] else None
+    self.max_messages = json.loads(record["max_messages"]) if record["max_messages"] else None
+    self.max_content = json.loads(record["max_content"]) if record["max_content"] else None
+    self.remove_invites: bool = record["remove_invites"]
+    self.blacklisted_words: List[str] = blacklist["words"] if blacklist else []
+    self.muted_members = set(record["muted_members"] or [])
+    self.mute_role_id = int(record["mute_role"], base=10) if record["mute_role"] else None
+    return self
+
+  @property
+  def mute_role(self):
+    guild = self.bot.get_guild(self.id)
+    return guild and self.mute_role_id and guild.get_role(self.mute_role_id)
+
+  def is_muted(self, member: discord.Member) -> bool:
+    return member.id in [int(i, base=10) for i in self.muted_members]
+
+  async def mute(self, member: discord.Member, reason: str = "Auto-mute for spamming.") -> None:
+    if self.mute_role_id:
+      await member.add_roles(discord.Object(id=self.mute_role_id), reason=reason)
+
+  async def kick(self, member: discord.Member, reason: str = "Auto-kick for spamming.") -> None:
+    await member.kick(reason=reason)
+
+  async def ban(self, member: discord.Member, reason: str = "Auto-ban for spamming.") -> None:
+    await member.ban(reason=reason)
+
+  async def apply_punishment(self, guild: discord.Guild, msg: discord.Message, punishments: List[str], *, reason: str = "For spamming") -> Optional[discord.Message]:
+    if "ban" in punishments:
+      await self.ban(msg.author)
+    elif "kick" in punishments:
+      await self.kick(msg.author)
+    elif "mute" in punishments:
+      await self.mute(msg.author)
+    return await msg.channel.send(embed=embed(title=f"Punishments applied: `{', '.join(punishments)}` to {msg.author}", description=f"Action taked for reason: `{reason}`"))
 
 
 class CooldownByContent(commands.CooldownMapping):
@@ -22,12 +70,20 @@ class CooldownByContent(commands.CooldownMapping):
 
 
 class SpamChecker:
-  def __init__(self, bot: "Bot", cooldown: commands.CooldownMapping = None):
-    self.bot = bot
-    self.cooldown = cooldown
+  @classmethod
+  def from_cooldowns(cls, *, bot: "Bot", config: Config):  # message_spam: Optional[commands.CooldownMapping], mention_spam: Optional[commands.CooldownMapping], content_spam: Optional[CooldownByContent]):
+    self = cls()
 
-  def get_bucket(self, message: discord.Message) -> commands.Cooldown:
-    return self.cooldown.get_bucket(message)
+    self.bot = bot
+    self.message_spam = commands.CooldownMapping.from_cooldown(config.max_messages["rate"], config.max_messages["seconds"], commands.BucketType.user) if config.max_messages else None
+    self.mention_spam = commands.CooldownMapping.from_cooldown(config.max_mentions["mentions"], config.max_mentions["seconds"], commands.BucketType.user) if config.max_mentions else None
+    self.content_spam = CooldownByContent.from_cooldown(config.max_content["rate"], config.max_content["seconds"], commands.BucketType.member) if config.max_content else None
+
+    return self
+
+  @property
+  def is_disabled(self) -> bool:
+    return not self.message_spam and not self.mention_spam and not self.content_spam
 
   def is_spamming(self, message: discord.Message) -> bool:
     if message.guild is None:
@@ -35,46 +91,35 @@ class SpamChecker:
 
     current = message.created_at.timestamp()
 
-    bucket = self.get_bucket(message)
+    bucket = self.message_spam.get_bucket(message)
     if bucket.update_rate_limit(current):
       return True
 
     return False
 
-  async def mute(self, guild: discord.Guild, member: discord.Member, reason: str = "Auto-mute for spamming.") -> None:
-    role_id = await self.bot.db.query("SELECT mute_role FROM servers WHERE id=$1 LIMIT 1", str(guild.id))
-    if role_id is None:
-      return
-    role = guild.get_role(int(role_id, base=10))
-    if role is None:
-      return
-    await member.add_roles(role, reason=reason)
+  def is_content_spamming(self, message: discord.Message) -> bool:
+    if message.guild is None:
+      return False
 
-  async def delete(self, msg: discord.Message) -> None:
-    if msg.guild is None:
-      return
-    await msg.delete()
+    current = message.created_at.timestamp()
 
-  async def kick(self, member: discord.Member, reason: str = "Auto-kick for spamming.") -> None:
-    if member.guild is None:
-      return
-    await member.kick(reason=reason)
+    bucket = self.content_spam.get_bucket(message)
+    if bucket.update_rate_limit(current):
+      return True
 
-  async def ban(self, member: discord.Member, reason: str = "Auto-ban for spamming.") -> None:
-    if member.guild is None:
-      return
-    await member.ban(reason=reason)
+    return False
 
-  async def apply_punishment(self, guild: discord.Guild, msg: discord.Message, punishments: List[str]) -> discord.Message:
-    if "delete" in punishments:
-      await self.delete(msg)
-    if "ban" in punishments:
-      await self.ban(msg.author)
-    elif "kick" in punishments:
-      await self.kick(msg.author)
-    elif "mute" in punishments:
-      await self.mute(guild, msg.author)
-    return await msg.channel.send(embed=embed(title=f"Punishments applied: `{', '.join(punishments)}` to {msg.author}"))
+  def is_mention_spamming(self, message: discord.Message) -> bool:
+    if message.guild is None:
+      return False
+
+    current = message.created_at.timestamp()
+
+    bucket = self.mention_spam.get_bucket(message)
+    if bucket.update_rate_limit(current):
+      return True
+
+    return False
 
 
 class AutoMod(commands.Cog):
@@ -83,8 +128,7 @@ class AutoMod(commands.Cog):
   def __init__(self, bot: "Bot"):
     self.bot = bot
 
-    self.message_spam_control = {}
-    self.content_spam_control = {}
+    self._spam_check = dict()
 
   def __repr__(self) -> str:
     return "<cogs.AutoMod>"
@@ -93,6 +137,26 @@ class AutoMod(commands.Cog):
     if isinstance(error, (commands.MissingRequiredArgument)):
       return
     print(f"Error in {ctx.command.qualified_name}: {type(error).__name__}: {error}")
+
+  async def cog_after_invoke(self, ctx: "MyContext"):
+    if not ctx.guild:
+      return
+
+    self._spam_check.pop(ctx.guild.id, None)
+    self.get_guild_config.invalidate(self, ctx.guild.id)
+
+  @cache()
+  async def get_guild_config(self, guild_id: int) -> Optional[Config]:
+    query = "SELECT * FROM servers WHERE id=$1 LIMIT 1;"
+    blquery = "SELECT * FROM blacklist WHERE guild_id=$1 LIMIT 1;"
+    async with self.bot.db.pool.acquire(timeout=300.0) as conn:
+      record = await conn.fetchrow(query, str(guild_id))
+      self.bot.logger.debug(f"PostgreSQL Query: \"{query}\" + {str(guild_id)}")
+      blrecord = await conn.fetchrow(blquery, str(guild_id))
+      self.bot.logger.debug(f"PostgreSQL Query: \"{blquery}\" + {str(guild_id)}")
+      if record is not None:
+        return await Config.from_record(record, blrecord, self.bot)
+      return None
 
   @commands.Cog.listener()
   async def on_message_edit(self, before, after):
@@ -118,51 +182,86 @@ class AutoMod(commands.Cog):
     if not self.bot.ready:
       return
 
-    if msg.author.id in (self.bot.user.id, self.bot.owner_id, 892865928520413245):
-      return
-
     if not msg.guild:
       return
 
     if not isinstance(msg.author, discord.Member):
       return
 
-    max_mentions, max_messages, max_content = await self.bot.db.query("SELECT max_mentions,max_messages,max_content FROM servers WHERE id=$1 LIMIT 1", str(msg.guild.id))
-    max_mentions, max_messages, max_content = json.loads(max_mentions) if max_mentions is not None else None, json.loads(max_messages) if max_messages is not None else None, json.loads(max_content) if max_content is not None else None
-    mention_count = sum(not m.bot and m.id != msg.author.id for m in msg.mentions)
-    if max_mentions is not None and len(max_mentions) == 2 and len(msg.mentions) >= 3:
-      count, punishments = max_mentions["count"], max_mentions["punishments"]
-      spam = SpamChecker(self.bot)
-      if max_mentions is not None and mention_count >= count:
-        await spam.apply_punishment(msg.guild, msg, punishments)
-
-    if max_content is not None and max_content != {}:
-      rate, delay, punishments = max_content["rate"], max_content["seconds"], max_content["punishments"]
-      if self.content_spam_control.get(msg.guild.id, None) is None:
-        self.content_spam_control.update({msg.guild.id: CooldownByContent.from_cooldown(rate, delay, commands.BucketType.member)})
-      content_cooldown = self.content_spam_control[msg.guild.id]
-      spam = SpamChecker(bot=self.bot, cooldown=content_cooldown)
-      if spam.is_spamming(msg):
-        spam.get_bucket(msg).reset()
-        return await spam.apply_punishment(msg.guild, msg, punishments)
-
-    if max_messages is not None and max_content != {}:
-      rate, delay, punishments = max_messages["rate"], max_messages["seconds"], max_messages["punishments"]
-
-      if self.message_spam_control.get(msg.guild.id, None) is None:
-        self.message_spam_control.update({msg.guild.id: commands.CooldownMapping.from_cooldown(rate, delay, commands.BucketType.user)})
-
-      author_cooldown = self.message_spam_control[msg.guild.id]
-      spam = SpamChecker(bot=self.bot, cooldown=author_cooldown)
-      if spam.is_spamming(msg):
-        spam.get_bucket(msg).reset()
-        return await spam.apply_punishment(msg.guild, msg, punishments)
-
-    bypass = msg.author.guild_permissions.manage_guild if isinstance(msg.author, discord.Member) else False
-    if bypass and not msg.author.id == 892865928520413245:
-      return
     await self.msg_remove_invites(msg)
+
+    if msg.author.id in (self.bot.user.id, self.bot.owner_id, 892865928520413245):
+      return
+
     await self.check_blacklist(msg)
+
+    config = await self.get_guild_config(msg.guild.id)
+    if config is None:
+      return
+
+    try:
+      spam = self._spam_check[msg.guild.id]
+    except KeyError:
+      self._spam_check.update({msg.guild.id: SpamChecker.from_cooldowns(bot=self.bot, config=config)})
+      spam = self._spam_check[msg.guild.id]
+    if spam.is_disabled:
+      return
+
+    mention_count = sum(not m.bot and m.id != msg.author.id for m in msg.mentions)
+    if config.max_mentions is not None and mention_count >= 1:
+      if spam.is_mention_spamming(msg):
+        return await config.apply_punishment(msg.guild, msg, config.max_mentions["punishments"], reason="Spamming mentions.")
+
+    if config.max_content is not None and config.max_content != {}:
+      if spam.is_content_spamming(msg):
+        return await config.apply_punishment(msg.guild, msg, config.max_content["punishments"], reason="Spamming with content matching previous messages.")
+
+    if config.max_messages is not None and config.max_content != {}:
+      if spam.is_spamming(msg):
+        return await config.apply_punishment(msg.guild, msg, config.max_messages["punishments"], reason="Spamming messages.")
+
+  @commands.Cog.listener()
+  async def on_member_join(self, member: discord.Member):
+    guild_id = member.guild.id
+    config = await self.get_guild_config(guild_id)
+    if config is None:
+      return
+
+    if config.is_muted(member):
+      return await config.mute(member, "Member was previously muted.")
+
+  @commands.Cog.listener()
+  async def on_member_update(self, before: discord.Member, after: discord.Member):
+    if before.roles == after.roles:
+      return
+
+    guild_id = after.guild.id
+    config = await self.get_guild_config(guild_id)
+    if config is None:
+      return
+
+    if config.mute_role_id is None:
+      return
+
+    before_has = before._roles.has(config.mute_role_id)
+    after_has = after._roles.has(config.mute_role_id)
+
+    if before_has == after_has:
+      return
+
+    if after_has:
+      await self.bot.db.query("UPDATE servers SET muted_members=array_append(muted_members, $1) WHERE id=$2", str(after.id), str(guild_id))
+    else:
+      await self.bot.db.query("UPDATE servers SET muted_members=array_remove(muted_members, $1) WHERE id=$2", str(after.id), str(guild_id))
+
+  @commands.Cog.listener()
+  async def on_guild_role_delete(self, role: discord.Role):
+    guild_id = role.guild.id
+    mute_role_id = await self.bot.db.query("SELECT mute_role FROM servers WHERE id=$1 LIMIT 1", str(guild_id))
+    if mute_role_id is None or int(mute_role_id, base=10) != role.id:
+      return
+
+    await self.bot.db.query("UPDATE servers SET mute_role=NULL WHERE id=$1", str(guild_id))
 
   def do_slugify(self, string):
     string = slugify(string).replace("-", "")
@@ -176,7 +275,9 @@ class AutoMod(commands.Cog):
     if bypass:
       return
     cleansed_msg = self.do_slugify(msg.clean_content)
-    words = await self.bot.db.query("SELECT words FROM blacklist WHERE guild_id=$1::text LIMIT 1", str(msg.guild.id))
+
+    config = await self.get_guild_config(msg.guild.id)
+    words = config.blacklisted_words
     if words is None or len(words) == 0:
       return
     try:
@@ -184,9 +285,10 @@ class AutoMod(commands.Cog):
         if blacklisted_word in cleansed_msg:
           try:
             await msg.delete()
-            return await msg.author.send(f"""Your message `{msg.content}` was removed for containing the blacklisted word `{blacklisted_word}`""")
           except Exception as e:
             await relay_info(f"Error when trying to remove message {type(e).__name__}: {e}", self.bot, logger=self.bot.log.log_errors)
+          else:
+            return await msg.author.send(embed=embed(title=f"Your message `{msg.content}` was removed for containing a blacklisted word "))
     except Exception as e:
       await relay_info(f"Error when trying to remove message (big) {type(e).__name__}: {e}", self.bot, logger=self.bot.log.log_errors)
 
@@ -252,10 +354,14 @@ class AutoMod(commands.Cog):
     if not msg.guild or (msg.author.bot and not msg.author.id == 892865928520413245):
       return
 
-    to_remove_invites = await self.bot.db.query(f"SELECT remove_invites FROM servers WHERE id={str(msg.guild.id)}::text LIMIT 1")
+    config = await self.get_guild_config(msg.guild.id)
+    if not config:
+      return
+
+    to_remove_invites = config.remove_invites
     try:
-      if bool(to_remove_invites) is True:
-        reg = re.match(INVITE_REG, msg.clean_content, re.RegexFlag.MULTILINE + re.RegexFlag.IGNORECASE)
+      if to_remove_invites is True:
+        reg = INVITE_REG.match(msg.clean_content.strip(" "))  # re.match(INVITE_REG, msg.clean_content.strip(" "), re.RegexFlag.MULTILINE + re.RegexFlag.IGNORECASE)
         if bool(reg):
           try:
             if discord.utils.resolve_invite(reg.string) in [inv.code for inv in await msg.guild.invites()]:
@@ -269,7 +375,7 @@ class AutoMod(commands.Cog):
     except KeyError:
       pass
 
-  @commands.command(name="removeinvites", extras={"examples": ["1", "0", "true", "false"]}, help="Automaticaly remove Discord invites (originating from external servers) from text channels. Not giving an argument will display the current setting.")
+  @commands.command(name="invitespam", aliases=["removeinvites"], extras={"examples": ["1", "0", "true", "false"]}, help="Automaticaly remove Discord invites (originating from external servers) from text channels. Not giving an argument will display the current setting.")
   @commands.guild_only()
   @commands.has_guild_permissions(manage_channels=True, manage_messages=True)
   @commands.bot_has_guild_permissions(manage_messages=True)
@@ -288,8 +394,8 @@ class AutoMod(commands.Cog):
   @commands.guild_only()
   @commands.has_guild_permissions(manage_channels=True, manage_messages=True, manage_roles=True)
   @commands.bot_has_guild_permissions(manage_messages=True, manage_roles=True)
-  async def max_mentions(self, ctx: "MyContext", mentions_per_message: int):
-    if mentions_per_message < 3:
+  async def max_mentions(self, ctx: "MyContext", mention_count: int, seconds: int):
+    if mention_count < 3 and seconds < 5:
       return await ctx.send(embed=embed(title="Count must be greater than 3", color=MessageColors.ERROR))
     current = await self.bot.db.query("SELECT max_mentions FROM servers WHERE id=$1 LIMIT 1", str(ctx.guild.id))
     if current is None or current == "null":
@@ -297,25 +403,25 @@ class AutoMod(commands.Cog):
     else:
       current = json.loads(current)
     punishments = current["punishments"]
-    await self.bot.db.query("UPDATE servers SET max_mentions=$1 WHERE id=$2", json.dumps({"count": mentions_per_message, "punishments": punishments}), str(ctx.guild.id))
-    await ctx.reply(embed=embed(title=f"New max amount of mentions per message is `{mentions_per_message}`"))
+    await self.bot.db.query("UPDATE servers SET max_mentions=$1 WHERE id=$2", json.dumps({"mentions": mention_count, "seconds": seconds, "punishments": punishments}), str(ctx.guild.id))
+    await ctx.reply(embed=embed(title=f"I will now apply the punishments `{', '.join(punishments)}` to members that mention `>={mention_count}` within `{seconds}` seconds."))
 
-  @max_mentions.command(name="punishment", aliases=["punishments"], extras={"examples": ["delete", "mute", "kick", "ban", "delete kick", "ban delete"]}, help="Set the punishment for the max amount of mentions one user can send per message. Combining kick,ban and/or mute will only apply one of them.")
+  @max_mentions.command(name="punishment", aliases=["punishments"], extras={"examples": PUNISHMENT_TYPES}, help="Set the punishment for the max amount of mentions one user can send per message. Combining kick,ban and/or mute will only apply one of them.")
   @commands.guild_only()
   @commands.has_guild_permissions(manage_channels=True, manage_messages=True, manage_roles=True)
   @commands.bot_has_guild_permissions(manage_messages=True, manage_roles=True)
-  async def max_mentions_punishment(self, ctx: "MyContext", *, punishments: Optional[str] = "mute"):
-    punishments = [i for i in punishments.split(" ") if i.lower() in ["delete", "mute", "kick", "ban"]]
-    if len(punishments) == 0:
-      return await ctx.send(embed=embed(title="Punishment must be either delete, mute, kick, ban or some combination of those.", color=MessageColors.ERROR))
+  async def max_mentions_punishment(self, ctx: "MyContext", *, action: str):
+    action = [i for i in action.split(" ") if i.lower() in PUNISHMENT_TYPES]
+    if len(action) == 0:
+      return await ctx.send(embed=embed(title=f"The action must be one of the following: {', '.join(PUNISHMENT_TYPES)}", color=MessageColors.ERROR))
     current = await self.bot.db.query("SELECT max_mentions FROM servers WHERE id=$1 LIMIT 1", str(ctx.guild.id))
     if current is None or current == "null":
       current = {}
     else:
       current = json.loads(current)
-    current.update({"punishments": punishments})
+    current.update({"punishments": action})
     await self.bot.db.query("UPDATE servers SET max_mentions=$1 WHERE id=$2", json.dumps(current), str(ctx.guild.id))
-    await ctx.reply(embed=embed(title=f"New punishment for max amount of mentions in a single message is `{', '.join(punishments)}`"))
+    await ctx.reply(embed=embed(title=f"New punishment for max amount of mentions in a single message is `{', '.join(action)}`"))
 
   @max_mentions.command(name="disable", help="Disable the max amount of mentions per message for this server.")
   @commands.guild_only()
@@ -325,7 +431,7 @@ class AutoMod(commands.Cog):
     await self.bot.db.query("UPDATE servers SET max_mentions=$1 WHERE id=$2", None, str(ctx.guild.id))
     await ctx.reply(embed=embed(title="Disabled max mentions"))
 
-  @commands.group(name="messagespam", extras={"examples": ["3 10", "5 15"]}, aliases=["maxmessages", "ratelimit"], help="Sets a max message count for users per x seconds", invoke_without_command=True)
+  @commands.group(name="messagespam", extras={"examples": ["3 5", "10 12"]}, aliases=["maxmessages", "ratelimit"], help="Sets a max message count for users per x seconds", invoke_without_command=True)
   @commands.guild_only()
   @commands.bot_has_guild_permissions(manage_channels=True, manage_messages=True)
   @commands.has_guild_permissions(manage_messages=True)
@@ -341,29 +447,26 @@ class AutoMod(commands.Cog):
     value = json.dumps({"rate": message_rate, "seconds": seconds, "punishments": punishments})
     await self.bot.db.query("UPDATE servers SET max_messages=$1::json WHERE id=$2", value, str(ctx.guild.id))
     if value is None:
-      if self.message_spam_control.get(ctx.guild.id, None) is not None:
-        del self.message_spam_control[ctx.guild.id]
-      if self.message_spam_control_counter.get(ctx.guild.id, None) is not None:
-        del self.message_spam_control_counter[ctx.guild.id]
       return await ctx.reply(embed=embed(title="I will no longer delete messages"))
-    await ctx.reply(embed=embed(title=f"I will now delete messages matching the same author that are sent more than the rate of `{message_rate}` message, for every `{seconds}` seconds."))
+    await ctx.reply(embed=embed(title=f"I will now `{', '.join(punishments)}` messages matching the same author that are sent more than the rate of `{message_rate}` message, for every `{seconds}` seconds."))
 
-  @max_spam.command(name="punishment", aliases=["punishments"], extras={"examples": ["delete", "mute", "kick", "ban", "delete kick", "ban delete"]}, help="Set the punishment for the max amount of message every x seconds. Combining kick,ban and/or mute will only apply one of them.")
+  @max_spam.command(name="punishment", aliases=["punishments"], extras={"examples": PUNISHMENT_TYPES}, help="Set the punishment for the max amount of message every x seconds. Combining kick,ban and/or mute will only apply one of them.")
   @commands.guild_only()
   @commands.has_guild_permissions(manage_channels=True, manage_messages=True, manage_roles=True)
   @commands.bot_has_guild_permissions(manage_messages=True, manage_roles=True)
-  async def max_spam_punishment(self, ctx: "MyContext", *, punishments: Optional[str] = "mute"):
-    punishments = [i for i in punishments.split(" ") if i.lower() in ["delete", "mute", "kick", "ban"]]
-    if len(punishments) == 0:
-      return await ctx.send(embed=embed(title="Punishment must be either delete, mute, kick, ban or some combination of those.", color=MessageColors.ERROR))
-    current = await self.bot.db.query("SELECT max_mentions FROM servers WHERE id=$1 LIMIT 1", str(ctx.guild.id))
+  async def max_spam_punishment(self, ctx: "MyContext", *, action: str):
+    action = [i for i in action.split(" ") if i.lower() in PUNISHMENT_TYPES]
+    if len(action) == 0:
+      return await ctx.send(embed=embed(title=f"The action must be one of the following: {', '.join(PUNISHMENT_TYPES)}.", color=MessageColors.ERROR))
+    current = await self.bot.db.query("SELECT max_messages FROM servers WHERE id=$1 LIMIT 1", str(ctx.guild.id))
     if current is None or current == "null":
       current = {}
     else:
       current = json.loads(current)
-    current.update({"punishments": punishments})
-    await self.bot.db.query("UPDATE servers SET max_mentions=$1 WHERE id=$2", json.dumps(current), str(ctx.guild.id))
-    await ctx.reply(embed=embed(title=f"New punishment(s) for spam is `{', '.join(punishments)}`"))
+    current.update({"punishments": action})
+    await self.bot.db.query("UPDATE servers SET max_messages=$1 WHERE id=$2", json.dumps(current), str(ctx.guild.id))
+    await self.get_guild_config.cache.delete(ctx.guild.id)
+    await ctx.reply(embed=embed(title=f"New punishment(s) for spam is `{', '.join(action)}`"))
 
   @max_spam.command(name="disable", help="Disable the max amount of messages per x seconds by the same member for this server.")
   @commands.guild_only()
@@ -371,11 +474,9 @@ class AutoMod(commands.Cog):
   @commands.bot_has_guild_permissions(manage_messages=True, manage_roles=True)
   async def max_spam_disable(self, ctx: "MyContext"):
     await self.bot.db.query("UPDATE servers SET max_messages=$1 WHERE id=$2", None, str(ctx.guild.id))
-    if self.message_spam_control.get(ctx.guild.id, None) is not None:
-      del self.message_spam_control[ctx.guild.id]
     await ctx.reply(embed=embed(title="Disabled max messages"))
 
-  @commands.group(name="contentspam", extras={"examples": ["3 5", "5 15"]}, help="Sets the max number of message that can have the same content (ignoring who sent the message) until passing the given threshold and muting anyone spamming the same content further.", invoke_without_command=True)
+  @commands.group(name="contentspam", extras={"examples": ["3 5", "15 17"]}, help="Sets the max number of message that can have the same content (ignoring who sent the message) until passing the given threshold and muting anyone spamming the same content further.", invoke_without_command=True)
   @commands.guild_only()
   @commands.bot_has_guild_permissions(manage_channels=True, manage_messages=True, manage_roles=True)
   @commands.has_guild_permissions(manage_messages=True, manage_roles=True)
@@ -392,22 +493,22 @@ class AutoMod(commands.Cog):
     await self.bot.db.query("UPDATE servers SET max_content=$1 WHERE id=$2", value, str(ctx.guild.id))
     await ctx.reply(embed=embed(title=f"I will now delete messages matching the same content that are sent more than the rate of `{message_rate}` message, for every `{seconds}` seconds."))
 
-  @max_content_spam.command(name="punishment", aliases=["punishments"], extras={"examples": ["delete", "mute", "kick", "ban", "delete kick", "ban delete"]}, help="Set the punishment for the max amount of message every x seconds. Combining kick,ban and/or mute will only apply one of them.")
+  @max_content_spam.command(name="punishment", aliases=["punishments"], extras={"examples": PUNISHMENT_TYPES}, help="Set the punishment for the max amount of message every x seconds. Combining kick,ban and/or mute will only apply one of them.")
   @commands.guild_only()
   @commands.has_guild_permissions(manage_channels=True, manage_messages=True, manage_roles=True)
   @commands.bot_has_guild_permissions(manage_messages=True, manage_roles=True)
-  async def max_content_spam_punishment(self, ctx: "MyContext", *, punishments: Optional[str] = "mute"):
-    punishments = [i for i in punishments.split(" ") if i.lower() in ["delete", "mute", "kick", "ban"]]
-    if len(punishments) == 0:
-      return await ctx.send(embed=embed(title="Punishment must be either delete, mute, kick, ban or some combination of those.", color=MessageColors.ERROR))
+  async def max_content_spam_punishment(self, ctx: "MyContext", *, action: str):
+    action = [i for i in action.split(" ") if i.lower() in PUNISHMENT_TYPES]
+    if len(action) == 0:
+      return await ctx.send(embed=embed(title=f"The action must be one of the following: {', '.join(PUNISHMENT_TYPES)}.", color=MessageColors.ERROR))
     current = await self.bot.db.query("SELECT max_content FROM servers WHERE id=$1 LIMIT 1", str(ctx.guild.id))
     if current is None or current == "null":
       current = {}
     else:
       current = json.loads(current)
-    current.update({"punishments": punishments})
+    current.update({"punishments": action})
     await self.bot.db.query("UPDATE servers SET max_content=$1 WHERE id=$2", json.dumps(current), str(ctx.guild.id))
-    await ctx.reply(embed=embed(title=f"New punishment(s) for content spam is `{', '.join(punishments)}`"))
+    await ctx.reply(embed=embed(title=f"New punishment(s) for content spam is `{', '.join(action)}`"))
 
   @max_content_spam.command(name="disable", help="Disable the max amount of messages per x seconds with the same content for this server.")
   @commands.guild_only()
@@ -415,8 +516,6 @@ class AutoMod(commands.Cog):
   @commands.bot_has_guild_permissions(manage_messages=True, manage_roles=True)
   async def max_content_spam_disable(self, ctx: "MyContext"):
     await self.bot.db.query("UPDATE servers SET max_content=$1 WHERE id=$2", None, str(ctx.guild.id))
-    if self.content_spam_control.get(ctx.guild.id, None) is not None:
-      del self.content_spam_control[ctx.guild.id]
     await ctx.reply(embed=embed(title="Disabled max content messages"))
 
 
