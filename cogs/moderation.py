@@ -164,6 +164,19 @@ class Moderation(commands.Cog):
       return None
 
   @commands.Cog.listener()
+  async def on_guild_role_delete(self, role: discord.Role):
+    guild_id = role.guild.id
+    config = await self.get_guild_config(guild_id)
+    if config is None or config.mute_role_id != role.id:
+      return
+
+    await self.bot.db.query("UPDATE servers SET (mute_role, muted_members) = (NULL, '{}'::bigint[]) WHERE id=$1", str(guild_id))
+    self.get_guild_config.invalidate(self, guild_id)
+    automod = self.bot.get_cog("cogs.automod")
+    if automod:
+      automod.get_guild_config.invalidate(automod, guild_id)
+
+  @commands.Cog.listener()
   async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
     if after.channel:
       return
