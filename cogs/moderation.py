@@ -595,13 +595,15 @@ class Moderation(commands.Cog):
   @commands.group(name="mute", extras={"examples": ["@Motostar @steve they were annoying me", "@steve 9876543210", "@Motostar spamming general", "0123456789"]}, help="Mute a member from text channels", invoke_without_command=True)
   @commands.guild_only()
   @can_mute()
+  @commands.has_guild_permissions(manage_roles=True)
+  @commands.bot_has_guild_permissions(manage_roles=True)
   async def norm_mute(self, ctx: "MyContext", member: commands.Greedy[discord.Member], *, reason: ActionReason = None):
     await self.mute(ctx, member, reason)
 
   @norm_mute.group("role", help="Set the role to be applied to members that get muted", invoke_without_command=True)
   @commands.guild_only()
-  @commands.has_guild_permissions(manage_channels=True, manage_roles=True)
-  @commands.bot_has_guild_permissions(view_channel=True, manage_channels=True, manage_roles=True)
+  @commands.has_guild_permissions(manage_roles=True)
+  @commands.bot_has_guild_permissions(manage_roles=True)
   async def mute_role(self, ctx: "MyContext", *, role: Optional[discord.Role] = None):
     if role is not None:
       return await ctx.send(embed=embed(title=f"Friday will now use `{role}` as the new mute role"))
@@ -609,8 +611,8 @@ class Moderation(commands.Cog):
 
   @mute_role.command("create", help="Don't have a muted role? Let Friday create a basic one for you.")
   @commands.guild_only()
-  @commands.has_guild_permissions(manage_channels=True, manage_roles=True)
-  @commands.bot_has_guild_permissions(view_channel=True, manage_channels=True, manage_roles=True)
+  @commands.has_guild_permissions(manage_roles=True)
+  @commands.bot_has_guild_permissions(manage_roles=True)
   @commands.cooldown(1, 60.0, commands.BucketType.guild)
   async def mute_role_create(self, ctx: "MyContext", *, name: Optional[str] = "Muted"):
     current_role = await self.bot.db.query("SELECT mute_role FROM servers WHERE id=$1 LIMIT 1", str(ctx.guild.id))
