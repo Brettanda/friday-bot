@@ -5,7 +5,7 @@ import json
 import nextcord as discord
 from nextcord.ext import commands
 from typing_extensions import TYPE_CHECKING
-from typing import Union
+from typing import Optional, Union
 
 if TYPE_CHECKING:
   from index import Friday as Bot
@@ -36,6 +36,10 @@ class Database(commands.Cog):
             "musicchannel text NULL DEFAULT NULL",
             "mute_role text NULL DEFAULT NULL",
             r"muted_members text[] DEFAULT array[]::text[]",
+            r"customsounds json[] NOT NULL DEFAULT array[]::json[]",
+            r"toprole json NOT NULL DEFAULT '{}'::json",
+            r"roles json[] NOT NULL DEFAULT array[]::json[]",
+            r"text_channels json[] NOT NULL DEFAULT array[]::json[]",
             "reddit_extract boolean DEFAULT false",
         ],
         "votes": [
@@ -64,7 +68,16 @@ class Database(commands.Cog):
             "words text[]"
         ],
     }
-    self.loop.run_until_complete(self.setup())
+    hostname = 'localhost' if self.bot.prod or self.bot.canary else os.environ["DBHOSTNAME"]
+    username = os.environ["DBUSERNAMECANARY"] if self.bot.canary else os.environ["DBUSERNAME"] if self.bot.prod else os.environ["DBUSERNAMELOCAL"]
+    password = os.environ["DBPASSWORDCANARY"] if self.bot.canary else os.environ["DBPASSWORD"] if self.bot.prod else os.environ["DBPASSWORDLOCAL"]
+    database = os.environ["DBDATABASECANARY"] if self.bot.canary else os.environ["DBDATABASE"] if self.bot.prod else os.environ["DBDATABASELOCAL"]
+    kwargs = {
+        'command_timeout': 60,
+        'max_size': 20,
+        'min_size': 20,
+    }
+    self._connection: asyncpg.Pool = self.loop.run_until_complete(asyncpg.create_pool(host=hostname, user=username, password=password, database=database, loop=self.loop, **kwargs))
     if self.bot.cluster_idx == 0:
       self.loop.run_until_complete(self.create_tables())
       self.loop.run_until_complete(self.sync_table_columns())
@@ -72,16 +85,9 @@ class Database(commands.Cog):
   def __repr__(self):
     return "<cogs.Database>"
 
-  async def setup(self):
-    hostname = 'localhost' if self.bot.prod or self.bot.canary else os.environ["DBHOSTNAME"]
-    username = os.environ["DBUSERNAMECANARY"] if self.bot.canary else os.environ["DBUSERNAME"] if self.bot.prod else os.environ["DBUSERNAMELOCAL"]
-    password = os.environ["DBPASSWORDCANARY"] if self.bot.canary else os.environ["DBPASSWORD"] if self.bot.prod else os.environ["DBPASSWORDLOCAL"]
-    database = os.environ["DBDATABASECANARY"] if self.bot.canary else os.environ["DBDATABASE"] if self.bot.prod else os.environ["DBDATABASELOCAL"]
-    self.connection: asyncpg.Pool = await asyncpg.create_pool(host=hostname, user=username, password=password, database=database, loop=self.loop)
-
   @property
-  def pool(self):
-    return self.connection
+  def pool(self) -> asyncpg.Pool:
+    return self._connection
 
   @commands.Cog.listener()
   async def on_ready(self):
@@ -131,14 +137,16 @@ class Database(commands.Cog):
     if not isinstance(after, discord.TextChannel):
       return
     text_channels = json.dumps([{"name": i.name, "id": str(i.id), "type": str(i.type), "position": i.position} for i in after.guild.text_channels])
-    await self.query("""UPDATE servers SET text_channels=array[$1]::json[] WHERE id=$2""", text_channels, str(after.guild.id))
+    async with self.pool.acquire(timeout=300.0) as conn:
+      await conn.execute(f"""UPDATE servers SET text_channels=array[$1]::json[] WHERE id={str(after.guild.id)}""", text_channels)
 
   @commands.Cog.listener()
   async def on_member_update(self, before: discord.Member, after: discord.Member):
     if after.id != self.bot.user.id:
       return
     toprole = json.dumps({"name": after.guild.me.top_role.name, "id": str(after.guild.me.top_role.id), "position": after.guild.me.top_role.position})
-    await self.query("""UPDATE servers SET toprole=$1::json WHERE id=$2""", toprole, str(after.guild.id))
+    async with self.pool.acquire(timeout=300.0) as conn:
+      await conn.execute("""UPDATE servers SET toprole=$1::json WHERE id=$2""", toprole, str(after.guild.id))
 
   @commands.Cog.listener()
   async def on_guild_role_update(self, before: discord.Role, after: discord.Role):
@@ -152,19 +160,24 @@ class Database(commands.Cog):
     await self.query("""UPDATE servers SET toprole=$1::json, roles=array[$2]::json[] WHERE id=$3""", toprole, roles, str(after.guild.id))
 
   async def create_tables(self):
-    for table in self.columns:
-      await self.query(f"CREATE TABLE IF NOT EXISTS {table} ({','.join(self.columns[table])});")
+    async with self.pool.acquire(timeout=300.0) as conn:
+      async with conn.transaction():
+        for table in self.columns:
+          await conn.execute(f"CREATE TABLE IF NOT EXISTS {table} ({','.join(self.columns[table])});")
 
   async def sync_table_columns(self):
     # https://stackoverflow.com/questions/9991043/how-can-i-test-if-a-column-exists-in-a-table-using-an-sql-statement
-    for table in self.columns:
-      for column in self.columns[table]:
-        result = await self.query(f"SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='{table}' AND column_name='{column.split(' ')[0]}') LIMIT 1")
-        if not result:
-          await self.query(f"ALTER TABLE {table} ADD COLUMN {column};")
+    async with self.pool.acquire(timeout=300.0) as conn:
+      async with conn.transaction():
+        for table in self.columns:
+          for column in self.columns[table]:
+            result = await conn.fetch(f"SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='{table}' AND column_name='{column.split(' ')[0]}') LIMIT 1")
+            if not result[0].get("exists"):
+              await conn.execute(f"ALTER TABLE {table} ADD COLUMN {column};")
 
-  async def query(self, query: str, *params) -> Union[str, None, list]:
-    async with self.connection.acquire(timeout=300.0) as mycursor:
+
+  async def query(self, query: str, *params) -> Optional[Union[str, list]]:
+    async with self.pool.acquire(timeout=300.0) as mycursor:
       if "select" in query.lower():
         result = await mycursor.fetch(query, *params)
       else:
