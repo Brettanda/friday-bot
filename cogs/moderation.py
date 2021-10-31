@@ -605,6 +605,7 @@ class Moderation(commands.Cog):
   @commands.has_guild_permissions(manage_roles=True)
   @commands.bot_has_guild_permissions(manage_roles=True)
   async def mute_role(self, ctx: "MyContext", *, role: Optional[discord.Role] = None):
+    await self.bot.db.query("UPDATE servers SET mute_role=$1 WHERE id=$2", str(role.id) if role is not None else None, str(ctx.guild.id))
     if role is not None:
       return await ctx.send(embed=embed(title=f"Friday will now use `{role}` as the new mute role"))
     await ctx.send(embed=embed(title="The saved mute role has been removed"))
