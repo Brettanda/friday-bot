@@ -175,7 +175,6 @@ class Database(commands.Cog):
             if not result[0].get("exists"):
               await conn.execute(f"ALTER TABLE {table} ADD COLUMN {column};")
 
-
   async def query(self, query: str, *params) -> Optional[Union[str, list]]:
     async with self.pool.acquire(timeout=300.0) as mycursor:
       if "select" in query.lower():
