@@ -180,7 +180,7 @@ Examples:
 
 ## Mute
 
-Mute a member from text channels
+Mute a member from text channels.
 
 ??? missing "Does not have a slash command to match"
 	Learn more about [slash commands](/#slash-commands)

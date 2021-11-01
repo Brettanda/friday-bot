@@ -54,7 +54,7 @@ class Config:
   async def ban(self, member: discord.Member, reason: str = "Auto-ban for spamming.") -> None:
     await member.ban(reason=reason)
 
-  async def apply_punishment(self, guild: discord.Guild, msg: discord.Message, punishments: List[str], *, reason: str = "For spamming") -> Optional[discord.Message]:
+  async def apply_punishment(self, guild: discord.Guild, msg: discord.Message, punishments: List[str], *, reason: str = "Spamming") -> Optional[discord.Message]:
     if "ban" in punishments:
       await self.ban(msg.author)
     elif "kick" in punishments:
@@ -392,7 +392,7 @@ class AutoMod(commands.Cog):
 
   @commands.group(name="mentionspam", extras={"examples": ["3", "5", "10"]}, aliases=["maxmentions", "maxpings"], help="Set the max amount of mentions one user can send per message before muting the author", invoke_without_command=True)
   @commands.guild_only()
-  @commands.has_guild_permissions(manage_channels=True, manage_messages=True, manage_roles=True)
+  @commands.has_guild_permissions(manage_messages=True, manage_roles=True)
   @commands.bot_has_guild_permissions(manage_messages=True, manage_roles=True)
   async def max_mentions(self, ctx: "MyContext", mention_count: int, seconds: int):
     if mention_count < 3 and seconds < 5:
@@ -408,7 +408,7 @@ class AutoMod(commands.Cog):
 
   @max_mentions.command(name="punishment", aliases=["punishments"], extras={"examples": PUNISHMENT_TYPES}, help="Set the punishment for the max amount of mentions one user can send per message. Combining kick,ban and/or mute will only apply one of them.")
   @commands.guild_only()
-  @commands.has_guild_permissions(manage_channels=True, manage_messages=True, manage_roles=True)
+  @commands.has_guild_permissions(manage_messages=True, manage_roles=True)
   @commands.bot_has_guild_permissions(manage_messages=True, manage_roles=True)
   async def max_mentions_punishment(self, ctx: "MyContext", *, action: str):
     action = [i for i in action.split(" ") if i.lower() in PUNISHMENT_TYPES]
@@ -425,7 +425,7 @@ class AutoMod(commands.Cog):
 
   @max_mentions.command(name="disable", help="Disable the max amount of mentions per message for this server.")
   @commands.guild_only()
-  @commands.has_guild_permissions(manage_channels=True, manage_messages=True, manage_roles=True)
+  @commands.has_guild_permissions(manage_messages=True, manage_roles=True)
   @commands.bot_has_guild_permissions(manage_messages=True, manage_roles=True)
   async def max_mentions_disable(self, ctx: "MyContext"):
     await self.bot.db.query("UPDATE servers SET max_mentions=$1 WHERE id=$2", None, str(ctx.guild.id))
@@ -433,8 +433,8 @@ class AutoMod(commands.Cog):
 
   @commands.group(name="messagespam", extras={"examples": ["3 5", "10 12"]}, aliases=["maxmessages", "ratelimit"], help="Sets a max message count for users per x seconds", invoke_without_command=True)
   @commands.guild_only()
-  @commands.bot_has_guild_permissions(manage_channels=True, manage_messages=True)
-  @commands.has_guild_permissions(manage_messages=True)
+  @commands.bot_has_guild_permissions(manage_messages=True, manage_roles=True)
+  @commands.has_guild_permissions(manage_messages=True, manage_roles=True)
   async def max_spam(self, ctx: "MyContext", message_rate: int, seconds: int):
     if message_rate < 3 or seconds < 5:
       return await ctx.send(embed=embed(title="Some arguments are too small", description="`message_rate` must be greater than 3\n`seconds` must be greater than 5", color=MessageColors.ERROR))
@@ -452,7 +452,7 @@ class AutoMod(commands.Cog):
 
   @max_spam.command(name="punishment", aliases=["punishments"], extras={"examples": PUNISHMENT_TYPES}, help="Set the punishment for the max amount of message every x seconds. Combining kick,ban and/or mute will only apply one of them.")
   @commands.guild_only()
-  @commands.has_guild_permissions(manage_channels=True, manage_messages=True, manage_roles=True)
+  @commands.has_guild_permissions(manage_messages=True, manage_roles=True)
   @commands.bot_has_guild_permissions(manage_messages=True, manage_roles=True)
   async def max_spam_punishment(self, ctx: "MyContext", *, action: str):
     action = [i for i in action.split(" ") if i.lower() in PUNISHMENT_TYPES]
@@ -470,7 +470,7 @@ class AutoMod(commands.Cog):
 
   @max_spam.command(name="disable", help="Disable the max amount of messages per x seconds by the same member for this server.")
   @commands.guild_only()
-  @commands.has_guild_permissions(manage_channels=True, manage_messages=True, manage_roles=True)
+  @commands.has_guild_permissions(manage_messages=True, manage_roles=True)
   @commands.bot_has_guild_permissions(manage_messages=True, manage_roles=True)
   async def max_spam_disable(self, ctx: "MyContext"):
     await self.bot.db.query("UPDATE servers SET max_messages=$1 WHERE id=$2", None, str(ctx.guild.id))
@@ -478,7 +478,7 @@ class AutoMod(commands.Cog):
 
   @commands.group(name="contentspam", extras={"examples": ["3 5", "15 17"]}, help="Sets the max number of message that can have the same content (ignoring who sent the message) until passing the given threshold and muting anyone spamming the same content further.", invoke_without_command=True)
   @commands.guild_only()
-  @commands.bot_has_guild_permissions(manage_channels=True, manage_messages=True, manage_roles=True)
+  @commands.bot_has_guild_permissions(manage_messages=True, manage_roles=True)
   @commands.has_guild_permissions(manage_messages=True, manage_roles=True)
   async def max_content_spam(self, ctx: "MyContext", message_rate: int, seconds: int):
     if message_rate < 3 or seconds < 5:
@@ -495,7 +495,7 @@ class AutoMod(commands.Cog):
 
   @max_content_spam.command(name="punishment", aliases=["punishments"], extras={"examples": PUNISHMENT_TYPES}, help="Set the punishment for the max amount of message every x seconds. Combining kick,ban and/or mute will only apply one of them.")
   @commands.guild_only()
-  @commands.has_guild_permissions(manage_channels=True, manage_messages=True, manage_roles=True)
+  @commands.has_guild_permissions(manage_messages=True, manage_roles=True)
   @commands.bot_has_guild_permissions(manage_messages=True, manage_roles=True)
   async def max_content_spam_punishment(self, ctx: "MyContext", *, action: str):
     action = [i for i in action.split(" ") if i.lower() in PUNISHMENT_TYPES]
@@ -512,7 +512,7 @@ class AutoMod(commands.Cog):
 
   @max_content_spam.command(name="disable", help="Disable the max amount of messages per x seconds with the same content for this server.")
   @commands.guild_only()
-  @commands.has_guild_permissions(manage_channels=True, manage_messages=True, manage_roles=True)
+  @commands.has_guild_permissions(manage_messages=True, manage_roles=True)
   @commands.bot_has_guild_permissions(manage_messages=True, manage_roles=True)
   async def max_content_spam_disable(self, ctx: "MyContext"):
     await self.bot.db.query("UPDATE servers SET max_content=$1 WHERE id=$2", None, str(ctx.guild.id))

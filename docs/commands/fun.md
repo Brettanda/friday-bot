@@ -65,7 +65,7 @@ ms
 
 ## Poll
 
-Make a poll. Contain each option in qoutes `'option' `'option 2'``
+Make a poll. Contain each option in qoutes `'option' 'option 2'`
 
 ??? missing "Does not have a slash command to match"
 	Learn more about [slash commands](/#slash-commands)

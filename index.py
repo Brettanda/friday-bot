@@ -9,7 +9,6 @@ import nextcord as discord
 from typing import TYPE_CHECKING, Optional
 # import interactions
 from nextcord.ext import commands
-from dotenv import load_dotenv
 
 import cogs
 import functions
@@ -17,8 +16,6 @@ import functions
 if TYPE_CHECKING:
   from .cogs.log import Log
   from .cogs.database import Database
-
-load_dotenv()
 
 TOKEN = os.environ.get('TOKENTEST')
 
@@ -33,14 +30,19 @@ async def get_prefix(bot: "Friday", message: discord.Message):
 
 
 class Friday(commands.AutoShardedBot):
-  def __init__(self, **kwargs):
+  """Friday is a discord bot that is designed to be a flexible and easy to use bot."""
+
+  def __init__(self, loop=None, **kwargs):
     self.cluster_name = kwargs.pop("cluster_name", None)
     self.cluster_idx = kwargs.pop("cluster_idx", 0)
     self.should_start = kwargs.pop("start", False)
     self._logger = kwargs.pop("logger")
 
-    self.loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(self.loop)
+    if loop is None:
+      self.loop = asyncio.new_event_loop()
+      asyncio.set_event_loop(self.loop)
+    else:
+      self.loop = loop
     super().__init__(
         command_prefix=get_prefix,
         strip_after_prefix=True,
@@ -72,6 +74,9 @@ class Friday(commands.AutoShardedBot):
     self.logger.info(f"Cluster Starting {kwargs.get('shard_ids', None)}, {kwargs.get('shard_count', 1)}")
     if self.should_start:
       self.run(kwargs["token"])
+
+  def __repr__(self):
+    return "<Friday>"
 
   @property
   def log(self) -> Optional["Log"]:
