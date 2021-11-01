@@ -188,7 +188,10 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       com = self.bot.get_command(command)
       if com is not None and com.cog_name is not None:
         command = com.cog_name
-      self.bot.reload_extension(f"cogs.{command.lower() if command is not None else None}")
+      try:
+        self.bot.reload_extension(f"cogs.{command.lower() if command is not None else None}")
+      except commands.ExtensionNotLoaded:
+        self.bot.load_extension(f"cogs.{command.lower() if command is not None else None}")
     await ctx.reply(embed=embed(title=f"Cog *{command}* has been reloaded"))
 
   @reload.command(name="all")
