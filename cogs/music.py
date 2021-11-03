@@ -211,9 +211,9 @@ class PaginatorSource(menus.ListPageSource):
     return True
 
 
-class QueueMenu(discord.ui.View, menus.MenuPages):
+class QueueMenu(menus.ButtonMenuPages):
   def __init__(self, source, *, title="Commands", description="", delete_after=True):
-    super().__init__(timeout=30.0)
+    super().__init__(source=source, timeout=30.0)
     self._source = source
     self.current_page = 0
     self.ctx = None
@@ -223,7 +223,6 @@ class QueueMenu(discord.ui.View, menus.MenuPages):
   async def start(self, ctx, *, channel: discord.TextChannel = None, wait=False) -> None:
     await self._source._prepare_once()
     self.ctx = ctx
-    self.buttons_to_disable()
     self.message = await self.send_initial_message(ctx, ctx.channel)
 
   async def send_initial_message(self, ctx: "MyContext", channel: discord.TextChannel):
@@ -251,54 +250,6 @@ class QueueMenu(discord.ui.View, menus.MenuPages):
         await self.message.delete()
       except discord.NotFound:
         pass
-
-  def buttons_to_disable(self, page: int = 0) -> None:
-    if self._source.get_max_pages() == 1:
-      self._first.disabled = True
-      self._back.disabled = True
-      self._last.disabled = True
-      self._next.disabled = True
-    elif page == 0:
-      self._first.disabled = True
-      self._back.disabled = True
-      self._last.disabled = False
-      self._next.disabled = False
-    elif page == self._source.get_max_pages() - 1:
-      self._first.disabled = False
-      self._back.disabled = False
-      self._last.disabled = True
-      self._next.disabled = True
-    else:
-      self._first.disabled = False
-      self._back.disabled = False
-      self._last.disabled = False
-      self._next.disabled = False
-
-  @discord.ui.button(emoji="\N{BLACK LEFT-POINTING DOUBLE TRIANGLE WITH VERTICAL BAR}\ufe0f", style=discord.ButtonStyle.primary, custom_id="queue-first")
-  async def _first(self, button: discord.ui.Button, interaction: discord.Interaction):
-    self.buttons_to_disable(0)
-    await self.show_page(0)
-
-  @discord.ui.button(emoji="\N{BLACK LEFT-POINTING TRIANGLE}\ufe0f", style=discord.ButtonStyle.primary, custom_id="queue-back")
-  async def _back(self, button: discord.ui.Button, interaction: discord.Interaction):
-    self.buttons_to_disable(self.current_page - 1)
-    await self.show_checked_page(self.current_page - 1)
-
-  @discord.ui.button(emoji="\N{BLACK RIGHT-POINTING TRIANGLE}\ufe0f", style=discord.ButtonStyle.primary, custom_id="queue-next")
-  async def _next(self, button: discord.ui.Button, interaction: discord.Interaction):
-    self.buttons_to_disable(self.current_page + 1)
-    await self.show_checked_page(self.current_page + 1)
-
-  @discord.ui.button(emoji="\N{BLACK RIGHT-POINTING DOUBLE TRIANGLE WITH VERTICAL BAR}\ufe0f", style=discord.ButtonStyle.primary, custom_id="queue-last")
-  async def _last(self, button: discord.ui.Button, interaction: discord.Interaction):
-    self.buttons_to_disable(self._source.get_max_pages() - 1)
-    await self.show_page(self._source.get_max_pages() - 1)
-
-  @discord.ui.button(emoji="\N{BLACK SQUARE FOR STOP}\ufe0f", style=discord.ButtonStyle.danger, custom_id="queue-stop")
-  async def _stop(self, button: discord.ui.Button, interaction: discord.Interaction):
-    self.stop()
-    if self.delete_after:
-      await self.message.delete(delay=0)
 
 
 class Music(commands.Cog, wavelink.WavelinkMixin):
