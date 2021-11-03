@@ -6,7 +6,9 @@ import aiohttp
 from importlib import reload
 
 import nextcord as discord
-from typing import TYPE_CHECKING, Optional
+from typing import Optional
+from typing_extensions import TYPE_CHECKING
+from collections import defaultdict
 # import interactions
 from nextcord.ext import commands
 
@@ -25,7 +27,7 @@ formatter = logging.Formatter("%(levelname)s:%(name)s: %(message)s")
 
 async def get_prefix(bot: "Friday", message: discord.Message):
   if message.guild is not None:
-    return commands.when_mentioned_or(await bot.get_guild_prefix(message.guild.id))(bot, message)
+    return commands.when_mentioned_or(bot.prefixes[message.guild.id])(bot, message)
   return commands.when_mentioned_or(functions.config.defaultPrefix)(bot, message)
 
 
@@ -62,8 +64,9 @@ class Friday(commands.AutoShardedBot):
     self.session = None
     self.restartPending = False
     self.views_loaded = False
-    self.saved_guilds = {}
-    self.songqueue = {}
+
+    # guild_id: str("!")
+    self.prefixes = defaultdict(lambda: str("!"))
     self.prod = True if len(sys.argv) > 1 and (sys.argv[1] == "--prod" or sys.argv[1] == "--production") else False
     self.canary = True if len(sys.argv) > 1 and (sys.argv[1] == "--canary") else False
     self.ready = False
@@ -96,19 +99,15 @@ class Friday(commands.AutoShardedBot):
   async def setup(self, load_extentions: bool = False):
     self.session: aiohttp.ClientSession() = aiohttp.ClientSession(loop=self.loop)
 
+    for guild_id, prefix in await self.db.query("SELECT id,prefix FROM servers"):
+      self.prefixes[int(guild_id, base=10)] = prefix
+
     if load_extentions:
       for cog in cogs.default:
         try:
           self.load_extension(f"cogs.{cog}")
         except Exception as e:
           self.logger.error(f"Failed to load extenstion {cog} with \n {e}")
-
-  @functions.cache(maxsize=256)
-  async def get_guild_prefix(self, guild_id: int) -> str:
-    try:
-      return await self.db.query("SELECT prefix FROM servers WHERE id=$1 LIMIT 1", str(guild_id))
-    except Exception:
-      return functions.config.defaultPrefix
 
   async def reload_cogs(self):
     self.ready = False

@@ -207,7 +207,7 @@ class Moderation(commands.Cog):
     if len(new_prefix) > 5:
       return await ctx.reply(embed=embed(title="Can't set a prefix with more than 5 characters", color=MessageColors.ERROR))
     await self.bot.db.query("UPDATE servers SET prefix=$1 WHERE id=$2", str(new_prefix), str(ctx.guild.id))
-    self.bot.get_guild_prefix.invalidate(self.bot, ctx.guild.id)
+    self.bot.prefixes[ctx.guild.id] = new_prefix
     await ctx.reply(embed=embed(title=f"My new prefix is `{new_prefix}`"))
 
   # @commands.group(name="set", invoke_without_command=True, case_insensitive=True)
