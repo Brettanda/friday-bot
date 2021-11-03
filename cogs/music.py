@@ -211,9 +211,9 @@ class PaginatorSource(menus.ListPageSource):
     return True
 
 
-class QueueMenu(discord.ui.View, menus.MenuPages):
+class QueueMenu(menus.ButtonMenuPages):
   def __init__(self, source, *, title="Commands", description="", delete_after=True):
-    super().__init__(timeout=60.0)
+    super().__init__(source=source, timeout=30.0)
     self._source = source
     self.current_page = 0
     self.ctx = None
@@ -223,7 +223,6 @@ class QueueMenu(discord.ui.View, menus.MenuPages):
   async def start(self, ctx, *, channel: discord.TextChannel = None, wait=False) -> None:
     await self._source._prepare_once()
     self.ctx = ctx
-    self.buttons_to_disable()
     self.message = await self.send_initial_message(ctx, ctx.channel)
 
   async def send_initial_message(self, ctx: "MyContext", channel: discord.TextChannel):
@@ -251,54 +250,6 @@ class QueueMenu(discord.ui.View, menus.MenuPages):
         await self.message.delete()
       except discord.NotFound:
         pass
-
-  def buttons_to_disable(self, page: int = 0) -> None:
-    if self._source.get_max_pages() == 1:
-      self._first.disabled = True
-      self._back.disabled = True
-      self._last.disabled = True
-      self._next.disabled = True
-    elif page == 0:
-      self._first.disabled = True
-      self._back.disabled = True
-      self._last.disabled = False
-      self._next.disabled = False
-    elif page == self._source.get_max_pages() - 1:
-      self._first.disabled = False
-      self._back.disabled = False
-      self._last.disabled = True
-      self._next.disabled = True
-    else:
-      self._first.disabled = False
-      self._back.disabled = False
-      self._last.disabled = False
-      self._next.disabled = False
-
-  @discord.ui.button(emoji="\N{BLACK LEFT-POINTING DOUBLE TRIANGLE WITH VERTICAL BAR}\ufe0f", style=discord.ButtonStyle.primary, custom_id="queue-first")
-  async def _first(self, button: discord.ui.Button, interaction: discord.Interaction):
-    self.buttons_to_disable(0)
-    await self.show_page(0)
-
-  @discord.ui.button(emoji="\N{BLACK LEFT-POINTING TRIANGLE}\ufe0f", style=discord.ButtonStyle.primary, custom_id="queue-back")
-  async def _back(self, button: discord.ui.Button, interaction: discord.Interaction):
-    self.buttons_to_disable(self.current_page - 1)
-    await self.show_checked_page(self.current_page - 1)
-
-  @discord.ui.button(emoji="\N{BLACK RIGHT-POINTING TRIANGLE}\ufe0f", style=discord.ButtonStyle.primary, custom_id="queue-next")
-  async def _next(self, button: discord.ui.Button, interaction: discord.Interaction):
-    self.buttons_to_disable(self.current_page + 1)
-    await self.show_checked_page(self.current_page + 1)
-
-  @discord.ui.button(emoji="\N{BLACK RIGHT-POINTING DOUBLE TRIANGLE WITH VERTICAL BAR}\ufe0f", style=discord.ButtonStyle.primary, custom_id="queue-last")
-  async def _last(self, button: discord.ui.Button, interaction: discord.Interaction):
-    self.buttons_to_disable(self._source.get_max_pages() - 1)
-    await self.show_page(self._source.get_max_pages() - 1)
-
-  @discord.ui.button(emoji="\N{BLACK SQUARE FOR STOP}\ufe0f", style=discord.ButtonStyle.danger, custom_id="queue-stop")
-  async def _stop(self, button: discord.ui.Button, interaction: discord.Interaction):
-    self.stop()
-    if self.delete_after:
-      await self.message.delete(delay=0)
 
 
 class Music(commands.Cog, wavelink.WavelinkMixin):
@@ -357,10 +308,10 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
 
   async def cog_command_error(self, ctx: MyContext, error: Exception):
     if isinstance(error, (IncorrectChannelError, NoChannelProvided, NoCustomSoundsFound, VoiceConnectionError)):
-      return await ctx.send(embed=embed(title=error, color=MessageColors.ERROR))
+      return await ctx.send(embed=embed(title=error, color=MessageColors.ERROR), delete_after=20.0)
 
     if isinstance(error, commands.BadLiteralArgument):
-      return await ctx.send(embed=embed(title=f"`{error.param.name}` must be one of `{', '.join(error.literals)}.`", color=MessageColors.ERROR))
+      return await ctx.send(embed=embed(title=f"`{error.param.name}` must be one of `{', '.join(error.literals)}.`", color=MessageColors.ERROR), delete_after=20.0)
 
   @wavelink.WavelinkMixin.listener()
   async def on_node_ready(self, node: wavelink.Node):
@@ -437,8 +388,8 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
     """Connect to a voice channel."""
     ch = await self.join(ctx, channel)
     if ch:
-      return await ctx.send(f"{ch.mention}", embed=embed(title="Connected to voice channel", color=MessageColors.MUSIC))
-    return await ctx.send(embed=embed(title="Failed to connect to voice channel.", color=MessageColors.ERROR))
+      return await ctx.send(f"{ch.mention}", embed=embed(title="Connected to voice channel", color=MessageColors.MUSIC), delete_after=20.0)
+    return await ctx.send(embed=embed(title="Failed to connect to voice channel.", color=MessageColors.ERROR), delete_after=20.0)
 
   @commands.command(name="play", aliases=["p", "add"], extras={"examples": ["https://youtu.be/dQw4w9WgXcQ"]}, usage="<url/title>", help="Follow this command with the title of a song to search for it or just paste the Youtube/SoundCloud url if the search gives and undesirable result")
   @commands.guild_only()
@@ -458,7 +409,7 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
 
     tracks = await self.bot.wavelink.get_tracks(query)
     if not tracks:
-      return await ctx.send(embed=embed(title='No songs were found with that query. Please try again.', color=MessageColors.ERROR))
+      return await ctx.send(embed=embed(title='No songs were found with that query. Please try again.', color=MessageColors.ERROR), delete_after=20.0)
 
     if isinstance(tracks, wavelink.TrackPlaylist):
       for track in tracks.tracks:
@@ -468,12 +419,12 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
         await ctx.send(embed=embed(
             title=f"Added the playlist {tracks.data['playlistInfo']['name']}",
             description=f" with {len(tracks.tracks)} songs to the queue.",
-            color=MessageColors.MUSIC))
+            color=MessageColors.MUSIC), delete_after=20.0)
     else:
       track = Track(tracks[0].id, tracks[0].info, thumbnail=tracks[0].thumb, requester=ctx.author)
       await player.queue.put(track)
       if player.is_playing or player.is_paused:
-        await ctx.send(embed=embed(title=f"Added **{track.title}** to the Queue", color=MessageColors.MUSIC))
+        await ctx.send(embed=embed(title=f"Added **{track.title}** to the Queue", color=MessageColors.MUSIC), delete_after=20.0)
 
     if not player.is_playing:
       await player.do_next()
@@ -487,10 +438,10 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
     player: Player = self.bot.wavelink.get_player(guild_id=ctx.guild.id, cls=Player, ctx=ctx)
 
     if player.is_paused or not player.is_connected:
-      return await ctx.send(embed=embed(title='Nothing is playing right now', color=MessageColors.ERROR))
+      return await ctx.send(embed=embed(title='Nothing is playing right now', color=MessageColors.ERROR), delete_after=20.0)
 
     if self.is_privileged(ctx):
-      await ctx.send(embed=embed(title='An admin or DJ has paused the player.', color=MessageColors.MUSIC))
+      await ctx.send(embed=embed(title='An admin or DJ has paused the player.', color=MessageColors.MUSIC), delete_after=20.0)
       player.pause_votes.clear()
 
       return await player.set_pause(True)
@@ -499,11 +450,11 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
     player.pause_votes.add(ctx.author)
 
     if len(player.pause_votes) >= required:
-      await ctx.send(embed=embed(title='Vote to pause passed. Pausing player.', color=MessageColors.MUSIC))
+      await ctx.send(embed=embed(title='Vote to pause passed. Pausing player.', color=MessageColors.MUSIC), delete_after=20.0)
       player.pause_votes.clear()
       await player.set_pause(True)
     else:
-      await ctx.send(embed=embed(title=f'{ctx.author} has voted to pause the player.', color=MessageColors.MUSIC))
+      await ctx.send(embed=embed(title=f'{ctx.author} has voted to pause the player.', color=MessageColors.MUSIC), delete_after=20.0)
 
   @commands.command(name="resume")
   @commands.guild_only()
@@ -514,10 +465,10 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
     player: Player = self.bot.wavelink.get_player(guild_id=ctx.guild.id, cls=Player, ctx=ctx)
 
     if not player.is_paused or not player.is_connected:
-      return await ctx.send(embed=embed(title='Nothing is playing right now', color=MessageColors.ERROR))
+      return await ctx.send(embed=embed(title='Nothing is playing right now', color=MessageColors.ERROR), delete_after=20.0)
 
     if self.is_privileged(ctx):
-      await ctx.send(embed=embed(title='An admin or DJ has resumed the player.', color=MessageColors.MUSIC))
+      await ctx.send(embed=embed(title='An admin or DJ has resumed the player.', color=MessageColors.MUSIC), delete_after=20.0)
       player.resume_votes.clear()
 
       return await player.set_pause(False)
@@ -526,11 +477,11 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
     player.resume_votes.add(ctx.author)
 
     if len(player.resume_votes) >= required:
-      await ctx.send(embed=embed(title='Vote to resume passed. Resuming player.', color=MessageColors.MUSIC))
+      await ctx.send(embed=embed(title='Vote to resume passed. Resuming player.', color=MessageColors.MUSIC), delete_after=20.0)
       player.resume_votes.clear()
       await player.set_pause(False)
     else:
-      await ctx.send(embed=embed(title=f'{ctx.author.mention} has voted to resume the player.', color=MessageColors.MUSIC))
+      await ctx.send(embed=embed(title=f'{ctx.author.mention} has voted to resume the player.', color=MessageColors.MUSIC), delete_after=20.0)
 
   @commands.command(name="skip", help="Skips the current song")
   @commands.guild_only()
@@ -541,16 +492,16 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
     player: Player = self.bot.wavelink.get_player(guild_id=ctx.guild.id, cls=Player, ctx=ctx)
 
     if not player.is_connected:
-      return await ctx.send(embed=embed(title='Nothing is playing right now', color=MessageColors.ERROR))
+      return await ctx.send(embed=embed(title='Nothing is playing right now', color=MessageColors.ERROR), delete_after=20.0)
 
     if self.is_privileged(ctx):
-      await ctx.send(embed=embed(title='An admin or DJ has skipped the song.', color=MessageColors.MUSIC))
+      await ctx.send(embed=embed(title='An admin or DJ has skipped the song.', color=MessageColors.MUSIC), delete_after=20.0)
       player.skip_votes.clear()
 
       return await player.stop()
 
     if ctx.author == player.current.requester:
-      await ctx.send(embed=embed(title='The song requester has skipped the song.', color=MessageColors.MUSIC))
+      await ctx.send(embed=embed(title='The song requester has skipped the song.', color=MessageColors.MUSIC), delete_after=20.0)
       player.skip_votes.clear()
 
       return await player.stop()
@@ -559,11 +510,11 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
     player.skip_votes.add(ctx.author)
 
     if len(player.skip_votes) >= required:
-      await ctx.send(embed=embed(title='Vote to skip passed. Skipping song.', color=MessageColors.MUSIC))
+      await ctx.send(embed=embed(title='Vote to skip passed. Skipping song.', color=MessageColors.MUSIC), delete_after=20.0)
       player.skip_votes.clear()
       await player.stop()
     else:
-      await ctx.send(embed=embed(title=f'{ctx.author.mention} has voted to skip the song.', color=MessageColors.MUSIC))
+      await ctx.send(embed=embed(title=f'{ctx.author} has voted to skip the song.', color=MessageColors.MUSIC), delete_after=20.0)
 
   @commands.command(name="stop", aliases=["disconnect"], help="Stops the currently playing music")
   @commands.guild_only()
@@ -574,20 +525,20 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
     player: Player = self.bot.wavelink.get_player(guild_id=ctx.guild.id, cls=Player, ctx=ctx)
 
     if not player.is_connected:
-      return await ctx.send(embed=embed(title='Nothing is playing right now', color=MessageColors.ERROR))
+      return await ctx.send(embed=embed(title='Nothing is playing right now', color=MessageColors.ERROR), delete_after=20.0)
 
     if self.is_privileged(ctx):
-      await ctx.send(embed=embed(title='An admin or DJ has stopped the player.', color=MessageColors.MUSIC))
+      await ctx.send(embed=embed(title='An admin or DJ has stopped the player.', color=MessageColors.MUSIC), delete_after=20.0)
       return await player.teardown()
 
     required = self.required(ctx)
     player.stop_votes.add(ctx.author)
 
     if len(player.stop_votes) >= required:
-      await ctx.send(embed=embed(title='Vote to stop passed. Stopping the player.', color=MessageColors.MUSIC))
+      await ctx.send(embed=embed(title='Vote to stop passed. Stopping the player.', color=MessageColors.MUSIC), delete_after=20.0)
       await player.teardown()
     else:
-      await ctx.send(embed=embed(title=f'{ctx.author} has voted to stop the player.', color=MessageColors.MUSIC))
+      await ctx.send(embed=embed(title=f'{ctx.author} has voted to stop the player.', color=MessageColors.MUSIC), delete_after=20.0)
 
   @commands.command(name="volume", aliases=['v', 'vol'])
   @commands.guild_only()
@@ -598,13 +549,13 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
     player: Player = self.bot.wavelink.get_player(guild_id=ctx.guild.id, cls=Player, ctx=ctx)
 
     if not player.is_connected:
-      return await ctx.send(embed=embed(title='Nothing is playing right now', color=MessageColors.ERROR))
+      return await ctx.send(embed=embed(title='Nothing is playing right now', color=MessageColors.ERROR), delete_after=20.0)
 
     if not self.is_privileged(ctx):
-      return await ctx.send(embed=embed(title='Only the DJ or admins may change the volume.', color=MessageColors.MUSIC))
+      return await ctx.send(embed=embed(title='Only the DJ or admins may change the volume.', color=MessageColors.MUSIC), delete_after=20.0)
 
     if not 0 < vol <= 100:
-      return await ctx.send(embed=embed(title='Please enter a value between 1 and 100.', color=MessageColors.MUSIC))
+      return await ctx.send(embed=embed(title='Please enter a value between 1 and 100.', color=MessageColors.MUSIC), delete_after=20.0)
 
     await player.set_volume(vol)
     await ctx.send(embed=embed(title=f'Set the volume to **{vol}**%'))
@@ -618,13 +569,13 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
     player: Player = self.bot.wavelink.get_player(guild_id=ctx.guild.id, cls=Player, ctx=ctx)
 
     if not player.is_connected:
-      return await ctx.send(embed=embed(title='Nothing is playing right now', color=MessageColors.ERROR))
+      return await ctx.send(embed=embed(title='Nothing is playing right now', color=MessageColors.ERROR), delete_after=20.0)
 
     if player.queue.qsize() < 3:
-      return await ctx.send(embed=embed(title='Add more songs to the queue before shuffling.', color=MessageColors.MUSIC))
+      return await ctx.send(embed=embed(title='Add more songs to the queue before shuffling.', color=MessageColors.MUSIC), delete_after=20.0)
 
     if self.is_privileged(ctx):
-      await ctx.send(embed=embed(title='An admin or DJ has shuffled the playlist.', color=MessageColors.MUSIC))
+      await ctx.send(embed=embed(title='An admin or DJ has shuffled the playlist.', color=MessageColors.MUSIC), delete_after=20.0)
       player.shuffle_votes.clear()
       return random.shuffle(player.queue._queue)
 
@@ -632,11 +583,11 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
     player.shuffle_votes.add(ctx.author)
 
     if len(player.shuffle_votes) >= required:
-      await ctx.send(embed=embed(title='Vote to shuffle passed. Shuffling the playlist.', color=MessageColors.MUSIC))
+      await ctx.send(embed=embed(title='Vote to shuffle passed. Shuffling the playlist.', color=MessageColors.MUSIC), delete_after=20.0)
       player.shuffle_votes.clear()
       random.shuffle(player.queue._queue)
     else:
-      await ctx.send(embed=embed(title=f'{ctx.author.mention} has voted to shuffle the playlist.', color=MessageColors.MUSIC))
+      await ctx.send(embed=embed(title=f'{ctx.author.mention} has voted to shuffle the playlist.', color=MessageColors.MUSIC), delete_after=20.0)
 
   @commands.command(name="equalizer", aliases=['eq'])
   @checks.is_min_tier(list(config.premium_tiers)[1])
@@ -648,10 +599,10 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
     player: Player = self.bot.wavelink.get_player(guild_id=ctx.guild.id, cls=Player, ctx=ctx)
 
     if not player.is_connected:
-      return await ctx.send(embed=embed(title='Nothing is playing right now', color=MessageColors.ERROR))
+      return await ctx.send(embed=embed(title='Nothing is playing right now', color=MessageColors.ERROR), delete_after=20.0)
 
     if not self.is_privileged(ctx):
-      return await ctx.send(embed=embed(title='Only the DJ or admins may change the equalizer.', color=MessageColors.ERROR))
+      return await ctx.send(embed=embed(title='Only the DJ or admins may change the equalizer.', color=MessageColors.ERROR), delete_after=20.0)
 
     eqs = {'flat': wavelink.Equalizer.flat(),
            'boost': wavelink.Equalizer.boost(),
@@ -662,9 +613,9 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
 
     if not eq:
       joined = "\n".join(eqs.keys())
-      return await ctx.send(embed=embed(title=f'Invalid EQ provided. Valid EQs:\n\n{joined}', color=MessageColors.ERROR))
+      return await ctx.send(embed=embed(title=f'Invalid EQ provided. Valid EQs:\n\n{joined}', color=MessageColors.ERROR), delete_after=20.0)
 
-    await ctx.send(embed=embed(title=f'Successfully changed equalizer to {equalizer}', color=MessageColors.MUSIC))
+    await ctx.send(embed=embed(title=f'Successfully changed equalizer to {equalizer}', color=MessageColors.MUSIC), delete_after=20.0)
     await player.set_eq(eq)
 
   @commands.command(name="queue", aliases=['que'], help="shows the song queue")
@@ -676,10 +627,10 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
     player: Player = self.bot.wavelink.get_player(guild_id=ctx.guild.id, cls=Player, ctx=ctx)
 
     if not player.is_connected:
-      return await ctx.send(embed=embed(title='Nothing is playing right now', color=MessageColors.ERROR))
+      return await ctx.send(embed=embed(title='Nothing is playing right now', color=MessageColors.ERROR), delete_after=20.0)
 
     if player.queue.qsize() == 0:
-      return await ctx.send(embed=embed(title='There are no more songs in the queue.', color=MessageColors.ERROR))
+      return await ctx.send(embed=embed(title='There are no more songs in the queue.', color=MessageColors.ERROR), delete_after=20.0)
 
     entries = [track.title for track in player.queue._queue]
     pages = PaginatorSource(entries=entries)
@@ -696,7 +647,7 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
     player: Player = self.bot.wavelink.get_player(guild_id=ctx.guild.id, cls=Player, ctx=ctx)
 
     if not player.is_connected:
-      return await ctx.send(embed=embed(title='Nothing is playing right now', color=MessageColors.ERROR))
+      return await ctx.send(embed=embed(title='Nothing is playing right now', color=MessageColors.ERROR), delete_after=20.0)
 
     await ctx.send(embed=player.build_embed())
 
@@ -709,10 +660,10 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
     player: Player = self.bot.wavelink.get_player(guild_id=ctx.guild.id, cls=Player, ctx=ctx)
 
     if not player.is_connected:
-      return await ctx.send(embed=embed(title='Nothing is playing right now', color=MessageColors.ERROR))
+      return await ctx.send(embed=embed(title='Nothing is playing right now', color=MessageColors.ERROR), delete_after=20.0)
 
     if not self.is_privileged(ctx):
-      return await ctx.send(embed=embed(title='Only admins and the DJ may use this command.', color=MessageColors.ERROR))
+      return await ctx.send(embed=embed(title='Only admins and the DJ may use this command.', color=MessageColors.ERROR), delete_after=20.0)
 
     members = self.bot.get_channel(int(player.channel_id)).members
 
@@ -723,18 +674,18 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
       return await ctx.send(embed=embed(title='Cannot swap DJ to the current DJ... :)'))
 
     if len(members) <= 2:
-      return await ctx.send(embed=embed(title='No more members to swap to.', color=MessageColors.MUSIC))
+      return await ctx.send(embed=embed(title='No more members to swap to.', color=MessageColors.MUSIC), delete_after=20.0)
 
     if member:
       player.dj = member
-      return await ctx.send(embed=embed(title=f'{member.mention} is now the DJ.', color=MessageColors.MUSIC))
+      return await ctx.send(embed=embed(title=f'{member.mention} is now the DJ.', color=MessageColors.MUSIC), delete_after=20.0)
 
     for m in members:
       if m == player.dj or m.bot:
         continue
       else:
         player.dj = m
-        return await ctx.send(embed=embed(title=f'{member.mention} is now the DJ.', color=MessageColors.MUSIC))
+        return await ctx.send(embed=embed(title=f'{member.mention} is now the DJ.', color=MessageColors.MUSIC), delete_after=20.0)
 
   @commands.group(name="custom", aliases=["c"], invoke_without_command=True, help="Play sounds/songs without looking for the url everytime")
   @commands.guild_only()
@@ -747,14 +698,14 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
         sounds = await self.bot.db.query("SELECT customSounds FROM servers WHERE id=$1 LIMIT 1", str(ctx.guild.id))
         sounds = [json.loads(x) for x in sounds]
     except Exception:
-      await ctx.reply(embed=embed(title=f"The custom sound `{name}` has not been set, please add it with `{ctx.prefix}custom|c add <name> <url>`", color=MessageColors.ERROR))
+      await ctx.reply(embed=embed(title=f"The custom sound `{name}` has not been set, please add it with `{ctx.prefix}custom|c add <name> <url>`", color=MessageColors.ERROR), delete_after=20.0)
     else:
       i = next((index for (index, d) in enumerate(sounds) if d["name"] == name), None)
       if sounds is not None and i is not None:
         sound = sounds[i]
         await ctx.invoke(self.bot.get_command("play"), query=sound["url"])
       else:
-        await ctx.reply(embed=embed(title=f"The sound `{name}` has not been added, please check the `custom list` command", color=MessageColors.ERROR))
+        await ctx.reply(embed=embed(title=f"The sound `{name}` has not been added, please check the `custom list` command", color=MessageColors.ERROR), delete_after=20.0)
 
   @custom.command(name="add")
   @commands.guild_only()

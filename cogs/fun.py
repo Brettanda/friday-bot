@@ -1,6 +1,6 @@
 import json
 # import random
-import typing
+from typing import Optional
 import numpy.random as random
 import asyncio
 import datetime
@@ -161,7 +161,7 @@ class Fun(commands.Cog):
   }
 
   @commands.command(name="minesweeper", aliases=["ms"], help="Play minesweeper")
-  async def norm_minesweeper(self, ctx, size: typing.Optional[int] = 5, bomb_count: typing.Optional[int] = 6):
+  async def norm_minesweeper(self, ctx, size: Optional[int] = 5, bomb_count: Optional[int] = 6):
     await ctx.reply(**await self.mine_sweeper(size, bomb_count))
 
   # @cog_ext.cog_slash(
@@ -442,7 +442,7 @@ class Fun(commands.Cog):
 
   @commands.command(name="countdown", aliases=["cd"], help="Start a countdown. This command only updates every 10 seconds to avoid being ratelimited by Discord")
   @commands.max_concurrency(3, commands.BucketType.guild, wait=True)
-  async def countdown(self, ctx: "MyContext", hours: typing.Optional[int] = 0, minutes: typing.Optional[int] = 0, seconds: typing.Optional[int] = 0, title: typing.Optional[str] = None):
+  async def countdown(self, ctx: "MyContext", hours: Optional[int] = 0, minutes: Optional[int] = 0, seconds: Optional[int] = 0, title: Optional[str] = None):
     if hours == 0 and minutes == 0 and seconds == 0:
       return await ctx.send_help(ctx.command)
 

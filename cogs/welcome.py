@@ -75,7 +75,7 @@ class Welcome(commands.Cog):
   @commands.has_guild_permissions(manage_roles=True, manage_guild=True, manage_channels=True)
   @commands.bot_has_guild_permissions(manage_roles=True)
   async def _welcome(self, ctx: "MyContext"):
-    return await self._welcome_display(ctx)
+    return await ctx.send_help(ctx.command)
 
   @_welcome.command(name="display", aliases=["list", "show"], help="Shows the servers current welcome settings")
   @commands.has_guild_permissions(manage_roles=True, manage_guild=True, manage_channels=True)

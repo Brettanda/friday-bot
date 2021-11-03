@@ -3,7 +3,7 @@
 import nextcord as discord
 from nextcord import Embed
 from nextcord.ext import commands
-from nextcord.ext.menus import ListPageSource, MenuPages
+from nextcord.ext.menus import ListPageSource, ButtonMenuPages
 # from discord.utils import get
 
 # from interactions import Context as SlashContext
@@ -72,9 +72,9 @@ def syntax(command, prefix: str = "!", quotes: bool = True):
     return f"{prefix}{cmd_and_aliases} {get_params(command)}{sub_commands}"
 
 
-class MyMenuPages(discord.ui.View, MenuPages):
+class MyMenuPages(ButtonMenuPages):
   def __init__(self, source, *, title="Commands", description="", delete_after=True):
-    super().__init__(timeout=60.0)
+    super().__init__(source=source, timeout=60.0)
     self._source = source
     self.current_page = 0
     self.ctx = None
@@ -86,7 +86,6 @@ class MyMenuPages(discord.ui.View, MenuPages):
   async def start(self, ctx, *, channel: discord.TextChannel = None, wait=False) -> None:
     await self._source._prepare_once()
     self.ctx = ctx
-    self.buttons_to_disable()
     self.message = await self.send_initial_message(ctx, ctx.channel)
 
   async def send_initial_message(self, ctx: "MyContext", channel: discord.TextChannel):
@@ -110,50 +109,10 @@ class MyMenuPages(discord.ui.View, MenuPages):
   async def on_timeout(self) -> None:
     self.stop()
     if self.delete_after and self.message:
-      await self.message.delete()
-
-  def buttons_to_disable(self, page: int = 0) -> None:
-    if page == 0:
-      self._first.disabled = True
-      self._back.disabled = True
-      self._last.disabled = False
-      self._next.disabled = False
-    elif page == self._source.get_max_pages() - 1:
-      self._first.disabled = False
-      self._back.disabled = False
-      self._last.disabled = True
-      self._next.disabled = True
-    else:
-      self._first.disabled = False
-      self._back.disabled = False
-      self._last.disabled = False
-      self._next.disabled = False
-
-  @discord.ui.button(emoji="\N{BLACK LEFT-POINTING DOUBLE TRIANGLE WITH VERTICAL BAR}\ufe0f", style=discord.ButtonStyle.primary, custom_id="help-first")
-  async def _first(self, button: discord.ui.Button, interaction: discord.Interaction):
-    self.buttons_to_disable(0)
-    await self.show_page(0)
-
-  @discord.ui.button(emoji="\N{BLACK LEFT-POINTING TRIANGLE}\ufe0f", style=discord.ButtonStyle.primary, custom_id="help-back")
-  async def _back(self, button: discord.ui.Button, interaction: discord.Interaction):
-    self.buttons_to_disable(self.current_page - 1)
-    await self.show_checked_page(self.current_page - 1)
-
-  @discord.ui.button(emoji="\N{BLACK RIGHT-POINTING TRIANGLE}\ufe0f", style=discord.ButtonStyle.primary, custom_id="help-next")
-  async def _next(self, button: discord.ui.Button, interaction: discord.Interaction):
-    self.buttons_to_disable(self.current_page + 1)
-    await self.show_checked_page(self.current_page + 1)
-
-  @discord.ui.button(emoji="\N{BLACK RIGHT-POINTING DOUBLE TRIANGLE WITH VERTICAL BAR}\ufe0f", style=discord.ButtonStyle.primary, custom_id="help-last")
-  async def _last(self, button: discord.ui.Button, interaction: discord.Interaction):
-    self.buttons_to_disable(self._source.get_max_pages() - 1)
-    await self.show_page(self._source.get_max_pages() - 1)
-
-  @discord.ui.button(emoji="\N{BLACK SQUARE FOR STOP}\ufe0f", style=discord.ButtonStyle.danger, custom_id="help-stop")
-  async def _stop(self, button: discord.ui.Button, interaction: discord.Interaction):
-    self.stop()
-    if self.delete_after:
-      await self.message.delete(delay=0)
+      try:
+        await self.message.delete()
+      except discord.NotFound:
+        pass
 
 
 class HelpMenu(ListPageSource):
@@ -197,7 +156,7 @@ class Help(commands.HelpCommand):
     super().__init__(command_attrs={"help": "Show help about the bot, a command, or a category.", "case_insensitive": True}, case_insensitive=True)
 
   async def send_error_message(self, error):
-    return await self.context.reply(embed=embed(title=str(error), color=MessageColors.WARNING))
+    return await self.context.reply(embed=embed(title=str(error), color=MessageColors.ERROR))
 
   def get_command_signature(self, command: commands.command) -> str:
     return '\n'.join(syntax(command, self.context.clean_prefix, quotes=False).split('\n'))

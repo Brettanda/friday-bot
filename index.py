@@ -6,10 +6,11 @@ import aiohttp
 from importlib import reload
 
 import nextcord as discord
-from typing import TYPE_CHECKING, Optional
+from typing import Optional
+from typing_extensions import TYPE_CHECKING
+from collections import defaultdict
 # import interactions
 from nextcord.ext import commands
-from dotenv import load_dotenv
 
 import cogs
 import functions
@@ -17,8 +18,6 @@ import functions
 if TYPE_CHECKING:
   from .cogs.log import Log
   from .cogs.database import Database
-
-load_dotenv()
 
 TOKEN = os.environ.get('TOKENTEST')
 
@@ -28,19 +27,24 @@ formatter = logging.Formatter("%(levelname)s:%(name)s: %(message)s")
 
 async def get_prefix(bot: "Friday", message: discord.Message):
   if message.guild is not None:
-    return commands.when_mentioned_or(await bot.get_guild_prefix(message.guild.id))(bot, message)
+    return commands.when_mentioned_or(bot.prefixes[message.guild.id])(bot, message)
   return commands.when_mentioned_or(functions.config.defaultPrefix)(bot, message)
 
 
 class Friday(commands.AutoShardedBot):
-  def __init__(self, **kwargs):
+  """Friday is a discord bot that is designed to be a flexible and easy to use bot."""
+
+  def __init__(self, loop=None, **kwargs):
     self.cluster_name = kwargs.pop("cluster_name", None)
     self.cluster_idx = kwargs.pop("cluster_idx", 0)
     self.should_start = kwargs.pop("start", False)
     self._logger = kwargs.pop("logger")
 
-    self.loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(self.loop)
+    if loop is None:
+      self.loop = asyncio.new_event_loop()
+      asyncio.set_event_loop(self.loop)
+    else:
+      self.loop = loop
     super().__init__(
         command_prefix=get_prefix,
         strip_after_prefix=True,
@@ -60,8 +64,9 @@ class Friday(commands.AutoShardedBot):
     self.session = None
     self.restartPending = False
     self.views_loaded = False
-    self.saved_guilds = {}
-    self.songqueue = {}
+
+    # guild_id: str("!")
+    self.prefixes = defaultdict(lambda: str("!"))
     self.prod = True if len(sys.argv) > 1 and (sys.argv[1] == "--prod" or sys.argv[1] == "--production") else False
     self.canary = True if len(sys.argv) > 1 and (sys.argv[1] == "--canary") else False
     self.ready = False
@@ -72,6 +77,9 @@ class Friday(commands.AutoShardedBot):
     self.logger.info(f"Cluster Starting {kwargs.get('shard_ids', None)}, {kwargs.get('shard_count', 1)}")
     if self.should_start:
       self.run(kwargs["token"])
+
+  def __repr__(self):
+    return "<Friday>"
 
   @property
   def log(self) -> Optional["Log"]:
@@ -91,19 +99,15 @@ class Friday(commands.AutoShardedBot):
   async def setup(self, load_extentions: bool = False):
     self.session: aiohttp.ClientSession() = aiohttp.ClientSession(loop=self.loop)
 
+    for guild_id, prefix in await self.db.query("SELECT id,prefix FROM servers"):
+      self.prefixes[int(guild_id, base=10)] = prefix
+
     if load_extentions:
       for cog in cogs.default:
         try:
           self.load_extension(f"cogs.{cog}")
         except Exception as e:
           self.logger.error(f"Failed to load extenstion {cog} with \n {e}")
-
-  @functions.cache(maxsize=256)
-  async def get_guild_prefix(self, guild_id: int) -> str:
-    try:
-      return await self.db.query("SELECT prefix FROM servers WHERE id=$1 LIMIT 1", str(guild_id))
-    except Exception:
-      return functions.config.defaultPrefix
 
   async def reload_cogs(self):
     self.ready = False
