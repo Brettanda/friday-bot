@@ -248,7 +248,6 @@ class Moderation(commands.Cog):
     else:
       await ctx.reply(embed=embed(title=f"`{voicechannel}` is now my music channel"))
 
-
   @commands.command(name="last", help="Gets the last member to leave a voice channel.")
   @commands.guild_only()
   async def last_member(self, ctx: "MyContext", *, voice_channel: Optional[discord.VoiceChannel] = None):
