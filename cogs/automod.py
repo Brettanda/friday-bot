@@ -417,7 +417,7 @@ class AutoMod(commands.Cog):
       config = await self.get_guild_config(ctx.guild.id)
       if config is None or config.max_mentions is None:
         return await ctx.send(embed=embed(title="No settings found", color=MessageColors.ERROR))
-      return await ctx.send(embed=embed(title="Current mention spam settings", description=f"Mention count: {config.max_mentions['mentions']}\nSeconds: {config.max_mentions['seconds']}"))
+      return await ctx.send(embed=embed(title="Current mention spam settings", description=f"Mention count: `{config.max_mentions['mentions']}`\nSeconds: `{config.max_mentions['seconds']}`"))
 
   @max_mentions.command(name="punishment", aliases=["punishments"], extras={"examples": PUNISHMENT_TYPES, "params": PUNISHMENT_TYPES}, help="Set the punishment for the max amount of mentions one user can send per message. Combining kick,ban and/or mute will only apply one of them.")
   @commands.guild_only()
@@ -469,7 +469,7 @@ class AutoMod(commands.Cog):
       config = await self.get_guild_config(ctx.guild.id)
       if config is None or config.max_messages is None:
         return await ctx.send(embed=embed(title="No settings found", color=MessageColors.ERROR))
-      return await ctx.send(embed=embed(title="Current message spam settings", description=f"Message count: {config.max_messages['rate']}\nSeconds: {config.max_messages['seconds']}\nPunishments: {config.max_messages['punishments']}"))
+      return await ctx.send(embed=embed(title="Current message spam settings", description=f"Message count: `{config.max_messages['rate']}`\nSeconds: `{config.max_messages['seconds']}`\nPunishments: `{', '.join(config.max_messages['punishments'])}`"))
 
   @max_spam.command(name="punishment", aliases=["punishments"], extras={"examples": PUNISHMENT_TYPES, "params": PUNISHMENT_TYPES}, help="Set the punishment for the max amount of message every x seconds. Combining kick,ban and/or mute will only apply one of them.")
   @commands.guild_only()
@@ -520,7 +520,7 @@ class AutoMod(commands.Cog):
       config = await self.get_guild_config(ctx.guild.id)
       if config is None or config.max_content is None:
         return await ctx.send(embed=embed(title="No settings found", color=MessageColors.ERROR))
-      return await ctx.send(embed=embed(title="Current message content spam settings", description=f"Message count: {config.max_content['rate']}\nSeconds: {config.max_content['seconds']}\nPunishments: {config.max_content['punishments']}"))
+      return await ctx.send(embed=embed(title="Current message content spam settings", description=f"Message count: `{config.max_content['rate']}`\nSeconds: `{config.max_content['seconds']}`\nPunishments: `{', '.join(config.max_content['punishments'])}`"))
 
   @max_content_spam.command(name="punishment", aliases=["punishments"], extras={"examples": PUNISHMENT_TYPES, "params": PUNISHMENT_TYPES}, help="Set the punishment for the max amount of message every x seconds. Combining kick,ban and/or mute will only apply one of them.")
   @commands.guild_only()
