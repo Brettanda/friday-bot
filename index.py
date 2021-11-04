@@ -5,6 +5,7 @@ import sys
 import aiohttp
 from importlib import reload
 
+from dotenv import load_dotenv
 import nextcord as discord
 from typing import Optional
 from typing_extensions import TYPE_CHECKING
@@ -18,6 +19,8 @@ import functions
 if TYPE_CHECKING:
   from .cogs.log import Log
   from .cogs.database import Database
+
+load_dotenv()
 
 TOKEN = os.environ.get('TOKENTEST')
 
