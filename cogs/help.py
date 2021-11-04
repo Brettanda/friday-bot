@@ -73,13 +73,12 @@ def syntax(command, prefix: str = "!", quotes: bool = True):
 
 
 class MyMenuPages(ButtonMenuPages):
-  def __init__(self, source, *, title="Commands", description="", delete_after=True):
-    super().__init__(source=source, timeout=60.0)
+  def __init__(self, source, **kwargs):
+    super().__init__(source=source, timeout=60.0, **kwargs)
     self._source = source
     self.current_page = 0
     self.ctx = None
     self.message = None
-    self.delete_after = delete_after
     for item in views.Links().links:
       self.add_item(item)
 
@@ -106,13 +105,15 @@ class MyMenuPages(ButtonMenuPages):
       await interaction.response.send_message('This help menu is not for you.', ephemeral=True)
       return False
 
+  def stop(self):
+    try:
+      self.ctx.bot.loop.create_task(self.message.delete())
+    except discord.NotFound:
+      pass
+    super().stop()
+
   async def on_timeout(self) -> None:
     self.stop()
-    if self.delete_after and self.message:
-      try:
-        await self.message.delete()
-      except discord.NotFound:
-        pass
 
 
 class HelpMenu(ListPageSource):
@@ -224,8 +225,7 @@ class Help(commands.HelpCommand):
     if delay is not None and delay > 0:  # and not slash:
       await ctx.message.delete(delay=delay)
     menu = MyMenuPages(
-        source=HelpMenu(ctx, commands, title="Friday - Help", description="If you would like to make a suggestion for a command please join the [Friday's Development](https://discord.gg/NTRuFjU) and explain your suggestion.\n\nFor more info on how commands work and how to format them please check out [docs.friday-bot.com](https://docs.friday-bot.com/).\n\n**Some commands will only show if you have the correct permissions to use them.**",),
-        delete_after=True
+        source=HelpMenu(ctx, commands, title="Friday - Help", description="If you would like to make a suggestion for a command please join the [Friday's Development](https://discord.gg/NTRuFjU) and explain your suggestion.\n\nFor more info on how commands work and how to format them please check out [docs.friday-bot.com](https://docs.friday-bot.com/).\n\n**Some commands will only show if you have the correct permissions to use them.**",)
     )
     await menu.start(ctx)
 
