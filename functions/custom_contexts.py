@@ -9,7 +9,7 @@ from typing_extensions import TYPE_CHECKING
 from .myembed import embed
 
 if TYPE_CHECKING:
-  # from index import Friday as Bot
+  from index import Friday as Bot
   from cogs.database import Database
   from aiohttp import ClientSession
   from asyncpg import Pool
