@@ -142,7 +142,11 @@ class AutoMod(commands.Cog):
       return
 
     self._spam_check.pop(ctx.guild.id, None)
-    self.get_guild_config.invalidate(self, ctx.guild.id)
+    self.bot.dispatch("invalidate_mod", ctx.guild.id)
+
+  @commands.Cog.listener()
+  async def on_invalidate_mod(self, guild_id: int):
+    self.get_guild_config.invalidate(self, guild_id)
 
   @cache()
   async def get_guild_config(self, guild_id: int) -> Optional[Config]:
@@ -252,6 +256,7 @@ class AutoMod(commands.Cog):
       await self.bot.db.query("UPDATE servers SET muted_members=array_append(muted_members, $1) WHERE id=$2", str(after.id), str(guild_id))
     else:
       await self.bot.db.query("UPDATE servers SET muted_members=array_remove(muted_members, $1) WHERE id=$2", str(after.id), str(guild_id))
+    self.bot.dispatch("invalidate_mod", before.guild.id)
 
   @commands.Cog.listener()
   async def on_guild_role_delete(self, role: discord.Role):
@@ -261,6 +266,7 @@ class AutoMod(commands.Cog):
       return
 
     await self.bot.db.query("UPDATE servers SET mute_role=NULL WHERE id=$1", str(guild_id))
+    self.bot.dispatch("invalidate_mod", role.guild.id)
 
   def do_slugify(self, string):
     string = slugify(string).replace("-", "")
@@ -480,7 +486,7 @@ class AutoMod(commands.Cog):
       current = json.loads(current)
     current.update({"punishments": action})
     await self.bot.db.query("UPDATE servers SET max_messages=$1 WHERE id=$2", json.dumps(current), str(ctx.guild.id))
-    await self.get_guild_config.cache.delete(ctx.guild.id)
+    self.get_guild_config.invalidate(self, ctx.guild.id)
     await ctx.reply(embed=embed(title=f"New punishment(s) for spam is `{', '.join(action)}`"))
 
   @max_spam.command(name="disable", help="Disable the max amount of messages per x seconds by the same member for this server.")
