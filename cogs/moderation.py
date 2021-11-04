@@ -167,17 +167,8 @@ class Moderation(commands.Cog):
       return None
 
   @commands.Cog.listener()
-  async def on_guild_role_delete(self, role: discord.Role):
-    guild_id = role.guild.id
-    config = await self.get_guild_config(guild_id)
-    if config is None or config.mute_role_id != role.id:
-      return
-
-    await self.bot.db.query("UPDATE servers SET (mute_role, muted_members) = (NULL, '{}'::bigint[]) WHERE id=$1", str(guild_id))
+  async def on_invalidate_mod(self, guild_id: int):
     self.get_guild_config.invalidate(self, guild_id)
-    automod = self.bot.get_cog("cogs.automod")
-    if automod:
-      automod.get_guild_config.invalidate(automod, guild_id)
 
   @commands.Cog.listener()
   async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
@@ -256,22 +247,6 @@ class Moderation(commands.Cog):
       await ctx.reply(embed=embed(title="All the voice channels are my music channels 😈 (jk)"))
     else:
       await ctx.reply(embed=embed(title=f"`{voicechannel}` is now my music channel"))
-
-  @commands.command(name="deletecommandsafter", extras={"examples": ["0", "180"]}, aliases=["deleteafter", "delcoms"], help="Set the time in seconds for how long to wait before deleting command messages")
-  @commands.guild_only()
-  @commands.has_guild_permissions(manage_messages=True)
-  @commands.bot_has_permissions(manage_messages=True)
-  async def delete_commands_after(self, ctx: "MyContext", time: Optional[int] = 0):
-    if time < 0:
-      await ctx.reply(embed=embed(title="time has to be above 0"))
-      return
-    async with ctx.typing():
-      await self.bot.db.query("UPDATE servers SET autoDeleteMSGs=$1 WHERE id=$2", time, str(ctx.guild.id))
-      self.bot.log.change_guild_delete(str(ctx.guild.id), time)
-    if time == 0:
-      await ctx.reply(embed=embed(title="I will no longer delete command messages"))
-    else:
-      await ctx.reply(embed=embed(title=f"I will now delete commands after `{time}` seconds"))
 
   @commands.command(name="last", help="Gets the last member to leave a voice channel.")
   @commands.guild_only()
@@ -579,17 +554,13 @@ class Moderation(commands.Cog):
 
   @norm_chatchannel.after_invoke
   @music_channel.after_invoke
-  @delete_commands_after.after_invoke
   @mute_role.after_invoke
   @mute_role_create.after_invoke
   async def settings_after_invoke(self, ctx: "MyContext"):
     if not ctx.guild:
       return
 
-    self.get_guild_config.invalidate(self, ctx.guild.id)
-    automod = self.bot.get_cog("cogs.automod")
-    if automod:
-      automod.get_guild_config.invalidate(automod, ctx.guild.id)
+    self.bot.dispatch("invalidate_mod", ctx.guild.id)
 
 
 def setup(bot):

@@ -151,7 +151,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       return
 
     self.bot.restartPending = True
-    stat = await ctx.reply(embed=embed(title="Pending"), delete_after=None)
+    stat = await ctx.reply(embed=embed(title="Pending"))
     if len(self.bot.voice_clients) > 0 and force is False:
       await stat.edit(embed=embed(title=f"{len(self.bot.voice_clients)} guilds are playing music"))
       while len(self.bot.voice_clients) > 0:

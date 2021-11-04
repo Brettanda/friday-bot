@@ -24,7 +24,6 @@ class Database(commands.Cog):
             "prefix varchar(5) NOT NULL DEFAULT '!'",
             "patreon_user text NULL DEFAULT NULL",
             "lang varchar(2) NULL DEFAULT NULL",
-            "autodeletemsgs smallint NOT NULL DEFAULT 0",
             "max_mentions json NULL DEFAULT NULL",
             "max_messages json NULL DEFAULT NULL",
             "max_content json NULL DEFAULT NULL",

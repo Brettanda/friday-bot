@@ -10,7 +10,7 @@ import typing
 from typing import TYPE_CHECKING
 from nextcord.ext import commands  # , tasks
 # from discord_slash.http import SlashCommandRequest
-from functions import MessageColors, embed, relay_info, exceptions, config, views, MyContext  # , FakeInteractionMessage
+from functions import MessageColors, embed, relay_info, exceptions, config, views, MyContext, cache  # , FakeInteractionMessage
 import traceback
 
 from collections import Counter
@@ -32,6 +32,20 @@ GENERAL_CHANNEL_NAMES = {"welcome", "general", "lounge", "chat", "talk", "main"}
 #   if not ctx.enabled:
 #     raise commands.CheckFailure("Currently I am disabled, my boss has been notified, please try again later :)")
 #   return True
+
+class Config:
+  __slots__ = ("bot", "id", "chat_channel", "tier", "lang",)
+
+  @classmethod
+  async def from_record(cls, record, bot):
+    self = cls()
+
+    self.bot: "Bot" = bot
+    self.id: int = int(record["id"], base=10)
+    self.chat_channel = record["chatchannel"]
+    self.tier = record["tier"]
+    self.lang = record["lang"]
+    return self
 
 
 class CustomWebhook(discord.Webhook):
@@ -341,37 +355,15 @@ class Log(commands.Cog):
   def get_prefixes(self) -> [str]:
     return ["/", "!", "f!", "!f", "%", ">", "?", "-", "(", ")"]
 
-  def get_guild_delete_commands(self, guild: typing.Union[discord.Guild, int]) -> int:
-    try:
-      if guild is not None:
-        delete = self.bot.saved_guilds[str(guild.id) if isinstance(guild, discord.Guild) else guild]["autoDeleteMSGs"]
-        return delete if delete != 0 else None
-    except KeyError:
-      self.set_guild(guild)
-      return delete if delete != 0 else None
-
-  def get_guild_chat_channel(self, guild: typing.Union[discord.Guild, int]) -> int:
-    try:
-      if guild is None:
-        return False
-      guild_id = guild.id if isinstance(guild, discord.Guild) else guild
-      if str(guild_id) not in [str(item.id) for item in self.bot.guilds]:
-        return None
-      if guild.id not in self.bot.saved_guilds:
-        self.set_guild(guild,)
-      return self.bot.saved_guilds[str(guild.id) if isinstance(guild, discord.Guild) else guild]["chatChannel"]
-    except KeyError:
-      self.set_guild(guild)
-      return self.bot.saved_guilds[str(guild.id) if isinstance(guild, discord.Guild) else guild]["chatChannel"]
-
-  def get_guild_tier(self, guild: typing.Union[discord.Guild, int]) -> str:
-    try:
-      if guild is not None:
-        guild = self.bot.saved_guilds.get(str(guild.id) if isinstance(guild, discord.Guild) else guild, None)
-        return guild.get("tier", "free") if guild is not None else "free"
-    except KeyError:
-      self.set_guild(guild)
-      return guild.get("tier", "free") if guild is not None else "free"
+  @cache()
+  async def get_guild_config(self, guild_id: int) -> typing.Optional[Config]:
+    query = "SELECT * FROM servers WHERE id=$1 LIMIT 1;"
+    async with self.bot.db.pool.acquire(timeout=300.0) as conn:
+      record = await conn.fetchrow(query, str(guild_id))
+      self.bot.logger.debug(f"PostgreSQL Query: \"{query}\" + {str(guild_id)}")
+      if record is not None:
+        return await Config.from_record(record, self.bot)
+      return None
 
   async def fetch_user_tier(self, user: discord.User):
     if user.id == self.bot.owner_id:
@@ -395,49 +387,12 @@ class Log(commands.Cog):
         x += 1
       return final_tier if final_tier is not None else None
 
-  def get_guild_lang(self, guild: typing.Union[discord.Guild, int]) -> str:
-    try:
-      if guild is not None:
-        guild = self.bot.saved_guilds.get(str(guild.id) if isinstance(guild, discord.Guild) else guild, None)
-        lang = guild.get("lang", None) if guild is not None else None
-        return lang if lang is not None else guild.preferred_locale.split("-")[0] if isinstance(guild, discord.Guild) else "en"
-    except KeyError:
-      self.set_guild(guild)
-      return lang if lang is not None else guild.preferred_locale.split("-")[0] if isinstance(guild, discord.Guild) else "en"
-
-  # def change_guild_attritbute(
-  #         self,
-  #         guild: discord.Guild or int,
-  #         prefix: str = config.defaultPrefix,
-  #         delete: int = None,
-  #         premium: bool = False,
-  #         chat_channel: int = None):
-  #   if guild is None or :
-  #     return False
-
-  def change_guild_delete(self, guild: typing.Union[discord.Guild, int], delete: int = 0) -> None:
-    if guild is not None:
-      self.bot.saved_guilds[str(guild.id) if isinstance(guild, discord.Guild) else guild]["autoDeleteMSGs"] = delete
-
-  def change_guild_tier(self, guild: typing.Union[discord.Guild, int], premium: int = 0) -> None:
-    if guild is not None:
-      self.bot.saved_guilds.get(str(guild.id) if isinstance(guild, discord.Guild) else guild, None)["tier"] = premium
-
-  def change_guild_chat_channel(self, guild: typing.Union[discord.Guild, int], chatChannel: int = None) -> None:
-    if guild is not None:
-      self.bot.saved_guilds[str(guild.id) if isinstance(guild, discord.Guild) else guild]["chatChannel"] = chatChannel
-
-  def change_guild_lang(self, guild: typing.Union[discord.Guild, int], lang: str = None) -> None:
-    if guild is not None:
-      self.bot.saved_guilds[str(guild.id) if isinstance(guild, discord.Guild) else guild]["lang"] = lang if lang is not None else guild.preferred_locale.split("-")[0] if isinstance(guild, discord.Guild) else "en"
-
   def set_guild(
           self,
           guild: typing.Union[discord.Guild, int],
           prefix: str = "!",
           tier: int = 0,
           patreon_user: int = None,
-          autoDeleteMSG: int = None,
           max_mentions: int = None,
           max_messages: [int] = None,
           chatChannel: int = None,
@@ -448,7 +403,6 @@ class Log(commands.Cog):
           {str(guild.id) if isinstance(guild, discord.Guild) else guild: {
               "tier": tier,
               "patreon_user": patreon_user,
-              "autoDeleteMSGs": autoDeleteMSG,
               "max_mentions": max_mentions,
               "max_messages": max_messages,
               "chatChannel": chatChannel if chatChannel is not None else None,
@@ -464,10 +418,10 @@ class Log(commands.Cog):
 
   async def set_all_guilds(self) -> None:
     # if not hasattr(self.bot, "saved_guilds") or len(self.bot.saved_guilds) != len(self.bot.guilds):
-    servers = await self.bot.db.query("SELECT id,tier,patreon_user,autoDeleteMSGs,chatChannel,lang FROM servers")
+    servers = await self.bot.db.query("SELECT id,tier,patreon_user,chatChannel,lang FROM servers")
     guilds = {}
-    for guild_id, tier, patreon_user, autoDeleteMSG, chatChannel, lang in servers:
-      guilds.update({str(guild_id): {"tier": str(tier), "patreon_user": int(patreon_user) if patreon_user is not None else None, "autoDeleteMSGs": int(autoDeleteMSG), "chatChannel": int(chatChannel) if chatChannel is not None else None, "lang": lang}})
+    for guild_id, tier, patreon_user, chatChannel, lang in servers:
+      guilds.update({str(guild_id): {"tier": str(tier), "patreon_user": int(patreon_user) if patreon_user is not None else None, "chatChannel": int(chatChannel) if chatChannel is not None else None, "lang": lang}})
     self.bot.saved_guilds = guilds
     return guilds
 
@@ -507,41 +461,33 @@ class Log(commands.Cog):
     # if ctx.cog and ctx.cog._get_overridden_method(ctx.cog.cog_command_error) is not None:
     #   return
 
-    delete = self.get_guild_delete_commands(ctx.guild)
-    error_text = getattr(error, 'original', error)
-    if isinstance(error, (commands.MissingRequiredArgument, commands.TooManyArguments)):
-      await ctx.send_help(ctx.command)
-    elif isinstance(error, (commands.CommandNotFound, commands.NotOwner)):
+    ignored = (commands.CommandNotFound, commands.NotOwner, )
+    just_send = (commands.DisabledCommand, commands.BotMissingPermissions, commands.MissingPermissions, commands.RoleNotFound, commands.ArgumentParsingError,)
+    error = getattr(error, 'original', error)
+
+    if isinstance(error, ignored):
       return
-    elif isinstance(error, (commands.BotMissingPermissions, commands.MissingPermissions, commands.RoleNotFound)):
+
+    if isinstance(error, just_send):
       await ctx.send(embed=embed(title=error, color=MessageColors.ERROR))
+    elif isinstance(error, (commands.MissingRequiredArgument, commands.TooManyArguments)):
+      await ctx.send_help(ctx.command)
     elif isinstance(error, commands.CommandOnCooldown):
       retry_after = discord.utils.utcnow() + datetime.timedelta(seconds=error.retry_after)
-      await ctx.send(embed=embed(title=f"This command is on a cooldown, and will be available <t:{int(retry_after.timestamp())}:R>", color=MessageColors.ERROR), delete_after=60)
-      # if hasattr(ctx.message, "delete"):
-      #   await ctx.message.delete(delay=60)
+      await ctx.send(embed=embed(title=f"This command is on a cooldown, and will be available <t:{int(retry_after.timestamp())}:R>", color=MessageColors.ERROR))
+    elif isinstance(error, (exceptions.RequiredTier, exceptions.NotInSupportServer)):
+      await ctx.send(embed=embed(title=error, color=MessageColors.ERROR))
     elif isinstance(error, commands.NoPrivateMessage):
-      await ctx.send(embed=embed(title="This command does not work in non-server text channels", color=MessageColors.ERROR), delete_after=delete)
-    elif isinstance(error, commands.DisabledCommand):
-      await ctx.send(embed=embed(title=error_text, description="Please check the #updates channel in the support server for more info", color=MessageColors.ERROR))
+      await ctx.send(embed=embed(title="This command does not work in non-server text channels", color=MessageColors.ERROR))
     elif isinstance(error, commands.CommandInvokeError):
       original = error.original
       if not isinstance(original, discord.HTTPException):
         print(f"In {ctx.command.qualified_name}:", file=sys.stderr)
         traceback.print_tb(original.__traceback__)
         print(f"{original.__class__.__name__}: {original}", file=sys.stderr)
-    elif isinstance(error, commands.ArgumentParsingError):
-      await ctx.send(embed=embed(title=error, color=MessageColors.ERROR))
-    # else:
-    #   try:
-    #     await ctx.send(embed=embed(title=f"{error_text}", color=MessageColors.ERROR), delete_after=delete)
-    #   except discord.Forbidden:
-    #     try:
-    #       await ctx.send(f"{error_text}", delete_after=delete)
-    #     except discord.Forbidden:
-    #       print("well guess i just can't respond then")
-    #       logging.warning("well guess i just can't respond then")
-    #   raise error
+    else:
+      print('Ignoring exception in command {}:'.format(ctx.command), file=sys.stderr)
+      traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
 
   @commands.Cog.listener()
   async def on_error(self, event, *args, **kwargs):

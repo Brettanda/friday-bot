@@ -212,13 +212,12 @@ class PaginatorSource(menus.ListPageSource):
 
 
 class QueueMenu(menus.ButtonMenuPages):
-  def __init__(self, source, *, title="Commands", description="", delete_after=True):
+  def __init__(self, source, *, title="Commands", description=""):
     super().__init__(source=source, timeout=30.0)
     self._source = source
     self.current_page = 0
     self.ctx = None
     self.message = None
-    self.delete_after = delete_after
 
   async def start(self, ctx, *, channel: discord.TextChannel = None, wait=False) -> None:
     await self._source._prepare_once()
@@ -243,13 +242,15 @@ class QueueMenu(menus.ButtonMenuPages):
       await interaction.response.send_message('This help menu is not for you.', ephemeral=True)
       return False
 
+  def stop(self):
+    try:
+      self.ctx.bot.loop.create_task(self.message.delete())
+    except discord.NotFound:
+      pass
+    super().stop()
+
   async def on_timeout(self) -> None:
     self.stop()
-    if self.delete_after and self.message:
-      try:
-        await self.message.delete()
-      except discord.NotFound:
-        pass
 
 
 class Music(commands.Cog, wavelink.WavelinkMixin):
@@ -635,7 +636,7 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
 
     entries = [track.title for track in player.queue._queue]
     pages = PaginatorSource(entries=entries)
-    paginator = QueueMenu(source=pages, delete_after=True)
+    paginator = QueueMenu(source=pages)
 
     await paginator.start(ctx)
 
