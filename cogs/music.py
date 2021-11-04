@@ -307,9 +307,12 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
   async def cog_command_error(self, ctx: MyContext, error: Exception):
     if isinstance(error, (IncorrectChannelError, NoChannelProvided, NoCustomSoundsFound, VoiceConnectionError)):
       return await ctx.send(embed=embed(title=error, color=MessageColors.ERROR))
-
-    if isinstance(error, commands.BadLiteralArgument):
+    elif isinstance(error, commands.BadLiteralArgument):
       return await ctx.send(embed=embed(title=f"`{error.param.name}` must be one of `{', '.join(error.literals)}.`", color=MessageColors.ERROR))
+    elif isinstance(error, (exceptions.RequiredTier, exceptions.NotSupporter, exceptions.NotInSupportServer)):
+      return await ctx.send(embed=embed(title=error, color=MessageColors.ERROR))
+    else:
+      print(f"Error in {ctx.command.qualified_name}: {type(error).__name__}: {error}")
 
   @wavelink.WavelinkMixin.listener()
   async def on_node_ready(self, node: wavelink.Node):
@@ -386,8 +389,8 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
     """Connect to a voice channel."""
     ch = await self.join(ctx, channel)
     if ch:
-      return await ctx.send(f"{ch.mention}", embed=embed(title="Connected to voice channel", color=MessageColors.MUSIC), delete_after=20.0)
-    return await ctx.send(embed=embed(title="Failed to connect to voice channel.", color=MessageColors.ERROR), delete_after=20.0)
+      return await ctx.send(f"{ch.mention}", embed=embed(title="Connected to voice channel", color=MessageColors.MUSIC))
+    return await ctx.send(embed=embed(title="Failed to connect to voice channel.", color=MessageColors.ERROR))
 
   @commands.command(name="play", aliases=["p", "add"], extras={"examples": ["https://youtu.be/dQw4w9WgXcQ"]}, usage="<url/title>", help="Follow this command with the title of a song to search for it or just paste the Youtube/SoundCloud url if the search gives and undesirable result")
   @commands.guild_only()
