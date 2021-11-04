@@ -44,6 +44,7 @@ intents = discord.Intents(
     messages=True,
     reactions=True,
     members=True,
+    bans=True,
     # invites=True,
 )
 
