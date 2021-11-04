@@ -12,7 +12,7 @@ from nextcord.ext import commands
 from typing_extensions import TYPE_CHECKING
 from collections import defaultdict
 
-from functions import (MessageColors, MyContext, cache, config, embed,
+from functions import (MessageColors, MyContext, cache, checks, config, embed,
                        relay_info)
 
 if TYPE_CHECKING:
