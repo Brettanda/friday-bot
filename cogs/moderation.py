@@ -300,33 +300,6 @@ class Moderation(commands.Cog):
   @commands.bot_has_guild_permissions(kick_members=True)
   @commands.has_guild_permissions(kick_members=True)
   async def norm_kick(self, ctx, members: commands.Greedy[discord.Member], *, reason: Optional[ActionReason] = None):
-    await self.kick(ctx, members, reason)
-
-  # @cog_ext.cog_slash(
-  #     name="kick",
-  #     description="Kick a member from the server",
-  #     options=[
-  #         create_option(
-  #             "member",
-  #             "The member to kick",
-  #             SlashCommandOptionType.USER,
-  #             True
-  #         ),
-  #         create_option(
-  #             "reason",
-  #             "The reason for kicking these member(s)",
-  #             SlashCommandOptionType.STRING,
-  #             False
-  #         )
-  #     ]
-  # )
-  # @checks.bot_has_guild_permissions(kick_members=True)
-  # @commands.has_guild_permissions(kick_members=True)
-  # @checks.slash(user=True, private=False)
-  # async def slash_kick(self, ctx, member: discord.Member, reason=None):
-  #   await self.kick(ctx, [member], reason)
-
-  async def kick(self, ctx, members: commands.Greedy[discord.Member], reason: Optional[ActionReason] = None):
     if not isinstance(members, list):
       members = [members]
     if reason is None:
@@ -348,36 +321,6 @@ class Moderation(commands.Cog):
   @commands.bot_has_guild_permissions(ban_members=True)
   @commands.has_guild_permissions(ban_members=True)
   async def norm_ban(self, ctx, members: commands.Greedy[MemberOrID], *, reason: Optional[ActionReason] = None):
-    return await self.ban(ctx, members, reason)
-
-  # @cog_ext.cog_slash(
-  #     name="ban",
-  #     description="Ban a member from the server",
-  #     options=[
-  #         create_option(
-  #             "member",
-  #             "The member to ban",
-  #             SlashCommandOptionType.USER,
-  #             True
-  #         ),
-  #         create_option(
-  #             "reason",
-  #             "The reason for banning",
-  #             SlashCommandOptionType.STRING,
-  #             False
-  #         ),
-  #     ]
-  # )
-  # @checks.bot_has_guild_permissions(ban_members=True)
-  # @commands.has_guild_permissions(ban_members=True)
-  # @checks.slash(user=True, private=False)
-  # async def slash_ban(self, ctx, member, reason=None):
-  #   # SLASH COMMANDS PROBABLY WONT WORK WITH COMMANDS.GREEDY LISTS
-  #   ...
-  #   # post = await self.ban(ctx, member, reason, delete_message_days, True)
-  #   # await ctx.send(**post)
-
-  async def ban(self, ctx, members: commands.Greedy[discord.Member], reason: ActionReason = None):
     if not isinstance(members, list):
       members = [members]
     if reason is None:
@@ -412,32 +355,6 @@ class Moderation(commands.Cog):
   @commands.has_guild_permissions(move_members=True)
   @commands.bot_has_guild_permissions(move_members=True)
   async def norm_rolecall(self, ctx, role: discord.Role, voicechannel: Optional[Union[discord.VoiceChannel, discord.StageChannel]], exclusions: commands.Greedy[Union[discord.Role, discord.VoiceChannel]] = None):
-    await self.rolecall(ctx, role, voicechannel, exclusions)
-
-  # @cog_ext.cog_slash(
-  #     name="rolecall",
-  #     description="Moves everyone with a specific role to a voicechannel.",
-  #     options=[
-  #         create_option("role", "The role to rolecall", SlashCommandOptionType.ROLE, True),
-  #         create_option("voicechannel", "The voice channel to move members to", SlashCommandOptionType.CHANNEL, True),
-  #         create_option("exclusion1", "A member that you don't want moved", SlashCommandOptionType.USER, False),
-  #         create_option("exclusion2", "A member that you don't want moved", SlashCommandOptionType.USER, False),
-  #         create_option("exclusion3", "A member that you don't want moved", SlashCommandOptionType.USER, False),
-  #         create_option("exclusion4", "A member that you don't want moved", SlashCommandOptionType.USER, False),
-  #         create_option("exclusion5", "A member that you don't want moved", SlashCommandOptionType.USER, False)
-  #     ]
-  # )
-  # @checks.bot_has_guild_permissions(move_members=True)
-  # @commands.has_guild_permissions(move_members=True)
-  # @checks.slash(user=False, private=False)
-  # async def slash_rolecall(self, ctx, role, voicechannel, exclusion1=None, exclusion2=None, exclusion3=None, exclusion4=None, exclusion5=None):
-  #   exclusions = []
-  #   for item in [exclusion1, exclusion2, exclusion3, exclusion4, exclusion5]:
-  #     if item is not None:
-  #       exclusions.append(item)
-  #   await self.rolecall(ctx, role, voicechannel, exclusions)
-
-  async def rolecall(self, ctx, role, voicechannel, exclusions=None):
     if voicechannel.permissions_for(ctx.author).view_channel is not True:
       return await ctx.send(embed=embed(title="Trying to connect to a channel you can't view 🤔", description="Im going to have to stop you right there", color=MessageColors.ERROR))
     if voicechannel.permissions_for(ctx.author).connect is not True:
@@ -458,64 +375,37 @@ class Moderation(commands.Cog):
   @commands.guild_only()
   @commands.has_guild_permissions(move_members=True)
   @commands.bot_has_guild_permissions(move_members=True)
-  async def norm_massmove(self, ctx, tochannel: Union[discord.VoiceChannel, discord.StageChannel] = None, fromchannel: Optional[Union[discord.VoiceChannel, discord.StageChannel]] = None):
-    await self.mass_move(ctx, tochannel, fromchannel)
-
-  # @cog_ext.cog_slash(
-  #     name="move",
-  #     description="Move users from one voice channel to another",
-  #     options=[
-  #         create_option(
-  #             "tochannel",
-  #             "The voice channel to move to",
-  #             SlashCommandOptionType.CHANNEL,
-  #             True
-  #         ),
-  #         create_option(
-  #             "fromchannel",
-  #             "The voice channel to move from",
-  #             SlashCommandOptionType.CHANNEL,
-  #             False
-  #         )
-  #     ],
-  # )
-  # @checks.bot_has_guild_permissions(move_members=True)
-  # @commands.has_guild_permissions(move_members=True)
-  # @checks.slash(user=True, private=False)
-  # async def slash_massmove(self, ctx, tochannel, fromchannel=None):
-  #   await self.mass_move(ctx, tochannel, fromchannel)
-
-  async def mass_move(self, ctx: "MyContext", toChannel: discord.VoiceChannel, fromChannel: discord.VoiceChannel = None):
-    if (fromChannel is not None and not isinstance(fromChannel, (discord.VoiceChannel, discord.StageChannel))) or (toChannel is not None and not isinstance(toChannel, (discord.VoiceChannel, discord.StageChannel))):
+  async def norm_massmove(self, ctx, to_channel: Union[discord.VoiceChannel, discord.StageChannel] = None, from_channel: Optional[Union[discord.VoiceChannel, discord.StageChannel]] = None):
+    if (from_channel is not None and not isinstance(from_channel, (discord.VoiceChannel, discord.StageChannel))) or (to_channel is not None and not isinstance(to_channel, (discord.VoiceChannel, discord.StageChannel))):
       return await ctx.send(embed=embed(title="Please only select voice channels for moving", color=MessageColors.ERROR))
 
-    if fromChannel is None and ctx.author.voice is not None and ctx.author.voice.channel is not None and ctx.author.voice.channel == toChannel:
+    if from_channel is None and ctx.author.voice is not None and ctx.author.voice.channel is not None and ctx.author.voice.channel == to_channel:
       return await ctx.send(embed=embed(title="Please select a voice channel different from the one you are already in to move to", color=MessageColors.ERROR))
 
-    if toChannel.permissions_for(ctx.author).view_channel is not True:
+    if to_channel.permissions_for(ctx.author).view_channel is not True:
       return await ctx.send(embed=embed(title="Trying to connect to a channel you can't view 🤔", description="Im going to have to stop you right there", color=MessageColors.ERROR))
 
-    if toChannel.permissions_for(ctx.author).connect is not True:
-      return await ctx.send(embed=embed(title=f"You don't have permission to connect to `{toChannel}` so I can't complete this command", color=MessageColors.ERROR))
+    if to_channel.permissions_for(ctx.author).connect is not True:
+      return await ctx.send(embed=embed(title=f"You don't have permission to connect to `{to_channel}` so I can't complete this command", color=MessageColors.ERROR))
 
     try:
-      if fromChannel is None:
-        fromChannel = ctx.author.voice.channel
+      if from_channel is None:
+        from_channel = ctx.author.voice.channel
     except BaseException:
       return await ctx.send(embed=embed(title="To move users from one channel to another, you need to be connected to one or specify the channel to send from.", color=MessageColors.ERROR))
 
-    memberCount = len(fromChannel.members)
+    memberCount = len(from_channel.members)
 
     failed = 0
 
-    for member in fromChannel.members:
+    for member in from_channel.members:
       try:
-        await member.move_to(toChannel, reason=f"Mass move called by {ctx.author} (ID: {ctx.author.id})")
+        await member.move_to(to_channel, reason=f"Mass move called by {ctx.author} (ID: {ctx.author.id})")
       except discord.HTTPException:
         failed += 1
 
-    if ctx.guild.me and ctx.guild.me in toChannel.members:
-      if toChannel.type == discord.ChannelType.stage_voice:
+    if ctx.guild.me and ctx.guild.me in to_channel.members:
+      if to_channel.type == discord.ChannelType.stage_voice:
         await ctx.guild.me.edit(suppress=False)
 
     return await ctx.send(embed=embed(title=f"Successfully moved {memberCount - failed}/{memberCount} member(s)"))
@@ -526,41 +416,16 @@ class Moderation(commands.Cog):
   @commands.has_guild_permissions(manage_channels=True)
   @commands.bot_has_guild_permissions(manage_channels=True)
   async def norm_lock(self, ctx, *, voicechannel: Optional[discord.VoiceChannel] = None):
-    post = await self.lock(ctx, voicechannel)
-    await ctx.reply(**post)
-
-  # @cog_ext.cog_slash(
-  #     name="lock",
-  #     description="Sets your voice channels user limit to the current number of occupants",
-  #     options=[
-  #         create_option("voicechannel", "The voice channel you wish to lock", SlashCommandOptionType.CHANNEL, required=False)
-  #     ]
-  # )
-  # @checks.bot_has_guild_permissions(manage_channels=True)
-  # @commands.has_guild_permissions(manage_channels=True)
-  # @checks.slash(user=True, private=False)
-  # async def slash_lock(self, ctx, *, voicechannel=None):
-  #   post = await self.lock(ctx, voicechannel)
-  #   await ctx.send(hidden=True, **post)
-
-  async def lock(self, ctx, voicechannel: Optional[discord.VoiceChannel] = None):
-    # await ctx.guild.chunk(cache=False)
     if voicechannel is None:
       if ctx.author.voice is None:
-        # if isinstance(ctx, SlashContext):
-        #   return dict(content="You either need to specify a voicechannel or be connected to one")
-        return dict(embed=embed(title="You either need to specify a voicechannel or be connected to one", color=MessageColors.ERROR))
+        return await ctx.send(embed=embed(title="You either need to specify a voicechannel or be connected to one", color=MessageColors.ERROR))
       voicechannel = ctx.author.voice.channel
     if voicechannel.user_limit > 0:
       await voicechannel.edit(user_limit=0)
-      # if isinstance(ctx, SlashContext):
-      #   return dict(content=f"Unlocked `{voicechannel}`")
-      return dict(embed=embed(title=f"Unlocked `{voicechannel}`"))
+      return await ctx.send(embed=embed(title=f"Unlocked `{voicechannel}`"))
     else:
       await voicechannel.edit(user_limit=len(voicechannel.members))
-      # if isinstance(ctx, SlashContext):
-      #   return dict(content=f"Locked `{voicechannel}`")
-      return dict(embed=embed(title=f"Locked `{voicechannel}`"))
+      return await ctx.send(embed=embed(title=f"Locked `{voicechannel}`"))
 
   @commands.command(name="begone", extras={"examples": ["https://discord.com/channels/707441352367013899/707458929696702525/707520808448294983", "707520808448294983"]}, help="Delete unwanted message that I send")
   @commands.bot_has_permissions(manage_messages=True)
@@ -596,8 +461,25 @@ class Moderation(commands.Cog):
   @can_mute()
   @commands.has_guild_permissions(manage_roles=True)
   @commands.bot_has_guild_permissions(manage_roles=True)
-  async def norm_mute(self, ctx: "MyContext", member: commands.Greedy[discord.Member], *, reason: ActionReason = None):
-    await self.mute(ctx, member, reason)
+  async def norm_mute(self, ctx: "MyContext", members: commands.Greedy[discord.Member], *, reason: ActionReason = None):
+    if not isinstance(members, list):
+      members = [members]
+
+    if reason is None:
+      reason = f"Mute done by {ctx.author} (ID: {ctx.author.id})"
+
+    role = discord.Object(id=ctx.guild_config.mute_role_id)
+    if len(members) == 0:
+      return await ctx.send(embed=embed(title="Missing members to mute.", color=MessageColors.ERROR))
+
+    failed = 0
+    async with ctx.typing():
+      for member in members:
+        try:
+          await member.add_roles(role, reason=reason)
+        except discord.HTTPException:
+          failed += 1
+    await ctx.send(embed=embed(title=f"Muted {len(members) - failed}/{len(members)} members."))
 
   @norm_mute.group("role", help="Set the role to be applied to members that get muted", invoke_without_command=True, case_insensitive=True)
   @commands.guild_only()
@@ -648,61 +530,12 @@ class Moderation(commands.Cog):
           skipped += 1
       await ctx.send(embed=embed(title="Mute role successfully created.", description=f"Overwrites:\nUpdated: {success}, Failed: {failed}, Skipped: {skipped}"))
 
-  # @cog_ext.cog_slash(
-  #     name="mute",
-  #     description="Add a mute role to a member",
-  #     options=[
-  #         create_option(name="member", description="The member to mute", option_type=SlashCommandOptionType.USER, required=True),
-  #         create_option(name="reason", description="The reason for the mute", option_type=SlashCommandOptionType.STRING, required=False)
-  #     ]
-  # )
-  # @commands.has_guild_permissions(manage_channels=True, manage_roles=True)
-  # @checks.bot_has_guild_permissions(view_channel=True, manage_channels=True, manage_roles=True)
-  # @checks.slash(user=True, private=False)
-  # async def slash_mute(self, ctx: SlashContext, member: discord.Member):
-  #   await ctx.defer(hidden=True)
-  #   await self.mute(ctx, [member], True)
-
-  async def mute(self, ctx: "MyContext", members: commands.Greedy[discord.Member], reason: ActionReason = None, slash: bool = False):
-    if not isinstance(members, list):
-      members = [members]
-
-    if reason is None:
-      reason = f"Mute done by {ctx.author} (ID: {ctx.author.id})"
-
-    role = discord.Object(id=ctx.guild_config.mute_role_id)
-    if len(members) == 0:
-      return await ctx.send(embed=embed(title="Missing members to mute.", color=MessageColors.ERROR))
-
-    failed = 0
-    async with ctx.typing():
-      for member in members:
-        try:
-          await member.add_roles(role, reason=reason)
-        except discord.HTTPException:
-          failed += 1
-    await ctx.send(embed=embed(title=f"Muted {len(members) - failed}/{len(members)} members."))
-
   @commands.command(name="unmute", extras={"examples": ["@Motostar @steve they said sorry", "@steve 9876543210", "@Motostar", "0123456789"]}, help="Unmute a member from text channels")
   @commands.guild_only()
   @can_mute()
+  @commands.has_guild_permissions(manage_roles=True)
+  @commands.bot_has_guild_permissions(manage_roles=True)
   async def norm_unmute(self, ctx: "MyContext", members: commands.Greedy[discord.Member], *, reason: ActionReason = None):
-    await self.unmute(ctx, members, reason)
-
-  # @cog_ext.cog_slash(
-  #     name="unmute",
-  #     description="Unmute a member from text channels",
-  #     options=[
-  #         create_option(name="member", description="The member to unmute", option_type=SlashCommandOptionType.USER, required=True),
-  #         create_option(name="reason", description="The reason for the unmute", option_type=SlashCommandOptionType.STRING, required=False)
-  #     ]
-  # )
-  # @checks.slash(user=True, private=False)
-  # async def slash_unmute(self, ctx, member: discord.Member):
-  #   await ctx.defer(hidden=True)
-  #   await self.unmute(ctx, [member], True)
-
-  async def unmute(self, ctx, members: commands.Greedy[discord.Member], reason: ActionReason = None, slash: bool = False):
     if not isinstance(members, list):
       members = [members]
 
@@ -743,34 +576,6 @@ class Moderation(commands.Cog):
     await self.bot.db.query("UPDATE servers SET lang=$1 WHERE id=$2", final_lang, str(ctx.guild.id))
     self.bot.log.change_guild_lang(ctx.guild, final_lang)
     return await ctx.reply(embed=embed(title=f"New language set to: `{final_lang_name}`"))
-
-  # @commands.Cog.listener()
-  # async def on_message(self, msg):
-  #   if msg.author.bot:
-  #     return
-
-  #   if not msg.guild:
-  #     return
-
-  #   if msg.guild.id != 215346091321720832:
-  #     return
-
-  #   if not validators.url(msg.clean_content) and len(msg.attachments) == 0:
-  #     return
-
-  #   ctx = await self.bot.get_context(msg)
-  #   if ctx.command:
-  #     return
-
-  #   async for message in msg.channel.history(limit=None, after=datetime.datetime.today() - datetime.timedelta(days=14), oldest_first=False):
-  #     if message.id != msg.id:
-  #       if len(msg.attachments) > 0 and len(message.attachments) > 0:
-  #         for msg_att in msg.attachments:
-  #           for att in message.attachments:
-  #             if msg_att.url == att.url:
-  #               return await msg.add_reaction("🔁")
-  #       if message.content == msg.content and message.content != "" and msg.content != "":
-  #         return await msg.add_reaction("🔁")
 
   @norm_chatchannel.after_invoke
   @music_channel.after_invoke
