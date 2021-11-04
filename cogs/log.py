@@ -10,7 +10,7 @@ import typing
 from typing import TYPE_CHECKING
 from nextcord.ext import commands  # , tasks
 # from discord_slash.http import SlashCommandRequest
-from functions import MessageColors, embed, relay_info, exceptions, config, views, MyContext  # , FakeInteractionMessage
+from functions import MessageColors, embed, relay_info, exceptions, config, views, MyContext, cache  # , FakeInteractionMessage
 import traceback
 
 from collections import Counter
