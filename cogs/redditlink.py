@@ -153,7 +153,7 @@ class redditlink(commands.Cog):
         await message.reply(embed=embed(title="Something went wrong", description="Please try again later. I have notified my boss of this error", color=MessageColors.ERROR), mention_author=False)
         raise e
 
-  @commands.group(name="redditextract", help="Extracts the media from the reddit post", invoke_without_command=True)
+  @commands.group(name="redditextract", help="Extracts the media from the reddit post", invoke_without_command=True, case_insensitive=True)
   async def norm_extract(self, ctx: "MyContext", link: str):
     if not ctx.is_interaction():
       try:

@@ -390,7 +390,7 @@ class AutoMod(commands.Cog):
     else:
       await ctx.reply(embed=embed(title="I will begin to remove invites"))
 
-  @commands.group(name="mentionspam", extras={"examples": ["3", "5", "10"]}, aliases=["maxmentions", "maxpings"], help="Set the max amount of mentions one user can send per message before muting the author", invoke_without_command=True)
+  @commands.group(name="mentionspam", extras={"examples": ["3", "5", "10"]}, aliases=["maxmentions", "maxpings"], help="Set the max amount of mentions one user can send per message before muting the author", invoke_without_command=True, case_insensitive=True)
   @commands.guild_only()
   @commands.has_guild_permissions(manage_messages=True, manage_roles=True)
   @commands.bot_has_guild_permissions(manage_messages=True, manage_roles=True)
@@ -406,7 +406,15 @@ class AutoMod(commands.Cog):
     await self.bot.db.query("UPDATE servers SET max_mentions=$1 WHERE id=$2", json.dumps({"mentions": mention_count, "seconds": seconds, "punishments": punishments}), str(ctx.guild.id))
     await ctx.reply(embed=embed(title=f"I will now apply the punishments `{', '.join(punishments)}` to members that mention `>={mention_count}` within `{seconds}` seconds."))
 
-  @max_mentions.command(name="punishment", aliases=["punishments"], extras={"examples": PUNISHMENT_TYPES}, help="Set the punishment for the max amount of mentions one user can send per message. Combining kick,ban and/or mute will only apply one of them.")
+  @max_mentions.error
+  async def max_mentions_error(self, ctx: "MyContext", error):
+    if isinstance(error, commands.MissingRequiredArgument):
+      config = await self.get_guild_config(ctx.guild.id)
+      if config is None or config.max_mentions is None:
+        return await ctx.send(embed=embed(title="No settings found", color=MessageColors.ERROR))
+      return await ctx.send(embed=embed(title="Current mention spam settings", description=f"Mention count: {config.max_mentions['mentions']}\nSeconds: {config.max_mentions['seconds']}"))
+
+  @max_mentions.command(name="punishment", aliases=["punishments"], extras={"examples": PUNISHMENT_TYPES, "params": PUNISHMENT_TYPES}, help="Set the punishment for the max amount of mentions one user can send per message. Combining kick,ban and/or mute will only apply one of them.")
   @commands.guild_only()
   @commands.has_guild_permissions(manage_messages=True, manage_roles=True)
   @commands.bot_has_guild_permissions(manage_messages=True, manage_roles=True)
@@ -431,7 +439,7 @@ class AutoMod(commands.Cog):
     await self.bot.db.query("UPDATE servers SET max_mentions=$1 WHERE id=$2", None, str(ctx.guild.id))
     await ctx.reply(embed=embed(title="Disabled max mentions"))
 
-  @commands.group(name="messagespam", extras={"examples": ["3 5", "10 12"]}, aliases=["maxmessages", "ratelimit"], help="Sets a max message count for users per x seconds", invoke_without_command=True)
+  @commands.group(name="messagespam", extras={"examples": ["3 5", "10 12"]}, aliases=["maxmessages", "ratelimit"], help="Sets a max message count for users per x seconds", invoke_without_command=True, case_insensitive=True)
   @commands.guild_only()
   @commands.bot_has_guild_permissions(manage_messages=True, manage_roles=True)
   @commands.has_guild_permissions(manage_messages=True, manage_roles=True)
@@ -450,7 +458,15 @@ class AutoMod(commands.Cog):
       return await ctx.reply(embed=embed(title="I will no longer delete messages"))
     await ctx.reply(embed=embed(title=f"I will now `{', '.join(punishments)}` messages matching the same author that are sent more than the rate of `{message_rate}` message, for every `{seconds}` seconds."))
 
-  @max_spam.command(name="punishment", aliases=["punishments"], extras={"examples": PUNISHMENT_TYPES}, help="Set the punishment for the max amount of message every x seconds. Combining kick,ban and/or mute will only apply one of them.")
+  @max_spam.error
+  async def max_spam_error(self, ctx: "MyContext", error):
+    if isinstance(error, commands.MissingRequiredArgument):
+      config = await self.get_guild_config(ctx.guild.id)
+      if config is None or config.max_messages is None:
+        return await ctx.send(embed=embed(title="No settings found", color=MessageColors.ERROR))
+      return await ctx.send(embed=embed(title="Current message spam settings", description=f"Message count: {config.max_messages['rate']}\nSeconds: {config.max_messages['seconds']}\nPunishments: {config.max_messages['punishments']}"))
+
+  @max_spam.command(name="punishment", aliases=["punishments"], extras={"examples": PUNISHMENT_TYPES, "params": PUNISHMENT_TYPES}, help="Set the punishment for the max amount of message every x seconds. Combining kick,ban and/or mute will only apply one of them.")
   @commands.guild_only()
   @commands.has_guild_permissions(manage_messages=True, manage_roles=True)
   @commands.bot_has_guild_permissions(manage_messages=True, manage_roles=True)
@@ -476,7 +492,7 @@ class AutoMod(commands.Cog):
     await self.bot.db.query("UPDATE servers SET max_messages=$1 WHERE id=$2", None, str(ctx.guild.id))
     await ctx.reply(embed=embed(title="Disabled max messages"))
 
-  @commands.group(name="contentspam", extras={"examples": ["3 5", "15 17"]}, help="Sets the max number of message that can have the same content (ignoring who sent the message) until passing the given threshold and muting anyone spamming the same content further.", invoke_without_command=True)
+  @commands.group(name="contentspam", extras={"examples": ["3 5", "15 17"]}, help="Sets the max number of message that can have the same content (ignoring who sent the message) until passing the given threshold and muting anyone spamming the same content further.", invoke_without_command=True, case_insensitive=True)
   @commands.guild_only()
   @commands.bot_has_guild_permissions(manage_messages=True, manage_roles=True)
   @commands.has_guild_permissions(manage_messages=True, manage_roles=True)
@@ -493,7 +509,15 @@ class AutoMod(commands.Cog):
     await self.bot.db.query("UPDATE servers SET max_content=$1 WHERE id=$2", value, str(ctx.guild.id))
     await ctx.reply(embed=embed(title=f"I will now delete messages matching the same content that are sent more than the rate of `{message_rate}` message, for every `{seconds}` seconds."))
 
-  @max_content_spam.command(name="punishment", aliases=["punishments"], extras={"examples": PUNISHMENT_TYPES}, help="Set the punishment for the max amount of message every x seconds. Combining kick,ban and/or mute will only apply one of them.")
+  @max_content_spam.error
+  async def max_content_spam_error(self, ctx: "MyContext", error):
+    if isinstance(error, commands.MissingRequiredArgument):
+      config = await self.get_guild_config(ctx.guild.id)
+      if config is None or config.max_content is None:
+        return await ctx.send(embed=embed(title="No settings found", color=MessageColors.ERROR))
+      return await ctx.send(embed=embed(title="Current message content spam settings", description=f"Message count: {config.max_content['rate']}\nSeconds: {config.max_content['seconds']}\nPunishments: {config.max_content['punishments']}"))
+
+  @max_content_spam.command(name="punishment", aliases=["punishments"], extras={"examples": PUNISHMENT_TYPES, "params": PUNISHMENT_TYPES}, help="Set the punishment for the max amount of message every x seconds. Combining kick,ban and/or mute will only apply one of them.")
   @commands.guild_only()
   @commands.has_guild_permissions(manage_messages=True, manage_roles=True)
   @commands.bot_has_guild_permissions(manage_messages=True, manage_roles=True)

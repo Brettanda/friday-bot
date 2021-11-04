@@ -19,12 +19,12 @@ class Patreons(commands.Cog):
   def __repr__(self) -> str:
     return "<cogs.Patreon>"
 
-  @commands.group(name="patreon", description="Commands for Friday's Patrons", invoke_without_command=True)
+  @commands.group(name="patreon", description="Commands for Friday's Patrons", invoke_without_command=True, case_insensitive=True)
   @commands.guild_only()
   async def norm_patreon(self, ctx: "MyContext"):
     await ctx.send_help(ctx.command)
 
-  @norm_patreon.group("server", description="Activate the server that you would like to apply your patronage to", invoke_without_command=True)
+  @norm_patreon.group("server", description="Activate the server that you would like to apply your patronage to", invoke_without_command=True, case_insensitive=True)
   @commands.guild_only()
   @checks.is_supporter()
   @checks.is_min_tier()
