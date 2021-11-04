@@ -6,8 +6,13 @@ import io
 from typing import Optional, Union
 from typing_extensions import TYPE_CHECKING
 
+from .myembed import embed
+
 if TYPE_CHECKING:
   from index import Friday as Bot
+  from cogs.database import Database
+  from aiohttp import ClientSession
+  from asyncpg import Pool
 
 
 # class MySlashContext(SlashContext):
@@ -93,10 +98,9 @@ class FakeInteractionMessage:
 
 
 class ConfirmationView(discord.ui.View):
-  def __init__(self, *, timeout: float, author_id: int, ctx: Context, delete_after: bool) -> None:
+  def __init__(self, *, timeout: float, author_id: int, ctx: Context) -> None:
     super().__init__(timeout=timeout)
     self.value: Optional[bool] = None
-    self.delete_after: bool = delete_after
     self.author_id: int = author_id
     self.ctx: Context = ctx
     self.message: Optional[discord.Message] = None
@@ -109,43 +113,57 @@ class ConfirmationView(discord.ui.View):
       return False
 
   async def on_timeout(self) -> None:
-    if self.delete_after and self.message:
+    try:
       await self.message.delete()
+    except discord.NotFound:
+      pass
 
   @discord.ui.button(emoji="\N{HEAVY CHECK MARK}", label='Confirm', custom_id="confirmation_true", style=discord.ButtonStyle.green)
   async def confirm(self, button: discord.ui.Button, interaction: discord.Interaction):
     self.value = True
     await interaction.response.defer()
-    if self.delete_after:
-      await interaction.delete_original_message()
+    await interaction.delete_original_message()
     self.stop()
 
   @discord.ui.button(emoji="\N{HEAVY MULTIPLICATION X}", label='Cancel', custom_id="confirmation_false", style=discord.ButtonStyle.red)
   async def cancel(self, button: discord.ui.Button, interaction: discord.Interaction):
     self.value = False
     await interaction.response.defer()
-    if self.delete_after:
-      await interaction.delete_original_message()
+    await interaction.delete_original_message()
     self.stop()
 
 
 class MyContext(Context):
+  def __repr__(self) -> str:
+    return "<Context>"
+
+  @discord.utils.cached_property
+  def replied_reference(self) -> Optional[discord.MessageReference]:
+    ref = self.message.reference
+    if ref and isinstance(ref.resolved, discord.Message):
+      return ref.resolved.to_reference()
+    return None
+
   @property
-  def db(self):
+  def session(self) -> ClientSession():
+    return self.bot.session
+
+  @property
+  def db(self) -> Database:
     return self.bot.db
 
-  def is_interaction(self) -> bool:
-    return isinstance(self.message, FakeInteractionMessage)
+  @property
+  def pool(self) -> Pool:
+    return self.bot.db.pool
 
-  async def prompt(self, message: str, *, timeout: float = 60.0, delete_after: bool = True, author_id: Optional[int] = None, **kwargs) -> Optional[bool]:
+  async def prompt(self, message: str, *, timeout: float = 60.0, author_id: Optional[int] = None, **kwargs) -> Optional[bool]:
     author_id = author_id or self.author.id
     view = ConfirmationView(
         timeout=timeout,
-        delete_after=delete_after,
         ctx=self,
         author_id=author_id
     )
-    view.message = await self.send(message, view=view, **kwargs)
+    view.message = await self.send(embed=embed(title=message), view=view, **kwargs)
     await view.wait()
     return view.value
 
