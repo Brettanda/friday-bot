@@ -136,25 +136,12 @@ async def user_voted(bot: "Bot", user: discord.User) -> bool:
   return True if user_id is not None else False
 
 
-def bot_has_guild_permissions(**perms) -> "_CheckDecorator":
-  invalid = set(perms) - set(discord.Permissions.VALID_FLAGS)
-  if invalid:
-    raise TypeError(f"Invalid permssion(s): {', '.join(invalid)}")
-
-  async def predicate(ctx: "MyContext") -> bool:
-    if not ctx.guild and ctx.guild_id:
-      raise commands.NoPrivateMessage()
-
-    # guild = ctx.guild if not ctx.guild else (ctx.bot.get_guild(ctx.guild_id))
-
-    current_permissions = ctx.guild.me.guild_permissions
-    missing = [perm for perm, value in perms.items() if getattr(current_permissions, perm) != value]
-
-    if not missing:
-      return True
-
-    raise commands.BotMissingPermissions(missing)
-  return commands.check(predicate)
+def is_admin() -> "_CheckDecorator":
+  """Do you have permission to change the setting of the bot"""
+  return commands.check_any(
+      commands.is_owner(),
+      commands.has_guild_permissions(manage_guild=True),
+      commands.has_guild_permissions(administrator=True))
 
 
 def slash(user: bool = False, private: bool = True) -> "_CheckDecorator":
@@ -168,19 +155,3 @@ def slash(user: bool = False, private: bool = True) -> "_CheckDecorator":
   #   return True
   # return commands.check(predicate)
   return False
-
-
-# def bot_has_permissions(**perms) -> "_CheckDecorator":
-#   invalid = set(perms) - set(discord.Permissions.VALID_FLAGS)
-#   if invalid:
-#     raise TypeError(f"Invalid permission(s): {', '.join(invalid)}")
-
-#   async def predicate(ctx:"MyContext" or SlashContext) -> bool:
-#     if not ctx.guild and not ctx.guild_id:
-#       raise commands.NoPrivateMessage()
-
-#     channel = ctx.channel if ctx.channel is not None else ctx.bot.get_channel(ctx.channel_id)
-
-#     current_permissions = ctx.channel
-
-#   return commands.check(predicate)
