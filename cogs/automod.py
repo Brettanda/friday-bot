@@ -344,7 +344,7 @@ class AutoMod(commands.Cog):
 
   @_blacklist.command(name="clear", help="Remove all words from the current servers blacklist settings.")
   @commands.guild_only()
-  @commands.has_guild_permissions(administrator=True)
+  @commands.has_guild_permissions(manage_messages=True)
   @commands.bot_has_guild_permissions(manage_messages=True)
   async def _blacklist_clear(self, ctx):
     await self.bot.db.query("DELETE FROM blacklist WHERE guild_id=$1", str(ctx.guild.id))
@@ -377,8 +377,8 @@ class AutoMod(commands.Cog):
 
   @commands.command(name="invitespam", aliases=["removeinvites"], extras={"examples": ["1", "0", "true", "false"]}, help="Automaticaly remove Discord invites (originating from external servers) from text channels. Not giving an argument will display the current setting.")
   @commands.guild_only()
-  @commands.has_guild_permissions(manage_channels=True, manage_messages=True)
   @commands.bot_has_guild_permissions(manage_messages=True)
+  @commands.bot_has_permissions(manage_messages=True)
   async def norm_remove_discord_invites(self, ctx: "MyContext", *, enable: Union[bool, None] = None):
     if enable is None:
       current = await self.bot.db.query("SELECT remove_invites FROM servers WHERE id=$1 LIMIT 1", str(ctx.guild.id))
@@ -441,8 +441,8 @@ class AutoMod(commands.Cog):
 
   @commands.group(name="messagespam", extras={"examples": ["3 5", "10 12"]}, aliases=["maxmessages", "ratelimit"], help="Sets a max message count for users per x seconds", invoke_without_command=True, case_insensitive=True)
   @commands.guild_only()
-  @commands.bot_has_guild_permissions(manage_messages=True, manage_roles=True)
   @commands.has_guild_permissions(manage_messages=True, manage_roles=True)
+  @commands.bot_has_guild_permissions(manage_messages=True, manage_roles=True)
   async def max_spam(self, ctx: "MyContext", message_rate: int, seconds: int):
     if message_rate < 3 or seconds < 5:
       return await ctx.send(embed=embed(title="Some arguments are too small", description="`message_rate` must be greater than 3\n`seconds` must be greater than 5", color=MessageColors.ERROR))
@@ -494,8 +494,8 @@ class AutoMod(commands.Cog):
 
   @commands.group(name="contentspam", extras={"examples": ["3 5", "15 17"]}, help="Sets the max number of message that can have the same content (ignoring who sent the message) until passing the given threshold and muting anyone spamming the same content further.", invoke_without_command=True, case_insensitive=True)
   @commands.guild_only()
-  @commands.bot_has_guild_permissions(manage_messages=True, manage_roles=True)
   @commands.has_guild_permissions(manage_messages=True, manage_roles=True)
+  @commands.bot_has_guild_permissions(manage_messages=True, manage_roles=True)
   async def max_content_spam(self, ctx: "MyContext", message_rate: int, seconds: int):
     if message_rate < 3 or seconds < 5:
       return await ctx.send(embed=embed(title="Some arguments are too small", description="`message_rate` must be greater than 3\n`seconds` must be greater than 5", color=MessageColors.ERROR))

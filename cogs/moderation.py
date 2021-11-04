@@ -200,7 +200,8 @@ class Moderation(commands.Cog):
   #       await ctx.reply(embed=embed(title="I will now respond to chat message as well as commands"))
 
   @commands.command(name="prefix", extras={"examples": ["?", "f!"]}, help="Sets the prefix for Fridays commands")
-  @commands.has_guild_permissions(administrator=True)
+  @commands.guild_only()
+  @checks.is_admin()
   async def _prefix(self, ctx: "MyContext", new_prefix: Optional[str] = config.defaultPrefix):
     new_prefix = new_prefix.lower()
     if len(new_prefix) > 5:
@@ -258,7 +259,7 @@ class Moderation(commands.Cog):
 
   @commands.command(name="deletecommandsafter", extras={"examples": ["0", "180"]}, aliases=["deleteafter", "delcoms"], help="Set the time in seconds for how long to wait before deleting command messages")
   @commands.guild_only()
-  @commands.has_guild_permissions(manage_channels=True)
+  @commands.has_guild_permissions(manage_messages=True)
   @commands.bot_has_permissions(manage_messages=True)
   async def delete_commands_after(self, ctx: "MyContext", time: Optional[int] = 0):
     if time < 0:
@@ -412,7 +413,6 @@ class Moderation(commands.Cog):
 
   @commands.command(name="lock", help="Sets your voice channels user limit to the current number of occupants", hidden=True)
   @commands.guild_only()
-  # @commands.is_owner()
   @commands.has_guild_permissions(manage_channels=True)
   @commands.bot_has_guild_permissions(manage_channels=True)
   async def norm_lock(self, ctx, *, voicechannel: Optional[discord.VoiceChannel] = None):

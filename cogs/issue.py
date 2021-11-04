@@ -27,6 +27,7 @@ class Issue(commands.Cog):
 
   @commands.command(name="issue", aliases=["problem", "feedback"], help="If you have an issue or noticed a bug with Friday, this will send a message to the developer.", usage="<Description of issue and steps to recreate the issue>")
   @commands.cooldown(1, 30, commands.BucketType.channel)
+  @commands.has_guild_permissions(manage_guild=True)
   async def norm_issue(self, ctx, *, issue: str):
     await self.issue(ctx, issue)
 
