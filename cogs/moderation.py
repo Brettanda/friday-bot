@@ -10,6 +10,7 @@ import pycountry
 # from discord_slash.utils.manage_components import create_select, create_select_option, create_button, create_actionrow
 from nextcord.ext import commands
 from typing_extensions import TYPE_CHECKING
+from collections import defaultdict
 
 from functions import (MessageColors, MyContext, cache, config, embed,
                        relay_info)
@@ -772,7 +773,6 @@ class Moderation(commands.Cog):
   #         return await msg.add_reaction("🔁")
 
   @norm_chatchannel.after_invoke
-  @norm_settings_persona.after_invoke
   @music_channel.after_invoke
   @delete_commands_after.after_invoke
   @mute_role.after_invoke
