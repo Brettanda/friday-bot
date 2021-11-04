@@ -437,7 +437,6 @@ class Log(commands.Cog):
           prefix: str = "!",
           tier: int = 0,
           patreon_user: int = None,
-          autoDeleteMSG: int = None,
           max_mentions: int = None,
           max_messages: [int] = None,
           chatChannel: int = None,
@@ -448,7 +447,6 @@ class Log(commands.Cog):
           {str(guild.id) if isinstance(guild, discord.Guild) else guild: {
               "tier": tier,
               "patreon_user": patreon_user,
-              "autoDeleteMSGs": autoDeleteMSG,
               "max_mentions": max_mentions,
               "max_messages": max_messages,
               "chatChannel": chatChannel if chatChannel is not None else None,
@@ -464,10 +462,10 @@ class Log(commands.Cog):
 
   async def set_all_guilds(self) -> None:
     # if not hasattr(self.bot, "saved_guilds") or len(self.bot.saved_guilds) != len(self.bot.guilds):
-    servers = await self.bot.db.query("SELECT id,tier,patreon_user,autoDeleteMSGs,chatChannel,lang FROM servers")
+    servers = await self.bot.db.query("SELECT id,tier,patreon_user,chatChannel,lang FROM servers")
     guilds = {}
-    for guild_id, tier, patreon_user, autoDeleteMSG, chatChannel, lang in servers:
-      guilds.update({str(guild_id): {"tier": str(tier), "patreon_user": int(patreon_user) if patreon_user is not None else None, "autoDeleteMSGs": int(autoDeleteMSG), "chatChannel": int(chatChannel) if chatChannel is not None else None, "lang": lang}})
+    for guild_id, tier, patreon_user, chatChannel, lang in servers:
+      guilds.update({str(guild_id): {"tier": str(tier), "patreon_user": int(patreon_user) if patreon_user is not None else None, "chatChannel": int(chatChannel) if chatChannel is not None else None, "lang": lang}})
     self.bot.saved_guilds = guilds
     return guilds
 

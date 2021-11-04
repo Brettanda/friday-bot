@@ -211,10 +211,6 @@ class Help(commands.HelpCommand):
     ctx.invoked_with = "help"
     bot: "Bot" = ctx.bot
 
-    delay = bot.log.get_guild_delete_commands(ctx.guild)
-    if delay is not None and delay > 0:  # and not slash:
-      await ctx.message.delete(delay=delay)
-
     commands = []
     for com in bot.commands:
       try:
@@ -222,8 +218,6 @@ class Help(commands.HelpCommand):
           commands.append(com)
       except Exception:
         pass
-    if delay is not None and delay > 0:  # and not slash:
-      await ctx.message.delete(delay=delay)
     menu = MyMenuPages(
         source=HelpMenu(ctx, commands, title="Friday - Help", description="If you would like to make a suggestion for a command please join the [Friday's Development](https://discord.gg/NTRuFjU) and explain your suggestion.\n\nFor more info on how commands work and how to format them please check out [docs.friday-bot.com](https://docs.friday-bot.com/).\n\n**Some commands will only show if you have the correct permissions to use them.**",)
     )

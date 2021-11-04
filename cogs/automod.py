@@ -18,7 +18,7 @@ PUNISHMENT_TYPES = ["kick", "ban", "mute"]
 
 
 class Config:
-  __slots__ = ("bot", "id", "autodeletemsgs", "max_mentions", "max_messages", "max_content", "remove_invites", "blacklisted_words", "mute_role_id", "muted_members")
+  __slots__ = ("bot", "id", "max_mentions", "max_messages", "max_content", "remove_invites", "blacklisted_words", "mute_role_id", "muted_members")
 
   @classmethod
   async def from_record(cls, record, blacklist, bot):
@@ -26,7 +26,6 @@ class Config:
 
     self.bot: "Bot" = bot
     self.id: int = int(record["id"], base=10)
-    self.autodeletemsgs = record["autodeletemsgs"]
     self.max_mentions = json.loads(record["max_mentions"]) if record["max_mentions"] else None
     self.max_messages = json.loads(record["max_messages"]) if record["max_messages"] else None
     self.max_content = json.loads(record["max_content"]) if record["max_content"] else None

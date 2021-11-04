@@ -150,37 +150,19 @@ class MyContext(Context):
     return view.value
 
   async def reply(self, content: str = None, *, delete_original: bool = False, **kwargs) -> Optional[Union[discord.Message, FakeInteractionMessage]]:
-    ignore_coms = ["log", "help", "meme", "issue", "reactionrole", "minesweeper", "poll", "confirm", "souptime", "say", "countdown"]
-    if not hasattr(kwargs, "delete_after") and self.command is not None and self.command.name not in ignore_coms and self.message.type.name != "application_command":
-      if hasattr(self.bot, "get_guild_delete_commands"):
-        delete = self.bot.log.get_guild_delete_commands(self.message.guild)
-      else:
-        delete = None
-      delete = delete if delete is not None and delete != 0 else None
-      if delete is not None and self.command.name not in ignore_coms:
-        kwargs.update({"delete_after": delete})
-        await self.message.delete(delay=delete)
+    message = None
     if not hasattr(kwargs, "mention_author") and self.message.type.name != "application_command":
       kwargs.update({"mention_author": False})
     try:
-      if self.is_interaction():
-        kwargs.pop("delete_after", None)
-        if self.message.interaction.response.is_done():
-          return await self.message.interaction.followup.send(content, **kwargs)
-        return await self.message.interaction.response.send_message(content, **kwargs)
       if self.message.type == discord.MessageType.thread_starter_message:
-        return await self.message.channel.send(content, **kwargs)
-      return await self.message.reply(content, **kwargs)
+        message = await self.message.channel.send(content, **kwargs)
+      message = await self.message.channel.send(content, reference=self.replied_reference or self.message, **kwargs)
     except (discord.Forbidden, discord.HTTPException):
       try:
-        if self.is_interaction():
-          kwargs.pop("delete_after", None)
-          if self.message.interaction.response.is_done():
-            return await self.message.interaction.followup.send(content, **kwargs)
-          return await self.message.interaction.response.send_message(content, **kwargs)
-        return await self.message.channel.send(content, **kwargs)
+        message = await self.message.channel.send(content, **kwargs)
       except (discord.Forbidden, discord.HTTPException):
-        pass
+        return message
+    return message
 
   async def send(self, content: str = None, *, delete_original: bool = False, **kwargs) -> Optional[Union[discord.Message, FakeInteractionMessage]]:
     return await self.reply(content, delete_original=delete_original, **kwargs)
