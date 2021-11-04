@@ -70,7 +70,7 @@ class TopGG(commands.Cog):
     if self.bot.prod:
       await self.update_stats()
 
-  @commands.group(name="vote", help="Get the link to vote for me on Top.gg", invoke_without_command=True)
+  @commands.group(name="vote", help="Get the link to vote for me on Top.gg", invoke_without_command=True, case_insensitive=True)
   async def vote(self, ctx: "MyContext"):
     prev_time = await self.bot.db.query("SELECT voted_time FROM votes WHERE id=$1 LIMIT 1", str(ctx.author.id))
     next_time = datetime.datetime.strptime(prev_time, "%Y-%m-%d %H:%M:%S.%f") if prev_time is not None else None

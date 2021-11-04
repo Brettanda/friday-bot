@@ -45,7 +45,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     self.bot = bot
 
   def __repr__(self) -> str:
-    return "<cogs.Dev>"
+    return f"<cogs.Dev owner={self.bot.owner_id}>"
 
   async def cog_check(self, ctx: "MyContext") -> bool:
     return await self.bot.is_owner(ctx.author) or ctx.author.id == 892865928520413245
@@ -68,7 +68,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
 
     return [output.decode() for output in result]
 
-  @commands.group(name="dev", invoke_without_command=True)
+  @commands.group(name="dev", invoke_without_command=True, case_insensitive=True)
   async def norm_dev(self, ctx):
     await ctx.send_help(ctx.command)
 
@@ -77,7 +77,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
   #   await ctx.defer(True)
   #   await ctx.send("help")
 
-  @norm_dev.command(name="say")
+  @norm_dev.command(name="say", rest_is_raw=True,)
   async def say(self, ctx, channel: Optional[discord.TextChannel] = None, *, say: str):
     channel = ctx.channel if channel is None else channel
     try:
@@ -146,11 +146,6 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
 
   @norm_dev.command(name="restart")
   async def restart(self, ctx, force: bool = False):
-    # global restartPending,songqueue
-
-    #     systemctl daemon-reload
-    # systemctl restart friday.service
-
     if self.bot.restartPending is True and force is False:
       await ctx.reply(embed=embed(title="A restart is already pending"))
       return
@@ -164,11 +159,6 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
         await asyncio.sleep(1)
       await stat.edit(embed=embed(title=f"{len(self.bot.voice_clients)} guilds are playing music"))
     # if len(songqueue) is 0 or force is True:
-    thispath = os.getcwd()
-    if "\\" in thispath:
-      seperator = "\\\\"
-    else:
-      seperator = "/"
     try:
       wait = 5
       while wait > 0:
@@ -176,11 +166,11 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
         await asyncio.sleep(1)
         wait = wait - 1
     finally:
-      await asyncio.gather(
-          ctx.message.delete(),
-          stat.delete()
-      )
-      subprocess.Popen([f"{thispath}{seperator}restart.sh"], stdin=subprocess.PIPE)
+      await ctx.message.delete()
+      await stat.delete()
+      self.bot.restartPending = False
+      stdout, stderr = await self.run_process("systemctl daemon-reload && systemctl restart friday.service")
+      await ctx.send(f"```sh\n{stdout}\n{stderr}```")
 
   @norm_dev.group(name="reload", invoke_without_command=True)
   async def reload(self, ctx, command: str):
@@ -198,7 +188,6 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
   async def reload_all(self, ctx):
     async with ctx.typing():
       await self.bot.reload_cogs()
-      await self.bot.log.set_all_guilds()
     await ctx.reply(embed=embed(title="All cogs have been reloaded"))
 
   @reload.command(name="slash")

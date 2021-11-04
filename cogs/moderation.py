@@ -10,6 +10,7 @@ import pycountry
 # from discord_slash.utils.manage_components import create_select, create_select_option, create_button, create_actionrow
 from nextcord.ext import commands
 from typing_extensions import TYPE_CHECKING
+from collections import defaultdict
 
 from functions import (MessageColors, MyContext, cache, config, embed,
                        relay_info)
@@ -128,7 +129,8 @@ class Moderation(commands.Cog):
   def __init__(self, bot: "Bot"):
     self.bot = bot
 
-    self.last_to_leave_vc = {}
+    # voice channel id: {member, time}
+    self.last_to_leave_vc = defaultdict(lambda: None)
 
   def __repr__(self):
     return "<cogs.Moderation>"
@@ -179,13 +181,10 @@ class Moderation(commands.Cog):
 
   @commands.Cog.listener()
   async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
-    if after.channel:
+    if after.channel or before.channel is None:
       return
-    time = discord.utils.utcnow()  # .astimezone(datetime.timezone.utc).replace(tzinfo=datetime.timezone.utc)
-    if before.channel.id not in self.last_to_leave_vc:
-      self.last_to_leave_vc.update({before.channel.id: {"member": member, "time": time.timestamp()}})
-    else:
-      self.last_to_leave_vc[before.channel.id] = {"member": member, "time": time.timestamp()}
+    time = discord.utils.utcnow()
+    self.last_to_leave_vc[before.channel.id] = {"member": member, "time": time.timestamp()}
 
   # @commands.command(name="mute")
   # @commands.is_owner()
@@ -282,10 +281,9 @@ class Moderation(commands.Cog):
       voice_channel = ctx.author.voice.channel
     if not isinstance(voice_channel, discord.VoiceChannel):
       return await ctx.reply(embed=embed(title="That is not a voice channel.", color=MessageColors.ERROR))
-    try:
-      member = self.last_to_leave_vc[voice_channel.id]
-    except KeyError:
-      return await ctx.reply(embed=embed(title=f"Failed to get the last member to leave `{voice_channel}`.", color=MessageColors.ERROR))
+    member = self.last_to_leave_vc[voice_channel.id]
+    if member is None:
+      return await ctx.reply(embed=embed(title=f"The last member to leave `{voice_channel}` was not saved.", description="I'll catch the next one :)", color=MessageColors.ERROR))
     await ctx.reply(embed=embed(title=f"`{member['member']}` left `{voice_channel}` <t:{int(member['time'])}:R>."))
 
   # @commands.command(name="clear",description="Deletes my messages and commands (not including the meme command)")
@@ -593,7 +591,7 @@ class Moderation(commands.Cog):
 
   # TODO: Add a timeout
 
-  @commands.group(name="mute", extras={"examples": ["@Motostar @steve they were annoying me", "@steve 9876543210", "@Motostar spamming general", "0123456789"]}, help="Mute a member from text channels", invoke_without_command=True)
+  @commands.group(name="mute", extras={"examples": ["@Motostar @steve they were annoying me", "@steve 9876543210", "@Motostar spamming general", "0123456789"]}, help="Mute a member from text channels", invoke_without_command=True, case_insensitive=True)
   @commands.guild_only()
   @can_mute()
   @commands.has_guild_permissions(manage_roles=True)
@@ -601,7 +599,7 @@ class Moderation(commands.Cog):
   async def norm_mute(self, ctx: "MyContext", member: commands.Greedy[discord.Member], *, reason: ActionReason = None):
     await self.mute(ctx, member, reason)
 
-  @norm_mute.group("role", help="Set the role to be applied to members that get muted", invoke_without_command=True)
+  @norm_mute.group("role", help="Set the role to be applied to members that get muted", invoke_without_command=True, case_insensitive=True)
   @commands.guild_only()
   @commands.has_guild_permissions(manage_roles=True)
   @commands.bot_has_guild_permissions(manage_roles=True)

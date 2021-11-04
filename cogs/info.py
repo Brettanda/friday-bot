@@ -23,7 +23,7 @@ class Info(commands.Cog):
   def __repr__(self):
     return "<cogs.Info>"
 
-  @commands.group(name="info", aliases=["about"], help="Displays some information about myself :)")
+  @commands.command(name="info", aliases=["about"], help="Displays some information about myself :)")
   async def norm_info(self, ctx):
     await self.info(ctx)
 
