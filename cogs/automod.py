@@ -34,7 +34,7 @@ class RoleOrChannel(commands.Converter):
 
 
 class Config:
-  __slots__ = ("bot", "id", "max_mentions", "max_messages", "max_content", "remove_invites", "automod_whitelist", "blacklisted_words", "mute_role_id", "muted_members")
+  __slots__ = ("bot", "id", "max_mentions", "max_messages", "max_content", "remove_invites", "automod_whitelist", "blacklisted_words", "blacklist_punishments", "mute_role_id", "muted_members")
 
   @classmethod
   async def from_record(cls, record, blacklist, bot):
@@ -48,6 +48,7 @@ class Config:
     self.remove_invites: bool = record["remove_invites"]
     self.automod_whitelist = set(record["automod_whitelist"] or [])
     self.blacklisted_words: List[str] = blacklist["words"] if blacklist else []
+    self.blacklist_punishments: List[str] = blacklist["punishments"] if blacklist else []
     self.muted_members = set(record["muted_members"] or [])
     self.mute_role_id = int(record["mute_role"], base=10) if record["mute_role"] else None
     return self
@@ -100,7 +101,6 @@ class Config:
       await self.kick(msg.author)
     elif "mute" in punishments:
       await self.mute(msg.author)
-    return await msg.channel.send(embed=embed(title=f"Punishments applied: `{', '.join(punishments)}` to {msg.author}", description=f"Action taked for reason: `{reason}`"))
 
 
 class CooldownByContent(commands.CooldownMapping):
@@ -319,6 +319,8 @@ class AutoMod(commands.Cog):
     return string.lower()
 
   async def check_blacklist(self, msg: discord.Message):
+    if not isinstance(msg.author, discord.Member):
+      return
     bypass = msg.author.guild_permissions.manage_guild
     if bypass:
       return
@@ -326,6 +328,8 @@ class AutoMod(commands.Cog):
 
     config = await self.get_guild_config(msg.guild.id)
     words = config.blacklisted_words
+    if config.is_whitelisted(msg):
+      return
     if words is None or len(words) == 0:
       return
     try:
@@ -382,13 +386,12 @@ class AutoMod(commands.Cog):
   @commands.guild_only()
   @commands.has_guild_permissions(manage_messages=True)
   @commands.bot_has_guild_permissions(manage_messages=True)
-  async def _blacklist_add_word(self, ctx, *, word: str):
-    cleansed_word = self.do_slugify(word)
-    if len(await self.bot.db.query("SELECT words FROM blacklist WHERE guild_id=$1::text AND $2::text = ANY(words)", str(ctx.guild.id), cleansed_word)) > 0:
+  async def _blacklist_add_word(self, ctx, *, phrase: str):
+    if len(await self.bot.db.query("SELECT words FROM blacklist WHERE guild_id=$1::text AND $2::text = ANY(words)", str(ctx.guild.id), phrase)) > 0:
       return await ctx.reply(embed=embed(title="Can't add duplicate word", color=MessageColors.ERROR))
-    await self.bot.db.query("INSERT INTO blacklist (guild_id,words) VALUES ($1::text,array[$2]::text[]) ON CONFLICT(guild_id) DO UPDATE SET words = array_append(blacklist.words, $2)", str(ctx.guild.id), cleansed_word)
-    word = word
-    await ctx.reply(embed=embed(title=f"Added `{word}` to the blacklist"))
+    await self.bot.db.query("INSERT INTO blacklist (guild_id,words) VALUES ($1::text,array[$2]::text[]) ON CONFLICT(guild_id) DO UPDATE SET words = array_append(blacklist.words, $2)", str(ctx.guild.id), phrase)
+    phrase = phrase
+    await ctx.reply(embed=embed(title=f"Added `{phrase}` to the blacklist"))
 
   @_blacklist.command(name="remove", aliases=["-"], extras={"examples": ["penis", "shit"]}, help="Remove a word from the current servers blacklist settings.")
   @commands.guild_only()
@@ -413,13 +416,16 @@ class AutoMod(commands.Cog):
       return await ctx.reply(embed=embed(title=f"No blacklisted words yet, use `{ctx.prefix}blacklist add <word>` to get started"))
     await ctx.reply(embed=embed(title="Blocked words", description='\n'.join(x for x in words)))
 
-  # @_blacklist.command(name="ignoreadmins", aliases=["exemptadmins"])
-  # @commands.guild_only()
-  # @commands.has_guild_permissions(administrator=True)
-  # @commands.bot_has_guild_permissions(manage_messages=True)
-  # async def _blacklist_ignoreadmins(self, ctx):
-  #   await self.bot.db.query("INSERT INTO blacklist (guild_id,ignoreadmins) VALUES ($1,true) ON CONFLICT(guild_id) DO UPDATE SET ignoreadmins=NOT ignoreadmins", str(ctx.guild.id))
-  #   await ctx.reply(embed=embed(title="Removed all blacklisted words"))
+  @_blacklist.command(name="punishment", aliases=["punishments"], extras={"examples": PUNISHMENT_TYPES, "params": PUNISHMENT_TYPES}, help="Set the punishment for the max amount of mentions one user can send per message. Combining kick,ban and/or mute will only apply one of them.", hidden=True)
+  @commands.guild_only()
+  @commands.has_guild_permissions(manage_messages=True, manage_roles=True)
+  @commands.bot_has_guild_permissions(manage_messages=True, manage_roles=True)
+  async def _blacklist_punishment(self, ctx, *, action: str):
+    action = [i for i in action.split(" ") if i.lower() in PUNISHMENT_TYPES]
+    if len(action) == 0:
+      return await ctx.send(embed=embed(title=f"The action must be one of the following: {', '.join(PUNISHMENT_TYPES)}", color=MessageColors.ERROR))
+    await self.bot.db.query("UPDATE blacklist SET punishments=$1 WHERE guild_id=$2", action, str(ctx.guild.id))
+    await ctx.reply(embed=embed(title=f"Set punishment to `{action}`"))
 
   @_blacklist.command(name="clear", help="Remove all words from the current servers blacklist settings.")
   @commands.guild_only()
