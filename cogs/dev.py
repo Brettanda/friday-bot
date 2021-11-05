@@ -1,21 +1,21 @@
 import asyncio
+import copy
+import io
 import os
 import shutil
 import subprocess
-import copy
+import textwrap
+import traceback
 from typing import Optional, Union
-# import traceback
-# import io
-# import textwrap
+
 import nextcord as discord
 from nextcord.ext import commands
-# from interactions import Context as SlashContext  # , cog_ext
 from typing_extensions import TYPE_CHECKING
-# from discord_slash.utils.manage_commands import create_option, create_choice
 
 from cogs.help import syntax
-from functions import embed, build_docs  # , query  # , MessageColors
-from functions import MyContext, views, MessageColors
+from functions import (MessageColors, MyContext,  # , query  # , MessageColors
+                       build_docs, embed, views)
+
 
 if TYPE_CHECKING:
   from index import Friday as Bot
@@ -43,6 +43,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
 
   def __init__(self, bot: "Bot") -> None:
     self.bot = bot
+    self._last_result = None
 
   def __repr__(self) -> str:
     return f"<cogs.Dev owner={self.bot.owner_id}>"
@@ -57,6 +58,15 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       await ctx.send(embed=embed(title=error, color=MessageColors.ERROR))
     else:
       await ctx.send(f"```py\n{error}\n```")
+
+  def cleanup_code(self, content: str):
+    """Automatically removes code blocks from the code."""
+    # remove ```py\n```
+    if content.startswith('```') and content.endswith('```'):
+      return '\n'.join(content.split('\n')[1:-1])
+
+    # remove `foo`
+    return content.strip('` \n')
 
   async def run_process(self, command):
     try:
@@ -359,52 +369,53 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
 
   #   # for msg in messages:
 
-  # @norm_dev.command(name="eval")
-  # async def _eval(self, ctx, *, body: str):
-  #   """Evaluates a code"""
+  @norm_dev.command(name="eval")
+  async def _eval(self, ctx, *, body: str):
+    """Evaluates a code"""
 
-  #   env = {
-  #       'bot': self.bot,
-  #       'ctx': ctx,
-  #       'channel': ctx.channel,
-  #       'author': ctx.author,
-  #       'guild': ctx.guild,
-  #       'message': ctx.message,
-  #       '_': self._last_result
-  #   }
+    env = {
+        'bot': self.bot,
+        'ctx': ctx,
+        'channel': ctx.channel,
+        'author': ctx.author,
+        'guild': ctx.guild,
+        'message': ctx.message,
+        'self': self,
+        '_': self._last_result
+    }
 
-  #   env.update(globals())
+    env.update(globals())
 
-  #   body = self.cleanup_code(body)
-  #   stdout = io.StringIO()
+    body = self.cleanup_code(body)
+    stdout = io.StringIO()
 
-  #   to_compile = f'async def func():\n{textwrap.indent(body, "  ")}'
+    to_compile = f'async def func():\n{textwrap.indent(body, "  ")}'
 
-  #   try:
-  #     exec(to_compile, env)
-  #   except Exception as e:
-  #     return await ctx.send(f'```py\n{e.__class__.__name__}: {e}\n```')
+    try:
+      exec(to_compile, env)
+    except Exception as e:
+      return await ctx.send(f'```py\n{e.__class__.__name__}: {e}\n```')
 
-  #   func = env['func']
-  #   try:
-  #     # with redirect_stdout(stdout):
-  #     ret = await func()
-  #   except Exception:
-  #     value = stdout.getvalue()
-  #     await ctx.send(f'```py\n{value}{traceback.format_exc()}\n```')
-  #   else:
-  #     value = stdout.getvalue()
-  #     try:
-  #       await ctx.message.add_reaction('\u2705')
-  #     except BaseException:
-  #       pass
+    func = env['func']
+    try:
+      # with redirect_stdout(stdout):
+      ret = await func()
+    except Exception:
+      value = stdout.getvalue()
+      await ctx.send(f'```py\n{value}{traceback.format_exc()}\n```')
+    else:
+      value = stdout.getvalue()
+      try:
+        await ctx.message.add_reaction('\u2705')
+      except BaseException:
+        pass
 
-  #     if ret is None:
-  #       if value:
-  #         await ctx.send(f'```py\n{value}\n```')
-  #     else:
-  #       self._last_result = ret
-  #       await ctx.send(f'```py\n{value}{ret}\n```')
+      if ret is None:
+        if value:
+          await ctx.send(f'```py\n{value}\n```')
+      else:
+        self._last_result = ret
+        await ctx.send(f'```py\n{value}{ret}\n```')
 
 
 def setup(bot):
