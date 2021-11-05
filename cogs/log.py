@@ -1,5 +1,4 @@
 import sys
-import logging
 import datetime
 import nextcord as discord
 import asyncio

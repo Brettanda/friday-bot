@@ -2,14 +2,13 @@ import asyncio
 import logging
 import os
 import sys
-import aiohttp
-from importlib import reload
-
-from dotenv import load_dotenv
-import nextcord as discord
-from typing import Optional
-from typing_extensions import TYPE_CHECKING
 from collections import defaultdict
+from importlib import reload
+from typing import Optional
+
+import aiohttp
+import nextcord as discord
+from dotenv import load_dotenv
 # import interactions
 from nextcord.ext import commands
 from typing_extensions import TYPE_CHECKING
@@ -18,8 +17,8 @@ import cogs
 import functions
 
 if TYPE_CHECKING:
-  from .cogs.log import Log
   from .cogs.database import Database
+  from .cogs.log import Log
 
 load_dotenv()
 
