@@ -218,6 +218,8 @@ class Moderation(commands.Cog):
   @commands.has_guild_permissions(manage_channels=True)
   async def norm_chatchannel(self, ctx):
     chat_channel = await self.bot.db.query("SELECT chatchannel FROM servers WHERE id=$1 LIMIT 1", str(ctx.guild.id))
+    chat = self.bot.get_cog("cogs.chat")
+    if chat is not None:
       chat.get_guild_config.invalidate(chat, ctx.guild.id)
     if chat_channel is None:
       await self.bot.db.query("UPDATE servers SET chatchannel=$1 WHERE id=$2", str(ctx.channel.id), str(ctx.guild.id))
