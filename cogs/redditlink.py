@@ -1,21 +1,18 @@
-import youtube_dl
-import nextcord as discord
 import asyncio
-# import urllib
-# import aiohttp
-# import sys
-import re
 import os
-# import json
-import asyncpraw
+import re
 
+import asyncpraw
+import nextcord as discord
+import youtube_dl
 # import ffmpeg
 from nextcord.ext import commands
+from typing_extensions import TYPE_CHECKING
+
+from functions import MessageColors, MyContext, embed
+
 # from discord_slash import cog_ext
 
-from functions import MessageColors, embed
-from typing_extensions import TYPE_CHECKING
-from functions import MyContext
 
 if TYPE_CHECKING:
   from index import Friday as Bot
@@ -45,21 +42,29 @@ ytdl_format_options = {
 ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
 
 
+PATTERN = r"<?https?:\/\/(?:www\.)?reddit\.com\/r\/[a-zA-Z\d_-]+\/comments\/[a-zA-Z%\d_-]+\/[a-zA-Z%\d_-]+>?"
+PATTERN_SPOILER = r"||<?https?:\/\/(?:www\.)?reddit\.com\/r\/[a-zA-Z\d_-]+\/comments\/[a-zA-Z%\d_-]+\/[a-zA-Z%\d_-]+>?||"
+
+REDDIT_CLIENT_ID = os.environ.get("REDDITCLIENTID")
+REDDIT_CLIENT_SECRET = os.environ.get("REDDITCLIENTSECRET")
+REDDIT_PASSWORD = os.environ.get("REDDITPASSWORD")
+
+
 class redditlink(commands.Cog):
   """Extract the media from Reddit posts with Friday's Reddit command and more"""
 
   def __init__(self, bot: "Bot"):
     self.bot = bot
     self.emoji = "🔗"
+    self.loop = bot.loop
+
     self.lock = asyncio.Lock()
-    self.pattern = r"https:\/\/(?:www\.|)reddit.com\/r\/[a-zA-Z0-9-_]+\/comments\/[a-zA-Z0-9]+\/[a-zA-Z0-9_-]+"
-    self.patternspoiler = r"||https:\/\/(?:www\.|)reddit.com\/r\/[a-zA-Z0-9-_]+\/comments\/[a-zA-Z0-9]+\/[a-zA-Z0-9_-]+||"
     self.reddit = asyncpraw.Reddit(
-        client_id=os.environ.get('REDDITCLIENTID'),
-        client_secret=os.environ.get('REDDITCLIENTSECRET'),
-        password=os.environ.get('REDDITPASSWORD'),
-        user_agent="Friday Discord bot v1.0.0  (by /u/Motostar19)",
-        username="Friday"
+        client_id=REDDIT_CLIENT_ID,
+        client_secret=REDDIT_CLIENT_SECRET,
+        password=REDDIT_PASSWORD,
+        user_agent="Discord:Friday:v1.0 (by /u/Motostar19)",
+        username="Motostar19"
     )
     self.reddit.read_only = True
 
@@ -80,8 +85,7 @@ class redditlink(commands.Cog):
     if not message.guild:
       return
 
-    reg = re.findall(self.pattern, message.content)
-    # spoiler = re.findall(self.patternspoiler,ctx.content)
+    reg = re.findall(PATTERN, message.content)
 
     if len(reg) != 1:
       return
@@ -94,6 +98,7 @@ class redditlink(commands.Cog):
     ctx: "MyContext" = await self.bot.get_context(message)
     if ctx.command is not None:
       return
+
     body = await self.reddit.submission(url=reg[0])
 
     data, video, embeded, image = body, None, None, None
@@ -101,8 +106,6 @@ class redditlink(commands.Cog):
     try:
       if data.media is not None:
         video = data.media["reddit_video"]["hls_url"]
-      # elif len(data["crosspost_parent_list"]) > 0:
-      #   video = data["crosspost_parent_list"][0]["media"]["reddit_video"]["hls_url"]
     except Exception:
       pass
 
@@ -187,7 +190,7 @@ class redditlink(commands.Cog):
     if message is None and not command:
       raise commands.ArgumentParsingError()
     # TODO: check the max file size of the server and change the quality of the video to match
-    reg = re.findall(self.pattern, query)
+    reg = re.findall(PATTERN, query)
 
     if len(reg) != 1:
       return await ctx.send(embed=embed(title="That is not a reddit post url", color=MessageColors.ERROR))
