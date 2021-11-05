@@ -488,20 +488,12 @@ class Log(commands.Cog):
     else:
       print('Ignoring exception in command {}:'.format(ctx.command), file=sys.stderr)
       traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
-
-  @commands.Cog.listener()
-  async def on_error(self, event, *args, **kwargs):
-    trace = traceback.format_exc()
-    if "Missing Access" in str(trace):
-      return
-
-    logging.error(trace)
-    await relay_info(
-        f"```bash\n{trace}```",
-        self.bot,
-        short="Error sent",
-        webhook=self.log_errors
-    )
+      await relay_info(
+          f"```bash\n{sys.stderr}```",
+          self.bot,
+          short="Error sent",
+          webhook=self.log_errors
+      )
 
 
 def setup(bot):

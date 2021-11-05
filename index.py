@@ -154,9 +154,6 @@ class Friday(commands.AutoShardedBot):
       return None
     return members[0]
 
-  async def on_error(self, event_method, *args, **kwargs):
-    return await self.log.on_error(event_method, *args, **kwargs)
-
   async def close(self):
     await super().close()
     await self.session.close()
