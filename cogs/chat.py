@@ -22,6 +22,26 @@ openai.api_key = os.environ.get("OPENAI")
 profanity.get_words
 
 
+class Config:
+  __slots__ = ("bot", "id", "chat_channel_id", "persona", "lang", )
+
+  @classmethod
+  async def from_record(cls, record, bot):  # nrecord, bot):
+    self = cls()
+
+    self.bot = bot
+    self.id: int = int(record["id"], base=10)
+    self.chat_channel_id: Optional[int] = int(record["chatchannel"], base=10) if record["chatchannel"] else None
+    self.persona: Optional[str] = record["persona"]
+    self.lang: str = record["lang"] or "en"
+    return self
+
+  @property
+  def chat_channel(self):
+    guild = self.bot.get_guild(self.id)
+    return guild and self.chat_channel_id and guild.get_channel(self.chat_channel_id)
+
+
 class Chat(commands.Cog):
   """Chat with Friday, say something on Friday's behalf, and more with the chat commands."""
 
@@ -57,6 +77,16 @@ class Chat(commands.Cog):
 
   async def setup(self) -> None:
     ...
+
+  @cache()
+  async def get_guild_config(self, guild_id: int) -> Optional[Config]:
+    query = "SELECT * FROM servers WHERE id=$1 LIMIT 1;"
+    async with self.bot.db.pool.acquire(timeout=300.0) as conn:
+      record = await conn.fetchrow(query, str(guild_id))
+      self.bot.logger.debug(f"PostgreSQL Query: \"{query}\" + {str(guild_id)}")
+      if record is not None:
+        return await Config.from_record(record, self.bot)
+      return None
 
   @commands.command(name="say", aliases=["repeat"], help="Make Friday say what ever you want")
   async def say(self, ctx: "MyContext", *, content: str):
@@ -324,7 +354,10 @@ class Chat(commands.Cog):
   async def on_message_to_me(self, msg: discord.Message, voted: bool, min_tiers):
     response = None
     ctx = await self.bot.get_context(msg)
-    lang = self.bot.log.get_guild_lang(ctx.guild)
+    config = await self.get_guild_config(msg.guild.id)
+    if config is None:
+      return self.bot.logger.error(f"Config was not available in chat for (guild: {msg.guild.id if msg.guild else None}) (channel type: {msg.channel.type if msg.channel else 'uhm'}) (user: {msg.author.id})")
+    lang = config.lang
 
     async def translate(msg: discord.Message) -> dict:
       translation = {}

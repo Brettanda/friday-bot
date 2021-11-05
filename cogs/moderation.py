@@ -218,12 +218,13 @@ class Moderation(commands.Cog):
   @commands.has_guild_permissions(manage_channels=True)
   async def norm_chatchannel(self, ctx):
     chat_channel = await self.bot.db.query("SELECT chatchannel FROM servers WHERE id=$1 LIMIT 1", str(ctx.guild.id))
+      chat.get_guild_config.invalidate(chat, ctx.guild.id)
     if chat_channel is None:
       await self.bot.db.query("UPDATE servers SET chatchannel=$1 WHERE id=$2", str(ctx.channel.id), str(ctx.guild.id))
-      return dict(embed=embed(title="I will now respond to every message in this channel"))
+      return await ctx.send(embed=embed(title="I will now respond to every message in this channel"))
     else:
       await self.bot.db.query("UPDATE servers SET chatchannel=$1 WHERE id=$2", None, str(ctx.guild.id))
-      return dict(embed=embed(title="I will no longer respond to all messages from this channel"))
+      return await ctx.send(embed=embed(title="I will no longer respond to all messages from this channel"))
 
   @commands.command(name="musicchannel", help="Set the channel where I can join and play music. If none then I will join any VC", hidden=True)
   @commands.is_owner()
