@@ -8,17 +8,30 @@ from slugify import slugify
 from typing_extensions import TYPE_CHECKING
 
 from functions import MessageColors, MyContext, cache, embed, relay_info
+from .moderation import can_execute_action
 
 if TYPE_CHECKING:
   from index import Friday as Bot
 
 INVITE_REG = re.compile(r"(http(s|)?:\/\/)?(www\.)?(discord(app|)\.(gg|com|net)(\/invite|))\/[a-zA-Z0-9\-]+", re.RegexFlag.MULTILINE + re.RegexFlag.IGNORECASE)
 
-PUNISHMENT_TYPES = ["kick", "ban", "mute"]
+class RoleOrChannel(commands.Converter):
+  async def convert(self, ctx, argument):
+    try:
+      item = await commands.TextChannelConverter().convert(ctx, argument)
+    except commands.BadArgument:
+      try:
+        item = await commands.RoleConverter().convert(ctx, argument)
+      except commands.BadArgument:
+        raise commands.BadArgument("Role or channel not found.")
+
+    if isinstance(item, discord.Role) and not can_execute_action(ctx, ctx.author, item):
+      raise commands.BadArgument("Your role hierarchy is too low for this action.")
+    return item
 
 
 class Config:
-  __slots__ = ("bot", "id", "max_mentions", "max_messages", "max_content", "remove_invites", "blacklisted_words", "mute_role_id", "muted_members")
+  __slots__ = ("bot", "id", "max_mentions", "max_messages", "max_content", "remove_invites", "automod_whitelist", "blacklisted_words", "mute_role_id", "muted_members")
 
   @classmethod
   async def from_record(cls, record, blacklist, bot):
@@ -30,6 +43,7 @@ class Config:
     self.max_messages = json.loads(record["max_messages"]) if record["max_messages"] else None
     self.max_content = json.loads(record["max_content"]) if record["max_content"] else None
     self.remove_invites: bool = record["remove_invites"]
+    self.automod_whitelist = set(record["automod_whitelist"] or [])
     self.blacklisted_words: List[str] = blacklist["words"] if blacklist else []
     self.muted_members = set(record["muted_members"] or [])
     self.mute_role_id = int(record["mute_role"], base=10) if record["mute_role"] else None
@@ -42,6 +56,21 @@ class Config:
 
   def is_muted(self, member: discord.Member) -> bool:
     return member.id in [int(i, base=10) for i in self.muted_members]
+
+  def is_whitelisted(self, msg: discord.Message, *, channel: discord.TextChannel = None, member: discord.Member = None) -> bool:
+    channel = channel or msg.channel
+    roles = member.roles or msg.author.roles
+
+    if msg.author.guild_permissions and (msg.author.guild_permissions.administrator or msg.author.guild_permissions.manage_guild):
+      return True
+
+    if channel and str(channel.id) in self.automod_whitelist:
+      return True
+
+    if roles and any(str(role.id) in self.automod_whitelist for role in roles):
+      return True
+
+    return False
 
   async def mute(self, member: discord.Member, reason: str = "Auto-mute for spamming.") -> None:
     if self.mute_role_id:
@@ -202,6 +231,9 @@ class AutoMod(commands.Cog):
     if config is None:
       return
 
+    if config.is_whitelisted(msg):
+      return
+
     try:
       spam = self._spam_check[msg.guild.id]
     except KeyError:
@@ -296,6 +328,37 @@ class AutoMod(commands.Cog):
             return await msg.author.send(embed=embed(title=f"Your message `{msg.content}` was removed for containing a blacklisted word "))
     except Exception as e:
       await relay_info(f"Error when trying to remove message (big) {type(e).__name__}: {e}", self.bot, logger=self.bot.log.log_errors)
+
+  @commands.command(name="whitelist", aliases=["wl"], extras={"examples": ["#memes", "#admin @admin 707457407512739951"]}, invoke_without_command=True, case_insensitive=True, help="Whitelist channels and/or roles from being automoded.")
+  @commands.guild_only()
+  @commands.has_guild_permissions(manage_messages=True, manage_roles=True)
+  @commands.bot_has_guild_permissions(manage_messages=True)
+  async def whitelist(self, ctx: "MyContext", channel_or_roles: commands.Greedy[RoleOrChannel]):
+    if not channel_or_roles:
+      raise commands.MissingRequiredArgument(ctx.command.params["channel_or_roles"])
+    ids = [str(i.id) for i in channel_or_roles]
+    await self.bot.db.query(
+        """UPDATE servers SET automod_whitelist=
+            ARRAY(SELECT DISTINCT UNNEST(automod_whitelist || $1) FROM servers WHERE id=$2)::text[]
+        WHERE id=$2""", ids, str(ctx.guild.id))
+    self.get_guild_config.invalidate(self, ctx.guild.id)
+    await ctx.send(embed=embed(title=f"Whitelisted `{', '.join([i.name for i in channel_or_roles])}`"))
+
+  @commands.command(name="unwhitelist", aliases=["unwl"], extras={"examples": ["#memes", "@admin #admin 707457407512739951"]}, invoke_without_command=True, case_insensitive=True, help="Unwhitelist channels and/or roles from being automoded.")
+  @commands.guild_only()
+  @commands.has_guild_permissions(manage_messages=True, manage_roles=True)
+  @commands.bot_has_guild_permissions(manage_messages=True)
+  async def unwhitelist(self, ctx: "MyContext", channel_or_roles: commands.Greedy[RoleOrChannel]):
+    if not channel_or_roles:
+      raise commands.MissingRequiredArgument(ctx.command.params["channel_or_roles"])
+    ids = [str(i.id) for i in channel_or_roles]
+    await self.bot.db.query(
+        """with cte(array1, array2) as (values ((SELECT automod_whitelist FROM servers WHERE id=$2), $1::text[]))
+        UPDATE servers SET automod_whitelist=
+          (SELECT array_agg(elem) from cte, UNNEST(array1) elem WHERE elem <> all(array2::text[]))
+        WHERE id=$2""", ids, str(ctx.guild.id))
+    self.get_guild_config.invalidate(self, ctx.guild.id)
+    await ctx.send(embed=embed(title=f"Unwhitelisted `{', '.join([i.name for i in channel_or_roles])}`"))
 
   @commands.group(name="blacklist", aliases=["bl"], invoke_without_command=True, case_insensitive=True, help="Blacklist words from being sent in text channels")
   @commands.guild_only()
