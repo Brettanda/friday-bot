@@ -20,7 +20,7 @@ class Ping(commands.Cog):
   @commands.command(name="ping", help="Pong!")
   async def norm_ping(self, ctx):
     """Pong!"""
-    latency = f"{self.bot.et_shard(ctx.guild.shard_id).latency*1000:,.0f}" if ctx.guild is not None else f"{self.bot.latency*1000:,.0f}"
+    latency = f"{self.bot.get_shard(ctx.guild.shard_id).latency*1000:,.0f}" if ctx.guild is not None else f"{self.bot.latency*1000:,.0f}"
     return await ctx.send(embed=embed(title="Pong!", description=f"⏳ API is {latency}ms"))
 
 
