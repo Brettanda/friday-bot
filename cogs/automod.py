@@ -13,7 +13,8 @@ from .moderation import can_execute_action
 if TYPE_CHECKING:
   from index import Friday as Bot
 
-INVITE_REG = re.compile(r"(http(s|)?:\/\/)?(www\.)?(discord(app|)\.(gg|com|net)(\/invite|))\/[a-zA-Z0-9\-]+", re.RegexFlag.MULTILINE + re.RegexFlag.IGNORECASE)
+PUNISHMENT_TYPES = ["kick", "ban", "mute"]
+
 
 class RoleOrChannel(commands.Converter):
   async def convert(self, ctx, argument):
