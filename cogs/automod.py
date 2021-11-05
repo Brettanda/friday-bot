@@ -15,6 +15,7 @@ if TYPE_CHECKING:
 
 INVITE_REG = re.compile(r"<?(https?:\/\/)?(www\.)?(discord(app|)\.(gg|com|net)(\/invite|))\/[a-zA-Z0-9\-]+>?", re.RegexFlag.MULTILINE + re.RegexFlag.IGNORECASE)
 
+PUNISHMENT_TYPES = ["kick", "ban", "mute"]
 
 
 class RoleOrChannel(commands.Converter):
