@@ -217,18 +217,6 @@ class Moderation(commands.Cog):
   @commands.guild_only()
   @commands.has_guild_permissions(manage_channels=True)
   async def norm_chatchannel(self, ctx):
-    post = await self.settings_bot_chat_channel(ctx)
-    await ctx.reply(**post)
-
-  # @cog_ext.cog_slash(name="chatchannel", description="Set the current text channel so that I will always try to respond")
-  # @commands.has_guild_permissions(manage_channels=True)
-  # @checks.slash(user=True, private=False)
-  # async def slash_chatchannel(self, ctx):
-  #   await ctx.defer()
-  #   post = await self.settings_bot_chat_channel(ctx)
-  #   await ctx.send(**post)
-
-  async def settings_bot_chat_channel(self, ctx):
     chat_channel = await self.bot.db.query("SELECT chatchannel FROM servers WHERE id=$1 LIMIT 1", str(ctx.guild.id))
     if chat_channel is None:
       await self.bot.db.query("UPDATE servers SET chatchannel=$1 WHERE id=$2", str(ctx.channel.id), str(ctx.guild.id))
@@ -259,7 +247,7 @@ class Moderation(commands.Cog):
       return await ctx.reply(embed=embed(title="That is not a voice channel.", color=MessageColors.ERROR))
     member = self.last_to_leave_vc[voice_channel.id]
     if member is None:
-      return await ctx.reply(embed=embed(title=f"The last member to leave `{voice_channel}` was not saved.", description="I'll catch the next one :)", color=MessageColors.ERROR))
+      return await ctx.reply(embed=embed(title=f"No currently saved departing member of `{voice_channel}` saved.", description="I'll catch the next one :)", color=MessageColors.ERROR))
     await ctx.reply(embed=embed(title=f"`{member['member']}` left `{voice_channel}` <t:{int(member['time'])}:R>."))
 
   # @commands.command(name="clear",description="Deletes my messages and commands (not including the meme command)")
@@ -425,7 +413,7 @@ class Moderation(commands.Cog):
             webhook=self.bot.log.log_chat
         ),
         message.delete(),
-        ctx.reply(embed=embed(title="Message has been removed"), delete_after=20),
+        ctx.reply(embed=embed(title="Message has been removed"), delete_after=10),
         ctx.message.delete(delay=10)
     )
 

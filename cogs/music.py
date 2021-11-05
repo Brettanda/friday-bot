@@ -308,6 +308,8 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
   async def cog_command_error(self, ctx: MyContext, error: Exception):
     if isinstance(error, (IncorrectChannelError, NoChannelProvided, NoCustomSoundsFound, VoiceConnectionError)):
       return await ctx.send(embed=embed(title=error, color=MessageColors.ERROR))
+    elif isinstance(error, (commands.MissingRequiredArgument, commands.BadArgument)):
+      return await ctx.send_help(ctx.command)
     elif isinstance(error, commands.BadLiteralArgument):
       return await ctx.send(embed=embed(title=f"`{error.param.name}` must be one of `{', '.join(error.literals)}.`", color=MessageColors.ERROR))
     elif isinstance(error, (exceptions.RequiredTier, exceptions.NotSupporter, exceptions.NotInSupportServer)):

@@ -12,6 +12,7 @@ from typing_extensions import TYPE_CHECKING
 from collections import defaultdict
 # import interactions
 from nextcord.ext import commands
+from typing_extensions import TYPE_CHECKING
 
 import cogs
 import functions
@@ -24,7 +25,6 @@ load_dotenv()
 
 TOKEN = os.environ.get('TOKENTEST')
 
-dead_nodes_sent = False
 formatter = logging.Formatter("%(levelname)s:%(name)s: %(message)s")
 
 
@@ -81,8 +81,8 @@ class Friday(commands.AutoShardedBot):
     if self.should_start:
       self.run(kwargs["token"])
 
-  def __repr__(self):
-    return "<Friday>"
+  def __repr__(self) -> str:
+    return f"<Friday username=\"{self.bot.user.display_name}\" id={self.bot.user.id}>"
 
   @property
   def log(self) -> Optional["Log"]:
