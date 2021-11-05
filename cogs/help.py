@@ -257,8 +257,11 @@ class Help(commands.HelpCommand):
         else group.help or "No help found..."
     )
 
-    if group.extras != {} and "examples" in group.extras:
-      embed.add_field(name="Examples", value="```py\n" + "\n".join(get_examples(group, self.context.clean_prefix)) + "```", inline=False)
+    if group.extras != {}:
+      if "examples" in group.extras:
+        embed.add_field(name="Examples", value="```py\n" + "\n".join(get_examples(group, self.context.clean_prefix)) + "```", inline=False)
+      if "params" in group.extras:
+        embed.add_field(name="Available Parameters", value="```py\n" + ", ".join(group.extras['params']) + "```", inline=False)
 
     embed.add_field(name="Signature", value="```py\n" + self.get_command_signature(group) + "```", inline=False)
 
@@ -273,8 +276,11 @@ class Help(commands.HelpCommand):
     else:
       embed.description = command.help or "No help found..."
 
-    if command.extras != {} and "examples" in command.extras:
-      embed.add_field(name="Examples", value="```py\n" + "\n".join(get_examples(command, self.context.clean_prefix)) + "```", inline=False)
+    if command.extras != {}:
+      if "examples" in command.extras:
+        embed.add_field(name="Examples", value="```py\n" + "\n".join(get_examples(command, self.context.clean_prefix)) + "```", inline=False)
+      if "params" in command.extras:
+        embed.add_field(name="Available Parameters", value="```py\n" + ", ".join(command.extras['params']) + "```", inline=False)
 
     embed.add_field(name="Signature", value="```py\n" + self.get_command_signature(command) + "```", inline=False)
 
