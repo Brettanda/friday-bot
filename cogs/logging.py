@@ -104,9 +104,9 @@ class Logging(commands.Cog):
     reason = after.reason if hasattr(after, "reason") and after.reason is not None else "No reason given"
 
     if after_has and "mutes" in config.mod_log_events:
-      self.bot.dispatch("log_event", before.guild.id, "mute", title="Mute", description=f"**Muted:** {before.mention} (ID: {before.id})\n**Reason:** {reason}\n**Moderator responsible:** {action.user.mention} (ID: {action.user.id})")
+      self.bot.dispatch("log_event", before.guild.id, "mute", offender=before, moderator=action.user, reason=reason)
     elif "unmutes" in config.mod_log_events:
-      self.bot.dispatch("log_event", before.guild.id, "unmute", title="Unmute", description=f"**Unmuted:** {before.mention} (ID: {before.id})\n**Reason:** {reason}\n**Moderator responsible:** {action.user.mention} (ID: {action.user.id})")
+      self.bot.dispatch("log_event", before.guild.id, "unmute", offender=before, moderator=action.user, reason=reason)
 
   @commands.Cog.listener()
   async def on_member_ban(self, guild: discord.Guild, member: Union[discord.User, discord.Member]):
