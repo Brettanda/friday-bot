@@ -2,29 +2,28 @@ import asyncio
 import logging
 import os
 import sys
-import aiohttp
-from importlib import reload
-
-from dotenv import load_dotenv
-import nextcord as discord
-from typing import Optional
-from typing_extensions import TYPE_CHECKING
 from collections import defaultdict
+from importlib import reload
+from typing import Optional
+
+import aiohttp
+import nextcord as discord
+from dotenv import load_dotenv
 # import interactions
 from nextcord.ext import commands
+from typing_extensions import TYPE_CHECKING
 
 import cogs
 import functions
 
 if TYPE_CHECKING:
-  from .cogs.log import Log
   from .cogs.database import Database
+  from .cogs.log import Log
 
 load_dotenv()
 
 TOKEN = os.environ.get('TOKENTEST')
 
-dead_nodes_sent = False
 formatter = logging.Formatter("%(levelname)s:%(name)s: %(message)s")
 
 
@@ -81,8 +80,8 @@ class Friday(commands.AutoShardedBot):
     if self.should_start:
       self.run(kwargs["token"])
 
-  def __repr__(self):
-    return "<Friday>"
+  def __repr__(self) -> str:
+    return f"<Friday username=\"{self.bot.user.display_name}\" id={self.bot.user.id}>"
 
   @property
   def log(self) -> Optional["Log"]:
@@ -153,9 +152,6 @@ class Friday(commands.AutoShardedBot):
     if not members:
       return None
     return members[0]
-
-  async def on_error(self, event_method, *args, **kwargs):
-    return await self.log.on_error(event_method, *args, **kwargs)
 
   async def close(self):
     await super().close()

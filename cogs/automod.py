@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 INVITE_REG = re.compile(r"<?(https?:\/\/)?(www\.)?(discord(app|)\.(gg|com|net)(\/invite|))\/[a-zA-Z0-9\-]+>?", re.RegexFlag.MULTILINE + re.RegexFlag.IGNORECASE)
 
-PUNISHMENT_TYPES = ["kick", "ban", "mute"]
+PUNISHMENT_TYPES = ["delete", "kick", "ban", "mute"]
 
 
 class RoleOrChannel(commands.Converter):
@@ -79,6 +79,12 @@ class Config:
     if self.mute_role_id:
       await member.add_roles(discord.Object(id=self.mute_role_id), reason=reason)
 
+  async def delete(self, msg: discord.Message) -> None:
+    try:
+      await msg.delete()
+    except discord.NotFound:
+      pass
+
   async def kick(self, member: discord.Member, reason: str = "Auto-kick for spamming.") -> None:
     await member.kick(reason=reason)
 
@@ -86,6 +92,8 @@ class Config:
     await member.ban(reason=reason)
 
   async def apply_punishment(self, guild: discord.Guild, msg: discord.Message, punishments: List[str], *, reason: str = "Spamming") -> Optional[discord.Message]:
+    if "delete" in punishments:
+      await self.delete(msg)
     if "ban" in punishments:
       await self.ban(msg.author)
     elif "kick" in punishments:
@@ -288,7 +296,7 @@ class AutoMod(commands.Cog):
       return
 
     if after_has:
-      await self.bot.db.query("UPDATE servers SET muted_members=array_append(muted_members, $1) WHERE id=$2", str(after.id), str(guild_id))
+      await self.bot.db.query("UPDATE servers SET muted_members=array_append(muted_members, $1) WHERE id=$2 AND NOT ($1=any(muted_members))", str(after.id), str(guild_id))
     else:
       await self.bot.db.query("UPDATE servers SET muted_members=array_remove(muted_members, $1) WHERE id=$2", str(after.id), str(guild_id))
     self.bot.dispatch("invalidate_mod", before.guild.id)
@@ -296,11 +304,11 @@ class AutoMod(commands.Cog):
   @commands.Cog.listener()
   async def on_guild_role_delete(self, role: discord.Role):
     guild_id = role.guild.id
-    mute_role_id = await self.bot.db.query("SELECT mute_role FROM servers WHERE id=$1 LIMIT 1", str(guild_id))
-    if mute_role_id is None or int(mute_role_id, base=10) != role.id:
+    config = await self.get_guild_config(guild_id)
+    if config is None or config.mute_role_id != role.id:
       return
 
-    await self.bot.db.query("UPDATE servers SET mute_role=NULL WHERE id=$1", str(guild_id))
+    await self.bot.db.query("UPDATE servers SET (mute_role, muted_members) = (NULL, '{}'::text[]) WHERE id=$1", str(guild_id))
     self.bot.dispatch("invalidate_mod", role.guild.id)
 
   def do_slugify(self, string):

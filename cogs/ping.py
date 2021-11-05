@@ -15,15 +15,12 @@ class Ping(commands.Cog):
     self.bot = bot
 
   def __repr__(self) -> str:
-    return "<cogs.Ping>"
+    return "<cogs.Ping content=\"Pong\">"
 
   @commands.command(name="ping", help="Pong!")
   async def norm_ping(self, ctx):
     """Pong!"""
-    await self.ping(ctx)
-
-  async def ping(self, ctx, slash: bool = False):
-    latency = f"{self.bot.get_shard(ctx.guild.shard_id).latency*1000:,.0f}" if ctx.guild is not None else f"{self.bot.latency*1000:,.0f}"
+    latency = f"{self.bot.et_shard(ctx.guild.shard_id).latency*1000:,.0f}" if ctx.guild is not None else f"{self.bot.latency*1000:,.0f}"
     return await ctx.send(embed=embed(title="Pong!", description=f"⏳ API is {latency}ms"))
 
 
