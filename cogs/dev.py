@@ -376,6 +376,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     env = {
         'bot': self.bot,
         'ctx': ctx,
+        'embed': embed,
         'channel': ctx.channel,
         'author': ctx.author,
         'guild': ctx.guild,
