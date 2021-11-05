@@ -245,8 +245,9 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       return await ctx.send(stdout)
     message = await ctx.reply(embed=embed(title="Updating..."))
     await ctx.trigger_typing()
-    await self.run_process("python -m pip install --upgrade pip && python -m pip install -r requirements.txt --no-cache-dir")
+    stdout, stderr = await self.run_process("python -m pip install --upgrade pip && python -m pip install -r requirements.txt --no-cache-dir")
     await message.edit(embed=embed(title="Update complete!"))
+    await ctx.safe_send(stdout)
 
   @norm_dev.command(name="cogs")
   async def cogs(self, ctx):
