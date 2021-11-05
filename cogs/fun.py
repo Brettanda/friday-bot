@@ -239,7 +239,7 @@ class Fun(commands.Cog):
             title=f"{size}x{size} with {bomb_count} bombs",
             author_name="Minesweeper",
             description="||" + "||\n||".join("||||".join(self.MINEEMOTES[cell] for cell in row) for row in arr) + "||"),
-        delete_after=None)
+    )
 
   @commands.command(name='souptime', help='Soup Time')
   @commands.cooldown(1, 7, commands.BucketType.user)
