@@ -68,18 +68,14 @@ class Log(commands.Cog):
   def __init__(self, bot: "Bot"):
     self.bot = bot
     self.loop = bot.loop
-    self.bot.loop.create_task(self.setup())
+    self.loop.create_task(self.setup())
 
-    if not hasattr(self, "spam_control"):
-      self.spam_control = commands.CooldownMapping.from_cooldown(5, 15.0, commands.BucketType.user)
-
-    if not hasattr(self, "super_spam_control"):
-      self.super_spam_control = commands.CooldownMapping.from_cooldown(5, 60, commands.BucketType.user)
+    self.spam_control = commands.CooldownMapping.from_cooldown(5, 15.0, commands.BucketType.user)
+    self.super_spam_control = commands.CooldownMapping.from_cooldown(5, 60, commands.BucketType.user)
 
     self.super_spam_counter = None
 
-    if not hasattr(self, "_auto_spam_count"):
-      self._auto_spam_count = Counter()
+    self._auto_spam_count = Counter()
 
     self.logger = self.bot.logger
 
@@ -154,7 +150,6 @@ class Log(commands.Cog):
       self.bot.add_view(views.StopButton())
       # self.bot.add_view(views.PaginationButtons())
 
-    await self.set_all_guilds()
     await relay_info(f"Apart of {len(self.bot.guilds)} guilds", self.bot, logger=self.logger)
     if not hasattr(self.bot, "uptime"):
       self.bot.uptime = datetime.datetime.utcnow()
@@ -207,14 +202,12 @@ class Log(commands.Cog):
       return
 
     await channel.send(**config.welcome_message(self.bot))
-    self.set_guild(guild.id)
     await relay_info(f"I have joined a new guild, making the total **{len(self.bot.guilds)}**", self.bot, short=f"I have joined a new guild, making the total {len(self.bot.guilds)}", webhook=self.log_join, logger=self.logger)
 
   @commands.Cog.listener()
   async def on_guild_remove(self, guild):
     while self.bot.is_closed():
       await asyncio.sleep(0.1)
-    self.remove_guild(guild.id)
     await self.bot.db.query(
           f"DELETE FROM servers WHERE id='{str(guild.id)}';"
           f"DELETE FROM blacklist WHERE guild_id='{str(guild.id)}';"
@@ -385,44 +378,6 @@ class Log(commands.Cog):
           final_tier = list(config.premium_tiers)[final_tier + 1]
         x += 1
       return final_tier if final_tier is not None else None
-
-  def set_guild(
-          self,
-          guild: typing.Union[discord.Guild, int],
-          prefix: str = "!",
-          tier: int = 0,
-          patreon_user: int = None,
-          max_mentions: int = None,
-          max_messages: [int] = None,
-          chatChannel: int = None,
-          lang: str = None) -> None:
-    if guild is not None:
-      guild = guild if isinstance(guild, discord.Guild) else self.bot.get_guild(guild)
-      self.bot.saved_guilds.update(
-          {str(guild.id) if isinstance(guild, discord.Guild) else guild: {
-              "tier": tier,
-              "patreon_user": patreon_user,
-              "max_mentions": max_mentions,
-              "max_messages": max_messages,
-              "chatChannel": chatChannel if chatChannel is not None else None,
-              "lang": lang if lang is not None else guild.preferred_locale.split("-")[0]
-          }
-          })
-
-  def remove_guild(self, guild: typing.Union[discord.Guild, int]) -> None:
-    if guild is None:
-      return False
-    guild_id = guild.id if isinstance(guild, discord.Guild) else guild
-    self.bot.saved_guilds.pop(str(guild_id), None)
-
-  async def set_all_guilds(self) -> None:
-    # if not hasattr(self.bot, "saved_guilds") or len(self.bot.saved_guilds) != len(self.bot.guilds):
-    servers = await self.bot.db.query("SELECT id,tier,patreon_user,chatChannel,lang FROM servers")
-    guilds = {}
-    for guild_id, tier, patreon_user, chatChannel, lang in servers:
-      guilds.update({str(guild_id): {"tier": str(tier), "patreon_user": int(patreon_user) if patreon_user is not None else None, "chatChannel": int(chatChannel) if chatChannel is not None else None, "lang": lang}})
-    self.bot.saved_guilds = guilds
-    return guilds
 
   @discord.utils.cached_property
   def log_chat(self) -> CustomWebhook:
