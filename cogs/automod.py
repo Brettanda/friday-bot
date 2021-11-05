@@ -327,6 +327,8 @@ class AutoMod(commands.Cog):
     cleansed_msg = self.do_slugify(msg.clean_content)
 
     config = await self.get_guild_config(msg.guild.id)
+    if config is None:
+      return
     words = config.blacklisted_words
     if config.is_whitelisted(msg):
       return
