@@ -229,20 +229,19 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
 
   @norm_dev.command(name="update")
   async def update(self, ctx):
-    async with ctx.typing():
-      stdout, stderr = await self.run_process("git reset --hard && git pull")
+    await ctx.trigger_typing()
+    if self.bot.canary:
+      stdout, stderr = await self.run_process("git reset --hard && git pull origin canary")
+    elif self.bot.prod:
+      stdout, stderr = await self.run_process("git reset --hard && git pull origin master")
+    else:
+      return await ctx.reply(embed=embed(title="You are not on a branch", color=MessageColors.ERROR))
 
     if stdout.startswith("Already up-to-date."):
       return await ctx.send(stdout)
     message = await ctx.reply(embed=embed(title="Updating..."))
-    thispath = os.getcwd()
-    if "\\" in thispath:
-      seperator = "\\\\"
-    else:
-      seperator = "/"
-    if self.bot.prod or self.bot.canary:
-      subprocess.Popen([f"{thispath}{seperator}update{'' if not self.bot.canary else '_canary'}.sh"], stdin=subprocess.PIPE)
-    subprocess.Popen([f"{thispath}{seperator}install.sh"], stdin=subprocess.PIPE)
+    async with ctx.typing():
+      await self.run_process("python -m pip install --upgrade pip && python -m pip install -r requirements.txt --no-cache-dir")
     await message.edit(embed=embed(title="Update complete!"))
 
   @norm_dev.command(name="cogs")
@@ -264,21 +263,6 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
   async def markdown(self, ctx):
     build_docs(self.bot)
     await ctx.reply(embed=embed(title="Commands loaded"))
-    # with open("docs/commands.md", "w") as f:
-    #   f.write("# Commands\n\n")
-    #   for cog in cogs:
-    #     f.write(f"## {cog}\n\n")
-    #     for com in commands:
-    #       if com.hidden is False and com.enabled is True and com.cog_name == cog:
-    #         # f.write(f"""### {ctx.prefix}{com.name}\n{(f'Aliases: `{ctx.prefix}'+f", {ctx.prefix}".join(com.aliases)+'`') if len(com.aliases) > 0 else ''}\n{f'Description: {com.description}' if com.description != '' else ''}\n""")
-    #         f.write(f"### `{ctx.prefix}{com.name}`\n\n")
-    #         usage = '\n  '.join(syntax(com, quotes=False).split('\n'))
-    #         usage = discord.utils.escape_markdown(usage).replace("<", "\\<")
-    #         f.write(f"Usage:\n\n  {usage}\n\n")
-    #         f.write("Aliases: ```" + (f'{ctx.prefix}' + f",{ctx.prefix}".join(com.aliases) if len(com.aliases) > 0 else 'None') + "```\n\n")
-    #         f.write(f"Description: ```{com.description or 'None'}```\n\n")
-    #   f.close()
-    # await ctx.reply(file=discord.File(fp=f"{thispath}{seperator}docs{seperator}commands.md", filename="commands.md"))
 
   @norm_dev.command(name="sudo")
   async def sudo(self, ctx: "MyContext", channel: Optional[GlobalChannel], user: Union[discord.Member, discord.User], *, command: str):
@@ -336,7 +320,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
   @norm_dev.command(name="graph")
   async def graph(self, ctx):
     async with ctx.typing():
-      channel = self.bot.get_guild(707441352367013899).get_channel(713270475031183390)
+      channel = self.bot.get_channel(713270475031183390)
 
       def predicate(message):
         return message.author.id == 476303446547365891
@@ -376,6 +360,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     env = {
         'bot': self.bot,
         'ctx': ctx,
+        'embed': embed,
         'channel': ctx.channel,
         'author': ctx.author,
         'guild': ctx.guild,
