@@ -7,6 +7,7 @@
 [![Become a Patron!](https://img.shields.io/badge/-Become%20a%20Patron!-rgb(232%2C%2091%2C%2070))](https://www.patreon.com/fridaybot)
 [![Will it blend?](https://github.com/Brettanda/friday-discord-python/actions/workflows/push.yml/badge.svg)](https://github.com/Brettanda/friday-discord-python/actions/workflows/push.yml)
 
+[friday-bot.com](https://friday-bot.com)
 
 Running your own instance of this bot is not prefered. This repository is meant for educational purposes only.
 
