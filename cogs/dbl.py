@@ -1,7 +1,7 @@
 import os
 import asyncio
 import datetime
-# import topgg
+import topgg
 import nextcord as discord
 from nextcord.ext import commands, tasks
 from typing_extensions import TYPE_CHECKING
@@ -44,11 +44,11 @@ class TopGG(commands.Cog):
   def __init__(self, bot: "Bot"):
     self.bot = bot
     self.token = os.getenv("TOKENDBL")
-    # self.topgg = topgg.DBLClient(self.bot, self.token, autopost=False)
+    self.topgg = topgg.DBLClient(self.bot, self.token, autopost=False)
     if self.bot.cluster_idx == 0:
-      # if not hasattr(self.bot, "topgg_webhook"):
-      #   self.bot.topgg_webhook = topgg.WebhookManager(self.bot).dbl_webhook("/dblwebhook", os.environ["DBLWEBHOOKPASS"])
-      #   self.bot.topgg_webhook.run(5000)
+      if not hasattr(self.bot, "topgg_webhook"):
+        self.bot.topgg_webhook = topgg.WebhookManager(self.bot).dbl_webhook("/dblwebhook", os.environ["DBLWEBHOOKPASS"])
+        self.bot.topgg_webhook.run(5000)
       self.update_votes.start()
 
   def __repr__(self):
