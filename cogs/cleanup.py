@@ -1,7 +1,7 @@
 # import asyncio
 
-# import discord
-from discord.ext import commands
+# import nextcord as discord
+from nextcord.ext import commands
 
 from typing_extensions import TYPE_CHECKING
 from functions import MyContext

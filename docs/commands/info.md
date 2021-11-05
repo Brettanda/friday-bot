@@ -10,7 +10,7 @@ Grab information about your Discord server members with Friday's information com
 
 Displays some information about myself :)
 
-??? check "Has a slash command to match"
+??? missing "Does not have a slash command to match"
 	Learn more about [slash commands](/#slash-commands)
 
 Usage:
@@ -29,7 +29,7 @@ about
 
 Shows information about the server
 
-??? check "Has a slash command to match"
+??? missing "Does not have a slash command to match"
 	Learn more about [slash commands](/#slash-commands)
 
 Usage:
@@ -48,7 +48,7 @@ guildinfo
 
 Some information on the mentioned user
 
-??? check "Has a slash command to match"
+??? missing "Does not have a slash command to match"
 	Learn more about [slash commands](/#slash-commands)
 
 Usage:

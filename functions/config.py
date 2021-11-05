@@ -1,4 +1,4 @@
-import discord
+import nextcord as discord
 from typing_extensions import TYPE_CHECKING
 from .myembed import embed
 from . import views
@@ -38,34 +38,13 @@ def welcome_message(bot: "Bot", *, prefix: str = defaultPrefix) -> dict:
   ), view=views.Links())
 
 
-invite_permissions = discord.Permissions(
-    administrator=True,
-    manage_roles=True,
-    manage_channels=True,
-    manage_guild=True,
-    kick_members=True,
-    ban_members=True,
-    send_messages=True,
-    manage_threads=True,
-    use_threads=True,
-    use_private_threads=True,
-    manage_messages=True,
-    embed_links=True,
-    attach_files=True,
-    read_message_history=True,
-    add_reactions=True,
-    connect=True,
-    speak=True,
-    move_members=True,
-    use_voice_activation=True
-)
-
 intents = discord.Intents(
     guilds=True,
     voice_states=True,
     messages=True,
     reactions=True,
     members=True,
+    bans=True,
     # invites=True,
 )
 
@@ -104,7 +83,7 @@ allowed_mentions = discord.AllowedMentions(roles=False, everyone=False, users=Tr
 
 games = [
     "Developing myself",
-    "Minecraft 1.18",
+    "Minecraft 1.19",
     "Super Smash Bros. Ultimate",
     "Cyberpunk 2078",
     "Forza Horizon 6",

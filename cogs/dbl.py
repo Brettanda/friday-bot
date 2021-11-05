@@ -1,22 +1,27 @@
 import os
-import discord
-import topgg
 import asyncio
 import datetime
-from discord.ext import commands, tasks
+# import topgg
+import nextcord as discord
+from nextcord.ext import commands, tasks
 from typing_extensions import TYPE_CHECKING
 from functions import embed, config, MyContext
 
 if TYPE_CHECKING:
   from index import Friday as Bot
 
+VOTE_ROLE = 834347369998843904
+VOTE_URL = "https://top.gg/bot/476303446547365891/vote"
+
 
 class VoteView(discord.ui.View):
+  """A view that shows the user how to vote for the bot."""
+
   def __init__(self, parent: "TopGG", *, timeout=None):
     self.parent = parent
     self.bot = self.parent.bot
     super().__init__(timeout=timeout)
-    self.add_item(discord.ui.Button(label="Vote link", url=self.parent.vote_url, style=discord.ButtonStyle.url))
+    self.add_item(discord.ui.Button(label="Vote link", url=VOTE_URL, style=discord.ButtonStyle.url))
 
   @discord.ui.button(label="Remind me", style=discord.ButtonStyle.primary, custom_id="voting_remind_me")
   async def voting_remind_me(self, button: discord.ui.Button, interaction: discord.Interaction):
@@ -28,35 +33,44 @@ class VoteView(discord.ui.View):
       await interaction.response.send_message(ephemeral=True, embed=embed(title="I will stop DMing you for voting reminders 😢"))
 
 
+class Refresh(discord.ui.View):
+  def __init__(self):
+    self.add_item(discord.ui.button(label="Vote", style=discord.ButtonStyle.url, url=VOTE_URL))
+
+
 class TopGG(commands.Cog):
   """Handles interactions with the top.gg API"""
 
   def __init__(self, bot: "Bot"):
     self.bot = bot
     self.token = os.getenv("TOKENDBL")
-    self.topgg = topgg.DBLClient(self.bot, self.token, autopost=False)
+    # self.topgg = topgg.DBLClient(self.bot, self.token, autopost=False)
     if self.bot.cluster_idx == 0:
-      if not hasattr(self.bot, "topgg_webhook"):
-        self.bot.topgg_webhook = topgg.WebhookManager(self.bot).dbl_webhook("/dblwebhook", os.environ["DBLWEBHOOKPASS"])
-        self.bot.topgg_webhook.run(5000)
+      # if not hasattr(self.bot, "topgg_webhook"):
+      #   self.bot.topgg_webhook = topgg.WebhookManager(self.bot).dbl_webhook("/dblwebhook", os.environ["DBLWEBHOOKPASS"])
+      #   self.bot.topgg_webhook.run(5000)
       self.update_votes.start()
 
-    self.vote_role = 834347369998843904
-    self.vote_url = "https://top.gg/bot/476303446547365891/vote"
-
-    if self.bot.prod:
-      self.update_stats.start()
+  def __repr__(self):
+    return "<cogs.TopGG>"
 
   def cog_unload(self):
     self.update_votes.cancel()
-    self.update_stats.cancel()
 
   @commands.Cog.listener()
   async def on_ready(self):
     if not self.bot.views_loaded:
       self.bot.add_view(VoteView(self))
+    if self.bot.prod:
+      await self.update_stats()
 
-  @commands.group(name="vote", help="Get the link to vote for me on Top.gg", invoke_without_command=True)
+  @commands.Cog.listener("on_guild_join")
+  @commands.Cog.listener("on_guild_remove")
+  async def guild_change(self, guild):
+    if self.bot.prod:
+      await self.update_stats()
+
+  @commands.group(name="vote", help="Get the link to vote for me on Top.gg", invoke_without_command=True, case_insensitive=True)
   async def vote(self, ctx: "MyContext"):
     prev_time = await self.bot.db.query("SELECT voted_time FROM votes WHERE id=$1 LIMIT 1", str(ctx.author.id))
     next_time = datetime.datetime.strptime(prev_time, "%Y-%m-%d %H:%M:%S.%f") if prev_time is not None else None
@@ -73,7 +87,6 @@ class TopGG(commands.Cog):
     elif current_reminder is True:
       await ctx.send(embed=embed(title="I will stop DMing you for voting reminders 😢"))
 
-  @tasks.loop(minutes=30.0)
   async def update_stats(self):
     if not self.bot.ready:
       return
@@ -84,7 +97,7 @@ class TopGG(commands.Cog):
     except Exception as e:
       self.bot.logger.exception('Failed to post server count\n?: ?', type(e).__name__, e)
 
-  @tasks.loop(minutes=1.0)
+  @tasks.loop(minutes=5.0)
   async def update_votes(self):
     if not self.bot.ready:
       return
@@ -96,7 +109,7 @@ class TopGG(commands.Cog):
     for user_id in remind_user_ids:
       try:
         private = await self.bot.http.start_private_message(user_id)
-        await self.bot.http.send_message(private["id"], f"Your vote time has refreshed. You can now vote again! {self.vote_url}")
+        await self.bot.http.send_message(private["id"], embed=embed(title="Your vote time has refreshed.", description="You can now vote again!"), view=Refresh())
       except Exception:
         pass
     await self.bot.db.query(f"UPDATE votes SET has_reminded=true WHERE has_reminded=false AND voted_time < to_timestamp('{notify_time_formated}','YYYY-MM-DD HH24:MI:SS')")
@@ -111,7 +124,7 @@ class TopGG(commands.Cog):
         if member is not None:
           self.bot.logger.info(f"Vote expired for {user_id}")
           try:
-            await member.remove_roles(member.guild.get_role(self.vote_role), reason="Vote expired")
+            await member.remove_roles(member.guild.get_role(VOTE_ROLE), reason="Vote expired")
           except Exception:
             pass
           else:
@@ -136,7 +149,7 @@ class TopGG(commands.Cog):
         support_server = self.bot.get_guild(config.support_server_id)
         member = await self.bot.get_or_fetch_member(support_server, data["user"])
         if member is not None:
-          role = member.guild.get_role(self.vote_role)
+          role = member.guild.get_role(VOTE_ROLE)
           await member.add_roles(role, reason="Voted on Top.gg")
       await self.bot.log.log_bumps.send(
           username=self.bot.user.name,

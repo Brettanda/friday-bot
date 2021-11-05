@@ -1,7 +1,7 @@
 import asyncio
-import discord
-from discord.ext import commands
-from discord.ext.menus import MenuPages
+import nextcord as discord
+from nextcord.ext import commands
+from nextcord.ext.menus import MenuPages
 from . import views
 
 

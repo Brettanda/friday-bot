@@ -1,12 +1,13 @@
-import discord
+import nextcord as discord
 import datetime
 import typing
-from discord.ext import commands
-from discord_slash import cog_ext
-from discord_slash.model import SlashCommandOptionType
-from discord_slash.utils.manage_commands import create_option
+import psutil
+from nextcord.ext import commands
+# from discord_slash import cog_ext
+# from discord_slash.model import SlashCommandOptionType
+# from discord_slash.utils.manage_commands import create_option
 
-from functions import embed, MessageColors, checks, views, MyContext
+from functions import embed, MessageColors, views, MyContext  # , checks
 from typing_extensions import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -19,13 +20,16 @@ class Info(commands.Cog):
   def __init__(self, bot: "Bot"):
     self.bot = bot
 
-  @commands.group(name="info", aliases=["about"], help="Displays some information about myself :)")
+  def __repr__(self):
+    return "<cogs.Info>"
+
+  @commands.command(name="info", aliases=["about"], help="Displays some information about myself :)")
   async def norm_info(self, ctx):
     await self.info(ctx)
 
-  @cog_ext.cog_slash(name="info", description="Displays some information about myself :)")
-  async def slash_info(self, ctx):
-    await self.info(ctx)
+  # @cog_ext.cog_slash(name="info", description="Displays some information about myself :)")
+  # async def slash_info(self, ctx):
+  #   await self.info(ctx)
 
   async def info(self, ctx: "MyContext"):
     appinfo = await self.bot.application_info()
@@ -44,12 +48,12 @@ class Info(commands.Cog):
     return await ctx.send(
         embed=embed(
             title=f"{self.bot.user.name} - About",
-            thumbnail=self.bot.user.avatar.url if hasattr(self.bot.user, "avatar") else self.bot.user.avatar_url if hasattr(self.bot.user, "avatar_url") else None,
-            author_icon=owner.avatar.url if hasattr(owner, "avatar") else owner.avatar_url if hasattr(owner, "avatar_url") else None,
+            thumbnail=self.bot.user.display_avatar.url,
+            author_icon=owner.display_avatar.url,
             author_name=owner,
             description="Big thanks to all Patrons!",
-            fieldstitle=["Servers joined", "Latency", "Shards", "Loving Life", "Uptime", "Existed since"],
-            fieldsval=[len(self.bot.guilds), f"{(self.bot.get_shard(ctx.guild.shard_id).latency if ctx.guild else self.bot.latency)*1000:,.0f} ms", self.bot.shard_count, "True", uptime, self.bot.user.created_at.strftime("%b %d, %Y")],
+            fieldstitle=["Servers joined", "Latency", "Shards", "Loving Life", "Uptime", "CPU/RAM", "Existed since"],
+            fieldsval=[len(self.bot.guilds), f"{(self.bot.get_shard(ctx.guild.shard_id).latency if ctx.guild else self.bot.latency)*1000:,.0f} ms", self.bot.shard_count, "True", uptime, f"CPU: {psutil.cpu_percent()}%\nRAM: {psutil.virtual_memory()[2]}%", self.bot.user.created_at.strftime("%b %d, %Y")],
             # fieldstitle=["Username","Guilds joined","Status","Latency","Shards","Audio Nodes","Loving Life","Existed since"],
             # fieldsval=[self.bot.user.name,len(self.bot.guilds),ctx.guild.me.activity.name if ctx.guild.me.activity is not None else None,f"{self.bot.latency*1000:,.0f} ms",self.bot.shard_count,len(self.bot.wavelink.nodes),"True",self.bot.user.created_at]
         ), view=views.Links()
@@ -60,10 +64,10 @@ class Info(commands.Cog):
   async def norm_serverinfo(self, ctx):
     await self.server_info(ctx)
 
-  @cog_ext.cog_slash(name="serverinfo", description="Info about a server")
-  @commands.guild_only()
-  async def slash_serverinfo(self, ctx):
-    await self.server_info(ctx)
+  # @cog_ext.cog_slash(name="serverinfo", description="Info about a server")
+  # @commands.guild_only()
+  # async def slash_serverinfo(self, ctx):
+  #   await self.server_info(ctx)
 
   async def server_info(self, ctx: "MyContext"):
     return await ctx.send(
@@ -81,15 +85,15 @@ class Info(commands.Cog):
   async def norm_userinfo(self, ctx, user: typing.Optional[discord.Member] = None):
     await self.user_info(ctx, user if user is not None else ctx.author)
 
-  @cog_ext.cog_slash(name="userinfo", description="Some information on the mentioned user", options=[create_option(name="user", description="The user to get info for", option_type=SlashCommandOptionType.USER, required=False)])
-  @checks.slash(user=True, private=False)
-  async def slash_userinfo(self, ctx, user: typing.Optional[discord.Member] = None):
-    await self.user_info(ctx, user if user is not None else ctx.author)
+  # @cog_ext.cog_slash(name="userinfo", description="Some information on the mentioned user", options=[create_option(name="user", description="The user to get info for", option_type=SlashCommandOptionType.USER, required=False)])
+  # @checks.slash(user=True, private=False)
+  # async def slash_userinfo(self, ctx, user: typing.Optional[discord.Member] = None):
+  #   await self.user_info(ctx, user if user is not None else ctx.author)
 
   async def user_info(self, ctx: "MyContext", member: discord.Member):
     return await ctx.send(embed=embed(
         title=f"{member.name} - Info",
-        thumbnail=member.avatar.url,
+        thumbnail=member.display_avatar.url,
         fieldstitle=["Name", "Nickname", "Mention", "Role count", "Created", "Joined", "Top Role", "Pending Verification"],
         fieldsval=[member.name, str(member.nick), member.mention, len(member.roles), member.created_at.strftime("%b %d, %Y"), member.joined_at.strftime("%b %d, %Y"), member.top_role.mention, member.pending],
         color=member.color if member.color.value != 0 else MessageColors.DEFAULT

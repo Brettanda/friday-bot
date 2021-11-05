@@ -1,4 +1,4 @@
-from discord import Forbidden, HTTPException
+from nextcord import Forbidden, HTTPException
 
 
 async def msg_reply(message, content=None, **kwargs):

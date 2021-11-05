@@ -1,4 +1,4 @@
-import discord
+import nextcord as discord
 import pytest
 from typing_extensions import TYPE_CHECKING
 
@@ -19,7 +19,7 @@ async def test_play(bot: "bot", voice_channel: "voice_channel", channel: "channe
   await channel.send(content)
 
   msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
-  assert "Now playing: **" in msg.embeds[0].title or "Added to queue: **" in msg.embeds[0].title
+  assert "Now playing: **" in msg.embeds[0].title or "Added **" in msg.embeds[0].title or "Added the playlist" in msg.embeds[0].title
 
 
 @pytest.mark.asyncio
@@ -29,7 +29,48 @@ async def test_queue(bot: "bot", voice_channel: "voice_channel", channel: "chann
   await channel.send(content)
 
   msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
-  assert "Now playing:" in msg.embeds[0].title and "Up Next:" in msg.embeds[0].description
+  assert "Coming up..." in msg.embeds[0].title or msg.embeds[0].title == "You must be in a voice channel or provide one to connect to."
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("vol", ["200", "100", "1"])
+@pytest.mark.dependency(depends=["test_play"])
+async def test_volume(bot: "bot", voice_channel: "voice_channel", channel: "channel", vol: str):
+  content = f"!volume {vol}"
+  await channel.send(content)
+
+  msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
+  assert "Set the volume to " in msg.embeds[0].title or "Please enter a value between 1 and 100." in msg.embeds[0].title
+
+
+@pytest.mark.asyncio
+@pytest.mark.dependency(depends=["test_play"])
+async def test_nowplaying(bot: "bot", voice_channel: "voice_channel", channel: "channel"):
+  content = "!nowplaying"
+  await channel.send(content)
+
+  msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
+  assert "Now playing: **" in msg.embeds[0].title
+
+
+@pytest.mark.asyncio
+@pytest.mark.dependency(depends=["test_play"])
+async def test_shuffle(bot: "bot", voice_channel: "voice_channel", channel: "channel"):
+  content = "!shuffle"
+  await channel.send(content)
+
+  msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
+  assert "An admin or DJ has shuffled the playlist." in msg.embeds[0].title
+
+
+@pytest.mark.asyncio
+@pytest.mark.dependency(depends=["test_play"])
+async def test_equilizer(bot: "bot", voice_channel: "voice_channel", channel: "channel"):
+  content = "!dev sudo 215227961048170496 eq flat"
+  await channel.send(content)
+
+  msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
+  assert "You do not have the required Patreon tier for this command." in msg.embeds[0].title or "Successfully changed equalizer to" in msg.embeds[0].title
 
 
 @pytest.mark.asyncio
@@ -39,7 +80,7 @@ async def test_stop(bot: "bot", channel: "channel"):
   await channel.send(content)
 
   msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
-  assert msg.embeds[0].title == "Finished"
+  assert "stop" in msg.embeds[0].title or msg.embeds[0].title == "I am not playing anything."
 
 
 class TestCustomSounds:
@@ -49,7 +90,7 @@ class TestCustomSounds:
     await channel.send(content)
 
     msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
-    assert msg.embeds[0].title == "You're missing some arguments, here is how the command should look"
+    assert msg.embeds[0].title == "!custom" or msg.embeds[0].title == "You must be in a voice channel to use this command"
 
   @pytest.mark.asyncio
   @pytest.mark.dependency(name="test_add", scope="class")
@@ -76,7 +117,7 @@ class TestCustomSounds:
       await vc.disconnect()
     except Exception:
       pass
-    assert msg.embeds[0].title == "Now playing: **Bruh Sound Effect #2**"
+    assert "Now playing: **" in msg.embeds[0].title
 
   @pytest.mark.asyncio
   async def test_list(self, bot: "bot", voice_channel: "voice_channel", channel: "channel"):

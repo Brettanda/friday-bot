@@ -1,8 +1,8 @@
 import asyncio
 from numpy import random
 
-import discord
-from discord.ext import tasks, commands
+import nextcord as discord
+from nextcord.ext import tasks, commands
 from functions import config
 
 from typing_extensions import TYPE_CHECKING
@@ -15,6 +15,9 @@ class ChooseGame(commands.Cog):
   def __init__(self, bot: "Bot"):
     self.bot = bot
     self.choose_game.start()
+
+  def __repr__(self):
+    return "<cogs.ChooseGame>"
 
   @tasks.loop(minutes=10.0)
   async def choose_game(self):
@@ -65,7 +68,7 @@ class ChooseGame(commands.Cog):
   async def status_updates(self, shard_id: int):
     member_count = 0
     for guild in self.bot.guilds:
-      member_count += guild.member_count
+      member_count += len(guild.humans)
     await self.bot.change_presence(
         activity=discord.Activity(
             type=discord.ActivityType.watching,

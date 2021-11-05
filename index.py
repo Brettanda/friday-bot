@@ -2,48 +2,51 @@ import asyncio
 import logging
 import os
 import sys
-import aiohttp
+from collections import defaultdict
 from importlib import reload
+from typing import Optional
 
-import discord
-from typing import TYPE_CHECKING, Optional
-from discord.ext import commands
+import aiohttp
+import nextcord as discord
 from dotenv import load_dotenv
+# import interactions
+from nextcord.ext import commands
+from typing_extensions import TYPE_CHECKING
 
 import cogs
 import functions
 
 if TYPE_CHECKING:
-  from .cogs.log import Log
   from .cogs.database import Database
+  from .cogs.log import Log
 
 load_dotenv()
 
 TOKEN = os.environ.get('TOKENTEST')
 
-dead_nodes_sent = False
+formatter = logging.Formatter("%(levelname)s:%(name)s: %(message)s")
 
 
 async def get_prefix(bot: "Friday", message: discord.Message):
   if message.guild is not None:
-    if str(message.guild.id) in bot.prefixes:
-      return commands.when_mentioned_or(bot.prefixes[str(message.guild.id)])(bot, message)
-    else:
-      current = await bot.db.query("SELECT prefix FROM servers WHERE id=$1", str(message.guild.id))
-      bot.prefixes[message.guild.id] = str(current)
-      bot.logger.warning(f"{message.guild.id}'s prefix was {bot.prefixes.get(str(message.guild.id), None)} and is now {current}")
-      return commands.when_mentioned_or(bot.prefixes[str(message.guild.id)])(bot, message)
+    return commands.when_mentioned_or(bot.prefixes[message.guild.id])(bot, message)
   return commands.when_mentioned_or(functions.config.defaultPrefix)(bot, message)
 
 
 class Friday(commands.AutoShardedBot):
-  def __init__(self, **kwargs):
+  """Friday is a discord bot that is designed to be a flexible and easy to use bot."""
+
+  def __init__(self, loop=None, **kwargs):
     self.cluster_name = kwargs.pop("cluster_name", None)
     self.cluster_idx = kwargs.pop("cluster_idx", 0)
     self.should_start = kwargs.pop("start", False)
+    self._logger = kwargs.pop("logger")
 
-    self.loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(self.loop)
+    if loop is None:
+      self.loop = asyncio.new_event_loop()
+      asyncio.set_event_loop(self.loop)
+    else:
+      self.loop = loop
     super().__init__(
         command_prefix=get_prefix,
         strip_after_prefix=True,
@@ -55,6 +58,7 @@ class Friday(commands.AutoShardedBot):
         member_cache_flags=functions.config.member_cache,
         chunk_guilds_at_startup=False,
         allowed_mentions=functions.config.allowed_mentions,
+        enable_debug_events=True,
         # heartbeat_timeout=150.0,
         loop=self.loop, **kwargs
     )
@@ -62,13 +66,13 @@ class Friday(commands.AutoShardedBot):
     self.session = None
     self.restartPending = False
     self.views_loaded = False
-    self.saved_guilds = {}
-    self.songqueue = {}
+
+    # guild_id: str("!")
+    self.prefixes = defaultdict(lambda: str("!"))
     self.prod = True if len(sys.argv) > 1 and (sys.argv[1] == "--prod" or sys.argv[1] == "--production") else False
     self.canary = True if len(sys.argv) > 1 and (sys.argv[1] == "--canary") else False
     self.ready = False
 
-    self.prefixes = {}
     self.load_extension("cogs.database")
     self.load_extension("cogs.log")
     self.loop.run_until_complete(self.setup(True))
@@ -76,23 +80,29 @@ class Friday(commands.AutoShardedBot):
     if self.should_start:
       self.run(kwargs["token"])
 
+  def __repr__(self) -> str:
+    return f"<Friday username=\"{self.bot.user.display_name}\" id={self.bot.user.id}>"
+
   @property
-  def log(self) -> "Log":
+  def log(self) -> Optional["Log"]:
     return self.get_cog("Log")
 
   @property
-  def logger(self):
-    return self.log.logger
+  def logger(self) -> logging.Logger:
+    return self._logger
 
   @property
-  def db(self) -> "Database":
+  def db(self) -> Optional["Database"]:
     return self.get_cog("Database")
 
   async def get_context(self, message, *, cls=None) -> functions.MyContext:
     return await super().get_context(message, cls=functions.MyContext)
 
   async def setup(self, load_extentions: bool = False):
-    self.session: aiohttp.ClientSession() = aiohttp.ClientSession()
+    self.session: aiohttp.ClientSession() = aiohttp.ClientSession(loop=self.loop)
+
+    for guild_id, prefix in await self.db.query("SELECT id,prefix FROM servers"):
+      self.prefixes[int(guild_id, base=10)] = prefix
 
     if load_extentions:
       for cog in cogs.default:
@@ -119,7 +129,7 @@ class Friday(commands.AutoShardedBot):
     if not self.ready:
       return
 
-    if ctx.author.bot:
+    if ctx.author.bot and not ctx.author.id == 892865928520413245:
       return
 
     await self.process_commands(ctx)
@@ -143,9 +153,6 @@ class Friday(commands.AutoShardedBot):
       return None
     return members[0]
 
-  async def on_error(self, event_method, *args, **kwargs):
-    return await self.log.on_error(event_method, *args, **kwargs)
-
   async def close(self):
     await super().close()
     await self.session.close()
@@ -153,7 +160,15 @@ class Friday(commands.AutoShardedBot):
 
 if __name__ == "__main__":
   print(f"Python version: {sys.version}")
-  bot = Friday()
+  handler = logging.StreamHandler(sys.stdout)
+  handler.setFormatter(formatter)
+  filehandler = logging.FileHandler("logging.log", encoding="utf-8")
+  filehandler.setFormatter(logging.Formatter("%(asctime)s:%(name)s:%(levelname)-8s%(message)s"))
+
+  logger = logging.getLogger("Friday")
+  logger.handlers = [handler, filehandler]
+  logger.setLevel(logging.INFO)
+  bot = Friday(logger=logger)
   if len(sys.argv) > 1:
     if sys.argv[1] == "--prod" or sys.argv[1] == "--production":
       TOKEN = os.environ.get("TOKEN")

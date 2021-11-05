@@ -1,47 +1,94 @@
 import asyncio
+import copy
+import io
 import os
 import shutil
 import subprocess
-import typing
-# import traceback
-# import io
-# import textwrap
-import discord
-from discord.ext import commands
-# from discord_slash import SlashContext  # , cog_ext
-from typing_extensions import TYPE_CHECKING
-# from discord_slash.utils.manage_commands import create_option, create_choice
+import textwrap
+import traceback
+from typing import Optional, Union
 
-from cogs.help import cmd_help, syntax
-from functions import embed, build_docs  # , query  # , MessageColors
-from functions import MyContext, views
+import nextcord as discord
+from nextcord.ext import commands
+from typing_extensions import TYPE_CHECKING
+
+from cogs.help import syntax
+from functions import (MessageColors, MyContext,  # , query  # , MessageColors
+                       build_docs, embed, views)
+
 
 if TYPE_CHECKING:
   from index import Friday as Bot
 
 
+class GlobalChannel(commands.Converter):
+  async def convert(self, ctx, argument):
+    try:
+      return await commands.TextChannelConverter().convert(ctx, argument)
+    except commands.BadArgument:
+      # Not found... so fall back to ID + global lookup
+      try:
+        channel_id = int(argument, base=10)
+      except ValueError:
+        raise commands.BadArgument(f'Could not find a channel by ID {argument!r}.')
+      else:
+        channel = ctx.bot.get_channel(channel_id)
+        if channel is None:
+          raise commands.BadArgument(f'Could not find a channel by ID {argument!r}.')
+        return channel
+
+
 class Dev(commands.Cog, command_attrs=dict(hidden=True)):
   """Commands used by and for the developer"""
 
-  def __init__(self, bot: "Bot"):
+  def __init__(self, bot: "Bot") -> None:
     self.bot = bot
+    self._last_result = None
 
-  def cog_check(self, ctx):
-    if self.bot.owner_id == ctx.author.id:
-      return True
-    raise commands.NotOwner("You do not own this bot and cannot use this command")
+  def __repr__(self) -> str:
+    return f"<cogs.Dev owner={self.bot.owner_id}>"
 
-  @commands.group(name="dev", invoke_without_command=True)
+  async def cog_check(self, ctx: "MyContext") -> bool:
+    return await self.bot.is_owner(ctx.author) or ctx.author.id == 892865928520413245
+
+  async def cog_command_error(self, ctx: "MyContext", error):
+    if isinstance(error, commands.CheckFailure):
+      self.bot.logger.warning("Someone found a dev command")
+    elif isinstance(error, commands.MissingRequiredArgument):
+      await ctx.send(embed=embed(title=error, color=MessageColors.ERROR))
+    else:
+      await ctx.send(f"```py\n{error}\n```")
+
+  def cleanup_code(self, content: str):
+    """Automatically removes code blocks from the code."""
+    # remove ```py\n```
+    if content.startswith('```') and content.endswith('```'):
+      return '\n'.join(content.split('\n')[1:-1])
+
+    # remove `foo`
+    return content.strip('` \n')
+
+  async def run_process(self, command):
+    try:
+      process = await asyncio.create_subprocess_shell(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+      result = await process.communicate()
+    except NotImplementedError:
+      process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+      result = await self.bot.loop.run_in_executor(None, process.communicate)
+
+    return [output.decode() for output in result]
+
+  @commands.group(name="dev", invoke_without_command=True, case_insensitive=True)
   async def norm_dev(self, ctx):
-    await cmd_help(ctx, ctx.command)
+    await ctx.send_help(ctx.command)
 
   # @cog_ext.cog_slash(name="dev",guild_ids=[243159711237537802,805579185879121940])
   # async def slash_dev(self,ctx):
   #   await ctx.defer(True)
   #   await ctx.send("help")
 
-  @norm_dev.command(name="say")
-  async def say(self, ctx, channel: typing.Optional[discord.TextChannel] = None, *, say: str):
+  @norm_dev.command(name="say", rest_is_raw=True,)
+  async def say(self, ctx, channel: Optional[discord.TextChannel] = None, *, say: str):
     channel = ctx.channel if channel is None else channel
     try:
       await ctx.message.delete()
@@ -107,23 +154,39 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       except BaseException:
         pass
 
-  @norm_dev.command(name="status")
-  async def status(self):
-    """Sends the status of the machine running Friday"""
-    print("")
+  @norm_dev.command(name="quit")
+  async def quit(self, ctx, *, force: bool = False):
+    if self.bot.restartPending is True and force is False:
+      await ctx.reply(embed=embed(title="A restart is already pending"))
+      return
+    self.bot.restartPending = True
+    stat = await ctx.reply(embed=embed(title="Pending"))
+    if len(self.bot.voice_clients) > 0 and force is False:
+      await stat.edit(embed=embed(title=f"{len(self.bot.voice_clients)} guilds are playing music"))
+      while len(self.bot.voice_clients) > 0:
+        await stat.edit(embed=embed(title=f"{len(self.bot.voice_clients)} guilds are playing music"))
+        await asyncio.sleep(1)
+      await stat.edit(embed=embed(title=f"{len(self.bot.voice_clients)} guilds are playing music"))
+    try:
+      wait = 5
+      while wait > 0:
+        await stat.edit(embed=embed(title=f"Quiting in {wait} seconds"))
+        await asyncio.sleep(1)
+        wait = wait - 1
+    finally:
+      await ctx.message.delete()
+      await stat.delete()
+      self.bot.restartPending = False
+      await self.bot.logout()
 
   @norm_dev.command(name="restart")
-  #
-  # This could not work when clusters
-  #
   async def restart(self, ctx, force: bool = False):
-    # global restartPending,songqueue
     if self.bot.restartPending is True and force is False:
       await ctx.reply(embed=embed(title="A restart is already pending"))
       return
 
     self.bot.restartPending = True
-    stat = await ctx.reply(embed=embed(title="Pending"), delete_after=None)
+    stat = await ctx.reply(embed=embed(title="Pending"))
     if len(self.bot.voice_clients) > 0 and force is False:
       await stat.edit(embed=embed(title=f"{len(self.bot.voice_clients)} guilds are playing music"))
       while len(self.bot.voice_clients) > 0:
@@ -131,11 +194,6 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
         await asyncio.sleep(1)
       await stat.edit(embed=embed(title=f"{len(self.bot.voice_clients)} guilds are playing music"))
     # if len(songqueue) is 0 or force is True:
-    thispath = os.getcwd()
-    if "\\" in thispath:
-      seperator = "\\\\"
-    else:
-      seperator = "/"
     try:
       wait = 5
       while wait > 0:
@@ -143,56 +201,43 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
         await asyncio.sleep(1)
         wait = wait - 1
     finally:
-      await asyncio.gather(
-          ctx.message.delete(),
-          stat.delete()
-      )
-      subprocess.Popen([f"{thispath}{seperator}restart.sh"], stdin=subprocess.PIPE)
+      await ctx.message.delete()
+      await stat.delete()
+      self.bot.restartPending = False
+      stdout, stderr = await self.run_process("systemctl daemon-reload && systemctl restart friday.service")
+      await ctx.send(f"```sh\n{stdout}\n{stderr}```")
 
   @norm_dev.group(name="reload", invoke_without_command=True)
-  #
-  # This could not work when clusters
-  #
   async def reload(self, ctx, command: str):
     async with ctx.typing():
       com = self.bot.get_command(command)
       if com is not None and com.cog_name is not None:
         command = com.cog_name
-      self.bot.reload_extension(f"cogs.{command.lower() if command is not None else None}")
+      try:
+        self.bot.reload_extension(f"cogs.{command.lower() if command is not None else None}")
+      except commands.ExtensionNotLoaded:
+        self.bot.load_extension(f"cogs.{command.lower() if command is not None else None}")
     await ctx.reply(embed=embed(title=f"Cog *{command}* has been reloaded"))
 
   @reload.command(name="all")
-  #
-  # This could not work when clusters
-  #
   async def reload_all(self, ctx):
     async with ctx.typing():
       await self.bot.reload_cogs()
-      await self.bot.log.set_all_guilds()
     await ctx.reply(embed=embed(title="All cogs have been reloaded"))
 
   @reload.command(name="slash")
-  #
-  # This could not work when clusters
-  #
   async def reload_slash(self, ctx):
     async with ctx.typing():
       await self.bot.slash.sync_all_commands()
     await ctx.reply(embed=embed(title="Slash commands synced"))
 
   @norm_dev.command(name="load")
-  #
-  # This could not work when clusters
-  #
   async def load(self, ctx, command: str):
     async with ctx.typing():
       self.bot.load_extension(f"cogs.{command.lower()}")
     await ctx.reply(embed=embed(title=f"Cog *{command}* has been loaded"))
 
   @norm_dev.command(name="unload")
-  #
-  # This could not work when clusters
-  #
   async def unload(self, ctx, command: str):
     async with ctx.typing():
       self.bot.unload_extension(f"cogs.{command.lower()}")
@@ -207,21 +252,26 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
   #     print(error)
   #     self.bot.logger.error(error)
 
+  @norm_dev.command(name="voice")
+  async def voice(self, ctx):
+    await ctx.send(embed=embed(title=f"I am in `{len(self.bot.voice_clients)}` voice channels"))
+
   @norm_dev.command(name="update")
-  #
-  # This could not work when clusters
-  #
   async def update(self, ctx):
-    message = await ctx.reply(embed=embed(title="Updating..."))
-    thispath = os.getcwd()
-    if "\\" in thispath:
-      seperator = "\\\\"
+    await ctx.trigger_typing()
+    if self.bot.canary:
+      stdout, stderr = await self.run_process("git reset --hard && git pull origin canary")
+    elif self.bot.prod:
+      stdout, stderr = await self.run_process("git reset --hard && git pull origin master")
     else:
-      seperator = "/"
-    if self.bot.prod or self.bot.canary:
-      subprocess.Popen([f"{thispath}{seperator}update{'' if not self.bot.canary else '_canary'}.sh"], stdin=subprocess.PIPE)
-    subprocess.Popen([f"{thispath}{seperator}install.sh"], stdin=subprocess.PIPE)
-    await message.edit(embed=embed(title="Update complete!"))
+      return await ctx.reply(embed=embed(title="You are not on a branch", color=MessageColors.ERROR))
+
+    await ctx.send(stdout)
+    if stdout.startswith("Already up-to-date."):
+      return
+    await ctx.trigger_typing()
+    stdout, stderr = await self.run_process("python -m pip install --upgrade pip && python -m pip install -r requirements.txt --no-cache-dir")
+    await ctx.safe_send(stdout)
 
   @norm_dev.command(name="cogs")
   async def cogs(self, ctx):
@@ -242,21 +292,26 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
   async def markdown(self, ctx):
     build_docs(self.bot)
     await ctx.reply(embed=embed(title="Commands loaded"))
-    # with open("docs/commands.md", "w") as f:
-    #   f.write("# Commands\n\n")
-    #   for cog in cogs:
-    #     f.write(f"## {cog}\n\n")
-    #     for com in commands:
-    #       if com.hidden is False and com.enabled is True and com.cog_name == cog:
-    #         # f.write(f"""### {ctx.prefix}{com.name}\n{(f'Aliases: `{ctx.prefix}'+f", {ctx.prefix}".join(com.aliases)+'`') if len(com.aliases) > 0 else ''}\n{f'Description: {com.description}' if com.description != '' else ''}\n""")
-    #         f.write(f"### `{ctx.prefix}{com.name}`\n\n")
-    #         usage = '\n  '.join(syntax(com, quotes=False).split('\n'))
-    #         usage = discord.utils.escape_markdown(usage).replace("<", "\\<")
-    #         f.write(f"Usage:\n\n  {usage}\n\n")
-    #         f.write("Aliases: ```" + (f'{ctx.prefix}' + f",{ctx.prefix}".join(com.aliases) if len(com.aliases) > 0 else 'None') + "```\n\n")
-    #         f.write(f"Description: ```{com.description or 'None'}```\n\n")
-    #   f.close()
-    # await ctx.reply(file=discord.File(fp=f"{thispath}{seperator}docs{seperator}commands.md", filename="commands.md"))
+
+  @norm_dev.command(name="sudo")
+  async def sudo(self, ctx: "MyContext", channel: Optional[GlobalChannel], user: Union[discord.Member, discord.User], *, command: str):
+    msg = copy.copy(ctx.message)
+    channel = channel or ctx.channel
+    msg.channel = channel
+    msg.author = user
+    msg.content = ctx.prefix + command
+    new_ctx = await self.bot.get_context(msg, cls=type(ctx))
+    await self.bot.invoke(new_ctx)
+
+  @norm_dev.command(name="do", aliases=["repeat"])
+  async def do(self, ctx: "MyContext", times: int, *, command: str):
+    msg = copy.copy(ctx.message)
+    msg.content = ctx.prefix + command
+
+    new_ctx = await self.bot.get_context(msg, cls=type(ctx))
+
+    for i in range(times):
+      await new_ctx.reinvoke()
 
   @norm_dev.command(name="mysql")
   async def mysql(self, ctx, *, string: str):
@@ -291,19 +346,10 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       seperator = "/"
     await ctx.reply(file=discord.File(fp=f"{thispath}{seperator}commands.html", filename="commands.html"))
 
-  @norm_dev.command(name="db")
-  async def database(self, ctx: "MyContext"):
-    thispath = os.getcwd()
-    if "\\" in thispath:
-      seperator = "\\\\"
-    else:
-      seperator = "/"
-    await ctx.reply(file=discord.File(fp=f"{thispath}{seperator}friday.db", filename="db.db"))
-
   @norm_dev.command(name="graph")
   async def graph(self, ctx):
     async with ctx.typing():
-      channel = self.bot.get_guild(707441352367013899).get_channel(713270475031183390)
+      channel = self.bot.get_channel(713270475031183390)
 
       def predicate(message):
         return message.author.id == 476303446547365891
@@ -336,52 +382,54 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
 
   #   # for msg in messages:
 
-  # @norm_dev.command(name="eval")
-  # async def _eval(self, ctx, *, body: str):
-  #   """Evaluates a code"""
+  @norm_dev.command(name="eval")
+  async def _eval(self, ctx, *, body: str):
+    """Evaluates a code"""
 
-  #   env = {
-  #       'bot': self.bot,
-  #       'ctx': ctx,
-  #       'channel': ctx.channel,
-  #       'author': ctx.author,
-  #       'guild': ctx.guild,
-  #       'message': ctx.message,
-  #       '_': self._last_result
-  #   }
+    env = {
+        'bot': self.bot,
+        'ctx': ctx,
+        'embed': embed,
+        'channel': ctx.channel,
+        'author': ctx.author,
+        'guild': ctx.guild,
+        'message': ctx.message,
+        'self': self,
+        '_': self._last_result
+    }
 
-  #   env.update(globals())
+    env.update(globals())
 
-  #   body = self.cleanup_code(body)
-  #   stdout = io.StringIO()
+    body = self.cleanup_code(body)
+    stdout = io.StringIO()
 
-  #   to_compile = f'async def func():\n{textwrap.indent(body, "  ")}'
+    to_compile = f'async def func():\n{textwrap.indent(body, "  ")}'
 
-  #   try:
-  #     exec(to_compile, env)
-  #   except Exception as e:
-  #     return await ctx.send(f'```py\n{e.__class__.__name__}: {e}\n```')
+    try:
+      exec(to_compile, env)
+    except Exception as e:
+      return await ctx.send(f'```py\n{e.__class__.__name__}: {e}\n```')
 
-  #   func = env['func']
-  #   try:
-  #     # with redirect_stdout(stdout):
-  #     ret = await func()
-  #   except Exception:
-  #     value = stdout.getvalue()
-  #     await ctx.send(f'```py\n{value}{traceback.format_exc()}\n```')
-  #   else:
-  #     value = stdout.getvalue()
-  #     try:
-  #       await ctx.message.add_reaction('\u2705')
-  #     except BaseException:
-  #       pass
+    func = env['func']
+    try:
+      # with redirect_stdout(stdout):
+      ret = await func()
+    except Exception:
+      value = stdout.getvalue()
+      await ctx.send(f'```py\n{value}{traceback.format_exc()}\n```')
+    else:
+      value = stdout.getvalue()
+      try:
+        await ctx.message.add_reaction('\u2705')
+      except BaseException:
+        pass
 
-  #     if ret is None:
-  #       if value:
-  #         await ctx.send(f'```py\n{value}\n```')
-  #     else:
-  #       self._last_result = ret
-  #       await ctx.send(f'```py\n{value}{ret}\n```')
+      if ret is None:
+        if value:
+          await ctx.send(f'```py\n{value}\n```')
+      else:
+        self._last_result = ret
+        await ctx.send(f'```py\n{value}{ret}\n```')
 
 
 def setup(bot):

@@ -10,7 +10,7 @@ Ping? Pong!
 
 Pong!
 
-??? check "Has a slash command to match"
+??? missing "Does not have a slash command to match"
 	Learn more about [slash commands](/#slash-commands)
 
 Usage:

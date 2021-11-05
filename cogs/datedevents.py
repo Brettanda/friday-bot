@@ -3,8 +3,8 @@ import os
 # import sys
 from datetime import date
 
-# import discord
-from discord.ext import tasks, commands
+# import nextcord as discord
+from nextcord.ext import tasks, commands
 
 # from functions import embed
 from typing_extensions import TYPE_CHECKING
@@ -21,6 +21,9 @@ class DatedEvents(commands.Cog):
     self.bot = bot
     self.dated_events.start()
     # self.events = bot.loop.create_task(self.dated_events(),name="Dated events")
+
+  def __repr__(self):
+    return "<cogs.DatedEvents>"
 
   @tasks.loop(hours=1.0)
   async def dated_events(self):

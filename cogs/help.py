@@ -1,16 +1,16 @@
 # import itertools
 # import math
-import discord
-from discord import Embed
-from discord.ext import commands
-from discord.ext.menus import ListPageSource
+import nextcord as discord
+from nextcord import Embed
+from nextcord.ext import commands
+from nextcord.ext.menus import ListPageSource, ButtonMenuPages
 # from discord.utils import get
 
-from discord_slash import SlashContext
-import typing
+# from interactions import Context as SlashContext
+# import typing
 from typing_extensions import TYPE_CHECKING
 # from cogs.cleanup import get_delete_time
-from functions import MessageColors, Menu, views, MyContext, embed
+from functions import MessageColors, views, MyContext, embed
 
 if TYPE_CHECKING:
   from index import Friday as Bot
@@ -56,40 +56,86 @@ def get_params(com):
   return params
 
 
-def syntax(command, quotes: bool = True):
+def syntax(command, prefix: str = "!", quotes: bool = True):
   cmd_and_aliases = "|".join([str(command), *command.aliases])
 
   sub_commands = ""
   if hasattr(command, "commands"):
     for com in sorted(command.commands, key=lambda x: x.qualified_name):
       if not com.hidden and com.enabled is not False:
-        sub_commands += f"\n{cmd_and_aliases} {com.name} {get_params(com)}"
+        sub_commands += f"\n{prefix}{cmd_and_aliases} {com.name} {get_params(com)}"
   # sub_commands = "".join(str(command.commands) if hasattr(command,"commands") else "")
 
   if quotes:
-    return f"```{cmd_and_aliases} {get_params(command)}{sub_commands}```"
+    return f"```{prefix}{cmd_and_aliases} {get_params(command)}{sub_commands}```"
   else:
-    return f"{cmd_and_aliases} {get_params(command)}{sub_commands}"
+    return f"{prefix}{cmd_and_aliases} {get_params(command)}{sub_commands}"
+
+
+class MyMenuPages(ButtonMenuPages):
+  def __init__(self, source, **kwargs):
+    super().__init__(source=source, timeout=60.0, **kwargs)
+    self._source = source
+    self.current_page = 0
+    self.ctx = None
+    self.message = None
+    for item in views.Links().links:
+      self.add_item(item)
+
+  async def start(self, ctx, *, channel: discord.TextChannel = None, wait=False) -> None:
+    await self._source._prepare_once()
+    self.ctx = ctx
+    self.message = await self.send_initial_message(ctx, ctx.channel)
+
+  async def send_initial_message(self, ctx: "MyContext", channel: discord.TextChannel):
+    page = await self._source.get_page(0)
+    kwargs = await self._get_kwargs_from_page(page)
+    return await ctx.send(**kwargs)
+
+  async def _get_kwargs_from_page(self, page):
+    value = await super()._get_kwargs_from_page(page)
+    if "view" not in value:
+      value.update({"view": self})
+    return value
+
+  async def interaction_check(self, interaction: discord.Interaction) -> bool:
+    if interaction.user and interaction.user == self.ctx.author:
+      return True
+    else:
+      await interaction.response.send_message('This help menu is not for you.', ephemeral=True)
+      return False
+
+  def stop(self):
+    try:
+      self.ctx.bot.loop.create_task(self.message.delete())
+    except discord.NotFound:
+      pass
+    super().stop()
+
+  async def on_timeout(self) -> None:
+    self.stop()
 
 
 class HelpMenu(ListPageSource):
-  def __init__(self, ctx, data):
+  def __init__(self, ctx, data, *, title="Commands", description=""):
     self.ctx = ctx
+    self.title = title
+    self.description = description
 
     super().__init__(data, per_page=6)
 
-  async def write_page(self, menu, fields=None):
+  async def write_page(self, menu: MyMenuPages, fields: list = None):
     if fields is None:
       fields = []
     offset = (menu.current_page * self.per_page) + 1
     len_data = len(self.entries)
 
     embed = Embed(
-        title="Friday - Help",
-        description="If you would like to make a suggestion for a command please join the [Friday's Development](https://discord.gg/NTRuFjU) and explain your suggestion.\n\nFor more info on how commands work and how to format them please check out [docs.friday-bot.com](https://docs.friday-bot.com/).\n\n**Some commands will only show if you have the correct permissions to use them.**",
+        title=self.title,
+        description=self.description,
         colour=MessageColors.DEFAULT
     )
-    embed.set_thumbnail(url=self.ctx.bot.user.avatar.url)
+    embed.set_thumbnail(url=self.ctx.bot.user.display_avatar.url)
     embed.set_footer(text=f"{offset:,} - {min(len_data, offset+self.per_page-1):,} of {len_data:,} commands.")
 
     for name, value in fields:
@@ -97,41 +143,26 @@ class HelpMenu(ListPageSource):
 
     return embed
 
-  async def format_page(self, menu, entries):
+  async def format_page(self, menu: MyMenuPages, entries: [commands.Command]):
     fields = []
 
     for entry in entries:
-      fields.append((entry.cog_name or "No description", syntax(entry)))
+      fields.append((entry.cog_name or "No description", syntax(entry, self.ctx.clean_prefix)))
 
     return await self.write_page(menu, fields)
 
 
-async def cmd_help(ctx: typing.Union[commands.Context, SlashContext], command: commands.Command, message: str = None):
-  embed = Embed(
-      title=message or f"Help with `{command}`",
-      description=syntax(command),
-      color=MessageColors.DEFAULT if message is None else MessageColors.ERROR
-  )
-  # embed.add_field(name="Command description", value=command.help)
-  embed.add_field(name="Command description", value=command.description or "None", inline=False)
-  embed.add_field(name="Command examples", value="```md\n" + ("\n".join(get_examples(command, ctx.prefix)) or "None") + "\n```", inline=False)
-  if isinstance(ctx, SlashContext):
-    await ctx.send(embed=embed)
-  else:
-    await ctx.reply(embed=embed)
-
-
 class Help(commands.HelpCommand):
   def __init__(self):
-    super().__init__(command_attrs={"help": "Show help about the bot, a command, or a category."}, case_insensitive=True)
+    super().__init__(command_attrs={"help": "Show help about the bot, a command, or a category.", "case_insensitive": True}, case_insensitive=True)
 
   async def send_error_message(self, error):
-    return await self.context.reply(embed=embed(title=str(error), color=MessageColors.WARNING))
+    return await self.context.reply(embed=embed(title=str(error), color=MessageColors.ERROR))
 
   def get_command_signature(self, command: commands.command) -> str:
-    return self.context.clean_prefix + '\n!'.join(syntax(command, quotes=False).split('\n'))
+    return '\n'.join(syntax(command, self.context.clean_prefix, quotes=False).split('\n'))
 
-  def make_page_embed(self, commands, title="Friday - Help", description=discord.Embed.Empty):
+  def make_page_embed(self, commands, title="Friday - Help", description="If you would like to make a suggestion for a command please join the [Friday's Development](https://discord.gg/NTRuFjU) and explain your suggestion.\n\nFor more info on how commands work and how to format them please check out [docs.friday-bot.com](https://docs.friday-bot.com/).\n\n**Some commands will only show if you have the correct permissions to use them.**"):
     embed = Embed(color=MessageColors.DEFAULT)
     embed.title = title
     embed.description = description
@@ -139,17 +170,14 @@ class Help(commands.HelpCommand):
 
     if len(commands) == 0:
       embed.add_field(
-        name="Commands",
-        value="No commands that you can use",
-        inline=False
+          name="Commands",
+          value="No commands that you can use",
+          inline=False
       )
 
     for command in commands:
-      signature = self.context.clean_prefix + command.qualified_name + " "
-
-      signature += (
-          # "<args...>" if isinstance(command, flags.FlagCommand) else command.signature
-          command.signature
+      signature = (
+          self.get_command_signature(command)
       )
 
       embed.add_field(
@@ -175,19 +203,6 @@ class Help(commands.HelpCommand):
     return embed
 
   async def command_callback(self, ctx: "MyContext", *, command=None):
-    # await self.prepare_help_command(ctx, command)
-    # bot: "Bot" = ctx.bot
-
-    # if command is None:
-    #   return await self.send_bot_help(self.get_bot_mapping())
-
-    # cogs = []
-    # for cog in bot.cogs:
-    #   cogs.append(cog)
-    # # cogs = [cog.lower() for cog in bot.cogs]
-    # cog = bot.get_cog(command)
-    # # if cog is None:
-    # #   cog =
     self.context = ctx
     return await super().command_callback(ctx, command=command)
 
@@ -196,53 +211,6 @@ class Help(commands.HelpCommand):
     ctx.invoked_with = "help"
     bot: "Bot" = ctx.bot
 
-    # def get_category(command):
-    #   cog = command.cog
-    #   return cog.qualified_name if cog is not None else "\u200bNo Category"
-
-    # embed_pages, total = [], 0
-
-    # filtered = await self.filter_commands(bot.commands, sort=True, key=get_category)
-
-    # for cog_name, commands in itertools.groupby(filtered, key=get_category):
-    #   commands = sorted(commands, key=lambda c: c.name)
-
-    #   if len(commands) == 0:
-    #     continue
-
-    #   total += len(commands)
-    #   cog = bot.get_cog(cog_name)
-    #   description = (
-    #       (cog and cog.description)
-    #       if (cog and cog.description) is not None
-    #       else discord.Embed.Empty
-    #   )
-    #   embed_pages.append((cog, description, commands))
-
-    # async def get_page(source, menu, pidx):
-    #   cogs = embed_pages[
-    #       min(len(embed_pages) - 1, pidx * 6): min(len(embed_pages) - 1, pidx * 6 + 6)
-    #   ]
-
-    #   embed = self.make_default_embed(
-    #       cogs,
-    #       title=f"Friday Command Categories (Page {pidx+1}/{len(embed_pages)//6+1})",
-    #       description=(
-    #           f"Use `{self.clean_prefix}help <command>` for more info on a command.\n"
-    #           f"Use `{self.clean_prefix}help <category>` for more info on a category.\n"
-    #       )
-    #   )
-
-    #   return embed
-
-    delay = bot.log.get_guild_delete_commands(ctx.guild)
-    if delay is not None and delay > 0:  # and not slash:
-      await ctx.message.delete(delay=delay)
-    # if cmd is not None:
-    #   for item in self.bot.commands:
-    #     if cmd in item.aliases:
-    #       cmd = item.name
-
     commands = []
     for com in bot.commands:
       try:
@@ -250,13 +218,9 @@ class Help(commands.HelpCommand):
           commands.append(com)
       except Exception:
         pass
-    if delay is not None and delay > 0:  # and not slash:
-      await ctx.message.delete(delay=delay)
-    menu = Menu(source=HelpMenu(ctx, commands),
-                delete_message_after=True,
-                clear_reactions_after=True,
-                timeout=delay if delay is not None and delay > 0 else 60,
-                extra_items=views.Links().links)
+    menu = MyMenuPages(
+        source=HelpMenu(ctx, commands, title="Friday - Help", description="If you would like to make a suggestion for a command please join the [Friday's Development](https://discord.gg/NTRuFjU) and explain your suggestion.\n\nFor more info on how commands work and how to format them please check out [docs.friday-bot.com](https://docs.friday-bot.com/).\n\n**Some commands will only show if you have the correct permissions to use them.**",)
+    )
     await menu.start(ctx)
 
   async def send_cog_help(self, cog):
@@ -293,6 +257,14 @@ class Help(commands.HelpCommand):
         else group.help or "No help found..."
     )
 
+    if group.extras != {}:
+      if "examples" in group.extras:
+        embed.add_field(name="Examples", value="```py\n" + "\n".join(get_examples(group, self.context.clean_prefix)) + "```", inline=False)
+      if "params" in group.extras:
+        embed.add_field(name="Available Parameters", value="```py\n" + ", ".join(group.extras['params']) + "```", inline=False)
+
+    embed.add_field(name="Signature", value="```py\n" + self.get_command_signature(group) + "```", inline=False)
+
     await ctx.reply(embed=embed)
 
   async def send_command_help(self, command: commands.Command):
@@ -304,8 +276,11 @@ class Help(commands.HelpCommand):
     else:
       embed.description = command.help or "No help found..."
 
-    if command.extras != {} and "examples" in command.extras:
-      embed.add_field(name="Examples", value="```py\n" + "\n".join(get_examples(command, self.context.clean_prefix)) + "```", inline=False)
+    if command.extras != {}:
+      if "examples" in command.extras:
+        embed.add_field(name="Examples", value="```py\n" + "\n".join(get_examples(command, self.context.clean_prefix)) + "```", inline=False)
+      if "params" in command.extras:
+        embed.add_field(name="Available Parameters", value="```py\n" + ", ".join(command.extras['params']) + "```", inline=False)
 
     embed.add_field(name="Signature", value="```py\n" + self.get_command_signature(command) + "```", inline=False)
 

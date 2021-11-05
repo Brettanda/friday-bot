@@ -8,13 +8,13 @@ Manage your server with these commands
 
 ## Ban
 
-??? check "Has a slash command to match"
+??? missing "Does not have a slash command to match"
 	Learn more about [slash commands](/#slash-commands)
 
 Usage:
 
 ```md
-!ban <members>... [delete_message_days=0] <reason>
+!ban <members>... [reason]
 ```
 
 Examples:
@@ -48,110 +48,11 @@ Examples:
 !begone 707520808448294983
 ```
 
-## Blacklist
-
-Blacklist words from being sent in text channels
-
-??? missing "Does not have a slash command to match"
-	Learn more about [slash commands](/#slash-commands)
-
-Usage:
-
-```md
-!blacklist|bl 
-!blacklist|bl add <word>
-!blacklist|bl clear 
-!blacklist|bl display 
-!blacklist|bl remove <word>
-```
-
-Aliases:
-
-```md
-bl
-```
-
-### Add
-
-??? missing "Does not have a slash command to match"
-	Learn more about [slash commands](/#slash-commands)
-
-Usage:
-
-```md
-!blacklist add|+ <word>
-```
-
-Aliases:
-
-```md
-+
-```
-
-Examples:
-
-```md
-!blacklist add penis
-!bl + shit
-```
-
-### Clear
-
-??? missing "Does not have a slash command to match"
-	Learn more about [slash commands](/#slash-commands)
-
-Usage:
-
-```md
-!blacklist clear 
-```
-
-### Display
-
-??? missing "Does not have a slash command to match"
-	Learn more about [slash commands](/#slash-commands)
-
-Usage:
-
-```md
-!blacklist display|list|show 
-```
-
-Aliases:
-
-```md
-list,show
-```
-
-### Remove
-
-??? missing "Does not have a slash command to match"
-	Learn more about [slash commands](/#slash-commands)
-
-Usage:
-
-```md
-!blacklist remove|- <word>
-```
-
-Aliases:
-
-```md
--
-```
-
-Examples:
-
-```md
-!blacklist remove penis
-!bl - shit
-```
-
 ## Chatchannel
 
 Set the current channel so that I will always try to respond with something
 
-??? check "Has a slash command to match"
+??? missing "Does not have a slash command to match"
 	Learn more about [slash commands](/#slash-commands)
 
 Usage:
@@ -160,36 +61,9 @@ Usage:
 !chatchannel 
 ```
 
-## Deletecommandsafter
-
-Set the time in seconds for how long to wait before deleting command messages
-
-??? missing "Does not have a slash command to match"
-	Learn more about [slash commands](/#slash-commands)
-
-Usage:
-
-```md
-!deletecommandsafter|deleteafter|delcoms [time=0]
-```
-
-Aliases:
-
-```md
-deleteafter,delcoms
-```
-
-Examples:
-
-```md
-!deletecommandsafter
-!deleteafter 0
-!delcoms 180
-```
-
 ## Kick
 
-??? check "Has a slash command to match"
+??? missing "Does not have a slash command to match"
 	Learn more about [slash commands](/#slash-commands)
 
 Usage:
@@ -237,17 +111,30 @@ Examples:
 !language spanish
 ```
 
-## Massmove
+## Last
 
-Move everyone from one voice channel to another
+Gets the last member to leave a voice channel.
 
-??? check "Has a slash command to match"
+??? missing "Does not have a slash command to match"
 	Learn more about [slash commands](/#slash-commands)
 
 Usage:
 
 ```md
-!massmove|move <tochannel> [fromchannel]
+!last [voice_channel]
+```
+
+## Massmove
+
+Move everyone from one voice channel to another
+
+??? missing "Does not have a slash command to match"
+	Learn more about [slash commands](/#slash-commands)
+
+Usage:
+
+```md
+!massmove|move <to_channel> [from_channel]
 ```
 
 Aliases:
@@ -268,22 +155,38 @@ Examples:
 
 Mute a member from text channels
 
-??? check "Has a slash command to match"
+??? missing "Does not have a slash command to match"
 	Learn more about [slash commands](/#slash-commands)
 
 Usage:
 
 ```md
-!mute <members>...
+!mute <members>... <reason>
+!mute role [role]
 ```
 
 Examples:
 
 ```md
-!mute @Motostar @steve
+!mute @Motostar @steve they were annoying me
 !mute @steve 9876543210
-!mute @Motostar
+!mute @Motostar spamming general
 !mute 0123456789
+```
+
+### Role
+
+??? missing "Does not have a slash command to match"
+	Learn more about [slash commands](/#slash-commands)
+
+Set the role to be applied to members that get muted
+
+Usage:
+
+```md
+!mute role [role]
+!mute role create [name='Muted']
+!mute role update 
 ```
 
 ## Prefix
@@ -311,7 +214,7 @@ Examples:
 
 Moves everyone with a specific role to a voicechannel. Objects that can be exluded are voicechannels,roles,and members
 
-??? check "Has a slash command to match"
+??? missing "Does not have a slash command to match"
 	Learn more about [slash commands](/#slash-commands)
 
 Usage:
@@ -334,125 +237,35 @@ Examples:
 !rolecall @admins general @username @username
 ```
 
+## Unban
+
+??? missing "Does not have a slash command to match"
+	Learn more about [slash commands](/#slash-commands)
+
+Usage:
+
+```md
+!unban <member> <reason>
+```
+
 ## Unmute
 
 Unmute a member from text channels
 
-??? check "Has a slash command to match"
+??? missing "Does not have a slash command to match"
 	Learn more about [slash commands](/#slash-commands)
 
 Usage:
 
 ```md
-!unmute <members>...
+!unmute <members>... <reason>
 ```
 
 Examples:
 
 ```md
-!unmute @Motostar @steve
+!unmute @Motostar @steve they said sorry
 !unmute @steve 9876543210
 !unmute @Motostar
 !unmute 0123456789
-```
-
-## Welcome
-
-Friday's settings for welcomeing new members to your servers
-
-??? missing "Does not have a slash command to match"
-	Learn more about [slash commands](/#slash-commands)
-
-Usage:
-
-```md
-!welcome 
-!welcome channel [channel]
-!welcome display 
-!welcome message [message]
-!welcome role [role]
-```
-
-### Channel
-
-??? missing "Does not have a slash command to match"
-	Learn more about [slash commands](/#slash-commands)
-
-Setup a welcome channel for Friday to welcome new memebers in
-
-Usage:
-
-```md
-!welcome channel [channel]
-```
-
-Examples:
-
-```md
-!welcome channel
-!welcome channel #welcome
-!welcome channel #general
-!welcome channel 707458929696702525
-```
-
-### Display
-
-??? missing "Does not have a slash command to match"
-	Learn more about [slash commands](/#slash-commands)
-
-Shows the servers current welcome settings
-
-Usage:
-
-```md
-!welcome display|list|show 
-```
-
-Aliases:
-
-```md
-list,show
-```
-
-### Message
-
-??? missing "Does not have a slash command to match"
-	Learn more about [slash commands](/#slash-commands)
-
-Set a message to greet new members to your server, message variables are `{user}`,`{server}`
-
-Usage:
-
-```md
-!welcome message [message]
-```
-
-Examples:
-
-```md
-!welcome message
-!welcome message Welcome to the server {user}, stay a while!
-!welcome message Welcome {user} to {server}
-!welcome message A new member has joined the server!
-```
-
-### Role
-
-??? missing "Does not have a slash command to match"
-	Learn more about [slash commands](/#slash-commands)
-
-Set the role that is given to new members when they join the server
-
-Usage:
-
-```md
-!welcome role [role]
-```
-
-Examples:
-
-```md
-!welcome role
-!welcome role @default
-!welcome role 12345678910
 ```

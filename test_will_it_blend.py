@@ -1,9 +1,10 @@
 import asyncio
 import logging
 import os
+import sys
 
-import discord
-from discord.ext import tasks
+import nextcord as discord
+from nextcord.ext import tasks
 from dotenv import load_dotenv
 
 from index import Friday
@@ -64,9 +65,17 @@ class Friday_testing(Friday):
 # def test_translate_key_gen():
 #   run()
 
+formatter = logging.Formatter("%(levelname)s:%(name)s: %(message)s")
+handler = logging.StreamHandler(sys.stdout)
+handler.setFormatter(formatter)
+
+logger = logging.getLogger("Friday")
+logger.handlers = [handler]
+logger.setLevel(logging.INFO)
+
 
 def test_will_it_blend():
-  bot = Friday_testing()
+  bot = Friday_testing(logger=logger)
   loop = asyncio.get_event_loop()
   try:
     loop.run_until_complete(bot.start(TOKEN))

@@ -1,13 +1,18 @@
-from discord.ext import commands
-from discord_slash import cog_ext
+from nextcord.ext import commands
+# from discord_slash import cog_ext
 
 from functions import config  # ,embed
+from typing import Optional
 from typing_extensions import TYPE_CHECKING
 
 if TYPE_CHECKING:
   from index import Friday as Bot
 
-import discord
+import nextcord as discord
+
+SUPPORT_SERVER_ID = 707441352367013899
+SUPPORT_SERVER_INVITE = "https://discord.gg/NTRuFjU"
+PATREON_LINK = "https://www.patreon.com/bePatron?u=42649008"
 
 
 class Support(commands.Cog, name="Support"):
@@ -15,26 +20,25 @@ class Support(commands.Cog, name="Support"):
 
   def __init__(self, bot: "Bot"):
     self.bot = bot
-    self.server_id = config.support_server_id
 
     if not hasattr(self.bot, "invite_tracking"):
       self.bot.invite_tracking = {}
 
   @commands.command(name="support", help="Get an invite link to my support server")
   async def norm_support(self, ctx):
-    await ctx.reply("https://discord.gg/NTRuFjU")
+    await ctx.reply(SUPPORT_SERVER_INVITE)
 
-  @cog_ext.cog_slash(name="support", description="Support server link")
-  async def slash_support(self, ctx):
-    await ctx.send("https://discord.gg/NTRuFjU", hidden=True)
+  # @cog_ext.cog_slash(name="support", description="Support server link")
+  # async def slash_support(self, ctx):
+  #   await ctx.send(SUPPORT_SERVER_INVITE, hidden=True)
 
   @commands.command(name="donate", help="Get the Patreon link for Friday")
   async def norm_donate(self, ctx):
-    await ctx.reply("https://www.patreon.com/bePatron?u=42649008")
+    await ctx.reply(PATREON_LINK)
 
-  @cog_ext.cog_slash(name="donate", description="Get the Patreon link for Friday")
-  async def slash_donate(self, ctx):
-    await ctx.send("https://www.patreon.com/bePatron?u=42649008", hidden=True)
+  # @cog_ext.cog_slash(name="donate", description="Get the Patreon link for Friday")
+  # async def slash_donate(self, ctx):
+  #   await ctx.send(PATREON_LINK, hidden=True)
 
   @commands.Cog.listener()
   async def on_message(self, msg):
@@ -47,9 +51,29 @@ class Support(commands.Cog, name="Support"):
     # print(discord.utils.resolve_invite(msg.clean_content))
 
   @commands.Cog.listener()
+  async def on_member_update(self, before: discord.Member, after: discord.Member):
+    if after.guild.id != SUPPORT_SERVER_ID:
+      return
+
+    if before.roles == after.roles:
+      return
+
+    before_has = before._roles.has(843941723041300480)  # Supporting role
+    after_has = after._roles.has(843941723041300480)  # Supporting role
+
+    if before_has == after_has:
+      return
+
+    if not after_has:
+      await self.bot.db.query("UPDATE servers SET patreon_user=NULL,tier=NULL WHERE patreon_user=$1", str(after.id))
+      self.bot.logger.info(f"Lost patreonage for guild {after.guild.id} with user {after.id} :(")
+    # else:
+    #   welcome new patron
+
+  @commands.Cog.listener()
   async def on_ready(self):
-    guild: discord.Guild = self.bot.get_guild(config.support_server_id)
-    if self.bot.intents.members and not guild.chunked:
+    guild: Optional[discord.Guild] = self.bot.get_guild(SUPPORT_SERVER_ID)
+    if self.bot.intents.members and guild and not guild.chunked:
       await guild.chunk(cache=True)
 
   @commands.Cog.listener("on_ready")
@@ -61,11 +85,11 @@ class Support(commands.Cog, name="Support"):
 
     try:
       if invite is not None:
-        if hasattr(invite, "guild") and hasattr(invite.guild, "id") and invite.guild.id != self.server_id:
+        if hasattr(invite, "guild") and hasattr(invite.guild, "id") and invite.guild.id != SUPPORT_SERVER_ID:
           return
 
-      if self.bot.get_guild(self.server_id) is not None:
-        for invite in await self.bot.get_guild(self.server_id).invites():
+      if self.bot.get_guild(SUPPORT_SERVER_ID) is not None:
+        for invite in await self.bot.get_guild(SUPPORT_SERVER_ID).invites():
           if invite.max_age == 0 and invite.max_uses == 0 and invite.inviter.id == self.bot.owner_id:
             self.bot.invite_tracking.update({invite.code: invite.uses})
     except discord.Forbidden:
@@ -77,13 +101,13 @@ class Support(commands.Cog, name="Support"):
     if self.bot.cluster_idx != 0:
       return
 
-    if member.guild.id != self.server_id or member.bot:
+    if member.guild.id != SUPPORT_SERVER_ID or member.bot:
       return
 
-    if self.bot.get_guild(self.server_id) is None:
+    if self.bot.get_guild(SUPPORT_SERVER_ID) is None:
       return
 
-    invite_used, x, invites = None, 0, await self.bot.get_guild(self.server_id).invites()
+    invite_used, x, invites = None, 0, await self.bot.get_guild(SUPPORT_SERVER_ID).invites()
     for invite in invites:
       if invite.max_age == 0 and invite.max_uses == 0 and invite.inviter.id == self.bot.owner_id:
         if int(invite.uses) > int(self.bot.invite_tracking[invite.code]):

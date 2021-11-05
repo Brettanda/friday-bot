@@ -1,18 +1,15 @@
 import sys
-import logging
-import inspect
 import datetime
-import discord
+import nextcord as discord
 import asyncio
+import io
 # import mysql.connector
 
 import typing
 from typing import TYPE_CHECKING
-from discord.ext import commands  # , tasks
-from discord.ext.commands.view import StringView
-from discord_slash import SlashContext, SlashCommand, ComponentContext
-from cogs.help import cmd_help
-from functions import MessageColors, embed, relay_info, exceptions, config, views, MyContext, FakeInteractionMessage
+from nextcord.ext import commands  # , tasks
+# from discord_slash.http import SlashCommandRequest
+from functions import MessageColors, embed, relay_info, exceptions, config, views, MyContext, cache  # , FakeInteractionMessage
 import traceback
 
 from collections import Counter
@@ -35,7 +32,34 @@ GENERAL_CHANNEL_NAMES = {"welcome", "general", "lounge", "chat", "talk", "main"}
 #     raise commands.CheckFailure("Currently I am disabled, my boss has been notified, please try again later :)")
 #   return True
 
-formatter = logging.Formatter("%(levelname)s:%(name)s: %(message)s")
+class Config:
+  __slots__ = ("bot", "id", "chat_channel", "tier", "lang",)
+
+  @classmethod
+  async def from_record(cls, record, bot):
+    self = cls()
+
+    self.bot: "Bot" = bot
+    self.id: int = int(record["id"], base=10)
+    self.chat_channel = record["chatchannel"]
+    self.tier = record["tier"]
+    self.lang = record["lang"]
+    return self
+
+
+class CustomWebhook(discord.Webhook):
+  async def safe_send(self, content: str, *, escape_mentions=True, **kwargs) -> typing.Optional[discord.WebhookMessage]:
+    """something"""
+
+    if escape_mentions:
+      content = discord.utils.escape_mentions(content)
+
+    if len(content) > 2000:
+      fp = io.BytesIO(content.encode())
+      kwargs.pop("file", None)
+      return await self.send(file=discord.File(fp, filename="message_too_long.txt"), **kwargs)
+    else:
+      return await self.send(content, **kwargs)
 
 
 class Log(commands.Cog):
@@ -57,28 +81,20 @@ class Log(commands.Cog):
     if not hasattr(self, "_auto_spam_count"):
       self._auto_spam_count = Counter()
 
-    if not hasattr(self.bot, "slash"):
-      self.bot.slash = SlashCommand(self.bot, sync_commands=True, sync_on_cog_reload=True)
+    self.logger = self.bot.logger
+
+    # if not hasattr(self.bot, "slash"):
+    #   self.bot.slash = SlashCommand(self.bot, sync_commands=True, sync_on_cog_reload=True)  # , debug_guild=243159711237537802)
 
     self.bot.process_commands = self.process_commands
     # self.bot.on_error = self.on_error
 
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setFormatter(formatter)
-    filehandler = logging.FileHandler("logging.log", encoding="utf-8")
-    filehandler.setFormatter(logging.Formatter("%(asctime)s:%(name)s:%(levelname)-8s%(message)s"))
-
-    self.logger = logging.getLogger(f"Cluster#{self.bot.cluster_name}")
-    self.logger.handlers = [handler, filehandler]
-    self.logger.setLevel(logging.INFO)
-
-    # dlog = logging.getLogger("discord")
-    # dlog.handlers = [handler]
-    # dlog.setLevel(logging.INFO)
-
     # self.check_for_mydb.start()
 
     self.bot.add_check(self.check_perms)
+
+  def __repr__(self):
+    return "<cogs.Log>"
 
   async def setup(self) -> None:
     if not hasattr(self, "bot_managers"):
@@ -223,84 +239,85 @@ class Log(commands.Cog):
   async def on_slash_command(self, ctx):
     self.logger.info(f"Slash Command: {ctx.command} {ctx.kwargs}")
 
-  @commands.Cog.listener()
-  async def on_slash_command_error(self, ctx: SlashContext, ex):
-    if not ctx.responded:
-      if ctx._deffered_hidden or not ctx.deferred:
-        await ctx.send(hidden=True, content=str(ex) or "An error has occured, try again later.")
-      else:
-        await ctx.send(embed=embed(title=str(ex) or "An error has occured, try again later.", color=MessageColors.ERROR))
-    if not isinstance(ex, (
-            discord.NotFound,
-            commands.CheckFailure,
-            commands.MissingPermissions,
-            commands.BotMissingPermissions,
-            commands.NoPrivateMessage,
-            commands.MaxConcurrencyReached)) and (not hasattr(ex, "log") or (hasattr(ex, "log") and ex.log is True)):
-      raise ex
+  # @commands.Cog.listener()
+  # async def on_slash_command_error(self, ctx: SlashContext, ex):
+  #   print(ex)
+  #   if not ctx.responded:
+  #     if ctx._deffered_hidden or not ctx.deferred:
+  #       await ctx.send(hidden=True, content=str(ex) or "An error has occured, try again later.")
+  #     else:
+  #       await ctx.send(embed=embed(title=str(ex) or "An error has occured, try again later.", color=MessageColors.ERROR))
+  #   if not isinstance(ex, (
+  #           discord.NotFound,
+  #           commands.CheckFailure,
+  #           commands.MissingPermissions,
+  #           commands.BotMissingPermissions,
+  #           commands.NoPrivateMessage,
+  #           commands.MaxConcurrencyReached)) and (not hasattr(ex, "log") or (hasattr(ex, "log") and ex.log is True)):
+  #     raise ex
 
-  async def convert_param(self, ctx: SlashContext, option, param):
-    value = option["value"]
-    if param.annotation != inspect.Parameter.empty:
-      value = await commands.run_converters(ctx, param.annotation, value, 0)
-    return value
+  # async def convert_param(self, ctx: SlashContext, option, param):
+  #   value = option["value"]
+  #   if param.annotation != inspect.Parameter.empty:
+  #     value = await commands.run_converters(ctx, param.annotation, value, 0)
+  #   return value
 
   @commands.Cog.listener()
   async def on_interaction(self, interaction: discord.Interaction):
     if interaction.type != discord.InteractionType.application_command:
       self.logger.info(f"Interaction: {interaction.data.get('custom_id','No ID')} {interaction.type}")
 
-    if interaction.type == discord.InteractionType.application_command:
-      command = self.bot.get_command(interaction.data["name"])
+    # if interaction.type == discord.InteractionType.application_command:
+    #   command = self.bot.get_command(interaction.data["name"])
 
-      if command is None:
-        return await relay_info(f"Missing slash command: {interaction.data['name']}", self.bot, webhook=self.log_errors)
+    #   if command is None:
+    #     return await relay_info(f"Missing slash command: {interaction.data['name']}", self.bot, webhook=self.log_errors)
 
-      ctx = MyContext(prefix="/", view=StringView(interaction.data["name"]), bot=self.bot, message=FakeInteractionMessage(self.bot, interaction))
-      options = {option["name"]: option for option in interaction.data.get("options", {})}
-      params, kwargs = [], {}
-      for name, param in command.clean_params.items():
-        option = options.get(name)
-        if not option:
-          option = param.default
-        else:
-          option = await self.convert_param(ctx, option, param)
-        if param.kind == inspect.Parameter.KEYWORD_ONLY:
-          kwargs[name] = option
-        else:
-          params.append(option)
+    #   ctx = MyContext(prefix="/", view=StringView(interaction.data["name"]), bot=self.bot, message=FakeInteractionMessage(self.bot, interaction))
+    #   options = {option["name"]: option for option in interaction.data.get("options", {})}
+    #   params, kwargs = [], {}
+    #   for name, param in command.clean_params.items():
+    #     option = options.get(name)
+    #     if not option:
+    #       option = param.default
+    #     else:
+    #       option = await self.convert_param(ctx, option, param)
+    #     if param.kind == inspect.Parameter.KEYWORD_ONLY:
+    #       kwargs[name] = option
+    #     else:
+    #       params.append(option)
 
-      async def fallback():
-        await asyncio.sleep(2)
-        if interaction.response.is_done():
-          return
-        try:
-          await interaction.response.defer()
-        except Exception:
-          pass
-      self.bot.loop.create_task(fallback())
-      try:
-        self.bot.dispatch("command", ctx)
-        if await command.can_run(ctx):
-          await command(ctx, *params, **kwargs)
-      except Exception as e:
-        self.bot.dispatch("command_error", ctx, e)
+    #   async def fallback():
+    #     await asyncio.sleep(2)
+    #     if interaction.response.is_done():
+    #       return
+    #     try:
+    #       await interaction.response.defer()
+    #     except Exception:
+    #       pass
+    #   self.bot.loop.create_task(fallback())
+    #   try:
+    #     self.bot.dispatch("command", ctx)
+    #     if await command.can_run(ctx):
+    #       await command(ctx, *params, **kwargs)
+    #   except Exception as e:
+    #     self.bot.dispatch("command_error", ctx, e)
 
-  @commands.Cog.listener()
-  async def on_component_callback_error(self, ctx: ComponentContext, ex: Exception):
-    if not ctx.responded:
-      if ctx._deferred_hidden or not ctx.deferred:
-        await ctx.send(hidden=True, content=str(ex) or "An error has occured, try again later.")
-      else:
-        await ctx.send(embed=embed(title=str(ex) or "An error has occured, try again later.", color=MessageColors.ERROR))
-    if not isinstance(ex, (
-            discord.NotFound,
-            commands.CheckFailure,
-            commands.MissingPermissions,
-            commands.BotMissingPermissions,
-            commands.NoPrivateMessage,
-            commands.MaxConcurrencyReached)) and (not hasattr(ex, "log") or (hasattr(ex, "log") and ex.log is True)):
-      raise ex
+  # @commands.Cog.listener()
+  # async def on_component_callback_error(self, ctx: ComponentContext, ex: Exception):
+  #   if not ctx.responded:
+  #     if ctx._deferred_hidden or not ctx.deferred:
+  #       await ctx.send(hidden=True, content=str(ex) or "An error has occured, try again later.")
+  #     else:
+  #       await ctx.send(embed=embed(title=str(ex) or "An error has occured, try again later.", color=MessageColors.ERROR))
+  #   if not isinstance(ex, (
+  #           discord.NotFound,
+  #           commands.CheckFailure,
+  #           commands.MissingPermissions,
+  #           commands.BotMissingPermissions,
+  #           commands.NoPrivateMessage,
+  #           commands.MaxConcurrencyReached)) and (not hasattr(ex, "log") or (hasattr(ex, "log") and ex.log is True)):
+  #     raise ex
 
   async def process_commands(self, message):
     ctx = await self.bot.get_context(message)
@@ -335,39 +352,17 @@ class Log(commands.Cog):
     await self.bot.invoke(ctx)
 
   def get_prefixes(self) -> [str]:
-    return [*[g for g in self.bot.prefixes.values() if g != "!"], *["/", "!", "%", ">", "?", "-", "(", ")"]]
+    return ["/", "!", "f!", "!f", "%", ">", "?", "-", "(", ")"]
 
-  def get_guild_delete_commands(self, guild: typing.Union[discord.Guild, int]) -> int:
-    try:
-      if guild is not None:
-        delete = self.bot.saved_guilds[str(guild.id) if isinstance(guild, discord.Guild) else guild]["autoDeleteMSGs"]
-        return delete if delete != 0 else None
-    except KeyError:
-      self.set_guild(guild)
-      return delete if delete != 0 else None
-
-  def get_guild_chat_channel(self, guild: typing.Union[discord.Guild, int]) -> int:
-    try:
-      if guild is None:
-        return False
-      guild_id = guild.id if isinstance(guild, discord.Guild) else guild
-      if str(guild_id) not in [str(item.id) for item in self.bot.guilds]:
-        return None
-      if guild.id not in self.bot.saved_guilds:
-        self.set_guild(guild,)
-      return self.bot.saved_guilds[str(guild.id) if isinstance(guild, discord.Guild) else guild]["chatChannel"]
-    except KeyError:
-      self.set_guild(guild)
-      return self.bot.saved_guilds[str(guild.id) if isinstance(guild, discord.Guild) else guild]["chatChannel"]
-
-  def get_guild_tier(self, guild: typing.Union[discord.Guild, int]) -> str:
-    try:
-      if guild is not None:
-        guild = self.bot.saved_guilds.get(str(guild.id) if isinstance(guild, discord.Guild) else guild, None)
-        return guild.get("tier", "free") if guild is not None else "free"
-    except KeyError:
-      self.set_guild(guild)
-      return guild.get("tier", "free") if guild is not None else "free"
+  @cache()
+  async def get_guild_config(self, guild_id: int) -> typing.Optional[Config]:
+    query = "SELECT * FROM servers WHERE id=$1 LIMIT 1;"
+    async with self.bot.db.pool.acquire(timeout=300.0) as conn:
+      record = await conn.fetchrow(query, str(guild_id))
+      self.bot.logger.debug(f"PostgreSQL Query: \"{query}\" + {str(guild_id)}")
+      if record is not None:
+        return await Config.from_record(record, self.bot)
+      return None
 
   async def fetch_user_tier(self, user: discord.User):
     if user.id == self.bot.owner_id:
@@ -391,61 +386,22 @@ class Log(commands.Cog):
         x += 1
       return final_tier if final_tier is not None else None
 
-  def get_guild_lang(self, guild: typing.Union[discord.Guild, int]) -> str:
-    try:
-      if guild is not None:
-        guild = self.bot.saved_guilds.get(str(guild.id) if isinstance(guild, discord.Guild) else guild, None)
-        lang = guild.get("lang", None) if guild is not None else None
-        return lang if lang is not None else guild.preferred_locale.split("-")[0] if isinstance(guild, discord.Guild) else "en"
-    except KeyError:
-      self.set_guild(guild)
-      return lang if lang is not None else guild.preferred_locale.split("-")[0] if isinstance(guild, discord.Guild) else "en"
-
-  # def change_guild_attritbute(
-  #         self,
-  #         guild: discord.Guild or int,
-  #         prefix: str = config.defaultPrefix,
-  #         delete: int = None,
-  #         premium: bool = False,
-  #         chat_channel: int = None):
-  #   if guild is None or :
-  #     return False
-
-  def change_guild_delete(self, guild: typing.Union[discord.Guild, int], delete: int = 0) -> None:
-    if guild is not None:
-      self.bot.saved_guilds[str(guild.id) if isinstance(guild, discord.Guild) else guild]["autoDeleteMSGs"] = delete
-
-  def change_guild_tier(self, guild: typing.Union[discord.Guild, int], premium: int = 0) -> None:
-    if guild is not None:
-      self.bot.saved_guilds.get(str(guild.id) if isinstance(guild, discord.Guild) else guild, None)["tier"] = premium
-
-  def change_guild_chat_channel(self, guild: typing.Union[discord.Guild, int], chatChannel: int = None) -> None:
-    if guild is not None:
-      self.bot.saved_guilds[str(guild.id) if isinstance(guild, discord.Guild) else guild]["chatChannel"] = chatChannel
-
-  def change_guild_lang(self, guild: typing.Union[discord.Guild, int], lang: str = None) -> None:
-    if guild is not None:
-      self.bot.saved_guilds[str(guild.id) if isinstance(guild, discord.Guild) else guild]["lang"] = lang if lang is not None else guild.preferred_locale.split("-")[0] if isinstance(guild, discord.Guild) else "en"
-
   def set_guild(
           self,
           guild: typing.Union[discord.Guild, int],
           prefix: str = "!",
           tier: int = 0,
           patreon_user: int = None,
-          autoDeleteMSG: int = None,
           max_mentions: int = None,
           max_messages: [int] = None,
           chatChannel: int = None,
           lang: str = None) -> None:
     if guild is not None:
       guild = guild if isinstance(guild, discord.Guild) else self.bot.get_guild(guild)
-      self.bot.prefixes.update({str(guild.id): str(prefix)})
       self.bot.saved_guilds.update(
           {str(guild.id) if isinstance(guild, discord.Guild) else guild: {
               "tier": tier,
               "patreon_user": patreon_user,
-              "autoDeleteMSGs": autoDeleteMSG,
               "max_mentions": max_mentions,
               "max_messages": max_messages,
               "chatChannel": chatChannel if chatChannel is not None else None,
@@ -458,44 +414,39 @@ class Log(commands.Cog):
       return False
     guild_id = guild.id if isinstance(guild, discord.Guild) else guild
     self.bot.saved_guilds.pop(str(guild_id), None)
-    self.bot.prefixes.pop(str(guild_id), None)
 
   async def set_all_guilds(self) -> None:
     # if not hasattr(self.bot, "saved_guilds") or len(self.bot.saved_guilds) != len(self.bot.guilds):
-    servers = await self.bot.db.query("SELECT id,tier,patreon_user,autoDeleteMSGs,max_mentions,max_messages,chatChannel,lang FROM servers")
+    servers = await self.bot.db.query("SELECT id,tier,patreon_user,chatChannel,lang FROM servers")
     guilds = {}
-    for guild_id, tier, patreon_user, autoDeleteMSG, max_mentions, max_messages, chatChannel, lang in servers:
-      guilds.update({str(guild_id): {"tier": str(tier), "patreon_user": int(patreon_user) if patreon_user is not None else None, "autoDeleteMSGs": int(autoDeleteMSG), "max_mentions": int(max_mentions) if max_mentions is not None else None, "max_messages": max_messages, "chatChannel": int(chatChannel) if chatChannel is not None else None, "lang": lang}})
+    for guild_id, tier, patreon_user, chatChannel, lang in servers:
+      guilds.update({str(guild_id): {"tier": str(tier), "patreon_user": int(patreon_user) if patreon_user is not None else None, "chatChannel": int(chatChannel) if chatChannel is not None else None, "lang": lang}})
     self.bot.saved_guilds = guilds
     return guilds
 
   @discord.utils.cached_property
-  def log_spam(self) -> discord.Webhook:
-    return discord.Webhook.from_url(os.environ.get("WEBHOOKSPAM"), session=self.bot.session)
+  def log_chat(self) -> CustomWebhook:
+    return CustomWebhook.partial(os.environ.get("WEBHOOKCHATID"), os.environ.get("WEBHOOKCHATTOKEN"), session=self.bot.session)
 
   @discord.utils.cached_property
-  def log_chat(self) -> discord.Webhook:
-    return discord.Webhook.partial(os.environ.get("WEBHOOKCHATID"), os.environ.get("WEBHOOKCHATTOKEN"), session=self.bot.session)
+  def log_info(self) -> CustomWebhook:
+    return CustomWebhook.partial(os.environ.get("WEBHOOKINFOID"), os.environ.get("WEBHOOKINFOTOKEN"), session=self.bot.session)
 
   @discord.utils.cached_property
-  def log_info(self) -> discord.Webhook:
-    return discord.Webhook.partial(os.environ.get("WEBHOOKINFOID"), os.environ.get("WEBHOOKINFOTOKEN"), session=self.bot.session)
+  def log_issues(self) -> CustomWebhook:
+    return CustomWebhook.partial(os.environ.get("WEBHOOKISSUESID"), os.environ.get("WEBHOOKISSUESTOKEN"), session=self.bot.session)
 
   @discord.utils.cached_property
-  def log_issues(self) -> discord.Webhook:
-    return discord.Webhook.partial(os.environ.get("WEBHOOKISSUESID"), os.environ.get("WEBHOOKISSUESTOKEN"), self.bot.session)
+  def log_errors(self) -> CustomWebhook:
+    return CustomWebhook.partial(os.environ.get("WEBHOOKERRORSID"), os.environ.get("WEBHOOKERRORSTOKEN"), session=self.bot.session)
 
   @discord.utils.cached_property
-  def log_errors(self) -> discord.Webhook:
-    return discord.Webhook.partial(os.environ.get("WEBHOOKERRORSID"), os.environ.get("WEBHOOKERRORSTOKEN"), session=self.bot.session)
+  def log_bumps(self) -> CustomWebhook:
+    return CustomWebhook.partial(os.environ.get("WEBHOOKBUMPSID"), os.environ.get("WEBHOOKBUMPSTOKEN"), session=self.bot.session)
 
   @discord.utils.cached_property
-  def log_bumps(self) -> discord.Webhook:
-    return discord.Webhook.partial(os.environ.get("WEBHOOKBUMPSID"), os.environ.get("WEBHOOKBUMPSTOKEN"), session=self.bot.session)
-
-  @discord.utils.cached_property
-  def log_join(self) -> discord.Webhook:
-    return discord.Webhook.partial(os.environ.get("WEBHOOKJOINID"), os.environ.get("WEBHOOKJOINTOKEN"), session=self.bot.session)
+  def log_join(self) -> CustomWebhook:
+    return CustomWebhook.partial(os.environ.get("WEBHOOKJOINID"), os.environ.get("WEBHOOKJOINTOKEN"), session=self.bot.session)
 
   async def log_spammer(self, ctx, message, retry_after, *, notify=False):
     guild_id = getattr(ctx.guild, "id", None)
@@ -503,113 +454,45 @@ class Log(commands.Cog):
 
   @commands.Cog.listener()
   async def on_command_error(self, ctx: "MyContext", error):
-    slash = True if isinstance(ctx, SlashContext) or (hasattr(ctx, "is_interaction") and ctx.is_interaction) else False
     if hasattr(ctx.command, 'on_error'):
       return
 
-    # if ctx.cog:
-      # if ctx.cog._get_overridden_method(ctx.cog.cog_command_error) is not None:
-      # return
+    # if ctx.cog and ctx.cog._get_overridden_method(ctx.cog.cog_command_error) is not None:
+    #   return
 
-    delete = self.get_guild_delete_commands(ctx.guild)
-    error_text = getattr(error, 'original', error)
-    if isinstance(error, commands.NotOwner):
-      print("Someone found a dev command")
-      logging.info("Someone found a dev command")
-    elif isinstance(error, commands.MissingRequiredArgument):
-      await cmd_help(ctx, ctx.command, "You're missing some arguments, here is how the command should look")
-    elif isinstance(error, commands.CommandNotFound):
-      # await ctx.reply(embed=embed(title=f"Command `{ctx.message.content}` was not found",color=MessageColors.ERROR))
+    ignored = (commands.CommandNotFound, commands.NotOwner, )
+    just_send = (commands.DisabledCommand, commands.BotMissingPermissions, commands.MissingPermissions, commands.RoleNotFound, commands.ArgumentParsingError,)
+    error = getattr(error, 'original', error)
+
+    if isinstance(error, ignored):
       return
-    # elif isinstance(error,commands.RoleNotFound):
-    #   await ctx.reply(embed=embed(title=f"{error}",color=MessageColors.ERROR))
+
+    if isinstance(error, just_send):
+      await ctx.send(embed=embed(title=error, color=MessageColors.ERROR))
+    elif isinstance(error, (commands.MissingRequiredArgument, commands.TooManyArguments)):
+      await ctx.send_help(ctx.command)
     elif isinstance(error, commands.CommandOnCooldown):
-      if slash:
-        await ctx.send(embed=embed(title=f"This command is on a cooldown, please wait {error.retry_after:,.2f} sec(s)", color=MessageColors.ERROR), delete_after=30)
-      else:
-        await ctx.reply(embed=embed(title=f"This command is on a cooldown, please wait {error.retry_after:,.2f} sec(s)", color=MessageColors.ERROR), delete_after=30)
-      if hasattr(ctx.message, "delete"):
-        await ctx.message.delete(delay=30)
+      retry_after = discord.utils.utcnow() + datetime.timedelta(seconds=error.retry_after)
+      await ctx.send(embed=embed(title=f"This command is on a cooldown, and will be available <t:{int(retry_after.timestamp())}:R>", color=MessageColors.ERROR))
+    elif isinstance(error, (exceptions.RequiredTier, exceptions.NotInSupportServer)):
+      await ctx.send(embed=embed(title=error, color=MessageColors.ERROR))
     elif isinstance(error, commands.NoPrivateMessage):
-      if slash:
-        await ctx.send(embed=embed(title="This command does not work in non-server text channels", color=MessageColors.ERROR), delete_after=delete)
-      else:
-        await ctx.reply(embed=embed(title="This command does not work in non-server text channels", color=MessageColors.ERROR), delete_after=delete)
-    # elif isinstance(error, commands.ChannelNotFound):
-    #   if slash:
-    #     await ctx.send(embed=embed(title=str(error), color=MessageColors.ERROR), delete_after=delete)
-    #   else:
-    #     await ctx.reply(embed=embed(title=str(error), color=MessageColors.ERROR), delete_after=delete)
-      # await ctx.reply(embed=embed(title="Could not find that channel",description="Make sure it is the right channel type",color=MessageColors.ERROR))
-    elif isinstance(error, commands.DisabledCommand):
-      await ctx.send(embed=embed(title=error_text, description="Please check the #updates channel in the support server for more info", color=MessageColors.ERROR))
-    #   if slash:
-    #     await ctx.send(embed=embed(title=str(error) or "This command has been disabled", color=MessageColors.ERROR), delete_after=delete)
-    #   else:
-    #     await ctx.reply(embed=embed(title=str(error) or "This command has been disabled", color=MessageColors.ERROR), delete_after=delete)
-    elif isinstance(error, commands.TooManyArguments):
-      await cmd_help(ctx, ctx.command, str(error) or "Too many arguments were passed for this command, here is how the command should look", delete_after=delete)
-    # elif isinstance(error,commands.CommandError) or isinstance(error,commands.CommandInvokeError):
-    #   await ctx.reply(embed=embed(title=f"{error}",color=MessageColors.ERROR))
-    elif isinstance(error, (discord.Forbidden, discord.NotFound, commands.MissingPermissions, commands.BotMissingPermissions, commands.MaxConcurrencyReached)) or (hasattr(error, "log") and error.log is False):
-      try:
-        if slash:
-          await ctx.send(embed=embed(title=f"{error_text}", color=MessageColors.ERROR), delete_after=delete)
-        else:
-          await ctx.reply(embed=embed(title=f"{error_text}", color=MessageColors.ERROR), delete_after=delete)
-      except discord.Forbidden:
-        try:
-          if slash:
-            await ctx.send(f"{error_text}", delete_after=delete)
-          else:
-            await ctx.reply(f"{error_text}", delete_after=delete)
-        except discord.Forbidden:
-          logging.warning("well guess i just can't respond then")
+      await ctx.send(embed=embed(title="This command does not work in non-server text channels", color=MessageColors.ERROR))
+    elif isinstance(error, commands.CommandInvokeError):
+      original = error.original
+      if not isinstance(original, discord.HTTPException):
+        print(f"In {ctx.command.qualified_name}:", file=sys.stderr)
+        traceback.print_tb(original.__traceback__)
+        print(f"{original.__class__.__name__}: {original}", file=sys.stderr)
     else:
-      try:
-        if slash:
-          await ctx.send(embed=embed(title=f"{error_text}", color=MessageColors.ERROR), delete_after=delete)
-        else:
-          await ctx.reply(embed=embed(title=f"{error_text}", color=MessageColors.ERROR), delete_after=delete)
-      except discord.Forbidden:
-        try:
-          if slash:
-            await ctx.send(f"{error_text}", delete_after=delete)
-          else:
-            await ctx.reply(f"{error_text}", delete_after=delete)
-        except discord.Forbidden:
-          print("well guess i just can't respond then")
-          logging.warning("well guess i just can't respond then")
-      raise error
-      # trace = traceback.format_exception(type(error), error, error.__traceback__)
-      # print(''.join(trace))
-      # logging.error(''.join(trace))
-      # await relay_info(
-      #     f"```bash\n{''.join(trace)}```",
-      #     self.bot,
-      #     short="Error sent",
-      #     webhook=self.log_errors
-      # )
-
-  @commands.Cog.listener()
-  async def on_error(self, event, *args, **kwargs):
-    trace = traceback.format_exc()
-    if "Missing Access" in str(trace):
-      return
-
-    with open("err.log", "w") as f:
-      f.write(trace)
-      f.close()
-
-    print(trace)
-    logging.error(trace)
-    await relay_info(
-        f"```bash\n{trace}```",
-        self.bot,
-        short="Error sent",
-        file="err.log",
-        webhook=self.log_errors
-    )
+      print('Ignoring exception in command {}:'.format(ctx.command), file=sys.stderr)
+      traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
+      await relay_info(
+          f"```bash\n{sys.stderr}```",
+          self.bot,
+          short="Error sent",
+          webhook=self.log_errors
+      )
 
 
 def setup(bot):
