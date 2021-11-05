@@ -155,12 +155,11 @@ class redditlink(commands.Cog):
 
   @commands.group(name="redditextract", help="Extracts the media from the reddit post", invoke_without_command=True, case_insensitive=True)
   async def norm_extract(self, ctx: "MyContext", link: str):
-    if not ctx.is_interaction():
-      try:
-        async with ctx.typing():
-          return await self.extract(query=link, command=True, ctx=ctx, guild=ctx.guild, channel=ctx.channel)
-      except Exception:
+    try:
+      async with ctx.typing():
         return await self.extract(query=link, command=True, ctx=ctx, guild=ctx.guild, channel=ctx.channel)
+    except Exception:
+      return await self.extract(query=link, command=True, ctx=ctx, guild=ctx.guild, channel=ctx.channel)
 
     return await self.extract(query=link, command=True, ctx=ctx, guild=ctx.guild, channel=ctx.channel)
 

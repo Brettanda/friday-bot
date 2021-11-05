@@ -63,7 +63,7 @@ class Config:
 
   def is_whitelisted(self, msg: discord.Message, *, channel: discord.TextChannel = None, member: discord.Member = None) -> bool:
     channel = channel or msg.channel
-    roles = member.roles or msg.author.roles
+    roles = (member.roles if member is not None else None) or msg.author.roles
 
     if msg.author.guild_permissions and (msg.author.guild_permissions.administrator or msg.author.guild_permissions.manage_guild):
       return True
