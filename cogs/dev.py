@@ -241,12 +241,11 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     else:
       return await ctx.reply(embed=embed(title="You are not on a branch", color=MessageColors.ERROR))
 
+    await ctx.send(stdout)
     if stdout.startswith("Already up-to-date."):
-      return await ctx.send(stdout)
-    message = await ctx.reply(embed=embed(title="Updating..."))
+      return
     await ctx.trigger_typing()
     stdout, stderr = await self.run_process("python -m pip install --upgrade pip && python -m pip install -r requirements.txt --no-cache-dir")
-    await message.edit(embed=embed(title="Update complete!"))
     await ctx.safe_send(stdout)
 
   @norm_dev.command(name="cogs")
