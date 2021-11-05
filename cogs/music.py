@@ -276,14 +276,6 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
             "identifier": "MAIN",
             "region": "us_central",
         },
-        "GERMANY": {
-            "host": os.environ.get("LAVALINKGRHOST"),
-            "port": os.environ.get("LAVALINKGRPORT"),
-            "rest_uri": f"http://{os.environ.get('LAVALINKGRHOST')}:{os.environ.get('LAVALINKGRPORT')}/",
-            "password": os.environ.get("LAVALINKGRPASS"),
-            "identifier": "GERMANY",
-            "region": "germany",
-        }
     }
 
     if self.bot.wavelink.nodes:
@@ -333,6 +325,8 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
     if member == self.bot.user:
       if before.channel != after.channel and after.channel is not None and after.channel.type == discord.ChannelType.stage_voice:
         await member.edit(suppress=False)
+
+    # TODO: Check if node has been made yet
 
     # if not player:
     player: Player = self.bot.wavelink.get_player(member.guild.id, cls=Player)

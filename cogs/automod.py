@@ -427,7 +427,7 @@ class AutoMod(commands.Cog):
     if len(action) == 0:
       return await ctx.send(embed=embed(title=f"The action must be one of the following: {', '.join(PUNISHMENT_TYPES)}", color=MessageColors.ERROR))
     await self.bot.db.query("UPDATE blacklist SET punishments=$1 WHERE guild_id=$2", action, str(ctx.guild.id))
-    await ctx.reply(embed=embed(title=f"Set punishment to `{action}`"))
+    await ctx.reply(embed=embed(title=f"Set punishment to `{', '.join(action)}`"))
 
   @_blacklist.command(name="clear", help="Remove all words from the current servers blacklist settings.")
   @commands.guild_only()
