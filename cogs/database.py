@@ -65,7 +65,7 @@ class Database(commands.Cog):
         ],
         "blacklist": [
             "guild_id text PRIMARY KEY NOT NULL",
-            "ignoreadmins bool DEFAULT true",
+            "punishments text[] DEFAULT array['delete']::text[]",
             "dmuser bool DEFAULT true",
             "words text[]"
         ],
