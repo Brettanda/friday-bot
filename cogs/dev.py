@@ -154,6 +154,31 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       except BaseException:
         pass
 
+  @norm_dev.command(name="quit")
+  async def quit(self, ctx, *, force: bool = False):
+    if self.bot.restartPending is True and force is False:
+      await ctx.reply(embed=embed(title="A restart is already pending"))
+      return
+    self.bot.restartPending = True
+    stat = await ctx.reply(embed=embed(title="Pending"))
+    if len(self.bot.voice_clients) > 0 and force is False:
+      await stat.edit(embed=embed(title=f"{len(self.bot.voice_clients)} guilds are playing music"))
+      while len(self.bot.voice_clients) > 0:
+        await stat.edit(embed=embed(title=f"{len(self.bot.voice_clients)} guilds are playing music"))
+        await asyncio.sleep(1)
+      await stat.edit(embed=embed(title=f"{len(self.bot.voice_clients)} guilds are playing music"))
+    try:
+      wait = 5
+      while wait > 0:
+        await stat.edit(embed=embed(title=f"Quiting in {wait} seconds"))
+        await asyncio.sleep(1)
+        wait = wait - 1
+    finally:
+      await ctx.message.delete()
+      await stat.delete()
+      self.bot.restartPending = False
+      await self.bot.logout()
+
   @norm_dev.command(name="restart")
   async def restart(self, ctx, force: bool = False):
     if self.bot.restartPending is True and force is False:
