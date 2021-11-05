@@ -34,6 +34,7 @@ class Database(commands.Cog):
             "chatchannel text NULL DEFAULT NULL",
             "musicchannel text NULL DEFAULT NULL",
             "mute_role text NULL DEFAULT NULL",
+            "automod_whitelist text[] DEFAULT array[]::text[]",
             "mod_log_channel text NULL DEFAULT NULL",
             "mod_log_events text[] DEFAULT array['bans', 'mutes', 'unbans', 'unmutes', 'kicks']::text[]",
             r"muted_members text[] DEFAULT array[]::text[]",
