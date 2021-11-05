@@ -61,33 +61,6 @@ Usage:
 !chatchannel 
 ```
 
-## Deletecommandsafter
-
-Set the time in seconds for how long to wait before deleting command messages
-
-??? missing "Does not have a slash command to match"
-	Learn more about [slash commands](/#slash-commands)
-
-Usage:
-
-```md
-!deletecommandsafter|deleteafter|delcoms [time=0]
-```
-
-Aliases:
-
-```md
-deleteafter,delcoms
-```
-
-Examples:
-
-```md
-!deletecommandsafter
-!deleteafter 0
-!delcoms 180
-```
-
 ## Kick
 
 ??? missing "Does not have a slash command to match"
@@ -161,7 +134,7 @@ Move everyone from one voice channel to another
 Usage:
 
 ```md
-!massmove|move <tochannel> [fromchannel]
+!massmove|move <to_channel> [from_channel]
 ```
 
 Aliases:
@@ -180,7 +153,7 @@ Examples:
 
 ## Mute
 
-Mute a member from text channels.
+Mute a member from text channels
 
 ??? missing "Does not have a slash command to match"
 	Learn more about [slash commands](/#slash-commands)
@@ -188,7 +161,7 @@ Mute a member from text channels.
 Usage:
 
 ```md
-!mute <member>... <reason>
+!mute <members>... <reason>
 !mute role [role]
 ```
 
@@ -213,6 +186,7 @@ Usage:
 ```md
 !mute role [role]
 !mute role create [name='Muted']
+!mute role update 
 ```
 
 ## Prefix

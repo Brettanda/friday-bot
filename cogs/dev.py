@@ -227,6 +227,10 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
   #     print(error)
   #     self.bot.logger.error(error)
 
+  @norm_dev.command(name="voice")
+  async def voice(self, ctx):
+    await ctx.send(embed=embed(title=f"I am in `{len(self.bot.voice_clients)}` voice channels"))
+
   @norm_dev.command(name="update")
   async def update(self, ctx):
     await ctx.trigger_typing()
@@ -240,8 +244,8 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     if stdout.startswith("Already up-to-date."):
       return await ctx.send(stdout)
     message = await ctx.reply(embed=embed(title="Updating..."))
-    async with ctx.typing():
-      await self.run_process("python -m pip install --upgrade pip && python -m pip install -r requirements.txt --no-cache-dir")
+    await ctx.trigger_typing()
+    await self.run_process("python -m pip install --upgrade pip && python -m pip install -r requirements.txt --no-cache-dir")
     await message.edit(embed=embed(title="Update complete!"))
 
   @norm_dev.command(name="cogs")

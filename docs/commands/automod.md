@@ -17,7 +17,7 @@ Usage:
 
 ```md
 !blacklist|bl 
-!blacklist|bl add <word>
+!blacklist|bl add <phrase>
 !blacklist|bl clear 
 !blacklist|bl display 
 !blacklist|bl remove <word>
@@ -39,7 +39,7 @@ Add a word to the current servers blacklist settings.
 Usage:
 
 ```md
-!blacklist add|+ <word>
+!blacklist add|+ <phrase>
 ```
 
 Aliases:
@@ -170,9 +170,10 @@ punishments
 Examples:
 
 ```md
-!contentspam punishment kick
-!contentspam punishments ban
-!contentspam punishment mute
+!contentspam punishment delete
+!contentspam punishments kick
+!contentspam punishment ban
+!contentspam punishments mute
 ```
 
 ## Invitespam
@@ -268,9 +269,10 @@ punishments
 Examples:
 
 ```md
-!mentionspam punishment kick
-!maxmentions punishments ban
-!maxpings punishment mute
+!mentionspam punishment delete
+!maxmentions punishments kick
+!maxpings punishment ban
+!mentionspam punishments mute
 ```
 
 ## Messagespam
@@ -336,7 +338,60 @@ punishments
 Examples:
 
 ```md
-!messagespam punishment kick
-!maxmessages punishments ban
-!ratelimit punishment mute
+!messagespam punishment delete
+!maxmessages punishments kick
+!ratelimit punishment ban
+!messagespam punishments mute
+```
+
+## Unwhitelist
+
+Unwhitelist channels and/or roles from being automoded.
+
+??? missing "Does not have a slash command to match"
+	Learn more about [slash commands](/#slash-commands)
+
+Usage:
+
+```md
+!unwhitelist|unwl <channel_or_roles>...
+```
+
+Aliases:
+
+```md
+unwl
+```
+
+Examples:
+
+```md
+!unwhitelist #memes
+!unwl @admin #admin 707457407512739951
+```
+
+## Whitelist
+
+Whitelist channels and/or roles from being automoded.
+
+??? missing "Does not have a slash command to match"
+	Learn more about [slash commands](/#slash-commands)
+
+Usage:
+
+```md
+!whitelist|wl <channel_or_roles>...
+```
+
+Aliases:
+
+```md
+wl
+```
+
+Examples:
+
+```md
+!whitelist #memes
+!wl #admin @admin 707457407512739951
 ```

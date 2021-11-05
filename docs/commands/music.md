@@ -277,7 +277,7 @@ disconnect
 
 ## Swap_dj
 
-Swap the current DJ to another member in the voice channel.
+Swap who has control over the music. (Admins always have control)
 
 ??? missing "Does not have a slash command to match"
 	Learn more about [slash commands](/#slash-commands)
