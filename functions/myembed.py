@@ -29,11 +29,11 @@ def embed(
         fieldstitle: Union[str, list] = MISSING,
         fieldsval: Union[str, list] = MISSING,
         fieldsin: Union[bool, list] = MISSING,
-        url: str = MISSING) -> discord.Embed:
+        url: str = MISSING, **kwargs) -> discord.Embed:
   """My Custom embed function"""
   if color is MISSING or color is None:
     color = MessageColors.DEFAULT
-  r = discord.Embed(title=title, description=description, color=color)
+  r = discord.Embed(title=title, description=description, color=color, **kwargs)
 
   if image is not MISSING and image is not None:
     r.set_image(url=image)
