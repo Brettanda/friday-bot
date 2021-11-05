@@ -13,7 +13,7 @@ from typing import Optional
 from profanity import profanity
 from six.moves.html_parser import HTMLParser
 from google.cloud import translate_v2 as translate
-from functions import relay_info, checks, embed, MessageColors, MyContext
+from functions import relay_info, cache, checks, embed, MessageColors, MyContext
 # MessageColors, dev_guilds, get_reddit_post, embed, config, msg_reply,
 if TYPE_CHECKING:
   from index import Friday as Bot
