@@ -13,6 +13,10 @@ Running your own instance of this bot is not prefered. This repository is meant 
 
 To add this bot to your server use the `!invite` command or go to [friday-bot.com/invite](https://friday-bot.com/invite).
 
+## Commands
+
+The full list of uptodate commands can be found on the [docs](https://docs.friday-bot.com) page.
+
 ## License
 
 <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt="Creative Commons Licence" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" /></a><br />This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/">Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License</a>.
