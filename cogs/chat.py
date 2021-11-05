@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 # from numpy import random
 import validators
 import datetime
+from typing import Optional
 
 from profanity import profanity
 from six.moves.html_parser import HTMLParser
