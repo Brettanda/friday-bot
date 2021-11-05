@@ -50,7 +50,7 @@ REDDIT_CLIENT_SECRET = os.environ.get("REDDITCLIENTSECRET")
 REDDIT_PASSWORD = os.environ.get("REDDITPASSWORD")
 
 
-class Redditlink(commands.Cog):
+class redditlink(commands.Cog):
   """Extract the media from Reddit posts with Friday's Reddit command and more"""
 
   def __init__(self, bot: "Bot"):
