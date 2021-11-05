@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 INVITE_REG = re.compile(r"<?(https?:\/\/)?(www\.)?(discord(app|)\.(gg|com|net)(\/invite|))\/[a-zA-Z0-9\-]+>?", re.RegexFlag.MULTILINE + re.RegexFlag.IGNORECASE)
 
-PUNISHMENT_TYPES = ["kick", "ban", "mute"]
+PUNISHMENT_TYPES = ["delete", "kick", "ban", "mute"]
 
 
 class RoleOrChannel(commands.Converter):
@@ -79,6 +79,12 @@ class Config:
     if self.mute_role_id:
       await member.add_roles(discord.Object(id=self.mute_role_id), reason=reason)
 
+  async def delete(self, msg: discord.Message) -> None:
+    try:
+      await msg.delete()
+    except discord.NotFound:
+      pass
+
   async def kick(self, member: discord.Member, reason: str = "Auto-kick for spamming.") -> None:
     await member.kick(reason=reason)
 
@@ -86,6 +92,8 @@ class Config:
     await member.ban(reason=reason)
 
   async def apply_punishment(self, guild: discord.Guild, msg: discord.Message, punishments: List[str], *, reason: str = "Spamming") -> Optional[discord.Message]:
+    if "delete" in punishments:
+      await self.delete(msg)
     if "ban" in punishments:
       await self.ban(msg.author)
     elif "kick" in punishments:
