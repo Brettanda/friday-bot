@@ -138,9 +138,21 @@ class Database(commands.Cog):
   async def on_guild_channel_update(self, before: discord.abc.GuildChannel, after: discord.abc.GuildChannel):
     if not isinstance(after, discord.TextChannel):
       return
-    text_channels = json.dumps([{"name": i.name, "id": str(i.id), "type": str(i.type), "position": i.position} for i in after.guild.text_channels])
+
+    await self.update_text_channels(after.guild)
+
+  @commands.Cog.listener("on_guild_channel_delete")
+  @commands.Cog.listener("on_guild_channel_create")
+  async def on_guild_channel_create_delete(self, channel: discord.abc.GuildChannel):
+    if not isinstance(channel, discord.TextChannel):
+      return
+
+    await self.update_text_channels(channel.guild)
+
+  async def update_text_channels(self, guild: discord.Guild):
+    text_channels = json.dumps([{"name": i.name, "id": str(i.id), "type": str(i.type), "position": i.position} for i in guild.text_channels])
     async with self.pool.acquire(timeout=300.0) as conn:
-      await conn.execute(f"""UPDATE servers SET text_channels=array[$1]::json[] WHERE id={str(after.guild.id)}""", text_channels)
+      await conn.execute("""UPDATE servers SET text_channels=array[$1]::json[] WHERE id=$2::text""", text_channels, str(guild.id))
 
   @commands.Cog.listener()
   async def on_member_update(self, before: discord.Member, after: discord.Member):
@@ -150,16 +162,33 @@ class Database(commands.Cog):
     async with self.pool.acquire(timeout=300.0) as conn:
       await conn.execute("""UPDATE servers SET toprole=$1::json WHERE id=$2""", toprole, str(after.guild.id))
 
+  @commands.Cog.listener("on_guild_role_create")
+  @commands.Cog.listener("on_guild_role_delete")
+  async def on_guild_role_create_delete(self, role: discord.Role):
+    if role.guild.me.top_role != role:
+      return
+
+    await self.update_guild_toprole(role.guild)
+
   @commands.Cog.listener()
   async def on_guild_role_update(self, before: discord.Role, after: discord.Role):
-    toprole = {"name": after.guild.me.top_role.name, "id": str(after.guild.me.top_role.id), "position": after.guild.me.top_role.position}
-    roles = [{"name": i.name, "id": str(i.id), "position": i.position, "managed": i.managed} for i in after.guild.roles if not i.is_default() and not i.is_bot_managed() and not i.is_integration() and not i.is_premium_subscriber()]
+    if before.members == after.members:
+      return
+
+    if after.guild.me.top_role != after:
+      return
+
+    await self.update_guild_toprole(after.guild)
+
+  async def update_guild_toprole(self, guild: discord.Guild):
+    toprole = {"name": guild.me.top_role.name, "id": str(guild.me.top_role.id), "position": guild.me.top_role.position}
+    roles = [{"name": i.name, "id": str(i.id), "position": i.position, "managed": i.managed} for i in guild.roles if not i.is_default() and not i.is_bot_managed() and not i.is_integration() and not i.is_premium_subscriber()]
     if len(roles) > 0 and len(toprole) > 0:
       roles = json.dumps([i for i in roles if len(i) > 0 and i["position"] < toprole["position"]])
     else:
       roles = json.dumps(roles)
     toprole = json.dumps(toprole)
-    await self.query("""UPDATE servers SET toprole=$1::json, roles=array[$2]::json[] WHERE id=$3""", toprole, roles, str(after.guild.id))
+    await self.query("""UPDATE servers SET toprole=$1::json, roles=array[$2]::json[] WHERE id=$3""", toprole, roles, str(guild.id))
 
   async def create_tables(self):
     async with self.pool.acquire(timeout=300.0) as conn:
