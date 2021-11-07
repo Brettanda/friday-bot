@@ -4,6 +4,7 @@ import os
 import sys
 from collections import defaultdict
 from importlib import reload
+from logging.handlers import RotatingFileHandler
 from typing import Optional
 
 import aiohttp
@@ -23,8 +24,6 @@ if TYPE_CHECKING:
 load_dotenv()
 
 TOKEN = os.environ.get('TOKENTEST')
-
-formatter = logging.Formatter("%(levelname)s:%(name)s: %(message)s")
 
 
 async def get_prefix(bot: "Friday", message: discord.Message):
@@ -160,15 +159,22 @@ class Friday(commands.AutoShardedBot):
 
 if __name__ == "__main__":
   print(f"Python version: {sys.version}")
+  max_bytes = 32 * 1024 * 1024  # 32 MiB
+  logging.getLogger("discord").setLevel(logging.INFO)
+  logging.getLogger("discord.http").setLevel(logging.WARNING)
+
+  log = logging.getLogger("Friday")
+  log.setLevel(logging.INFO)
+  filehandler = RotatingFileHandler(filename="logging.log", encoding="utf-8", maxBytes=max_bytes, backupCount=5)
+  formatter = logging.Formatter("%(levelname)s:%(name)s: %(message)s")
+  filehandler.setFormatter(logging.Formatter("%(asctime)s:%(name)s:%(levelname)-8s%(message)s"))
   handler = logging.StreamHandler(sys.stdout)
   handler.setFormatter(formatter)
-  filehandler = logging.FileHandler("logging.log", encoding="utf-8")
-  filehandler.setFormatter(logging.Formatter("%(asctime)s:%(name)s:%(levelname)-8s%(message)s"))
+  log.addHandler(handler)
+  log.addHandler(filehandler)
+  handler.setFormatter(formatter)
 
-  logger = logging.getLogger("Friday")
-  logger.handlers = [handler, filehandler]
-  logger.setLevel(logging.INFO)
-  bot = Friday(logger=logger)
+  bot = Friday(logger=log)
   if len(sys.argv) > 1:
     if sys.argv[1] == "--prod" or sys.argv[1] == "--production":
       TOKEN = os.environ.get("TOKEN")

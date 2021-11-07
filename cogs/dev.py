@@ -82,11 +82,6 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
   async def norm_dev(self, ctx):
     await ctx.send_help(ctx.command)
 
-  # @cog_ext.cog_slash(name="dev",guild_ids=[243159711237537802,805579185879121940])
-  # async def slash_dev(self,ctx):
-  #   await ctx.defer(True)
-  #   await ctx.send("help")
-
   @norm_dev.command(name="say", rest_is_raw=True,)
   async def say(self, ctx, channel: Optional[discord.TextChannel] = None, *, say: str):
     channel = ctx.channel if channel is None else channel
@@ -95,14 +90,6 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     except BaseException:
       pass
     await channel.send(f"{say}")
-
-  # @cog_ext.cog_subcommand(base="dev",name="say",description="Make me say something",guild_ids=[243159711237537802,805579185879121940])
-  # async def slash_say(self,ctx,*,message:str):
-  #   await ctx.defer(True)
-  #   check = await self.cog_check(ctx)
-  #   if check is not True:
-  #     return await ctx.send(hidden=True,str(check))
-  #   await ctx.send(str(message))
 
   @norm_dev.command(name="edit")
   async def edit(self, ctx, message: discord.Message, *, edit: str):
@@ -113,26 +100,6 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     if message.id == 707520808448294983:
       return await message.edit(content=edit, view=views.SupportIntroRoles())
     await message.edit(content=edit)
-
-  # @cog_ext.cog_subcommand(
-  #   base="dev",
-  #   name="edit",
-  #   description="Edit a message I have sent before",
-  #   options=[
-  #     create_option("message", "The message to edit", 3, required=True),
-  #     create_option("edit", "The new text", 3, required=True)
-  #   ],
-  #   guild_ids=[243159711237537802,805579185879121940])
-  # async def slash_edit(self,ctx,message:discord.Message,edit:str):
-  #   await ctx.defer(True)
-  #   check = await self.cog_check(ctx)
-  #   if check is not True:
-  #     return await ctx.send(hidden=True,str(check))
-  #   message = await commands.MessageConverter.convert(ctx, message)
-  #   await asyncio.gather(
-  #     message.edit(content=str(edit)),
-  #     ctx.send(hidden=True,f"{message.jump_url} has been edited")
-  #   )
 
   @norm_dev.command(name="react")
   async def react(self, ctx, message: discord.Message, *, reactions: str):
@@ -280,6 +247,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
 
   @norm_dev.command(name="log")
   async def log(self, ctx):
+    await ctx.trigger_typing()
     thispath = os.getcwd()
     if "\\" in thispath:
       seperator = "\\\\"
