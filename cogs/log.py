@@ -438,17 +438,17 @@ class Log(commands.Cog):
       if not isinstance(original, discord.HTTPException):
         print(f"In {ctx.command.qualified_name}:", file=sys.stderr)
         traceback.print_tb(original.__traceback__)
-        self.logger.error(f"{original.__class__.__name__}: {original}", sys.stdout.decode('utf-8'))
+        self.logger.error(f"{original.__class__.__name__}: {original}", sys.stderr.readline)
     else:
-      print('Ignoring exception in command {}:'.format(ctx.command), file=sys.stderr)
-      traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
-      self.logger.error(type(error), error, error.__traceback__, sys.stdout.decode('utf-8'))
-      await relay_info(
-          f"```bash\n{sys.stdout.decode('utf-8')}```",
-          self.bot,
-          short="Error sent",
-          webhook=self.log_errors
-      )
+      self.logger.error('Ignoring exception in command {}:'.format(ctx.command), exc_info=(type(error), error, error.__traceback__))
+      if not self.bot.prod and not self.bot.canary:
+        return
+      try:
+        await self.log_errors.safe_send(username=self.bot.user.name, avatar_url=self.bot.user.display_avatar.url, content=f"Ignoring exception in command {ctx.command}:\n{''.join(traceback.format_exception(type(error), error, error.__traceback__))}")
+      except Exception as e:
+        self.logger.error(f"ERROR while ignoring exception in command {ctx.command}: {e}")
+      else:
+        self.logger.info("ERROR sent")
 
 
 def setup(bot):
