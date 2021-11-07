@@ -419,7 +419,7 @@ class Log(commands.Cog):
     just_send = (commands.DisabledCommand, commands.BotMissingPermissions, commands.MissingPermissions, commands.RoleNotFound, commands.ArgumentParsingError,)
     error = getattr(error, 'original', error)
 
-    if isinstance(error, ignored):
+    if isinstance(error, ignored) or (hasattr(error, "log") and error.log is False):
       return
 
     if isinstance(error, just_send):
@@ -438,12 +438,13 @@ class Log(commands.Cog):
       if not isinstance(original, discord.HTTPException):
         print(f"In {ctx.command.qualified_name}:", file=sys.stderr)
         traceback.print_tb(original.__traceback__)
-        print(f"{original.__class__.__name__}: {original}", file=sys.stderr)
+        self.logger.error(f"{original.__class__.__name__}: {original}", sys.stdout.decode('utf-8'))
     else:
       print('Ignoring exception in command {}:'.format(ctx.command), file=sys.stderr)
       traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
+      self.logger.error(type(error), error, error.__traceback__, sys.stdout.decode('utf-8'))
       await relay_info(
-          f"```bash\n{sys.stderr}```",
+          f"```bash\n{sys.stdout.decode('utf-8')}```",
           self.bot,
           short="Error sent",
           webhook=self.log_errors

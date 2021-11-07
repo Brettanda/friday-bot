@@ -73,7 +73,10 @@ class TopGG(commands.Cog):
   @commands.group(name="vote", help="Get the link to vote for me on Top.gg", invoke_without_command=True, case_insensitive=True)
   async def vote(self, ctx: "MyContext"):
     prev_time = await self.bot.db.query("SELECT voted_time FROM votes WHERE id=$1 LIMIT 1", str(ctx.author.id))
-    next_time = datetime.datetime.strptime(prev_time, "%Y-%m-%d %H:%M:%S.%f") if prev_time is not None else None
+    if isinstance(prev_time, str):
+      next_time = datetime.datetime.strptime(prev_time, "%Y-%m-%d %H:%M:%S.%f") if prev_time is not None else None
+    else:
+      next_time = prev_time
     time = next_time.timestamp() + datetime.timedelta(hours=12).seconds if next_time is not None else None
     vote_message = f"Your next vote time is: <t:{round(time)}:R>" if prev_time is not None else "You can vote now"
     await ctx.reply(embed=embed(title="Voting", description=f"{vote_message}\n\nWhen you vote you get:", fieldstitle=["Better rate limiting"], fieldsval=["200 messages/12 hours instead of 80 messages/12 hours."], footer="To get voting reminders use the command `!vote remind`"), view=VoteView(self))
@@ -101,7 +104,7 @@ class TopGG(commands.Cog):
   async def update_votes(self):
     if not self.bot.ready:
       return
-    reset_time, notify_time = datetime.datetime.utcnow() - datetime.timedelta(hours=24), datetime.datetime.utcnow() - datetime.timedelta(hours=12)
+    reset_time, notify_time = discord.utils.utcnow() - datetime.timedelta(hours=24), discord.utils.utcnow() - datetime.timedelta(hours=12)
     reset_time_formated, notify_time_formated = f"{reset_time.year}-{'0' if reset_time.month < 10 else ''}{reset_time.month}-{'0' if reset_time.day < 10 else ''}{reset_time.day} {'0' if reset_time.hour < 10 else ''}{reset_time.hour}:{'0' if reset_time.minute < 10 else ''}{reset_time.minute}:{'0' if reset_time.second < 10 else ''}{reset_time.second}", f"{notify_time.year}-{'0' if notify_time.month < 10 else ''}{notify_time.month}-{'0' if notify_time.day < 10 else ''}{notify_time.day} {'0' if notify_time.hour < 10 else ''}{notify_time.hour}:{'0' if notify_time.minute < 10 else ''}{notify_time.minute}:{'0' if notify_time.second < 10 else ''}{notify_time.second}"
     votes = await self.bot.db.query(f"SELECT id FROM votes WHERE voted_time < to_timestamp('{reset_time_formated}','YYYY-MM-DD HH24:MI:SS')")
     reminds = await self.bot.db.query(f"SELECT id FROM votes WHERE has_reminded=false AND to_remind=true AND voted_time < to_timestamp('{notify_time_formated}','YYYY-MM-DD HH24:MI:SS')")
