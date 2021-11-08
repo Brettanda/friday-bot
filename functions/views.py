@@ -29,6 +29,9 @@ class SupportIntroRoles(discord.ui.View):
 
     await interaction.response.defer(ephemeral=True)
 
+    if interaction.user.pending:
+      return await interaction.followup.send(ephemeral=True, content="You must complete the membership screening before you can receive this role")
+
     role = interaction.guild.get_role(848626624365592636)
     if role is None:
       return

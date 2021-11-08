@@ -19,16 +19,6 @@ class Base(CommandError):
 #     return super().__str__()
 
 
-class UserNotInVoiceChannel(Base):
-  def __init__(self, message="You must be in a voice channel to use this command", *args, **kwargs):
-    super().__init__(message=message, *args, **kwargs)
-
-
-class NoCustomSoundsFound(Base):
-  def __init__(self, message="This server has not custom sounds saved yet", *args, **kwargs):
-    super().__init__(message=message, *args, **kwargs)
-
-
 class ArgumentTooLarge(Base):
   def __init__(self, message="That argument number is too big", *args, **kwargs):
     super().__init__(message=message, *args, **kwargs)
@@ -36,11 +26,6 @@ class ArgumentTooLarge(Base):
 
 class ArgumentTooSmall(Base):
   def __init__(self, message="That argument number is too small", *args, **kwargs):
-    super().__init__(message=message, *args, **kwargs)
-
-
-class CantSeeNewVoiceChannelType(Base):
-  def __init__(self, message="I believe you are in a new type of voice channel that I can't join yet", *args, **kwargs):
     super().__init__(message=message, *args, **kwargs)
 
 

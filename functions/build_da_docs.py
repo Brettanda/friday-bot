@@ -34,6 +34,7 @@ def build(bot: "Friday", prefix: str = "!"):
           # f.write(f"""\n\n!!! example "Usage"\n\n    ```md\n    {usage}\n    ```\n\n""")
           # f.write("""\n\n!!! example "Aliases"\n\n    ```md\n    """ + (",".join(com.aliases) if len(com.aliases) > 0 else 'None') + """\n    ```\n\n""")
           slash = True if hasattr(com.cog, "slash_" + com.qualified_name) or hasattr(com.cog, "_slash_" + com.qualified_name) else False
+          # TODO: add docs requirements f.write(f"""\nRequired Permissions: {', '.join([str(i) for i in com.checks])}""")
           f.write(f"""\n??? {'missing' if not slash else 'check'} "{'Has' if slash else 'Does not have'} a slash command to match"\n\tLearn more about [slash commands](/#slash-commands)\n""")
           f.write(f"""\nUsage:\n\n```md\n{usage}\n```\n""")
           if len(com.aliases) > 0:
@@ -51,6 +52,7 @@ def build(bot: "Friday", prefix: str = "!"):
                 f.write(f"""\n??? {'missing' if not slash else 'check'} "{'Has' if slash else 'Does not have'} a slash command to match"\n\tLearn more about [slash commands](/#slash-commands)\n""")
                 usage = '\n'.join(syntax(c, quotes=False).split('\n'))
                 # usage = discord.utils.escape_markdown(usage)  # .replace("<", "\\<")
+                # TODO: add docs requirements f.write(f"""\nRequired Permissions: {', '.join(b)}""")
                 f.write("\n" + (c.help + "\n") if c.help is not None else '')
                 f.write(f"""\nUsage:\n\n```md\n{usage}\n```\n""")
                 if len(c.aliases) > 0:
