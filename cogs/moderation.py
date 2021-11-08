@@ -66,7 +66,7 @@ class BannedMember(commands.Converter):
 
 class ActionReason(commands.Converter):
   async def convert(self, ctx, argument):
-    ret = f"{ctx.author} (ID: {ctx.author.id}): {argument}"
+    ret = f"[{ctx.author} (ID: {ctx.author.id})]: {argument}"
 
     if len(ret) > 512:
       reason_max = 512 - len(ret) + len(argument)
@@ -270,7 +270,7 @@ class Moderation(commands.Cog):
     if not isinstance(members, list):
       members = [members]
     if reason is None:
-      reason = f"Kicked by {ctx.author} (ID: {ctx.author.id})"
+      reason = f"[Kicked by {ctx.author} (ID: {ctx.author.id})]"
     if len(members) == 0:
       return await ctx.send(embed=embed(title="Missing members to kick.", color=MessageColors.ERROR))
 
@@ -291,7 +291,7 @@ class Moderation(commands.Cog):
     if not isinstance(members, list):
       members = [members]
     if reason is None:
-      reason = f"Banned by {ctx.author} (ID: {ctx.author.id})"
+      reason = f"[Banned by {ctx.author} (ID: {ctx.author.id})]"
 
     if len(members) == 0:
       return await ctx.send(embed=embed(title="Missing members to ban.", color=MessageColors.ERROR))
@@ -310,7 +310,7 @@ class Moderation(commands.Cog):
   @commands.has_guild_permissions(ban_members=True)
   async def unban(self, ctx, member: BannedMember, *, reason: ActionReason = None):
     if reason is None:
-      reason = f"Unbanned by {ctx.author} (ID: {ctx.author.id})"
+      reason = f"[Unbanned by {ctx.author} (ID: {ctx.author.id})]"
 
     await ctx.guild.unban(member.user, reason=reason)
     if member.reason:
@@ -432,7 +432,7 @@ class Moderation(commands.Cog):
       members = [members]
 
     if reason is None:
-      reason = f"Mute done by {ctx.author} (ID: {ctx.author.id})"
+      reason = f"[Muted by {ctx.author} (ID: {ctx.author.id})]"
 
     role = discord.Object(id=ctx.guild_config.mute_role_id)
     if len(members) == 0:
@@ -506,7 +506,7 @@ class Moderation(commands.Cog):
       members = [members]
 
     if reason is None:
-      reason = f"Unmute done by {ctx.author} (ID: {ctx.author.id})"
+      reason = f"[Unmuted by {ctx.author} (ID: {ctx.author.id})]"
 
     role = discord.Object(id=ctx.guild_config.mute_role_id)
     if len(members) == 0:

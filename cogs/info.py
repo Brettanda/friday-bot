@@ -27,10 +27,6 @@ class Info(commands.Cog):
   async def norm_info(self, ctx):
     await self.info(ctx)
 
-  # @cog_ext.cog_slash(name="info", description="Displays some information about myself :)")
-  # async def slash_info(self, ctx):
-  #   await self.info(ctx)
-
   async def info(self, ctx: "MyContext"):
     appinfo = await self.bot.application_info()
     owner = appinfo.team.members[0]
@@ -53,9 +49,7 @@ class Info(commands.Cog):
             author_name=owner,
             description="Big thanks to all Patrons!",
             fieldstitle=["Servers joined", "Latency", "Shards", "Loving Life", "Uptime", "CPU/RAM", "Existed since"],
-            fieldsval=[len(self.bot.guilds), f"{(self.bot.get_shard(ctx.guild.shard_id).latency if ctx.guild else self.bot.latency)*1000:,.0f} ms", self.bot.shard_count, "True", uptime, f"CPU: {psutil.cpu_percent()}%\nRAM: {psutil.virtual_memory()[2]}%", self.bot.user.created_at.strftime("%b %d, %Y")],
-            # fieldstitle=["Username","Guilds joined","Status","Latency","Shards","Audio Nodes","Loving Life","Existed since"],
-            # fieldsval=[self.bot.user.name,len(self.bot.guilds),ctx.guild.me.activity.name if ctx.guild.me.activity is not None else None,f"{self.bot.latency*1000:,.0f} ms",self.bot.shard_count,len(self.bot.wavelink.nodes),"True",self.bot.user.created_at]
+            fieldsval=[len(self.bot.guilds), f"{(self.bot.get_shard(ctx.guild.shard_id).latency if ctx.guild else self.bot.latency)*1000:,.0f} ms", self.bot.shard_count, "True", uptime, f"CPU: {psutil.cpu_percent()}%\nRAM: {psutil.virtual_memory()[2]}%", f"<t:{int(self.bot.user.created_at.timestamp())}:D>"],
         ), view=views.Links()
     )
 
