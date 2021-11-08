@@ -1,3 +1,4 @@
+import re
 import datetime
 import nextcord as discord
 from nextcord.ext import commands
@@ -11,6 +12,7 @@ if TYPE_CHECKING:
   from index import Friday as Bot
 
 EVENT_TYPES = ["bans", "mutes", "unbans", "unmutes", "kicks"]
+REASON_REG = re.compile(r"\[[\w\s]+.+#\d{4}\s\(ID:\s(\d{18})\)\](?:\:\s(.+))?")
 
 
 class Config:
@@ -101,7 +103,8 @@ class Logging(commands.Cog):
       return
 
     action: discord.AuditLogEntry = audit[0]
-    reason = after.reason if hasattr(after, "reason") and after.reason is not None else "No reason given"
+    reg = REASON_REG.match(action.reason)
+    reason = action.reason if reg is None and action.reason is not None else reg[2] if reg is not None and reg[2] is not None else "No reason given"
 
     if after_has and "mutes" in config.mod_log_events:
       self.bot.dispatch("log_event", before.guild.id, "mute", offender=before, moderator=action.user, reason=reason)
@@ -125,8 +128,8 @@ class Logging(commands.Cog):
       return
 
     action: discord.AuditLogEntry = audit[0]
-
-    reason = member.reason if hasattr(member, "reason") and member.reason is not None else "No reason given"
+    reg = REASON_REG.match(member.reason)
+    reason = member.reason if reg is None and member.reason is not None else reg[2] if reg is not None and reg[2] is not None else "No reason given"
 
     self.bot.dispatch("log_event", guild.id, "ban", offender=member, moderator=action.user, reason=reason)
 
@@ -147,7 +150,8 @@ class Logging(commands.Cog):
       return
 
     action: discord.AuditLogEntry = audit[0]
-    reason = member.reason if hasattr(member, "reason") and member.reason is not None else "No reason given"
+    reg = REASON_REG.match(member.reason)
+    reason = member.reason if reg is None and member.reason is not None else reg[2] if reg is not None and reg[2] is not None else "No reason given"
 
     self.bot.dispatch("log_event", guild.id, "unban", offender=member, moderator=action.user, reason=reason)
 
@@ -170,8 +174,10 @@ class Logging(commands.Cog):
       return
 
     action: discord.AuditLogEntry = audit[0]
+    reg = REASON_REG.match(member.reason)
+    reason = member.reason if reg is None and member.reason is not None else reg[2] if reg is not None and reg[2] is not None else "No reason given"
 
-    self.bot.dispatch("log_event", member.guild.id, "kick", offender=action.target, moderator=action.user, reason=action.reason)
+    self.bot.dispatch("log_event", member.guild.id, "kick", offender=action.target, moderator=action.user, reason=reason)
 
   @commands.group(name="modlog", aliases=["modlogs"], help="Set the channel where I can log moderation actions. This will log moderation action done by Friday, Fridays commands, and other moderation action logged by Discord.", invoke_without_command=True, case_insensitive=True)
   @commands.guild_only()
