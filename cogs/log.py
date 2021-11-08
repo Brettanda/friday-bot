@@ -19,8 +19,6 @@ import os
 if TYPE_CHECKING:
   from index import Friday as Bot
 
-GENERAL_CHANNEL_NAMES = {"welcome", "general", "lounge", "chat", "talk", "main"}
-
 # import discord_slash
 
 
@@ -184,24 +182,6 @@ class Log(commands.Cog):
     while self.bot.is_closed():
       await asyncio.sleep(0.1)
     await self.bot.db.query(f"INSERT INTO servers (id,lang) VALUES ({str(guild.id)},'{guild.preferred_locale.split('-')[0]}') ON CONFLICT DO NOTHING")
-    priority_channels = []
-    channels = []
-    for channel in guild.text_channels:
-      if channel == guild.system_channel or any(x in channel.name for x in GENERAL_CHANNEL_NAMES):
-        priority_channels.append(channel)
-      else:
-        channels.append(channel)
-    channels = priority_channels + channels
-    try:
-      channel = next(
-          x
-          for x in channels
-          if isinstance(x, discord.TextChannel) and x.permissions_for(guild.me).send_messages
-      )
-    except StopIteration:
-      return
-
-    await channel.send(**config.welcome_message(self.bot))
     await relay_info(f"I have joined a new guild, making the total **{len(self.bot.guilds)}**", self.bot, short=f"I have joined a new guild, making the total {len(self.bot.guilds)}", webhook=self.log_join, logger=self.logger)
 
   @commands.Cog.listener()
@@ -222,7 +202,7 @@ class Log(commands.Cog):
 
   @commands.Cog.listener()
   async def on_command(self, ctx: "MyContext"):
-    self.logger.info(f"Command: {ctx.message.clean_content.encode('unicode_escape')}")
+    self.logger.info(f"Command: {ctx.message.clean_content}")
 
   @commands.Cog.listener()
   async def on_command_completion(self, ctx: "MyContext"):

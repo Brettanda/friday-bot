@@ -190,17 +190,6 @@ class Moderation(commands.Cog):
   #       await query(self.bot.log.mydb,"UPDATE servers SET muted=? WHERE id=?",0,ctx.guild.id)
   #       await ctx.reply(embed=embed(title="I will now respond to chat message as well as commands"))
 
-  @commands.command(name="prefix", extras={"examples": ["?", "f!"]}, help="Sets the prefix for Fridays commands")
-  @commands.guild_only()
-  @checks.is_admin()
-  async def _prefix(self, ctx: "MyContext", new_prefix: Optional[str] = config.defaultPrefix):
-    new_prefix = new_prefix.lower()
-    if len(new_prefix) > 5:
-      return await ctx.reply(embed=embed(title="Can't set a prefix with more than 5 characters", color=MessageColors.ERROR))
-    await self.bot.db.query("UPDATE servers SET prefix=$1 WHERE id=$2", str(new_prefix), str(ctx.guild.id))
-    self.bot.prefixes[ctx.guild.id] = new_prefix
-    await ctx.reply(embed=embed(title=f"My new prefix is `{new_prefix}`"))
-
   # @commands.group(name="set", invoke_without_command=True, case_insensitive=True)
   # @commands.guild_only()
   # @commands.has_guild_permissions(manage_channels=True)
