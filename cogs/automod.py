@@ -203,8 +203,7 @@ class AutoMod(commands.Cog):
 
   @commands.Cog.listener()
   async def on_message_edit(self, before, after):
-    if not self.bot.ready:
-      return
+    await self.bot.wait_until_ready()
     if before.guild is None:
       return
 
@@ -222,8 +221,7 @@ class AutoMod(commands.Cog):
 
   @commands.Cog.listener()
   async def on_message(self, msg: discord.Message):
-    if not self.bot.ready:
-      return
+    await self.bot.wait_until_ready()
 
     if not msg.guild:
       return
