@@ -1,11 +1,15 @@
-import os
 import asyncio
 import datetime
-import topgg
+import os
+
 import nextcord as discord
+import topgg
 from nextcord.ext import commands, tasks
 from typing_extensions import TYPE_CHECKING
-from functions import embed, config, MyContext
+
+from functions import MyContext, config, embed
+
+from .log import CustomWebhook
 
 if TYPE_CHECKING:
   from index import Friday as Bot
@@ -25,7 +29,7 @@ class VoteView(discord.ui.View):
 
   @discord.ui.button(label="Remind me", style=discord.ButtonStyle.primary, custom_id="voting_remind_me")
   async def voting_remind_me(self, button: discord.ui.Button, interaction: discord.Interaction):
-    current_reminder = bool(await self.bot.db.query("SELECT to_remind FROM votes WHERE id=$1", interaction.user.id))
+    current_reminder = bool(await self.bot.db.query("SELECT to_remind FROM votes WHERE id=$1 LIMIT 1", interaction.user.id))
     await self.bot.db.query("INSERT INTO votes (id,to_remind) VALUES ($1,$2) ON CONFLICT(id) DO UPDATE SET to_remind=$3", str(interaction.user.id), not current_reminder, not current_reminder)
     if current_reminder is not True:
       await interaction.response.send_message(ephemeral=True, embed=embed(title="I will now DM you every 12 hours after you vote for when you can vote again"))
@@ -53,6 +57,10 @@ class TopGG(commands.Cog):
 
   def __repr__(self):
     return "<cogs.TopGG>"
+
+  @discord.utils.cached_property
+  def log_bumps(self) -> CustomWebhook:
+    return CustomWebhook.partial(os.environ.get("WEBHOOKBUMPSID"), os.environ.get("WEBHOOKBUMPSTOKEN"), session=self.bot.session)
 
   def cog_unload(self):
     self.update_votes.cancel()
@@ -83,7 +91,7 @@ class TopGG(commands.Cog):
 
   @vote.command(name="remind", help="Whether or not to remind you of the next time that you can vote")
   async def vote_remind(self, ctx: "MyContext"):
-    current_reminder = bool(await self.bot.db.query("SELECT to_remind FROM votes WHERE id=$1", str(ctx.author.id)))
+    current_reminder = bool(await self.bot.db.query("SELECT to_remind FROM votes WHERE id=$1 LIMIT 1", str(ctx.author.id)))
     await self.bot.db.query("INSERT INTO votes (id,to_remind) VALUES ($1,$2) ON CONFLICT(id) DO UPDATE SET to_remind=$3", str(ctx.author.id), not current_reminder, not current_reminder)
     if current_reminder is not True:
       await ctx.send(embed=embed(title="I will now DM you every 12 hours after you vote for when you can vote again"))
@@ -107,16 +115,19 @@ class TopGG(commands.Cog):
     votes = await self.bot.db.query(f"SELECT id FROM votes WHERE voted_time < to_timestamp('{reset_time_formated}','YYYY-MM-DD HH24:MI:SS')")
     reminds = await self.bot.db.query(f"SELECT id FROM votes WHERE has_reminded=false AND to_remind=true AND voted_time < to_timestamp('{notify_time_formated}','YYYY-MM-DD HH24:MI:SS')")
     vote_user_ids, remind_user_ids = [str(vote[0]) for vote in votes], [str(vote[0]) for vote in reminds]
+    success = 0
     for user_id in remind_user_ids:
       try:
-        private = await self.bot.http.start_private_message(user_id)
+        private = await self.bot.http.start_private_message(int(user_id, base=10))
         await self.bot.http.send_message(private["id"], embed=embed(title="Your vote time has refreshed.", description="You can now vote again!"), view=Refresh())
-      except Exception:
+      except discord.HTTPException:
         pass
+      else:
+        success += 1
     await self.bot.db.query(f"UPDATE votes SET has_reminded=true WHERE has_reminded=false AND voted_time < to_timestamp('{notify_time_formated}','YYYY-MM-DD HH24:MI:SS')")
     await self.bot.db.query(f"DELETE FROM votes WHERE to_remind=false AND (voted_time IS NULL OR voted_time < to_timestamp('{notify_time_formated}','YYYY-MM-DD HH24:MI:SS'))")
     if len(remind_user_ids) > 0:
-      self.bot.logger.info(f"Reminded {len(remind_user_ids)} users")
+      self.bot.logger.info(f"Reminded {success}/{len(remind_user_ids)} users")
     if len(vote_user_ids) > 0:
       batch, to_purge = [], []
       await self.bot.db.query(f"""UPDATE votes SET has_reminded=false,voted_time=NULL WHERE id IN (`{"`,`".join(vote_user_ids)}')""")
@@ -126,7 +137,7 @@ class TopGG(commands.Cog):
           self.bot.logger.info(f"Vote expired for {user_id}")
           try:
             await member.remove_roles(member.guild.get_role(VOTE_ROLE), reason="Vote expired")
-          except Exception:
+          except discord.HTTPException:
             pass
           else:
             to_purge.append(user_id)
@@ -138,23 +149,28 @@ class TopGG(commands.Cog):
   @commands.Cog.listener()
   async def on_dbl_test(self, data):
     self.bot.logger.info(f"Testing received, {data}")
-    await self.on_dbl_vote(data)
+    time = discord.utils.utcnow() - datetime.timedelta(hours=11, minutes=59)
+    await self.on_dbl_vote(data, time)
 
   @commands.Cog.listener()
-  async def on_dbl_vote(self, data):
+  async def on_dbl_vote(self, data, time=discord.utils.utcnow()):
     self.bot.logger.info(f'Received an upvote, {data}')
     if data.get("user", None) is not None:
-      await self.bot.db.query("INSERT INTO votes (id,voted_time) VALUES ($1,$2) ON CONFLICT(id) DO UPDATE SET has_reminded=false,voted_time=$3", str(data["user"]), datetime.datetime.now(), datetime.datetime.now())
-    if data.get("type", None) == "test" or int(data.get("user", None)) not in (215227961048170496, 813618591878086707):
+      await self.bot.db.query("INSERT INTO votes (id,voted_time) VALUES ($1,$2) ON CONFLICT(id) DO UPDATE SET has_reminded=false,voted_time=$2", str(data["user"]), time)
+    if data.get("type", None) == "test" or int(data.get("user", None), base=10) not in (215227961048170496, 813618591878086707):
       if data.get("user", None) is not None:
         support_server = self.bot.get_guild(config.support_server_id)
         member = await self.bot.get_or_fetch_member(support_server, data["user"])
         if member is not None:
-          role = member.guild.get_role(VOTE_ROLE)
-          await member.add_roles(role, reason="Voted on Top.gg")
-      await self.bot.log.log_bumps.send(
+          try:
+            await member.add_roles(discord.Object(id=VOTE_ROLE), reason="Voted on Top.gg")
+          except discord.HTTPException:
+            pass
+          else:
+            self.bot.logger.info(f"Added vote role to {member.id}")
+      await self.log_bumps.send(
           username=self.bot.user.name,
-          avatar_url=self.bot.user.avatar.url if hasattr(self.bot.user, "avatar") and not isinstance(self.bot.user.avatar, str) else self.bot.user.avatar_url if hasattr(self.bot.user, "avatar_url") else None,
+          avatar_url=self.bot.user.display_avatar.url,
           embed=embed(
               title=f"Somebody Voted - {data.get('type',None)}",
               fieldstitle=["Member", "Is week end"],

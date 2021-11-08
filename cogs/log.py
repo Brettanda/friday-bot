@@ -396,10 +396,6 @@ class Log(commands.Cog):
     return CustomWebhook.partial(os.environ.get("WEBHOOKERRORSID"), os.environ.get("WEBHOOKERRORSTOKEN"), session=self.bot.session)
 
   @discord.utils.cached_property
-  def log_bumps(self) -> CustomWebhook:
-    return CustomWebhook.partial(os.environ.get("WEBHOOKBUMPSID"), os.environ.get("WEBHOOKBUMPSTOKEN"), session=self.bot.session)
-
-  @discord.utils.cached_property
   def log_join(self) -> CustomWebhook:
     return CustomWebhook.partial(os.environ.get("WEBHOOKJOINID"), os.environ.get("WEBHOOKJOINTOKEN"), session=self.bot.session)
 
@@ -412,11 +408,8 @@ class Log(commands.Cog):
     if hasattr(ctx.command, 'on_error'):
       return
 
-    # if ctx.cog and ctx.cog._get_overridden_method(ctx.cog.cog_command_error) is not None:
-    #   return
-
     ignored = (commands.CommandNotFound, commands.NotOwner, )
-    just_send = (commands.DisabledCommand, commands.BotMissingPermissions, commands.MissingPermissions, commands.RoleNotFound, commands.ArgumentParsingError,)
+    just_send = (commands.DisabledCommand, commands.BotMissingPermissions, commands.MissingPermissions, commands.RoleNotFound,)
     error = getattr(error, 'original', error)
 
     if isinstance(error, ignored) or (hasattr(error, "log") and error.log is False):
