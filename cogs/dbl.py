@@ -39,6 +39,7 @@ class VoteView(discord.ui.View):
 
 class Refresh(discord.ui.View):
   def __init__(self):
+    super().__init__()
     self.add_item(discord.ui.Button(label="Vote", style=discord.ButtonStyle.url, url=VOTE_URL))
 
 
