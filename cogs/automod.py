@@ -8,6 +8,7 @@ from slugify import slugify
 from typing_extensions import TYPE_CHECKING
 
 from functions import MessageColors, MyContext, cache, embed, relay_info
+
 from .moderation import can_execute_action
 
 if TYPE_CHECKING:
@@ -175,7 +176,7 @@ class AutoMod(commands.Cog):
   async def cog_command_error(self, ctx: "MyContext", error: Exception):
     if isinstance(error, (commands.MissingRequiredArgument)):
       return
-    print(f"Error in {ctx.command.qualified_name}: {type(error).__name__}: {error}")
+    self.bot.logger.error(f"Error in {ctx.command.qualified_name}: {type(error).__name__}: {error}")
 
   async def cog_after_invoke(self, ctx: "MyContext"):
     if not ctx.guild:
