@@ -443,6 +443,18 @@ class Log(commands.Cog):
       else:
         self.logger.info("ERROR sent")
 
+  @commands.Cog.listener()
+  async def on_error(self, event: str, *args, **kwargs):
+    self.logger.error(f"{event}: {args} {kwargs}")
+    if not self.bot.prod and not self.bot.canary:
+      return
+    try:
+      await self.log_errors.safe_send(username=self.bot.user.name, avatar_url=self.bot.user.display_avatar.url, content=f"{event}: {args} {kwargs}")
+    except Exception as e:
+      self.logger.error(f"ERROR while logging {event}: {e}")
+    else:
+      self.logger.info("ERROR sent")
+
 
 def setup(bot):
   bot.add_cog(Log(bot))
