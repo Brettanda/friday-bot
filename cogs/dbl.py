@@ -39,7 +39,7 @@ class VoteView(discord.ui.View):
 
 class Refresh(discord.ui.View):
   def __init__(self):
-    self.add_item(discord.ui.button(label="Vote", style=discord.ButtonStyle.url, url=VOTE_URL))
+    self.add_item(discord.ui.Button(label="Vote", style=discord.ButtonStyle.url, url=VOTE_URL))
 
 
 class TopGG(commands.Cog):
