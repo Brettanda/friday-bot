@@ -119,8 +119,8 @@ class TopGG(commands.Cog):
     success = 0
     for user_id in remind_user_ids:
       try:
-        private = await self.bot.http.start_private_message(int(user_id, base=10))
-        await self.bot.http.send_message(private["id"], embed=embed(title="Your vote time has refreshed.", description="You can now vote again!"), view=Refresh())
+        private = await self.bot.fetch_user(int(user_id, base=10))
+        await private.send(embed=embed(title="Your vote time has refreshed.", description="You can now vote again!"), view=Refresh())
       except discord.HTTPException:
         pass
       else:
