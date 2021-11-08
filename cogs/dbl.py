@@ -146,15 +146,17 @@ class TopGG(commands.Cog):
       if len(batch) > 0:
         await asyncio.gather(*batch)
 
-  @commands.Cog.listener()
-  async def on_dbl_test(self, data):
-    self.bot.logger.info(f"Testing received, {data}")
-    time = datetime.datetime.now() - datetime.timedelta(hours=11, minutes=59)
-    await self.on_dbl_vote(data, time)
+  # @commands.Cog.listener()
+  # async def on_dbl_test(self, data):
+  #   self.bot.logger.info(f"Testing received, {data}")
+  #   time = datetime.datetime.now() - datetime.timedelta(hours=11, minutes=59)
+  #   await self.on_dbl_vote(data, time)
 
   @commands.Cog.listener()
   async def on_dbl_vote(self, data, time=datetime.datetime.now()):
     self.bot.logger.info(f'Received an upvote, {data}')
+    if data.get("type", None) == "test":
+      time = datetime.datetime.now() - datetime.timedelta(hours=11, minutes=59)
     if data.get("user", None) is not None:
       await self.bot.db.query("INSERT INTO votes (id,voted_time) VALUES ($1,$2) ON CONFLICT(id) DO UPDATE SET has_reminded=false,voted_time=$2", str(data["user"]), time)
     if data.get("type", None) == "test" or int(data.get("user", None), base=10) not in (215227961048170496, 813618591878086707):
