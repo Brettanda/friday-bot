@@ -12,17 +12,11 @@ from nextcord.ext import commands
 from typing_extensions import TYPE_CHECKING
 from collections import defaultdict
 
-from functions import (MessageColors, MyContext, cache, checks, config, embed,
+from functions import (MessageColors, MyContext, cache, embed,
                        relay_info)
 
 if TYPE_CHECKING:
   from index import Friday as Bot
-
-# def persona_options() -> list:
-#   options = []
-#   for i in config.personas:
-#     options.append(create_choice(i[0], i[1]))
-#   return options
 
 
 def can_execute_action(ctx: "MyContext", user: Union[discord.User, discord.Member], target: Union[discord.User, discord.Member]) -> bool:
