@@ -15,7 +15,6 @@ support_server_invites = {
 }
 
 
-
 intents = discord.Intents(
     guilds=True,
     voice_states=True,
