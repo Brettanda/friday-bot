@@ -2,6 +2,7 @@ import asyncio
 import copy
 import io
 import os
+import re
 import shutil
 import subprocess
 import textwrap
@@ -15,7 +16,6 @@ from typing_extensions import TYPE_CHECKING
 from cogs.help import syntax
 from functions import (MessageColors, MyContext,  # , query  # , MessageColors
                        build_docs, embed, views)
-
 
 if TYPE_CHECKING:
   from index import Friday as Bot
@@ -36,6 +36,32 @@ class GlobalChannel(commands.Converter):
         if channel is None:
           raise commands.BadArgument(f'Could not find a channel by ID {argument!r}.')
         return channel
+
+
+class RawMessage(commands.Converter):
+  async def convert(self, ctx, argument):
+    try:
+      return await commands.MessageConverter().convert(ctx, argument)
+    except commands.BadArgument:
+      try:
+        message_id = int(argument, base=10)
+      except ValueError:
+        raise commands.BadArgument(f'Could not find a message by ID {argument!r}.')
+      else:
+        return await ctx.channel.fetch_message(message_id)
+
+
+class RawEmoji(commands.Converter):
+  reg = re.compile(r"""[^a-zA-Z0-9\s.!@#$%^&*()_+-+,./<>?;':"{}[\]\\|]{1}""")
+
+  async def convert(self, ctx, argument):
+    try:
+      return await commands.EmojiConverter().convert(ctx, argument)
+    except commands.BadArgument:
+      try:
+        return self.reg.match(argument)[0].strip(" ")
+      except TypeError:
+        raise commands.BadArgument(f'Could not find an emoji by name {argument!r}.')
 
 
 class Dev(commands.Cog, command_attrs=dict(hidden=True)):
@@ -92,7 +118,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     await channel.send(f"{say}")
 
   @norm_dev.command(name="edit")
-  async def edit(self, ctx, message: discord.Message, *, edit: str):
+  async def edit(self, ctx, message: RawMessage, *, edit: str):
     try:
       await ctx.message.delete()
     except BaseException:
@@ -102,24 +128,17 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     await message.edit(content=edit)
 
   @norm_dev.command(name="react")
-  async def react(self, ctx, message: discord.Message, *, reactions: str):
+  async def react(self, ctx, messages: commands.Greedy[RawMessage], reactions: commands.Greedy[RawEmoji]):
     try:
       await ctx.message.delete()
     except BaseException:
       pass
-    new_reactions = []
-    reactions = reactions.encode('unicode_escape')
-    reactions = reactions.replace(b"\\", bytes(b" \\"))
-    reactions = reactions.replace(b"<", bytes(b" <"))
-    reactions = reactions.decode('unicode_escape')
-    for react in reactions.split(" "):
-      if react != "":
-        new_reactions.append(react)
-    for reaction in new_reactions:
-      try:
-        await message.add_reaction(reaction)
-      except BaseException:
-        pass
+    for msg in messages:
+      for reaction in reactions:
+        try:
+          await msg.add_reaction(reaction)
+        except BaseException:
+          pass
 
   @norm_dev.command(name="quit")
   async def quit(self, ctx, *, force: bool = False):
