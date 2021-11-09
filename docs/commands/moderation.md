@@ -189,27 +189,6 @@ Usage:
 !mute role update 
 ```
 
-## Prefix
-
-Sets the prefix for Fridays commands
-
-??? missing "Does not have a slash command to match"
-	Learn more about [slash commands](/#slash-commands)
-
-Usage:
-
-```md
-!prefix [new_prefix='!']
-```
-
-Examples:
-
-```md
-!prefix
-!prefix ?
-!prefix f!
-```
-
 ## Rolecall
 
 Moves everyone with a specific role to a voicechannel. Objects that can be exluded are voicechannels,roles,and members
