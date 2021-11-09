@@ -131,7 +131,7 @@ class TopGG(commands.Cog):
       self.bot.logger.info(f"Reminded {success}/{len(remind_user_ids)} users")
     if len(vote_user_ids) > 0:
       batch, to_purge = [], []
-      await self.bot.db.query(f"""UPDATE votes SET has_reminded=false,voted_time=NULL WHERE id IN (`{"`,`".join(vote_user_ids)}')""")
+      await self.bot.db.query(f"""UPDATE votes SET has_reminded=false,voted_time=NULL WHERE id IN (`{"`,`".join(vote_user_ids)}`)""")
       for user_id in vote_user_ids:
         member = await self.bot.get_or_fetch_member(self.bot.get_guild(config.support_server_id), user_id)
         if member is not None:
