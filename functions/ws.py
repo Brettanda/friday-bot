@@ -3,7 +3,7 @@ import asyncio
 from threading import Thread
 from typing import TYPE_CHECKING
 
-from flask import Flask, jsonify, request  # , abort
+from flask import Flask, jsonify  # , request  , abort
 
 if TYPE_CHECKING:
   from index import Friday as Bot
