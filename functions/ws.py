@@ -17,7 +17,11 @@ class WebServer:
     self.thread = None
 
     # TODO: Not sure how to choose which cluster to ping from API
-    self.flask_port = 4001 + bot.cluster_idx
+    # Use something like port 4001 when clusters
+    if self.bot.canary or self.bot.prod:
+      self.flask_port = 80  # + bot.cluster_idx
+    else:
+      self.flask_port = 4001
 
   def run(self):
     app = self.app
@@ -37,6 +41,26 @@ class WebServer:
     @app.errorhandler(404)
     def not_found(*args, **kwargs):
       return jsonify(code=404, message="Not found"), 404
+
+    @app.route("/stats")
+    def stats():
+      return jsonify(
+          guilds=len(bot.guilds),
+          members=sum(len(g.humans) for g in bot.guilds),
+          bot={
+            "is_ready": bot.is_ready(),
+            "is_closed": bot.is_closed(),
+            "ratelimited": bot.is_ws_ratelimited()
+          },
+          shards=[
+              {
+                  "id": i.id,
+                  "latency": i.latency,
+                  "is_closed": i.is_closed(),
+                  "ratelimited": i.is_ws_ratelimited(),
+              } for i in bot.shards.values()
+          ]
+      )
 
     @app.route("/guilds/<gid>")
     def get_guild(gid):
