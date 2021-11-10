@@ -127,10 +127,8 @@ class Meme(commands.Cog):
   @commands.command(name="meme", aliases=["shitpost"], help="Meme time")
   @commands.cooldown(1, 1, commands.BucketType.user)
   async def norm_meme(self, ctx: "MyContext"):
-    if not ctx.is_interaction():
-      async with ctx.typing():
-        return await ctx.reply(**await self.get_reddit_post(ctx, self.subs, self.reddit))
-    await ctx.reply(**await self.get_reddit_post(ctx, self.subs, self.reddit))
+    async with ctx.typing():
+      return await ctx.reply(**await self.get_reddit_post(ctx, self.subs, self.reddit))
 
   # @cog_ext.cog_slash(name="meme", description="Get a meme hand delivered to you")
   # @checks.slash(user=True, private=True)
