@@ -1,9 +1,9 @@
 import asyncio
-import os
+# import os
 from threading import Thread
 from typing import TYPE_CHECKING
 
-from flask import Flask, abort, jsonify, request
+from flask import Flask, jsonify  # , request  , abort
 
 if TYPE_CHECKING:
   from index import Friday as Bot
@@ -16,16 +16,23 @@ class WebServer:
     self.log = bot.logger
     self.thread = None
 
-    self.flask_port = 4001 + bot.cluster_idx
+    # TODO: Not sure how to choose which cluster to ping from API
+    # Use something like port 4001 when clusters
+    if self.bot.canary or self.bot.prod:
+      self.flask_port = 80  # + bot.cluster_idx
+    else:
+      self.flask_port = 4001
 
   def run(self):
     app = self.app
     bot = self.bot
 
-    @app.before_request
-    def before_request():
-      if request.headers.get("Authorization") != os.environ.get("APIREQUESTS"):
-        return abort(401)
+    # Adds too much complexity to the API
+    # also don't think this needs to be private
+    # @app.before_request
+    # def before_request():
+    #   if request.headers.get("Authorization") != os.environ.get("APIREQUESTS"):
+    #     return abort(401)
 
     @app.errorhandler(401)
     def unauthorized(*args, **kwargs):
@@ -34,6 +41,26 @@ class WebServer:
     @app.errorhandler(404)
     def not_found(*args, **kwargs):
       return jsonify(code=404, message="Not found"), 404
+
+    @app.route("/stats")
+    def stats():
+      return jsonify(
+          guilds=len(bot.guilds),
+          members=sum(len(g.humans) for g in bot.guilds),
+          bot={
+            "is_ready": bot.is_ready(),
+            "is_closed": bot.is_closed(),
+            "ratelimited": bot.is_ws_ratelimited()
+          },
+          shards=[
+              {
+                  "id": i.id,
+                  "latency": i.latency,
+                  "is_closed": i.is_closed(),
+                  "ratelimited": i.is_ws_ratelimited(),
+              } for i in bot.shards.values()
+          ]
+      )
 
     @app.route("/guilds/<gid>")
     def get_guild(gid):
