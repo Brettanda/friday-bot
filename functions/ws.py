@@ -17,7 +17,8 @@ class WebServer:
     self.thread = None
 
     # TODO: Not sure how to choose which cluster to ping from API
-    self.flask_port = 4001 + bot.cluster_idx
+    # Use something like port 4001 when clusters
+    self.flask_port = 80  # + bot.cluster_idx
 
   def run(self):
     app = self.app
