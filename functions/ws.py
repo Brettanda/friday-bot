@@ -1,9 +1,9 @@
 import asyncio
-import os
+# import os
 from threading import Thread
 from typing import TYPE_CHECKING
 
-from flask import Flask, abort, jsonify, request
+from flask import Flask, jsonify, request  # , abort
 
 if TYPE_CHECKING:
   from index import Friday as Bot
@@ -16,16 +16,19 @@ class WebServer:
     self.log = bot.logger
     self.thread = None
 
+    # TODO: Not sure how to choose which cluster to ping from API
     self.flask_port = 4001 + bot.cluster_idx
 
   def run(self):
     app = self.app
     bot = self.bot
 
-    @app.before_request
-    def before_request():
-      if request.headers.get("Authorization") != os.environ.get("APIREQUESTS"):
-        return abort(401)
+    # Adds too much complexity to the API
+    # also don't think this needs to be private
+    # @app.before_request
+    # def before_request():
+    #   if request.headers.get("Authorization") != os.environ.get("APIREQUESTS"):
+    #     return abort(401)
 
     @app.errorhandler(401)
     def unauthorized(*args, **kwargs):
