@@ -101,3 +101,4 @@ pytest
 pytest-asyncio==0.15.1
 pytest-dependency==0.5.1
 lru-dict==1.1.7
+flask==2.0.2
