@@ -1,8 +1,6 @@
 import asyncpg
 import os
-import json
 
-import nextcord as discord
 from nextcord.ext import commands
 from typing_extensions import TYPE_CHECKING
 from typing import Optional, Union
@@ -39,9 +37,6 @@ class Database(commands.Cog):
             "mod_log_events text[] DEFAULT array['bans', 'mutes', 'unbans', 'unmutes', 'kicks']::text[]",
             r"muted_members text[] DEFAULT array[]::text[]",
             r"customsounds json[] NOT NULL DEFAULT array[]::json[]",
-            r"toprole json NOT NULL DEFAULT '{}'::json",
-            r"roles json[] NOT NULL DEFAULT array[]::json[]",
-            r"text_channels json[] NOT NULL DEFAULT array[]::json[]",
             "reddit_extract boolean DEFAULT false",
         ],
         "votes": [
@@ -99,88 +94,6 @@ class Database(commands.Cog):
         checked_guilds.append(guild_id)
     if len(checked_guilds) == len(self.bot.guilds):
       self.bot.logger.info("All guilds are in the Database")
-
-  @commands.Cog.listener()
-  async def on_connect(self):
-    #
-    # FIXME: I think this could delete some of the db with more than one cluster
-    #
-    if self.bot.cluster_idx == 0:
-      current = []
-      for guild in self.bot.guilds:
-        current.append(str(guild.id))
-        me = await self.bot.get_or_fetch_member(guild, self.bot.user.id)
-        await guild.fetch_roles()
-        await guild.fetch_channels()
-        if me.top_role is None:
-          toprole = {}
-        else:
-          toprole = {"name": me.top_role.name, "id": str(me.top_role.id), "position": me.top_role.position}
-        roles = [{"name": i.name, "id": str(i.id), "position": i.position, "managed": i.managed} for i in guild.roles if not i.is_default() and not i.is_bot_managed() and not i.is_integration() and not i.is_premium_subscriber()]
-        if len(roles) > 0 and len(toprole) > 0:
-          roles = json.dumps([i for i in roles if len(i) > 0 and i["position"] < toprole["position"]])
-        else:
-          roles = json.dumps(roles)
-        toprole = json.dumps(toprole)
-        text_channels = json.dumps([{"name": i.name, "id": str(i.id), "type": str(i.type), "position": i.position} for i in guild.text_channels])
-        await self.query(f"""INSERT INTO servers (id,lang,toprole,roles,text_channels) VALUES ({str(guild.id)},'{guild.preferred_locale.split('-')[0] if guild.preferred_locale is not None else 'en'}',$1::json,array[$2]::json[],array[$3]::json[]) ON CONFLICT(id) DO UPDATE SET toprole=$1::json,roles=array[$2]::json[], text_channels=array[$3]::json[]""", toprole, roles, text_channels)
-      await self.query(f"""DELETE FROM servers WHERE id NOT IN ('{"','".join([str(i) for i in current])}')""")
-
-  @commands.Cog.listener()
-  async def on_guild_channel_update(self, before: discord.abc.GuildChannel, after: discord.abc.GuildChannel):
-    if not isinstance(after, discord.TextChannel):
-      return
-
-    await self.update_text_channels(after.guild)
-
-  @commands.Cog.listener("on_guild_channel_delete")
-  @commands.Cog.listener("on_guild_channel_create")
-  async def on_guild_channel_create_delete(self, channel: discord.abc.GuildChannel):
-    if not isinstance(channel, discord.TextChannel):
-      return
-
-    await self.update_text_channels(channel.guild)
-
-  async def update_text_channels(self, guild: discord.Guild):
-    text_channels = json.dumps([{"name": i.name, "id": str(i.id), "type": str(i.type), "position": i.position} for i in guild.text_channels])
-    async with self.pool.acquire(timeout=300.0) as conn:
-      await conn.execute("""UPDATE servers SET text_channels=array[$1]::json[] WHERE id=$2::text""", text_channels, str(guild.id))
-
-  @commands.Cog.listener()
-  async def on_member_update(self, before: discord.Member, after: discord.Member):
-    if after.id != self.bot.user.id:
-      return
-    toprole = json.dumps({"name": after.guild.me.top_role.name, "id": str(after.guild.me.top_role.id), "position": after.guild.me.top_role.position})
-    async with self.pool.acquire(timeout=300.0) as conn:
-      await conn.execute("""UPDATE servers SET toprole=$1::json WHERE id=$2""", toprole, str(after.guild.id))
-
-  @commands.Cog.listener("on_guild_role_create")
-  @commands.Cog.listener("on_guild_role_delete")
-  async def on_guild_role_create_delete(self, role: discord.Role):
-    if role.guild.me.top_role != role:
-      return
-
-    await self.update_guild_toprole(role.guild)
-
-  @commands.Cog.listener()
-  async def on_guild_role_update(self, before: discord.Role, after: discord.Role):
-    if before.members == after.members:
-      return
-
-    if after.guild.me.top_role != after:
-      return
-
-    await self.update_guild_toprole(after.guild)
-
-  async def update_guild_toprole(self, guild: discord.Guild):
-    toprole = {"name": guild.me.top_role.name, "id": str(guild.me.top_role.id), "position": guild.me.top_role.position}
-    roles = [{"name": i.name, "id": str(i.id), "position": i.position, "managed": i.managed} for i in guild.roles if not i.is_default() and not i.is_bot_managed() and not i.is_integration() and not i.is_premium_subscriber()]
-    if len(roles) > 0 and len(toprole) > 0:
-      roles = json.dumps([i for i in roles if len(i) > 0 and i["position"] < toprole["position"]])
-    else:
-      roles = json.dumps(roles)
-    toprole = json.dumps(toprole)
-    await self.query("""UPDATE servers SET toprole=$1::json, roles=array[$2]::json[] WHERE id=$3""", toprole, roles, str(guild.id))
 
   async def create_tables(self):
     async with self.pool.acquire(timeout=300.0) as conn:
