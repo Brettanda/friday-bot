@@ -109,28 +109,20 @@ class Database(commands.Cog):
       current = []
       for guild in self.bot.guilds:
         current.append(str(guild.id))
-        if guild.me is None:
-          me = await self.bot.get_or_fetch_member(guild, self.bot.user.id)
-          if me.top_role is None:
-            toprole = {}
-          else:
-            toprole = {"name": me.top_role.name, "id": str(me.top_role.id), "position": me.top_role.position}
+        me = await self.bot.get_or_fetch_member(guild, self.bot.user.id)
+        await guild.fetch_roles()
+        await guild.fetch_channels()
+        if me.top_role is None:
+          toprole = {}
         else:
-          if guild.me.top_role is None:
-            toprole = {}
-          else:
-            toprole = {"name": guild.me.top_role.name, "id": str(guild.me.top_role.id), "position": guild.me.top_role.position}
+          toprole = {"name": me.top_role.name, "id": str(me.top_role.id), "position": me.top_role.position}
         roles = [{"name": i.name, "id": str(i.id), "position": i.position, "managed": i.managed} for i in guild.roles if not i.is_default() and not i.is_bot_managed() and not i.is_integration() and not i.is_premium_subscriber()]
-        if len(guild.roles) == 0:
-          roles = [{"name": i.name, "id": str(i.id), "position": i.position, "managed": i.managed} for i in await guild.fetch_roles() if not i.is_default() and not i.is_bot_managed() and not i.is_integration() and not i.is_premium_subscriber()]
         if len(roles) > 0 and len(toprole) > 0:
           roles = json.dumps([i for i in roles if len(i) > 0 and i["position"] < toprole["position"]])
         else:
           roles = json.dumps(roles)
         toprole = json.dumps(toprole)
         text_channels = json.dumps([{"name": i.name, "id": str(i.id), "type": str(i.type), "position": i.position} for i in guild.text_channels])
-        if len(guild.text_channels) == 0:
-          text_channels = json.dumps([{"name": i.name, "id": str(i.id), "type": str(i.type), "position": i.position} for i in await guild.fetch_channels() if str(i.type) == "text"])
         await self.query(f"""INSERT INTO servers (id,lang,toprole,roles,text_channels) VALUES ({str(guild.id)},'{guild.preferred_locale.split('-')[0] if guild.preferred_locale is not None else 'en'}',$1::json,array[$2]::json[],array[$3]::json[]) ON CONFLICT(id) DO UPDATE SET toprole=$1::json,roles=array[$2]::json[], text_channels=array[$3]::json[]""", toprole, roles, text_channels)
       await self.query(f"""DELETE FROM servers WHERE id NOT IN ('{"','".join([str(i) for i in current])}')""")
 
