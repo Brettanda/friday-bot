@@ -1,34 +1,44 @@
-from datetime import timedelta
-# import os
-from threading import Thread
+import os
+import ssl
 from typing import TYPE_CHECKING
 
-from quart import Quart, abort, jsonify, redirect, request
-from quart_cors import cors
-from quart_rate_limiter import RateLimiter, rate_limit
+# import aiohttp_cors
+from aiohttp import web
+from nextcord.ext import commands
 
 if TYPE_CHECKING:
   from index import Friday as Bot
 
 
-class WebServer:
+class HTTPImATeaPot(web.HTTPClientError):
+  "This is by far the best error code"
+  status_code = 418
+
+  @property
+  def reason(self) -> str:
+    return "I'm a teapot"
+
+
+class API(commands.Cog):
   def __init__(self, bot: "Bot"):
-    self.app = Quart(__name__)
-    self.rate_limiter = RateLimiter(self.app)
-    self.app = cors(self.app, allow_origin=["https://friday-bot.com"], allow_methods=["GET"])
+    self.app = web.Application(logger=bot.logger, debug=not bot.prod and not bot.canary)
+    self.runner = None
+    self.site = None
     self.bot = bot
     self.log = bot.logger
-    self.thread = None
 
     # TODO: Not sure how to choose which cluster to ping from API
     # Use something like port 4001 when clusters
+    # But now there is ssl so idk what i will do when clusters lmao
     if self.bot.canary or self.bot.prod:
-      self.port = 80  # + bot.cluster_idx
+      self.port = 443  # + bot.cluster_idx
     else:
       self.port = 4001
 
-  def start(self):
-    self.bot.loop.create_task(self.run())
+    self.bot.loop.create_task(self.run(), name="Web")
+
+  def cog_unload(self):
+    self.bot.loop.create_task(self.runner.cleanup())
 
   async def get_guild_config(self, cog: str, guild_id: int):
     cog = self.bot.get_cog(cog)
@@ -39,6 +49,9 @@ class WebServer:
   async def run(self):  # noqa: C901
     app = self.app
     bot = self.bot
+    # TODO: Add CORS support https://github.com/aio-libs/aiohttp-cors  allow_origin=["https://friday-bot.com"], allow_methods=["GET"]
+    # cors = aiohttp_cors.setup(app)
+    routes = web.RouteTableDef()
 
     # Adds too much complexity to the API
     # also don't think this needs to be private
@@ -47,25 +60,25 @@ class WebServer:
     #   if request.headers.get("Authorization") != os.environ.get("APIREQUESTS"):
     #     return abort(401)
 
-    @app.route("/")
-    async def index():
-      response = redirect("https://youtu.be/dQw4w9WgXcQ", code=303)
+    @routes.get("/")
+    async def index(request: web.Request):
+      response = web.HTTPSeeOther("https://youtu.be/dQw4w9WgXcQ")
       response.headers["Cache-Control"] = "no-cache, no-store, max-age=0, must-revalidate"
       response.headers["Pragma"] = "no-cache"
       response.headers["Expires"] = "Mon, 01 Jan 1990 00:00:00 GMT"
       return response
 
-    @app.route("/stats")
-    async def stats():
-      return jsonify(
-          guilds=len(bot.guilds),
-          members=sum(len(g.humans) for g in bot.guilds),
-          bot={
+    @routes.get("/stats")
+    async def stats(request: web.Request):
+      return web.json_response({
+          "guilds": len(bot.guilds),
+          "members": sum(len(g.humans) for g in bot.guilds),
+          "bot": {
               "is_ready": bot.is_ready(),
               "is_closed": bot.is_closed(),
               "ratelimited": bot.is_ws_ratelimited()
           },
-          shards=[
+          "shards": [
               {
                   "id": i.id,
                   "latency": i.latency,
@@ -73,27 +86,26 @@ class WebServer:
                   "ratelimited": i.is_ws_ratelimited(),
               } for i in bot.shards.values()
           ]
-      )
+      })
 
-    @app.route("/invite")
-    async def get_invite():
+    @routes.get("/invite")
+    async def get_invite(request: web.Request):
       invite = bot.get_cog("Invite")
       if invite is None:
-        return abort(500)
+        return web.HTTPInternalServerError()
 
-      response = redirect(invite.link, code=301)
+      response = web.HTTPMovedPermanently(invite.link)
       response.headers["Cache-Control"] = "no-cache, no-store, max-age=0, must-revalidate"
       response.headers["Pragma"] = "no-cache"
       response.headers["Expires"] = "Mon, 01 Jan 1990 00:00:00 GMT"
       return response
 
-    @app.route("/guilds")
-    @rate_limit(5, timedelta(seconds=10))
-    async def get_guilds():
+    @routes.get("/guilds")
+    async def get_guilds(request: web.Request):
       if not hasattr(request.headers, "guilds"):
-        return abort(418)
+        return HTTPImATeaPot()
       if len(request.headers.guilds) == 0:
-        return abort(418)
+        return HTTPImATeaPot()
 
       guild_ids = [int(i, base=10) for i in request.headers.guilds.split(",")]
       guilds = []
@@ -104,22 +116,21 @@ class WebServer:
         if guild is not None:
           guilds.append(guild)
       if len(guilds) == 0:
-        return abort(404)
+        return web.HTTPNotFound()
 
-    @app.route("/guilds/<gid>")
-    @rate_limit(5, timedelta(seconds=10))
-    async def get_guild(gid):
+    @routes.get("/guilds/{gid}")
+    async def get_guild(request: web.Request):
+      gid = request.match_info["gid"]
       guild = bot.get_guild(int(gid, base=10))
       if guild is None:
         try:
           guild = await bot.fetch_guild(int(gid, base=10))
           if guild is None:
-            return jsonify(error="Guild not found"), 404
-
+            return web.HTTPNotFound(reason="Guild not found")
         except Exception as e:
-          return jsonify(error=f"Guild not found: {e}"), 404
+          return web.HTTPNotFound(reason=f"Guild not found: {e}")
       elif guild.unavailable:
-        return jsonify(unavailable=False), 502
+        return web.HTTPBadGateway(reason="Guild is unavailable")
 
       text_channels = [{
           "name": i.name,
@@ -130,29 +141,29 @@ class WebServer:
 
       chat_config = await self.get_guild_config("Chat", int(gid, base=10))
 
-      return jsonify(
-          prefix=bot.prefixes[guild.id],
-          chatchannel=chat_config.chat_channel_id if chat_config is not None else None,
-          lang=chat_config.lang if chat_config is not None else None,
-          persona=chat_config.persona if chat_config is not None else None,
-          name=guild.name,
-          icon=guild.icon.url,
-          text_channels=text_channels,
-      )
+      return web.json_response({
+          "prefix": bot.prefixes[guild.id],
+          "chatchannel": chat_config.chat_channel_id if chat_config is not None else None,
+          "lang": chat_config.lang if chat_config is not None else None,
+          "persona": chat_config.persona if chat_config is not None else None,
+          "name": guild.name,
+          "icon": guild.icon.url,
+          "text_channels": text_channels,
+      })
 
-    @app.route("/guilds/<gid>/moderation")
-    @rate_limit(5, timedelta(seconds=10))
-    async def get_moderation(gid):
+    @routes.get("/guilds/{gid}/moderation")
+    async def get_moderation(request: web.Request):
+      gid = request.match_info["gid"]
       guild = bot.get_guild(int(gid, base=10))
       if guild is None:
         try:
           guild = await bot.fetch_guild(int(gid, base=10))
           if guild is None:
-            return jsonify(error="Guild not found"), 404
+            return web.HTTPNotFound(reason="Guild not found")
         except Exception as e:
-          return jsonify(error=f"Guild not found: {e}"), 404
+          return web.HTTPNotFound(reason=f"Guild not found: {e}")
       elif guild.unavailable:
-        return jsonify(unavailable=False), 502
+        return web.HTTPBadGateway(reason="Guild is unavailable")
 
       text_channels = [{
           "name": i.name,
@@ -170,11 +181,11 @@ class WebServer:
 
       top_role = {"name": guild.me.top_role.name, "id": str(guild.me.top_role.id), "position": guild.me.top_role.position}
 
-      automod_config = await self.get_guild_config("Automod", int(gid, base=10))
+      automod_config = await self.get_guild_config("AutoMod", int(gid, base=10))
       welcome_config = await self.get_guild_config("Welcome", int(gid, base=10))
 
-      return jsonify(
-          guild=dict(
+      return web.json_response({
+          "guild": dict(
               remove_invites=automod_config.remove_invites if automod_config is not None else None,
               max_mentions=automod_config.max_mentions if automod_config is not None else None,
               max_messages=automod_config.max_messages if automod_config is not None else None,
@@ -182,46 +193,60 @@ class WebServer:
               text_channels=text_channels,
               top_role=top_role,
               roles=roles
-          ), welcome=dict(
+          ),
+          "welcome": dict(
               channel_id=welcome_config.channel_id if welcome_config is not None else None,
               role_id=welcome_config.role_id if welcome_config is not None else None,
               message=welcome_config.message if welcome_config is not None else None,
-          ), blacklist=dict(
-              words=automod_config.blacklist if automod_config is not None else None,
+          ),
+          "blacklist": dict(
+              words=automod_config.blacklisted_words if automod_config is not None else [],
+              punishments=automod_config.blacklist_punishments if automod_config is not None else [],
           )
-      )
+      })
 
-    @app.route("/guilds/<gid>/music")
-    @rate_limit(5, timedelta(seconds=10))
-    async def get_music(gid):
+    @routes.get("/guilds/{gid}/music")
+    async def get_music(request: web.Request):
+      gid = request.match_info["gid"]
       guild = bot.get_guild(int(gid, base=10))
       if guild is None:
         try:
           guild = await bot.fetch_guild(int(gid, base=10))
           if guild is None:
-            return jsonify(error="Guild not found"), 404
+            return web.HTTPNotFound(reason="Guild not found")
         except Exception as e:
-          return jsonify(error=f"Guild not found: {e}"), 404
+          return web.HTTPNotFound(reason=f"Guild not found: {e}")
       elif guild.unavailable:
-        return jsonify(unavailable=False), 502
+        return web.HTTPBadGateway(reason="Guild is unavailable")
 
-      customsounds = await self.bot.db.query("SELECT customSounds FROM servers WHERE id=$1 LIMIT 1", str(guild.id))
+      try:
+        customsounds = await self.bot.db.query("SELECT customSounds FROM servers WHERE id=$1 LIMIT 1", str(guild.id))
+      except Exception as e:
+        return web.HTTPInternalServerError(reason=f"Failed to get custom sounds: {e}")
 
-      return jsonify(
-          guild=dict(
+      return web.json_response({
+          "guild": dict(
               customsounds=customsounds
           )
-      )
+      })
 
-    self.log.info(f"Starting Quart on port {self.port}")
+    self.log.info(f"Starting aiohttp.web on port {self.port}")
     try:
-      await app.run_task(debug=True, host="0.0.0.0", port=self.port, use_reloader=False)
-    except Exception as e:
-      self.log.exception(f"Failed to start Quart: {e}")
+      ssl_ctx = None
+      if self.bot.prod or self.bot.canary:
+        ssl_ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+        ssl_ctx.load_cert_chain(os.environ.get("SSLCERT", None), os.environ.get("SSLKEY", None))
 
-  def keep_alive(self):
-    t = Thread(target=self.start, daemon=True)
-    t.name = "Web"
-    t.start()
-    self.thread = t
-    return t
+      app.add_routes(routes)
+      self.runner = web.AppRunner(app)
+      await self.runner.setup()
+      self.site = web.TCPSite(self.runner, "0.0.0.0", self.port, ssl_context=ssl_ctx)
+      await self.site.start()
+    except Exception as e:
+      self.log.exception(f"Failed to start aiohttp.web: {e}")
+    else:
+      self.log.info(f"aiohttp.web started on port {self.port}")
+
+
+def setup(bot):
+  bot.add_cog(API(bot))
