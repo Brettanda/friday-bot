@@ -80,7 +80,7 @@ class Friday(commands.AutoShardedBot):
       self.run(kwargs["token"])
 
   def __repr__(self) -> str:
-    return f"<Friday username=\"{self.bot.user.display_name}\" id={self.bot.user.id}>"
+    return f"<Friday username=\"{self.user.display_name}\" id={self.user.id}>"
 
   @property
   def log(self) -> Optional["Log"]:

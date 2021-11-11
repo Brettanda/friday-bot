@@ -21,4 +21,4 @@ async def test_say_no_argument(bot: "bot", channel: "channel"):
   await channel.send(content)
 
   msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
-  assert msg.embeds[0].title == "You're missing some arguments, here is how the command should look"
+  assert msg.embeds[0].title == "!say"
