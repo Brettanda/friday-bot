@@ -33,7 +33,7 @@ async def test_rockpaperscissors(bot: "bot", channel: "channel", choice):
   if choice == "asd":
     assert "`asd` is not Rock, Paper, Scissors. Please choose one of those three." in msg.embeds[0].title
   elif choice == "":
-    assert "You're missing some arguments, here is how the command should look" in msg.embeds[0].title
+    assert "!rockpaperscissors" in msg.embeds[0].title
   else:
     assert "The winner of this round is:" in msg.embeds[0].description
 

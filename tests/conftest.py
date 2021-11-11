@@ -1,7 +1,8 @@
 import asyncio
 import os
 import pytest
-import time
+import sys
+# import time
 
 import nextcord as discord
 from nextcord.ext import commands
@@ -66,15 +67,16 @@ def cleanup(request, bot, channel):
   def close():
     if not bot.was_online:
       asyncio.get_event_loop().run_until_complete(channel.send("!complete"))
-    asyncio.get_event_loop().run_until_complete(channel.purge(limit=200, oldest_first=True))
+    if sys.gettrace() is None:
+      asyncio.get_event_loop().run_until_complete(channel.purge(limit=None, oldest_first=True))
     asyncio.get_event_loop().run_until_complete(bot.close())
   request.addfinalizer(close)
 
 
-@pytest.fixture(autouse=True)
-def slow_down_tests():
-  yield
-  time.sleep(0.5)
+# @pytest.fixture(autouse=True)
+# def slow_down_tests():
+#   yield
+#   time.sleep(0.5)
 
 
 @pytest.fixture(scope="session")

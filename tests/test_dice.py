@@ -14,6 +14,6 @@ async def test_dice(bot: "bot", channel: "channel", roll: str):
 
   msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
   if roll == "":
-    assert msg.embeds[0].title == "You're missing some arguments, here is how the command should look"
+    assert msg.embeds[0].title == "!dice"
   else:
     assert "Your total:" in msg.embeds[0].title and msg.embeds[0].color.value == MessageColors.DEFAULT

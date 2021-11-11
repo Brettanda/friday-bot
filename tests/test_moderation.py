@@ -55,7 +55,7 @@ class TestRemoveInvites:
     assert msg.embeds[0].title == "I will begin to remove invites"
 
   @pytest.mark.asyncio
-  @pytest.mark.parametrize("content", ["https://discord.com/invite/NTRuFjU", "http://discord.com/invite/NTRuFjU", "https://discord.gg/NTRuFjU", "discord.com/invite/NTRuFjU", "discord.gg/NTRuFjU"])
+  @pytest.mark.parametrize("content", ["https://discord.com/invite/NTRuFjU", "http://discord.com/invite/NTRuFjU", "https://discord.gg/NTRuFjU", "discord.com/invite/NTRuFjU", "discord.gg/NTRuFjU", "discord.gg/discord-developers"])
   @pytest.mark.dependency(depends=["test_enable"], scope='class')
   async def test_external_guild(self, bot: "bot", channel: "channel", content: str):
     msg = await channel.send(content)
@@ -87,6 +87,14 @@ async def test_deletecommandsafter(bot: "bot", channel: "channel"):
 
 
 class TestBlacklist:
+  @pytest.mark.asyncio
+  async def test_blacklist(self, bot, channel):
+    content = "!blacklist"
+    await channel.send(content)
+
+    msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
+    assert msg.embeds[0].title == "Blocked words" or msg.embeds[0].title == "No blacklisted words yet, use `!blacklist add <word>` to get started"
+
   @pytest.mark.asyncio
   @pytest.mark.dependency()
   async def test_add(self, bot, channel):
@@ -142,7 +150,7 @@ class TestWelcome:
     await channel.send(content)
 
     msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
-    assert "welcome" in msg.embeds[0].title
+    assert "!welcome" in msg.embeds[0].title
 
   @pytest.mark.asyncio
   async def test_display(self, bot, channel):
