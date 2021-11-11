@@ -13,6 +13,7 @@ import nextcord as discord
 from nextcord.ext import commands
 from typing_extensions import TYPE_CHECKING
 
+import cogs
 from cogs.help import syntax
 from functions import (MessageColors, MyContext,  # , query  # , MessageColors
                        build_docs, embed, views)
@@ -199,10 +200,11 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       com = self.bot.get_command(command)
       if com is not None and com.cog_name is not None:
         command = com.cog_name
+      path = "spice.cogs." if command.lower() in cogs.spice else "cogs."
       try:
-        self.bot.reload_extension(f"cogs.{command.lower() if command is not None else None}")
+        self.bot.reload_extension(f"{path}{command.lower() if command is not None else None}")
       except commands.ExtensionNotLoaded:
-        self.bot.load_extension(f"cogs.{command.lower() if command is not None else None}")
+        self.bot.load_extension(f"{path}{command.lower() if command is not None else None}")
     await ctx.reply(embed=embed(title=f"Cog *{command}* has been reloaded"))
 
   @reload.command(name="all")
@@ -220,13 +222,15 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
   @norm_dev.command(name="load")
   async def load(self, ctx, command: str):
     async with ctx.typing():
-      self.bot.load_extension(f"cogs.{command.lower()}")
+      path = "spice.cogs." if command.lower() in cogs.spice else "cogs."
+      self.bot.load_extension(f"{path}{command.lower()}")
     await ctx.reply(embed=embed(title=f"Cog *{command}* has been loaded"))
 
   @norm_dev.command(name="unload")
   async def unload(self, ctx, command: str):
     async with ctx.typing():
-      self.bot.unload_extension(f"cogs.{command.lower()}")
+      path = "spice.cogs." if command.lower() in cogs.spice else "cogs."
+      self.bot.unload_extension(f"{path}{command.lower()}")
     await ctx.reply(embed=embed(title=f"Cog *{command}* has been unloaded"))
 
   # @reload.error

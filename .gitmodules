@@ -1,0 +1,3 @@
+[submodule "spice"]
+	path = spice
+	url = git@github.com:Brettanda/friday-bot-spice.git

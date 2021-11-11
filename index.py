@@ -104,9 +104,10 @@ class Friday(commands.AutoShardedBot):
       self.prefixes[int(guild_id, base=10)] = prefix
 
     if load_extentions:
-      for cog in cogs.default:
+      for cog in [*cogs.default, *cogs.spice]:
+        path = "spice.cogs." if cog.lower() in cogs.spice else "cogs."
         try:
-          self.load_extension(f"cogs.{cog}")
+          self.load_extension(f"{path}{cog}")
         except Exception as e:
           self.logger.error(f"Failed to load extenstion {cog} with \n {e}")
 
