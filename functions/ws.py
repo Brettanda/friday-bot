@@ -36,7 +36,7 @@ class WebServer:
       return None
     return await cog.get_guild_config(guild_id)
 
-  async def run(self):
+  async def run(self):  # noqa: C901
     app = self.app
     bot = self.bot
 
