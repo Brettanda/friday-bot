@@ -76,10 +76,6 @@ class Friday(commands.AutoShardedBot):
     self.load_extension("cogs.log")
     self.loop.run_until_complete(self.setup(True))
     self.logger.info(f"Cluster Starting {kwargs.get('shard_ids', None)}, {kwargs.get('shard_count', 1)}")
-
-    self.ws = functions.ws.WebServer(self)
-    self.ws_thread = self.ws.keep_alive()
-
     if self.should_start:
       self.run(kwargs["token"])
 
