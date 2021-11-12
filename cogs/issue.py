@@ -1,10 +1,15 @@
-import nextcord as discord
+import os
 
+import nextcord as discord
 from nextcord.ext import commands
+from typing_extensions import TYPE_CHECKING
+
+from functions import MessageColors, embed, relay_info  # ,checks
+
+from .log import CustomWebhook
+
 # from discord_slash import cog_ext
 
-from functions import embed, relay_info, MessageColors  # ,checks
-from typing_extensions import TYPE_CHECKING
 
 if TYPE_CHECKING:
   from index import Friday as Bot
@@ -25,22 +30,18 @@ class Issue(commands.Cog):
   def __repr__(self):
     return "<cogs.Issue>"
 
+  @discord.utils.cached_property
+  def log_issues(self) -> CustomWebhook:
+    return CustomWebhook.partial(os.environ.get("WEBHOOKISSUESID"), os.environ.get("WEBHOOKISSUESTOKEN"), session=self.bot.session)
+
   @commands.command(name="issue", aliases=["problem", "feedback"], help="If you have an issue or noticed a bug with Friday, this will send a message to the developer.", usage="<Description of issue and steps to recreate the issue>")
   @commands.cooldown(1, 30, commands.BucketType.channel)
   @commands.has_guild_permissions(manage_guild=True)
   async def norm_issue(self, ctx, *, issue: str):
-    await self.issue(ctx, issue)
-
-  # @cog_ext.cog_slash(name="issue", description="If you have an issue or noticed a bug with Friday, this will send a message to the developer.")
-  # @checks.slash(user=True, private=False)
-  # async def slash_issue(self, ctx, *, issue: str):
-  #   await self.issue(ctx, issue, True)
-
-  async def issue(self, ctx, issue: str, slash=False):
     confirm = await ctx.prompt("Please confirm your feedback.", embed=embed(title="Are you sure you would like to submit this issue?", description=f"{issue}"))
     if not confirm:
       return await ctx.send(embed=embed(title="Canceled", color=MessageColors.ERROR))
-    await relay_info("", embed=embed(title="Issue", description=f"{issue}", author_icon=ctx.user.avatar.url, author_name=ctx.user.name), bot=self.bot, webhook=self.bot.log.log_issues)
+    await relay_info("", embed=embed(title="Issue", description=f"{issue}", author_icon=ctx.author.display_avatar.url, author_name=ctx.author.display_name), bot=self.bot, webhook=self.log_issues)
 
 
 def setup(bot):

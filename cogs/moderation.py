@@ -508,7 +508,7 @@ class Moderation(commands.Cog):
   # TODO: Add the cooldown back to the below command but check if the command fails then reset the cooldown
   #
 
-  @commands.command(name="language", extras={"examples": ["en", "es", "english", "spanish"]}, aliases=["lang"], help="Change the language that I will speak")
+  @commands.command(name="language", extras={"examples": ["en", "es", "english", "spanish"]}, aliases=["lang"], help="Change the language that I will speak. This currently only applies to the chatbot messages not the commands.")
   # @commands.cooldown(1, 3600, commands.BucketType.guild)
   @commands.has_guild_permissions(administrator=True)
   async def language(self, ctx, language: Optional[str] = None):
@@ -523,7 +523,9 @@ class Moderation(commands.Cog):
     final_lang = new_lang.alpha_2 if new_lang is not None else lang
     final_lang_name = new_lang.name if new_lang is not None else lang
     await self.bot.db.query("UPDATE servers SET lang=$1 WHERE id=$2", final_lang, str(ctx.guild.id))
-    self.bot.log.change_guild_lang(ctx.guild, final_lang)
+    chat = self.bot.get_cog("Chat")
+    if chat is not None:
+      chat.get_guild_config.invalidate(chat, ctx.guild.id)
     return await ctx.reply(embed=embed(title=f"New language set to: `{final_lang_name}`"))
 
   @norm_chatchannel.after_invoke

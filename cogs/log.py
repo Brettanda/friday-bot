@@ -368,10 +368,6 @@ class Log(commands.Cog):
     return CustomWebhook.partial(os.environ.get("WEBHOOKINFOID"), os.environ.get("WEBHOOKINFOTOKEN"), session=self.bot.session)
 
   @discord.utils.cached_property
-  def log_issues(self) -> CustomWebhook:
-    return CustomWebhook.partial(os.environ.get("WEBHOOKISSUESID"), os.environ.get("WEBHOOKISSUESTOKEN"), session=self.bot.session)
-
-  @discord.utils.cached_property
   def log_errors(self) -> CustomWebhook:
     return CustomWebhook.partial(os.environ.get("WEBHOOKERRORSID"), os.environ.get("WEBHOOKERRORSTOKEN"), session=self.bot.session)
 

@@ -163,7 +163,8 @@ class MyContext(Context):
         ctx=self,
         author_id=author_id
     )
-    view.message = await self.send(embed=embed(title=message), view=view, **kwargs)
+    kwargs["embed"] = kwargs.pop("embed", embed(title=message))
+    view.message = await self.send(view=view, **kwargs)
     await view.wait()
     return view.value
 
