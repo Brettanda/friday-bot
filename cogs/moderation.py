@@ -508,7 +508,6 @@ class Moderation(commands.Cog):
   # TODO: Add the cooldown back to the below command but check if the command fails then reset the cooldown
   #
 
-
   @commands.command(name="language", extras={"examples": ["en", "es", "english", "spanish"]}, aliases=["lang"], help="Change the language that I will speak. This currently only applies to the chatbot messages not the commands.")
   # @commands.cooldown(1, 3600, commands.BucketType.guild)
   @commands.has_guild_permissions(administrator=True)
