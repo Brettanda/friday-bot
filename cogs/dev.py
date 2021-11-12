@@ -250,9 +250,9 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
   async def update(self, ctx):
     await ctx.trigger_typing()
     if self.bot.canary:
-      stdout, stderr = await self.run_process("git reset --hard && git pull origin canary")
+      stdout, stderr = await self.run_process("git reset --hard && git pull origin canary && git submodule update")
     elif self.bot.prod:
-      stdout, stderr = await self.run_process("git reset --hard && git pull origin master")
+      stdout, stderr = await self.run_process("git reset --hard && git pull origin master && git submodule update")
     else:
       return await ctx.reply(embed=embed(title="You are not on a branch", color=MessageColors.ERROR))
 
