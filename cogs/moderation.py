@@ -446,16 +446,15 @@ class Moderation(commands.Cog):
   @commands.bot_has_guild_permissions(manage_roles=True)
   @commands.cooldown(1, 60.0, commands.BucketType.guild)
   async def mute_role_create(self, ctx: "MyContext", *, name: Optional[str] = "Muted"):
-    current_role = await self.bot.db.query("SELECT mute_role FROM servers WHERE id=$1 LIMIT 1", str(ctx.guild.id))
-    if current_role is not None:
-      return await ctx.send(embed=embed(title="There is already a saved role.", color=MessageColors.ERROR))
-
-    if current_role is not None and ctx.guild.get_role(int(current_role, base=10)) is not None:
+    config = await self.get_guild_config(ctx.guild.id)
+    if config.mute_role is not None:
+      ctx.command.reset_cooldown(ctx)
       return await ctx.send(embed=embed(title="This server already has a mute role.", color=MessageColors.ERROR))
 
     try:
       role = await ctx.guild.create_role(name=name, reason=f"Mute Role created by {ctx.author} (ID: {ctx.author.id})")
     except discord.HTTPException as e:
+      ctx.command.reset_cooldown(ctx)
       return await ctx.send(embed=embed(title="An error occurred", description=str(e), color=MessageColors.ERROR))
 
     await self.bot.db.query("UPDATE servers SET mute_role=$1 WHERE id=$2", str(role.id), str(ctx.guild.id))
