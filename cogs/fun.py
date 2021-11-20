@@ -312,7 +312,7 @@ class Fun(commands.Cog):
     if len(options) < 2:
       return await ctx.reply(embed=embed(title="Please choose 2 or more options for this poll", color=MessageColors.ERROR))
 
-    await self.poll(ctx, title, options, ctx.is_interaction())
+    await self.poll(ctx, title, options)
 
   # @cog_ext.cog_slash(
   #     name="poll",

@@ -487,7 +487,7 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
     """Skip the currently playing song."""
     player: Player = self.bot.wavelink.get_player(guild_id=ctx.guild.id, cls=Player, ctx=ctx)
 
-    if not player.is_connected:
+    if not player.is_connected or not player.current:
       return await ctx.send(embed=embed(title='Nothing is playing right now', color=MessageColors.ERROR))
 
     if self.is_privileged(ctx):
