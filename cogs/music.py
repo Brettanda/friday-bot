@@ -496,7 +496,7 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
 
       return await player.stop()
 
-    if ctx.author == player.current.requester:
+    if hasattr(player.current, "requester") and ctx.author == player.current.requester:
       await ctx.send(embed=embed(title='The song requester has skipped the song.', color=MessageColors.MUSIC))
       player.skip_votes.clear()
 
