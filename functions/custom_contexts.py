@@ -1,7 +1,7 @@
 from __future__ import annotations
 # from interactions import Context as SlashContext
-from nextcord.ext.commands import Context
-import nextcord as discord
+from discord.ext.commands import Context
+import discord
 import io
 from typing import Optional, Union
 from typing_extensions import TYPE_CHECKING

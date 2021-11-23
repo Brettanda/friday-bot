@@ -2,8 +2,8 @@ import json
 import re
 from typing import List, Optional, Union
 
-import nextcord as discord
-from nextcord.ext import commands
+import discord
+from discord.ext import commands
 from slugify import slugify
 from typing_extensions import TYPE_CHECKING
 

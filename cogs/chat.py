@@ -3,11 +3,11 @@ import os
 from collections import defaultdict
 from typing import Optional, Union
 
-import nextcord as discord
+import discord
 import openai
 import validators
 from google.cloud import translate_v2 as translate
-from nextcord.ext import commands
+from discord.ext import commands
 from six.moves.html_parser import HTMLParser
 from typing_extensions import TYPE_CHECKING
 

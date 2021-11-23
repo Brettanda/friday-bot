@@ -1,13 +1,13 @@
 import sys
 import datetime
-import nextcord as discord
+import discord
 import asyncio
 import io
 # import mysql.connector
 
 import typing
 from typing import TYPE_CHECKING
-from nextcord.ext import commands  # , tasks
+from discord.ext import commands  # , tasks
 # from discord_slash.http import SlashCommandRequest
 from functions import MessageColors, embed, relay_info, exceptions, config, views, MyContext, cache  # , FakeInteractionMessage
 import traceback

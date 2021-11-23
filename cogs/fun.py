@@ -5,8 +5,8 @@ import numpy.random as random
 import asyncio
 import datetime
 
-import nextcord as discord
-from nextcord.ext import commands, tasks
+import discord
+from discord.ext import commands, tasks
 # from discord_slash import cog_ext, SlashContext
 # from discord_slash.utils.manage_commands import create_choice, create_option, SlashCommandOptionType
 

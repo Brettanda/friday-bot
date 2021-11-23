@@ -2,7 +2,7 @@ import logging
 import os
 import asyncio
 
-import nextcord as discord
+import discord
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
   from index import Friday as Bot

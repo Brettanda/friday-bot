@@ -1,13 +1,13 @@
-import nextcord as discord
+import discord
 
 from typing import TYPE_CHECKING, Union
-from nextcord.ext import commands
+from discord.ext import commands
 # from interactions import Context as SlashContext
 from . import exceptions, config
 from .custom_contexts import MyContext
 
 if TYPE_CHECKING:
-  from nextcord.ext.commands.core import _CheckDecorator
+  from discord.ext.commands.core import _CheckDecorator
 
   from index import Friday as Bot
 

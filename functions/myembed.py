@@ -1,5 +1,5 @@
 from functions.messagecolors import MessageColors
-import nextcord as discord
+import discord
 
 from typing import Union
 from typing_extensions import TYPE_CHECKING

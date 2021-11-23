@@ -7,10 +7,10 @@ import re
 from typing import List, Literal, Optional, Union
 
 import async_timeout
-import nextcord as discord
+import discord
 import validators
 import wavelink
-from nextcord.ext import commands, menus
+from discord.ext import commands, menus
 from numpy import random
 
 from functions import MessageColors, MyContext, checks, config, embed, exceptions

@@ -1,7 +1,7 @@
 import re
 import datetime
-import nextcord as discord
-from nextcord.ext import commands
+import discord
+from discord.ext import commands
 
 from functions import embed, cache, MessageColors, MyContext
 

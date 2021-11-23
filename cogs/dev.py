@@ -9,8 +9,8 @@ import textwrap
 import traceback
 from typing import Optional, Union
 
-import nextcord as discord
-from nextcord.ext import commands
+import discord
+from discord.ext import commands
 from typing_extensions import TYPE_CHECKING
 
 import cogs
@@ -203,7 +203,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       path = "spice.cogs." if command.lower() in cogs.spice else "cogs."
       try:
         self.bot.reload_extension(f"{path}{command.lower() if command is not None else None}")
-      except commands.ExtensionNotLoaded:
+      except discord.ExtensionNotLoaded:
         self.bot.load_extension(f"{path}{command.lower() if command is not None else None}")
     await ctx.reply(embed=embed(title=f"Cog *{command}* has been reloaded"))
 

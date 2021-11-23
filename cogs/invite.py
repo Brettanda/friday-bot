@@ -1,6 +1,6 @@
-import nextcord as discord
-from nextcord.utils import oauth_url, cached_property
-from nextcord.ext import commands
+import discord
+from discord.utils import oauth_url, cached_property
+from discord.ext import commands
 # from discord_slash import cog_ext
 from functions import embed
 from typing_extensions import TYPE_CHECKING

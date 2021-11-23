@@ -2,9 +2,9 @@ import asyncio
 import datetime
 import os
 
-import nextcord as discord
+import discord
 import topgg
-from nextcord.ext import commands, tasks
+from discord.ext import commands, tasks
 from typing_extensions import TYPE_CHECKING
 
 from functions import MyContext, config, embed

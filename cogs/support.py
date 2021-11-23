@@ -1,4 +1,4 @@
-from nextcord.ext import commands
+from discord.ext import commands
 # from discord_slash import cog_ext
 
 from functions import config  # ,embed
@@ -8,7 +8,7 @@ from typing_extensions import TYPE_CHECKING
 if TYPE_CHECKING:
   from index import Friday as Bot
 
-import nextcord as discord
+import discord
 
 SUPPORT_SERVER_ID = 707441352367013899
 SUPPORT_SERVER_INVITE = "https://discord.gg/NTRuFjU"
