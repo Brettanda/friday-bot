@@ -83,7 +83,7 @@ typing-extensions==3.7.4.3
 unicode==2.8
 urllib3==1.26.5
 validators==0.18.2
-wavelink @ git+https://github.com/Brettanda/Wavelink@master
+wavelink @ git+https://github.com/Brettanda/Wavelink
 Werkzeug>=1.0.1
 wrapt==1.12.1
 yarl==1.6.3
