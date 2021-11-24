@@ -3,10 +3,7 @@ import os
 from .messagecolors import MessageColors
 from . import exceptions, checks, config  # , queryIntents  # , queryGen
 from .myembed import embed
-from .cache import cache, Strategy, ExpiringCache
-
-from .custom_contexts import MyContext, FakeInteractionMessage  # , MySlashContext
-from .custom_pages import Menu
+from . import cache
 from .reply import msg_reply
 from .time import timeit
 from .relay import relay_info

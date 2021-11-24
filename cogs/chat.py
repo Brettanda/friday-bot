@@ -130,7 +130,7 @@ class Chat(commands.Cog):
   def __repr__(self):
     return "<cogs.Chat>"
 
-  @cache()
+  @cache.cache()
   async def get_guild_config(self, guild_id: int) -> Optional[Config]:
     query = "SELECT * FROM servers WHERE id=$1 LIMIT 1;"
     async with self.bot.db.pool.acquire(timeout=300.0) as conn:

@@ -49,7 +49,7 @@ class Welcome(commands.Cog):
     if isinstance(error, commands.CheckFailure):
       raise commands.NoPrivateMessage()
 
-  @cache()
+  @cache.cache()
   async def get_guild_config(self, guild_id: int) -> Optional[Config]:
     query = "SELECT * FROM welcome WHERE guild_id=$1 LIMIT 1"
     async with self.bot.db.pool.acquire(timeout=300.0) as conn:

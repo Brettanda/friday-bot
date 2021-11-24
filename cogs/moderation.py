@@ -150,7 +150,7 @@ class Moderation(commands.Cog):
     else:
       self.bot.logger.error(error)
 
-  @cache()
+  @cache.cache()
   async def get_guild_config(self, guild_id: int) -> Optional[Config]:
     query = "SELECT * FROM servers WHERE id=$1 LIMIT 1;"
     async with self.bot.db.pool.acquire(timeout=300.0) as conn:

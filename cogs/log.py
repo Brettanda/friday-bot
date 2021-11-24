@@ -327,7 +327,7 @@ class Log(commands.Cog):
   def get_prefixes(self) -> [str]:
     return ["/", "!", "f!", "!f", "%", ">", "?", "-", "(", ")"]
 
-  @cache()
+  @cache.cache()
   async def get_guild_config(self, guild_id: int) -> typing.Optional[Config]:
     query = "SELECT * FROM servers WHERE id=$1 LIMIT 1;"
     async with self.bot.db.pool.acquire(timeout=300.0) as conn:
