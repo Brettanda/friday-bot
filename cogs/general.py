@@ -59,7 +59,10 @@ class General(commands.Cog):
     except StopIteration:
       return
 
-    await channel.send(**self.welcome_message())
+    try:
+      await channel.send(**self.welcome_message())
+    except discord.Forbidden:
+      pass
 
   @commands.command(name="prefix", extras={"examples": ["?", "f!"]}, help="Sets the prefix for Fridays commands")
   @commands.guild_only()
