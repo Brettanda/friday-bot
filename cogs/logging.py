@@ -174,8 +174,10 @@ class Logging(commands.Cog):
       return
 
     action: discord.AuditLogEntry = audit[0]
-    reg = REASON_REG.match(member.reason)
-    reason = member.reason if reg is None and member.reason is not None else reg[2] if reg is not None and reg[2] is not None else "No reason given"
+    reason = "No reason given"
+    if hasattr(member, "reason") and member.reason is not None:
+      reg = REASON_REG.match(member.reason)
+      reason = member.reason if reg is None and member.reason is not None else reg[2] if reg is not None and reg[2] is not None else "No reason given"
 
     self.bot.dispatch("log_event", member.guild.id, "kick", offender=action.target, moderator=action.user, reason=reason)
 
