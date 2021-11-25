@@ -69,7 +69,7 @@ jobs:
         path: |
           ${{ env.pythonLocation}}/lib/python${{ matrix.python-version }}/site-packages/*
           ~/venv
-        # key: ${{ matrix.os }}-pip-${{ env.cache-name }}-${{ hashfiles('requirements.txt') }}
+        key: ${{ matrix.os }}-pip-${{ env.cache-name }}-${{ hashfiles('requirements.txt') }}
         # restore-keys: |
         #   ${{ matrix.os }}-pip-${{ env.cache-name }}-${{ hashfiles('requirements.txt') }}
         #   ${{ matrix.os }}-pip-${{ env.cache-name }}-
