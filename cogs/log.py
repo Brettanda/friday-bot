@@ -385,7 +385,7 @@ class Log(commands.Cog):
       return
 
     ignored = (commands.CommandNotFound, commands.NotOwner, )
-    just_send = (commands.DisabledCommand, commands.BotMissingPermissions, commands.MissingPermissions, commands.RoleNotFound,)
+    just_send = (commands.DisabledCommand, commands.BotMissingPermissions, commands.MissingPermissions, commands.RoleNotFound, asyncio.TimeoutError)
     error = getattr(error, 'original', error)
 
     if isinstance(error, ignored) or (hasattr(error, "log") and error.log is False):

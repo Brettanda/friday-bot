@@ -4,6 +4,7 @@ from typing import Optional
 import numpy.random as random
 import asyncio
 import datetime
+from async_timeout import timeout
 
 import discord
 from discord.ext import commands, tasks
@@ -160,7 +161,7 @@ class Fun(commands.Cog):
       8: "8️⃣"
   }
 
-  @commands.command(name="minesweeper", aliases=["ms"], help="Play minesweeper", enabled=False)
+  @commands.command(name="minesweeper", aliases=["ms"], help="Play minesweeper")
   async def norm_minesweeper(self, ctx, size: Optional[int] = 5, bomb_count: Optional[int] = 6):
     await ctx.reply(**await self.mine_sweeper(size, bomb_count))
 
@@ -189,17 +190,18 @@ class Fun(commands.Cog):
     arr = [[0 for row in range(size)] for column in range(size)]
 
     # async with ctx.channel.typing():
-    def get_xy():
-      try:
-        return random.randint(0, size - 1), random.randint(0, size - 1)
-      except Exception as e:
-        self.bot.logger.critical("This is what caused the shutdown")
-        raise e
+    async def get_xy():
+      async with timeout(1):
+        try:
+          return await self.bot.loop.run_in_executor(None, random.randint, 0, size - 1), await self.bot.loop.run_in_executor(None, random.randint, 0, size - 1)
+        except Exception as e:
+          self.bot.logger.critical("This is what caused the shutdown")
+          raise e
 
     for _ in range(bomb_count):
-      x, y = get_xy()
+      x, y = await get_xy()
       while arr[y][x] == 'X':
-        x, y = get_xy()
+        x, y = await get_xy()
       arr[y][x] = 'X'
 
       if (x >= 0 and x <= size - 2) and (y >= 0 and y <= size - 1):
