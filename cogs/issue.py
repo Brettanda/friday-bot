@@ -1,7 +1,7 @@
 import os
 
-import nextcord as discord
-from nextcord.ext import commands
+import discord
+from discord.ext import commands
 from typing_extensions import TYPE_CHECKING
 
 from functions import MessageColors, embed, relay_info  # ,checks

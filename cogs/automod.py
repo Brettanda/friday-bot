@@ -2,8 +2,8 @@ import json
 import re
 from typing import List, Optional, Union
 
-import nextcord as discord
-from nextcord.ext import commands
+import discord
+from discord.ext import commands
 from slugify import slugify
 from typing_extensions import TYPE_CHECKING
 
@@ -189,7 +189,7 @@ class AutoMod(commands.Cog):
   async def on_invalidate_mod(self, guild_id: int):
     self.get_guild_config.invalidate(self, guild_id)
 
-  @cache()
+  @cache.cache()
   async def get_guild_config(self, guild_id: int) -> Optional[Config]:
     query = "SELECT * FROM servers WHERE id=$1 LIMIT 1;"
     blquery = "SELECT * FROM blacklist WHERE guild_id=$1 LIMIT 1;"

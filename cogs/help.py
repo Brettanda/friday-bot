@@ -1,9 +1,9 @@
 # import itertools
 # import math
-import nextcord as discord
-from nextcord import Embed
-from nextcord.ext import commands
-from nextcord.ext.menus import ListPageSource, ButtonMenuPages
+import discord
+from discord import Embed
+from discord.ext import commands
+from discord.ext.menus import ListPageSource, ButtonMenuPages
 # from discord.utils import get
 
 # from interactions import Context as SlashContext

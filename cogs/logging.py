@@ -1,7 +1,7 @@
 import re
 import datetime
-import nextcord as discord
-from nextcord.ext import commands
+import discord
+from discord.ext import commands
 
 from functions import embed, cache, MessageColors, MyContext
 
@@ -48,7 +48,7 @@ class Logging(commands.Cog):
   def __repr__(self) -> str:
     return "<cogs.Logging>"
 
-  @cache()
+  @cache.cache()
   async def get_guild_config(self, guild_id: int) -> Optional[Config]:
     query = "SELECT * FROM servers WHERE id=$1 LIMIT 1"
     async with self.bot.db.pool.acquire(timeout=300.0) as conn:

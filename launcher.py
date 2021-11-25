@@ -5,7 +5,7 @@ import signal
 import time
 import multiprocessing
 import logging
-import nextcord as discord
+import discord
 import requests
 
 from index import Friday

@@ -1,8 +1,8 @@
-import nextcord as discord
+import discord
 import datetime
 import typing
 import psutil
-from nextcord.ext import commands
+from discord.ext import commands
 # from discord_slash import cog_ext
 # from discord_slash.model import SlashCommandOptionType
 # from discord_slash.utils.manage_commands import create_option

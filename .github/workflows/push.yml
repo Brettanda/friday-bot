@@ -70,11 +70,11 @@ jobs:
           ${{ env.pythonLocation}}/lib/python${{ matrix.python-version }}/site-packages/*
           ~/venv
         key: ${{ matrix.os }}-pip-${{ env.cache-name }}-${{ hashfiles('requirements.txt') }}
-        restore-keys: |
-          ${{ matrix.os }}-pip-${{ env.cache-name }}-${{ hashfiles('requirements.txt') }}
-          ${{ matrix.os }}-pip-${{ env.cache-name }}-
-          ${{ matrix.os }}-pip-
-          ${{ matrix.os }}-
+        # restore-keys: |
+        #   ${{ matrix.os }}-pip-${{ env.cache-name }}-${{ hashfiles('requirements.txt') }}
+        #   ${{ matrix.os }}-pip-${{ env.cache-name }}-
+        #   ${{ matrix.os }}-pip-
+        #   ${{ matrix.os }}-
     - name: Install dependencies
       if: steps.cache.outputs.cache-hit != 'true'
       run: |

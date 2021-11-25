@@ -1,8 +1,8 @@
 import asyncio
 from typing import Optional
 
-import nextcord as discord
-from nextcord.ext import commands
+import discord
+from discord.ext import commands
 from typing_extensions import TYPE_CHECKING
 
 from functions import MyContext, config, embed, MessageColors, views
@@ -59,7 +59,10 @@ class General(commands.Cog):
     except StopIteration:
       return
 
-    await channel.send(**self.welcome_message())
+    try:
+      await channel.send(**self.welcome_message())
+    except discord.Forbidden:
+      pass
 
   @commands.command(name="prefix", extras={"examples": ["?", "f!"]}, help="Sets the prefix for Fridays commands")
   @commands.guild_only()

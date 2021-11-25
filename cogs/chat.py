@@ -3,11 +3,11 @@ import os
 from collections import defaultdict
 from typing import Optional, Union
 
-import nextcord as discord
+import discord
 import openai
 import validators
 from google.cloud import translate_v2 as translate
-from nextcord.ext import commands
+from discord.ext import commands
 from six.moves.html_parser import HTMLParser
 from typing_extensions import TYPE_CHECKING
 
@@ -130,7 +130,7 @@ class Chat(commands.Cog):
   def __repr__(self):
     return "<cogs.Chat>"
 
-  @cache()
+  @cache.cache()
   async def get_guild_config(self, guild_id: int) -> Optional[Config]:
     query = "SELECT * FROM servers WHERE id=$1 LIMIT 1;"
     async with self.bot.db.pool.acquire(timeout=300.0) as conn:

@@ -3,10 +3,10 @@ import os
 import re
 
 import asyncpraw
-import nextcord as discord
+import discord
 import youtube_dl
 # import ffmpeg
-from nextcord.ext import commands
+from discord.ext import commands
 from typing_extensions import TYPE_CHECKING
 
 from functions import MessageColors, MyContext, embed

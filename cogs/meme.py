@@ -1,7 +1,7 @@
 import os
 import asyncpraw
 
-from nextcord.ext import commands
+from discord.ext import commands
 # from interactions import Context as SlashContext, cog_ext
 
 from functions import MessageColors, embed, MyContext

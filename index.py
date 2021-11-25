@@ -8,10 +8,9 @@ from logging.handlers import RotatingFileHandler
 from typing import Optional
 
 import aiohttp
-import nextcord as discord
+import discord
 from dotenv import load_dotenv
-# import interactions
-from nextcord.ext import commands
+from discord.ext import commands
 from typing_extensions import TYPE_CHECKING
 
 import cogs

@@ -1,14 +1,14 @@
 import asyncio
 from typing import Optional, Union
 
-import nextcord as discord
+import discord
 # import validators
 import pycountry
 # from interactions import Context as SlashContext, cog_ext, ComponentContext
 # from discord_slash.model import SlashCommandOptionType
 # from discord_slash.utils.manage_commands import create_option, create_choice
 # from discord_slash.utils.manage_components import create_select, create_select_option, create_button, create_actionrow
-from nextcord.ext import commands
+from discord.ext import commands
 from typing_extensions import TYPE_CHECKING
 from collections import defaultdict
 
@@ -150,7 +150,7 @@ class Moderation(commands.Cog):
     else:
       self.bot.logger.error(error)
 
-  @cache()
+  @cache.cache()
   async def get_guild_config(self, guild_id: int) -> Optional[Config]:
     query = "SELECT * FROM servers WHERE id=$1 LIMIT 1;"
     async with self.bot.db.pool.acquire(timeout=300.0) as conn:

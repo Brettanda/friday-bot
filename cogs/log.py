@@ -1,13 +1,13 @@
 import sys
 import datetime
-import nextcord as discord
+import discord
 import asyncio
 import io
 # import mysql.connector
 
 import typing
 from typing import TYPE_CHECKING
-from nextcord.ext import commands  # , tasks
+from discord.ext import commands  # , tasks
 # from discord_slash.http import SlashCommandRequest
 from functions import MessageColors, embed, relay_info, exceptions, config, views, MyContext, cache  # , FakeInteractionMessage
 import traceback
@@ -327,7 +327,7 @@ class Log(commands.Cog):
   def get_prefixes(self) -> [str]:
     return ["/", "!", "f!", "!f", "%", ">", "?", "-", "(", ")"]
 
-  @cache()
+  @cache.cache()
   async def get_guild_config(self, guild_id: int) -> typing.Optional[Config]:
     query = "SELECT * FROM servers WHERE id=$1 LIMIT 1;"
     async with self.bot.db.pool.acquire(timeout=300.0) as conn:
@@ -385,7 +385,7 @@ class Log(commands.Cog):
       return
 
     ignored = (commands.CommandNotFound, commands.NotOwner, )
-    just_send = (commands.DisabledCommand, commands.BotMissingPermissions, commands.MissingPermissions, commands.RoleNotFound,)
+    just_send = (commands.DisabledCommand, commands.BotMissingPermissions, commands.MissingPermissions, commands.RoleNotFound, asyncio.TimeoutError)
     error = getattr(error, 'original', error)
 
     if isinstance(error, ignored) or (hasattr(error, "log") and error.log is False):

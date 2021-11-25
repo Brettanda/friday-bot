@@ -1,4 +1,4 @@
-from nextcord.ext import commands
+from discord.ext import commands
 # from discord_slash import cog_ext
 
 from functions import config  # ,embed
@@ -8,7 +8,7 @@ from typing_extensions import TYPE_CHECKING
 if TYPE_CHECKING:
   from index import Friday as Bot
 
-import nextcord as discord
+import discord
 
 SUPPORT_SERVER_ID = 707441352367013899
 SUPPORT_SERVER_INVITE = "https://discord.gg/NTRuFjU"
@@ -42,10 +42,6 @@ class Support(commands.Cog, name="Support"):
 
   @commands.Cog.listener()
   async def on_message(self, msg):
-    # Reacts to any message in the updates channel in the development server
-    if msg.channel.id == 744652167142441020:
-      await msg.add_reaction("♥")
-
     if not msg.guild or msg.author.bot or msg.guild.id != 707441352367013899:
       return
     # print(discord.utils.resolve_invite(msg.clean_content))
