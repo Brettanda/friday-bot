@@ -13,14 +13,14 @@ chardet==3.0.4
 click==7.1.2
 colorama==0.4.4
 d20==1.0.4
-topggpy @ git+https://github.com/Brettanda/python-sdk@master
+topggpy @ git+https://github.com/Brettanda/python-sdk
 decorator==4.4.2
 # discord-ext-menus @ git+https://github.com/Rapptz/discord-ext-menus@6f2b873bf0d28903eb752aa1166b3aac26dc9007
 # discord-py-slash-command @ git+https://github.com/Brettanda/discord-py-interactions
 # discord.py @ git+https://github.com/Rapptz/discord.py@0cc67e58eded2dd83841d6e4f62a4bc626348fb2
 py-cord @ git+https://github.com/Pycord-Development/pycord
 # nextcord-ext-menus==1.3.2
-nextcord-ext-menus @ git+https://github.com/Brettanda/nextcord-ext-menus@master
+nextcord-ext-menus @ git+https://github.com/Brettanda/nextcord-ext-menus
 # flair==0.8.0.post1
 flatbuffers==1.12
 ftfy==5.9
