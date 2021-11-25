@@ -359,11 +359,7 @@ class Fun(commands.Cog):
       vals.append(f"{self.bar(0,1)}")
       ins.append(False)
       x += 1
-    if not ctx.is_interaction():
-      message = await ctx.send(embed=embed(title=f"Poll: {title}", fieldstitle=titles, fieldsval=vals, fieldsin=ins))
-    else:
-      message = await ctx.send(embed=embed(title=f"Poll: {title}", fieldstitle=titles, fieldsval=vals, fieldsin=ins))
-      message = ctx.message
+    message = await ctx.send(embed=embed(title=f"Poll: {title}", fieldstitle=titles, fieldsval=vals, fieldsin=ins))
     x = 0
     for _ in options:
       await message.add_reaction(self.POLLEMOTES[x])
