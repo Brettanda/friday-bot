@@ -1,10 +1,12 @@
 import asyncio
 import copy
+import importlib
 import io
 import os
 import re
 import shutil
 import subprocess
+import sys
 import textwrap
 import traceback
 from typing import Optional, Union
@@ -79,10 +81,12 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     return await self.bot.is_owner(ctx.author) or ctx.author.id == 892865928520413245
 
   async def cog_command_error(self, ctx: "MyContext", error):
+    ignore = (commands.MissingRequiredArgument,)
+    if isinstance(error, ignore):
+      return
+
     if isinstance(error, commands.CheckFailure):
       self.bot.logger.warning("Someone found a dev command")
-    elif isinstance(error, commands.MissingRequiredArgument):
-      await ctx.send(embed=embed(title=error, color=MessageColors.ERROR))
     else:
       await ctx.send(f"```py\n{error}\n```")
 
@@ -207,11 +211,79 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
         self.bot.load_extension(f"{path}{command.lower() if command is not None else None}")
     await ctx.reply(embed=embed(title=f"Cog *{command}* has been reloaded"))
 
+  _GIT_PULL_REGEX = re.compile(r'\s*(?P<filename>.+?)\s*\|\s*[0-9]+\s*[+-]+')
+
+  def modules_from_git(self, output):
+    files = self._GIT_PULL_REGEX.findall(output)
+    ret = []
+    for file in files:
+      root, ext = os.path.splitext(file)
+      if ext != ".py":
+        continue
+
+      if root.startswith("cogs"):
+        ret.append((0, root.replace("/", ".")))  # root.count("/") - 1 # if functions moves to cog folder
+      elif root.startswith("functions"):
+        ret.append((1, root.replace("/", ".")))
+      elif root.startswith("spice/cogs"):
+        ret.append((0, root.replace("/", ".")))
+      elif root.startswith("spice/functions"):
+        ret.append((1, root.replace("/", ".")))
+
+    ret.sort(reverse=True)
+    return ret
+
+  def reload_or_load_extention(self, module):
+    try:
+      self.bot.reload_extension(module)
+    except commands.ExtensionNotLoaded:
+      self.bot.load_extension(module)
+
   @reload.command(name="all")
   async def reload_all(self, ctx):
     async with ctx.typing():
-      await self.bot.reload_cogs()
-    await ctx.reply(embed=embed(title="All cogs have been reloaded"))
+      if self.bot.canary:
+        stdout, stderr = await self.run_process("git pull origin canary && git submodule update")
+      elif self.bot.prod:
+        stdout, stderr = await self.run_process("git pull origin master && git submodule update")
+      else:
+        return await ctx.reply(embed=embed(title="You are not on a branch", color=MessageColors.ERROR))
+
+    if stdout.startswith("Already up-to-date."):
+      return await ctx.send(stdout)
+
+    modules = self.modules_from_git(stdout)
+    mods_text = "\n".join(f"{index}. `{module}`" for index, (_, module) in enumerate(modules, start=1))
+    confirm = await ctx.prompt(f"This will update the following modules, are you sure?\n{mods_text}")
+    if not confirm:
+      return await ctx.send("Aborting.")
+
+    statuses = []
+    for is_func, module in modules:
+      if is_func:
+        try:
+          actual_module = sys.modules[module]
+        except KeyError:
+          statuses.append((":zzz:", module))
+        else:
+          try:
+            importlib.reload(actual_module)
+          except Exception:
+            statuses.append((":x:", module))
+          else:
+            statuses.append((":white_check_mark:", module))
+      else:
+        try:
+          self.reload_or_load_extention(module)
+        except commands.ExtensionError:
+          statuses.append((":x:", module))
+        else:
+          statuses.append((":white_check_mark:", module))
+
+    await ctx.send(embed=embed(title="Reloading modules", description="\n".join(f"{status} {module}" for status, module in statuses)))
+    # async with ctx.typing():
+    #   await self.bot.reload_cogs()
+    # await ctx.reply(embed=embed(title="All cogs have been reloaded"))
 
   @reload.command(name="slash")
   async def reload_slash(self, ctx):
