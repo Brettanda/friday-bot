@@ -4,6 +4,7 @@ from .messagecolors import MessageColors
 from . import exceptions, checks, config  # , queryIntents  # , queryGen
 from .myembed import embed
 from . import cache
+from .custom_contexts import MyContext  # , FakeInteractionMessage  # , MySlashContext
 from .reply import msg_reply
 from .time import timeit
 from .relay import relay_info
