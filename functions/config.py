@@ -32,6 +32,7 @@ member_cache = discord.MemberCacheFlags(joined=True)
 
 patreon_supporting_role = 843941723041300480
 
+
 class PremiumTiers:
   free = 0
   tier_1 = 1
