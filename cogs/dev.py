@@ -277,7 +277,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       else:
         try:
           self.reload_or_load_extention(module)
-        except commands.ExtensionError:
+        except discord.ExtensionError:
           statuses.append((":x:", module))
         else:
           statuses.append((":white_check_mark:", module))
