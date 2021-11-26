@@ -3,8 +3,8 @@ import logging
 import os
 import sys
 
-import nextcord as discord
-from nextcord.ext import tasks
+import discord
+from discord.ext import tasks
 from dotenv import load_dotenv
 
 from index import Friday

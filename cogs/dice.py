@@ -1,6 +1,6 @@
 import d20
 
-from nextcord.ext import commands
+from discord.ext import commands
 # from discord_slash import cog_ext
 
 from functions import embed, MessageColors  # , checks

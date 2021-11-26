@@ -1,14 +1,14 @@
 import asyncio
 from typing import Optional, Union
 
-import nextcord as discord
+import discord
 # import validators
 import pycountry
 # from interactions import Context as SlashContext, cog_ext, ComponentContext
 # from discord_slash.model import SlashCommandOptionType
 # from discord_slash.utils.manage_commands import create_option, create_choice
 # from discord_slash.utils.manage_components import create_select, create_select_option, create_button, create_actionrow
-from nextcord.ext import commands
+from discord.ext import commands
 from typing_extensions import TYPE_CHECKING
 from collections import defaultdict
 
@@ -150,7 +150,7 @@ class Moderation(commands.Cog):
     else:
       self.bot.logger.error(error)
 
-  @cache()
+  @cache.cache()
   async def get_guild_config(self, guild_id: int) -> Optional[Config]:
     query = "SELECT * FROM servers WHERE id=$1 LIMIT 1;"
     async with self.bot.db.pool.acquire(timeout=300.0) as conn:
@@ -201,7 +201,7 @@ class Moderation(commands.Cog):
   @commands.has_guild_permissions(manage_channels=True)
   async def norm_chatchannel(self, ctx):
     chat_channel = await self.bot.db.query("SELECT chatchannel FROM servers WHERE id=$1 LIMIT 1", str(ctx.guild.id))
-    chat = self.bot.get_cog("cogs.chat")
+    chat = self.bot.get_cog("Chat")
     if chat is not None:
       chat.get_guild_config.invalidate(chat, ctx.guild.id)
     if chat_channel is None:
@@ -446,16 +446,15 @@ class Moderation(commands.Cog):
   @commands.bot_has_guild_permissions(manage_roles=True)
   @commands.cooldown(1, 60.0, commands.BucketType.guild)
   async def mute_role_create(self, ctx: "MyContext", *, name: Optional[str] = "Muted"):
-    current_role = await self.bot.db.query("SELECT mute_role FROM servers WHERE id=$1 LIMIT 1", str(ctx.guild.id))
-    if current_role is not None:
-      return await ctx.send(embed=embed(title="There is already a saved role.", color=MessageColors.ERROR))
-
-    if current_role is not None and ctx.guild.get_role(int(current_role, base=10)) is not None:
+    config = await self.get_guild_config(ctx.guild.id)
+    if config.mute_role is not None:
+      ctx.command.reset_cooldown(ctx)
       return await ctx.send(embed=embed(title="This server already has a mute role.", color=MessageColors.ERROR))
 
     try:
       role = await ctx.guild.create_role(name=name, reason=f"Mute Role created by {ctx.author} (ID: {ctx.author.id})")
     except discord.HTTPException as e:
+      ctx.command.reset_cooldown(ctx)
       return await ctx.send(embed=embed(title="An error occurred", description=str(e), color=MessageColors.ERROR))
 
     await self.bot.db.query("UPDATE servers SET mute_role=$1 WHERE id=$2", str(role.id), str(ctx.guild.id))
@@ -508,7 +507,7 @@ class Moderation(commands.Cog):
   # TODO: Add the cooldown back to the below command but check if the command fails then reset the cooldown
   #
 
-  @commands.command(name="language", extras={"examples": ["en", "es", "english", "spanish"]}, aliases=["lang"], help="Change the language that I will speak")
+  @commands.command(name="language", extras={"examples": ["en", "es", "english", "spanish"]}, aliases=["lang"], help="Change the language that I will speak. This currently only applies to the chatbot messages not the commands.")
   # @commands.cooldown(1, 3600, commands.BucketType.guild)
   @commands.has_guild_permissions(administrator=True)
   async def language(self, ctx, language: Optional[str] = None):
@@ -523,7 +522,9 @@ class Moderation(commands.Cog):
     final_lang = new_lang.alpha_2 if new_lang is not None else lang
     final_lang_name = new_lang.name if new_lang is not None else lang
     await self.bot.db.query("UPDATE servers SET lang=$1 WHERE id=$2", final_lang, str(ctx.guild.id))
-    self.bot.log.change_guild_lang(ctx.guild, final_lang)
+    chat = self.bot.get_cog("Chat")
+    if chat is not None:
+      chat.get_guild_config.invalidate(chat, ctx.guild.id)
     return await ctx.reply(embed=embed(title=f"New language set to: `{final_lang_name}`"))
 
   @norm_chatchannel.after_invoke

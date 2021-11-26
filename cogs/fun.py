@@ -4,9 +4,10 @@ from typing import Optional
 import numpy.random as random
 import asyncio
 import datetime
+from async_timeout import timeout
 
-import nextcord as discord
-from nextcord.ext import commands, tasks
+import discord
+from discord.ext import commands, tasks
 # from discord_slash import cog_ext, SlashContext
 # from discord_slash.utils.manage_commands import create_choice, create_option, SlashCommandOptionType
 
@@ -189,17 +190,18 @@ class Fun(commands.Cog):
     arr = [[0 for row in range(size)] for column in range(size)]
 
     # async with ctx.channel.typing():
-    def get_xy():
-      try:
-        return random.randint(0, size - 1), random.randint(0, size - 1)
-      except Exception as e:
-        self.bot.logger.critical("This is what caused the shutdown")
-        raise e
+    async def get_xy():
+      async with timeout(1):
+        try:
+          return await self.bot.loop.run_in_executor(None, random.randint, 0, size - 1), await self.bot.loop.run_in_executor(None, random.randint, 0, size - 1)
+        except Exception as e:
+          self.bot.logger.critical("This is what caused the shutdown")
+          raise e
 
     for _ in range(bomb_count):
-      x, y = get_xy()
+      x, y = await get_xy()
       while arr[y][x] == 'X':
-        x, y = get_xy()
+        x, y = await get_xy()
       arr[y][x] = 'X'
 
       if (x >= 0 and x <= size - 2) and (y >= 0 and y <= size - 1):
@@ -312,7 +314,7 @@ class Fun(commands.Cog):
     if len(options) < 2:
       return await ctx.reply(embed=embed(title="Please choose 2 or more options for this poll", color=MessageColors.ERROR))
 
-    await self.poll(ctx, title, options, ctx.is_interaction())
+    await self.poll(ctx, title, options)
 
   # @cog_ext.cog_slash(
   #     name="poll",
@@ -357,11 +359,7 @@ class Fun(commands.Cog):
       vals.append(f"{self.bar(0,1)}")
       ins.append(False)
       x += 1
-    if not ctx.is_interaction():
-      message = await ctx.send(embed=embed(title=f"Poll: {title}", fieldstitle=titles, fieldsval=vals, fieldsin=ins))
-    else:
-      message = await ctx.send(embed=embed(title=f"Poll: {title}", fieldstitle=titles, fieldsval=vals, fieldsin=ins))
-      message = ctx.message
+    message = await ctx.send(embed=embed(title=f"Poll: {title}", fieldstitle=titles, fieldsval=vals, fieldsin=ins))
     x = 0
     for _ in options:
       await message.add_reaction(self.POLLEMOTES[x])

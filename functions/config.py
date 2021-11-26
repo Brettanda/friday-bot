@@ -1,4 +1,4 @@
-import nextcord as discord
+import discord
 
 defaultPrefix = "!"
 

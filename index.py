@@ -8,10 +8,9 @@ from logging.handlers import RotatingFileHandler
 from typing import Optional
 
 import aiohttp
-import nextcord as discord
+import discord
 from dotenv import load_dotenv
-# import interactions
-from nextcord.ext import commands
+from discord.ext import commands
 from typing_extensions import TYPE_CHECKING
 
 import cogs
@@ -80,7 +79,7 @@ class Friday(commands.AutoShardedBot):
       self.run(kwargs["token"])
 
   def __repr__(self) -> str:
-    return f"<Friday username=\"{self.bot.user.display_name}\" id={self.bot.user.id}>"
+    return f"<Friday username=\"{self.user.display_name}\" id={self.user.id}>"
 
   @property
   def log(self) -> Optional["Log"]:
@@ -104,9 +103,10 @@ class Friday(commands.AutoShardedBot):
       self.prefixes[int(guild_id, base=10)] = prefix
 
     if load_extentions:
-      for cog in cogs.default:
+      for cog in [*cogs.default, *cogs.spice]:
+        path = "spice.cogs." if cog.lower() in cogs.spice else "cogs."
         try:
-          self.load_extension(f"cogs.{cog}")
+          self.load_extension(f"{path}{cog}")
         except Exception as e:
           self.logger.error(f"Failed to load extenstion {cog} with \n {e}")
 

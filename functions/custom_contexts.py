@@ -1,7 +1,7 @@
 from __future__ import annotations
 # from interactions import Context as SlashContext
-from nextcord.ext.commands import Context
-import nextcord as discord
+from discord.ext.commands import Context
+import discord
 import io
 from typing import Optional, Union
 from typing_extensions import TYPE_CHECKING
@@ -163,7 +163,8 @@ class MyContext(Context):
         ctx=self,
         author_id=author_id
     )
-    view.message = await self.send(embed=embed(title=message), view=view, **kwargs)
+    kwargs["embed"] = kwargs.pop("embed", embed(title=message))
+    view.message = await self.send(view=view, **kwargs)
     await view.wait()
     return view.value
 

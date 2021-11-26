@@ -1,7 +1,7 @@
 import re
 import datetime
-import nextcord as discord
-from nextcord.ext import commands
+import discord
+from discord.ext import commands
 
 from functions import embed, cache, MessageColors, MyContext
 
@@ -48,7 +48,7 @@ class Logging(commands.Cog):
   def __repr__(self) -> str:
     return "<cogs.Logging>"
 
-  @cache()
+  @cache.cache()
   async def get_guild_config(self, guild_id: int) -> Optional[Config]:
     query = "SELECT * FROM servers WHERE id=$1 LIMIT 1"
     async with self.bot.db.pool.acquire(timeout=300.0) as conn:
@@ -174,8 +174,10 @@ class Logging(commands.Cog):
       return
 
     action: discord.AuditLogEntry = audit[0]
-    reg = REASON_REG.match(member.reason)
-    reason = member.reason if reg is None and member.reason is not None else reg[2] if reg is not None and reg[2] is not None else "No reason given"
+    reason = "No reason given"
+    if hasattr(member, "reason") and member.reason is not None:
+      reg = REASON_REG.match(member.reason)
+      reason = member.reason if reg is None and member.reason is not None else reg[2] if reg is not None and reg[2] is not None else "No reason given"
 
     self.bot.dispatch("log_event", member.guild.id, "kick", offender=action.target, moderator=action.user, reason=reason)
 
