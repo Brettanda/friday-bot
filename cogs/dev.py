@@ -78,7 +78,9 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     return f"<cogs.Dev owner={self.bot.owner_id}>"
 
   async def cog_check(self, ctx: "MyContext") -> bool:
-    return await self.bot.is_owner(ctx.author) or ctx.author.id == 892865928520413245
+    if not await self.bot.is_owner(ctx.author) or ctx.author.id == 892865928520413245:
+      raise commands.NotOwner()
+    return True
 
   async def cog_command_error(self, ctx: "MyContext", error):
     ignore = (commands.MissingRequiredArgument,)
