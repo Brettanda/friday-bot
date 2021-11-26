@@ -45,6 +45,11 @@ class Database(commands.Cog):
             "has_reminded boolean NOT NULL DEFAULT false",
             "voted_time timestamp NULL DEFAULT NULL"
         ],
+        "patrons": [
+            "user_id text PRIMARY KEY NOT NULL",
+            "tier smallint NOT NULL DEFAULT 0",
+            "guild_id text NULL DEFAULT NULL"
+        ],
         "countdowns": [
             "guild text NULL",
             "channel text NOT NULL",
