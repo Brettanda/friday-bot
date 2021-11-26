@@ -11,6 +11,24 @@ if TYPE_CHECKING:
 
   from index import Friday as Bot
 
+
+async def min_tiers(bot: "Bot", msg: discord.Message) -> tuple:
+  guild = bot.get_guild(config.support_server_id)
+  member = await bot.get_or_fetch_member(guild, msg.author.id)
+  voted, t1_user, t1_guild = await user_voted(bot, member), await user_is_min_tier(bot, member, config.PremiumTiers.tier_1), await guild_is_min_tier(bot, guild, config.PremiumTiers.tier_1)
+  if t1_user or t1_guild:
+    return (voted, t1_user, t1_guild, t1_user, t1_guild, t1_user, t1_guild, t1_user, t1_guild)
+  t2_user, t2_guild = await user_is_min_tier(bot, member, config.PremiumTiers.tier_2), await guild_is_min_tier(bot, guild, config.PremiumTiers.tier_2)
+  if t2_user or t2_guild:
+    return (voted, t1_user, t1_guild, t2_user, t2_guild, t2_user, t2_guild, t2_user, t2_guild)
+  t3_user, t3_guild = await user_is_min_tier(bot, member, config.PremiumTiers.tier_3), await guild_is_min_tier(bot, guild, config.PremiumTiers.tier_3)
+  if t3_user or t3_guild:
+    return (voted, t1_user, t1_guild, t2_user, t2_guild, t3_user, t3_guild, t3_user, t3_guild)
+  t4_user, t4_guild = await user_is_min_tier(bot, member, config.PremiumTiers.tier_4), await guild_is_min_tier(bot, guild, config.PremiumTiers.tier_4)
+  if t4_user or t4_guild:
+    return (voted, t1_user, t1_guild, t2_user, t2_guild, t3_user, t3_guild, t4_user, t4_guild)
+  return (voted, False, False, False, False, False, False, False, False)
+
 # def guild_is_tier(tier: str) -> "_CheckDecorator":
 
 
@@ -20,11 +38,7 @@ def user_is_tier(tier: str) -> "_CheckDecorator":
   return commands.check(predicate)
 
 
-def is_min_tier(tier: str = list(config.premium_tiers)[1]) -> "_CheckDecorator":
-  tier_level = config.premium_tiers.get(tier, None)
-  if tier_level is None:
-    raise TypeError(f"Invalid tier name: {tier}")
-
+def is_min_tier(tier: int = config.PremiumTiers.tier_1) -> "_CheckDecorator":
   async def predicate(ctx: "MyContext") -> bool:
     if ctx.author.id == ctx.bot.owner_id:
       return True
@@ -39,48 +53,32 @@ def is_min_tier(tier: str = list(config.premium_tiers)[1]) -> "_CheckDecorator":
   return commands.check(predicate)
 
 
-async def guild_is_min_tier(bot: "Bot", guild: discord.Guild, tier: str = list(config.premium_tiers)[1]) -> bool:
+async def guild_is_min_tier(bot: "Bot", guild: discord.Guild, tier: int = config.PremiumTiers.tier_1) -> bool:
   """ Checks if a guild has at least patreon 'tier' """
 
-  # FIXME: reee
-  # if not ctx.guild:
-  #   raise commands.NoPrivateMessage()
   if guild is None:
+    return commands.NoPrivateMessage()
+  guild_tier = await bot.db.query("""SELECT tier FROM patrons WHERE guild_id=$1 LIMIT 1""", str(guild.id))
+  if guild_tier is None:
     return False
-  guild_tier = await bot.db.query("""SELECT tier FROM servers WHERE id=$1""", str(guild.id))
-  # guild_tier = bot.log.get_guild_tier(guild)
-  tier_level = config.premium_tiers[tier]
-  if guild_tier in list(config.premium_tiers)[tier_level:]:
-    return True
-  return False
-  # raise exceptions.RequiredTier()
-  return True
+  return guild_tier >= tier
 
 
-async def user_is_min_tier(bot: "Bot", user: Union[discord.User, discord.Member], tier: str = list(config.premium_tiers)[1]) -> bool:
+async def user_is_min_tier(bot: "Bot", user: Union[discord.User, discord.Member], tier: int = config.PremiumTiers.tier_1) -> bool:
   """ Checks if a user has at least patreon 'tier' """
 
-  if hasattr(user, "guild") and user.guild.id != config.support_server_id or not hasattr(user, "guild"):
-    member = None
-    try:
-      guild = bot.get_guild(config.support_server_id)
-      member = await bot.get_or_fetch_member(guild, user.id)
-      if member is None:
-        return False
-    except Exception:
-      return False
-    user = member
+  if not isinstance(user, discord.Member) or (hasattr(user, "guild") and user.guild.id != config.support_server_id or not hasattr(user, "guild")):
+    guild = bot.get_guild(config.support_server_id)
+    user = await bot.get_or_fetch_member(guild, user.id)
+    if user is None:
+      raise exceptions.NotInSupportServer()
   # if not hasattr(user, "guild"):
   #   return False
   roles = [role.id for role in user.roles]
-  if config.patreon_supporting_role not in roles:
-    return False
-    # raise exceptions.NotSupporter()
-  if config.premium_roles[tier] in roles:
+  if config.PremiumTiers().get_role(tier) in roles:
     return True
-  tier_level = config.premium_tiers[tier]
-  for i in range(tier_level, len(config.premium_tiers) - 1):
-    role = bot.get_guild(config.support_server_id).get_role(config.premium_roles[i])
+  for i in range(tier, len(config.PremiumTiers.roles) - 1):
+    role = bot.get_guild(config.support_server_id).get_role(config.PremiumTiers().get_role(i))
     if role.id in roles:
       return True
   return False
@@ -105,8 +103,6 @@ async def user_is_supporter(bot: "Bot", user: discord.User) -> bool:
   if user is None:
     raise exceptions.NotInSupportServer()
   roles = [role.id for role in user.roles]
-  # if user.id == bot.owner_id or config.premium_roles["friends"] in roles:
-  #   return True
   if config.patreon_supporting_role not in roles:
     raise exceptions.NotSupporter()
   return True
