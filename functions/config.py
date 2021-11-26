@@ -31,6 +31,26 @@ member_cache = discord.MemberCacheFlags(joined=True)
 
 patreon_supporting_role = 843941723041300480
 
+class PremiumTiers:
+  free = 0
+  tier_1 = 1
+  tier_2 = 2
+  tier_3 = 3
+  tier_4 = 4
+
+  roles = [
+        844090257221222401,
+        851980183962910720,
+        858993523536429056,
+        858993776994418708
+  ]
+
+  def get_role(self, tier: int) -> Optional[int]:
+    if tier == 0 or tier > len(self.roles):
+      return None
+    return self.roles[tier - 1]
+
+
 premium_tiers = {
     "free": 0,
     "t1_one_guild": 1,
