@@ -1,4 +1,7 @@
+import datetime
 import asyncio
+import re
+from collections import defaultdict
 from typing import Optional, Union
 
 import discord
@@ -12,8 +15,8 @@ from discord.ext import commands
 from typing_extensions import TYPE_CHECKING
 from collections import defaultdict
 
-from functions import (MessageColors, MyContext, cache, embed,
-                       relay_info)
+from functions import (MessageColors, MyContext, cache, checks, config, embed,
+                       relay_info, time)
 
 if TYPE_CHECKING:
   from index import Friday as Bot
@@ -266,11 +269,11 @@ class Moderation(commands.Cog):
 
     await ctx.send(embed=embed(title=f"Kicked {len(members) - failed}/{len(members)} members"))
 
-  @commands.command("ban", extras={"examples": ["@username @someone @someoneelse Spam", "@thisguy The most spam i have ever seen", "12345678910 10987654321 @someone", "@someone They were annoying me", "123456789 2 Sus"]})
+  @commands.command("ban", extras={"examples": ["20m @username @someone @someoneelse Spam", "@thisguy The most spam i have ever seen", "12345678910 10987654321 @someone", "@someone They were annoying me", "40d 123456789 2 Sus"]})
   @commands.guild_only()
   @commands.bot_has_guild_permissions(ban_members=True)
   @commands.has_guild_permissions(ban_members=True)
-  async def norm_ban(self, ctx, members: commands.Greedy[MemberOrID], *, reason: Optional[ActionReason] = None):
+  async def norm_ban(self, ctx, duration: Optional[time.FutureTime], members: commands.Greedy[MemberOrID], *, reason: Optional[ActionReason] = None):
     if not isinstance(members, list):
       members = [members]
     if reason is None:
@@ -279,13 +282,48 @@ class Moderation(commands.Cog):
     if len(members) == 0:
       return await ctx.send(embed=embed(title="Missing members to ban.", color=MessageColors.ERROR))
 
+    reminder = self.bot.get_cog("Reminder")
+    if reminder is None:
+      confirm = await ctx.prompt("", embed=embed(title="Tempban functionality is not currently available.", description="Do you still want to continue with the ban?"))
+      if not confirm:
+        return await ctx.send(embed=embed(title="Ban cancelled.", color=MessageColors.ERROR))
+
     failed = 0
     for member in members:
       try:
         await ctx.guild.ban(member, reason=reason)
+        if reminder:
+          await reminder.create_timer(duration.dt, "tempban", ctx.guild.id, ctx.author.id, member.id, connection=ctx.pool, created=ctx.message.created_at)
       except discord.HTTPException:
         failed += 1
-    await ctx.send(embed=embed(title=f"Banned {len(members) - failed}/{len(members)} members."))
+
+    if len(members) == 1:
+      await ctx.send(embed=embed(title=f"Banned {members[0]}{' and reversed '+time.format_dt(duration.dt,style='R') if duration else ''}"))
+    else:
+      await ctx.send(embed=embed(title=f"Banned {len(members) - failed}/{len(members)} members{' and reversed '+time.format_dt(duration.dt,style='R') if duration else ''}."))
+
+  @commands.Cog.listener()
+  async def on_tempban_timer_complete(self, timer):
+    guild_id, mod_id, member_id = timer.args
+    await self.bot.wait_until_ready()
+
+    guild = self.bot.get_guild(guild_id)
+    if guild is None:
+      return
+
+    moderator = await self.bot.get_or_fetch_member(guild, mod_id)
+    if moderator is None:
+      try:
+        moderator = await self.bot.fetch_user(mod_id)
+      except BaseException:
+        moderator = f"Mod ID {mod_id}"
+      else:
+        moderator = f"{moderator} (ID: {mod_id})"
+    else:
+      moderator = f"{moderator} (ID: {mod_id})"
+
+    reason = f"Automatic unban from timer made on {timer.created_at} by {moderator}"
+    await guild.unban(discord.Object(id=member_id), reason=reason)
 
   @commands.command("unban")
   @commands.guild_only()
@@ -297,7 +335,9 @@ class Moderation(commands.Cog):
 
     await ctx.guild.unban(member.user, reason=reason)
     if member.reason:
-      return await ctx.send(embed=embed(title=f"Unbanned {member.user} (ID: {member.user.id})", description=f"Previously banned for `{member.reason}`."))
+      reg = REASON_REG.match(member.reason)
+      old_reason = member.reason if reg is None and member.reason is not None else reg[2] if reg is not None and reg[2] is not None else "No reason given"
+      return await ctx.send(embed=embed(title=f"Unbanned {member.user} (ID: {member.user.id})", description=f"Previously banned for `{old_reason}`."))
     await ctx.send(embed=embed(title=f"Unbanned {member.user} (ID: {member.user.id})."))
 
   @commands.command(name="rolecall", aliases=["rc"], extras={"examples": ["@mods vc-1", "123456798910 vc-2 vc-1 10987654321", "@admins general @username @username"]}, help="Moves everyone with a specific role to a voicechannel. Objects that can be exluded are voicechannels,roles,and members")
@@ -405,17 +445,23 @@ class Moderation(commands.Cog):
 
   # TODO: Add a timeout
 
-  @commands.group(name="mute", extras={"examples": ["@Motostar @steve they were annoying me", "@steve 9876543210", "@Motostar spamming general", "0123456789"]}, help="Mute a member from text channels", invoke_without_command=True, case_insensitive=True)
+  @commands.group(name="mute", extras={"examples": ["20m @Motostar @steve they were annoying me", "@steve 9876543210", "30d @Motostar spamming general", "0123456789"]}, help="Mute a member from text channels", invoke_without_command=True, case_insensitive=True)
   @commands.guild_only()
   @can_mute()
   @commands.has_guild_permissions(manage_roles=True)
   @commands.bot_has_guild_permissions(manage_roles=True)
-  async def norm_mute(self, ctx: "MyContext", members: commands.Greedy[discord.Member], *, reason: ActionReason = None):
+  async def norm_mute(self, ctx: "MyContext", duration: Optional[time.FutureTime], members: commands.Greedy[discord.Member], *, reason: Optional[ActionReason] = None):
     if not isinstance(members, list):
       members = [members]
 
     if reason is None:
       reason = f"[Muted by {ctx.author} (ID: {ctx.author.id})]"
+
+    reminder = self.bot.get_cog("Reminder")
+    if reminder is None:
+      confirm = await ctx.prompt("", embed=embed(title="Tempmute functionality is not currently available.", description="Do you still want to continue with the mute?"))
+      if not confirm:
+        return await ctx.send(embed=embed(title="Mute cancelled.", color=MessageColors.ERROR))
 
     role = discord.Object(id=ctx.guild_config.mute_role_id)
     if len(members) == 0:
@@ -426,9 +472,52 @@ class Moderation(commands.Cog):
       for member in members:
         try:
           await member.add_roles(role, reason=reason)
+          if duration:
+            await reminder.create_timer(duration.dt, "tempmute", ctx.guild.id, ctx.author.id, member.id, role.id, created=ctx.message.created_at)
         except discord.HTTPException:
           failed += 1
-    await ctx.send(embed=embed(title=f"Muted {len(members) - failed}/{len(members)} members."))
+
+    if len(members) == 1:
+      await ctx.send(embed=embed(title=f"Muted {members[0]}{' and reversed '+time.format_dt(duration.dt,style='R') if duration else ''}"))
+    else:
+      await ctx.send(embed=embed(title=f"Muted {len(members) - failed}/{len(members)} members{' and reversed '+time.format_dt(duration.dt,style='R') if duration else ''}."))
+
+  @commands.Cog.listener()
+  async def on_tempmute_timer_complete(self, timer):
+    guild_id, mod_id, member_id, role_id = timer.args
+    await self.bot.wait_until_ready()
+
+    guild = self.bot.get_guild(guild_id)
+    if guild is None:
+      return
+
+    member = await self.bot.get_or_fetch_member(guild, member_id)
+    if member is None or not member._roles.has(role_id):
+      async with self.bot.db.pool.acquire() as conn:
+        await conn.query("UPDATE servers SET muted_members=array_remove(muted_members, $1) WHERE id=$2", str(member_id), str(guild_id))
+      return
+
+    if mod_id != member_id:
+      moderator = await self.bot.get_or_fetch_member(guild, mod_id)
+      if moderator is None:
+        try:
+          moderator = await self.bot.fetch_user(mod_id)
+        except BaseException:
+          moderator = f"Mod ID {mod_id}"
+        else:
+          moderator = f"{moderator} (ID: {mod_id})"
+      else:
+        moderator = f"{moderator} (ID: {mod_id})"
+
+      reason = f"Automatic unmute from timer mode on {timer.created_at} by {moderator}"
+    else:
+      reason = f"Expiring self-mute made on {timer.created_at} by {member}"
+
+    try:
+      await member.remove_roles(discord.Object(id=role_id), reason=reason)
+    except discord.HTTPException:
+      async with self.bot.db.pool.acquire() as conn:
+        await conn.query("UPDATE servers SET muted_members=array_remove(muted_members, $1) WHERE id=$2", str(member_id), str(guild_id))
 
   @norm_mute.group("role", help="Set the role to be applied to members that get muted", invoke_without_command=True, case_insensitive=True)
   @commands.guild_only()
@@ -501,7 +590,46 @@ class Moderation(commands.Cog):
           await member.remove_roles(role, reason=reason)
         except discord.HTTPException:
           failed += 1
-    await ctx.send(embed=embed(title=f"Unmuted {len(members) - failed}/{len(members)} members"))
+    if len(members) == 1:
+      await ctx.send(embed=embed(title=f"Unmuted {members[0]}"))
+    else:
+      await ctx.send(embed=embed(title=f"Unmuted {len(members) - failed}/{len(members)} members."))
+
+  @commands.command(extras={"examples": ["20m", "1h20m", "5h"]}, help="Temporarily mutes yourself for the specified duration, min 5 minutes, max 24 hours")
+  @commands.guild_only()
+  @commands.bot_has_guild_permissions(manage_roles=True)
+  async def selfmute(self, ctx: "MyContext", *, duration: time.ShortTime):
+    reminder = self.bot.get_cog("Reminder")
+    if reminder is None:
+      return await ctx.send(embed=embed(title="Sorry, this funcitonality is not available.", color=MessageColors.ERROR))
+
+    config = await self.get_guild_config(ctx.guild.id)
+    role_id = config and config.mute_role_id
+    if role_id is None:
+      raise MissingMuteRole()
+
+    if ctx.author._roles.has(role_id):
+      return await ctx.send(embed=embed(title="You are already muted. 🤔🤔", color=MessageColors.ERROR))
+
+    created_at = ctx.message.created_at
+    if duration.dt > (created_at + datetime.timedelta(days=1)):
+      return await ctx.send(embed=embed(title="Duration is too long. Must be at most 24 hours.", color=MessageColors.ERROR))
+
+    if duration.dt < (created_at + datetime.timedelta(minutes=5)):
+      return await ctx.send(embed=embed(title="Duration is too short. Must be at least 5 minutes.", color=MessageColors.ERROR))
+
+    confirm = await ctx.prompt("", embed=embed(title=f"Are you sure you want to self-mute, and reversed {time.format_dt(duration.dt, style='R')}?", description="Do not ask the moderators to undo this!"))
+    if not confirm:
+      return await ctx.send(embed=embed(title="Cancelled.", color=MessageColors.ERROR))
+
+    await ctx.author.add_roles(discord.Object(id=role_id), reason=f"Self-mute for {ctx.author} (ID: {ctx.author.id}) for {time.human_timedelta(duration.dt, source=created_at)}")
+    await reminder.create_timer(duration.dt, "tempmute", ctx.guild.id, ctx.author.id, ctx.author.id, role_id, created=created_at)
+    await ctx.send(embed=embed(title=f"Muted, and reversed {time.format_dt(duration.dt, style='R')}. Be sure not to bother anyone about it."))
+
+  @selfmute.error
+  async def on_selfmute_error(self, ctx: "MyContext", error: Exception):
+    if isinstance(error, commands.MissingRequiredArgument):
+      await ctx.send(embed=embed(title="Missing duration.", color=MessageColors.ERROR))
 
   #
   # TODO: Add the cooldown back to the below command but check if the command fails then reset the cooldown
