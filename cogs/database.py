@@ -45,6 +45,13 @@ class Database(commands.Cog):
             "has_reminded boolean NOT NULL DEFAULT false",
             "voted_time timestamp NULL DEFAULT NULL"
         ],
+        "reminders": [
+            "id bigserial PRIMARY KEY NOT NULL",
+            "expires timestamp NOT NULL",
+            "created timestamp NOT NULL DEFAULT (now() at time zone 'utc')",
+            "event text",
+            "extra jsonb DEFAULT '{}'::jsonb",
+        ],
         "patrons": [
             "user_id text PRIMARY KEY NOT NULL",
             "tier smallint NOT NULL DEFAULT 0",

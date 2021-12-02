@@ -13,6 +13,7 @@ from . import views
 
 try:
   from spice.functions import slash
+  from spice.functions import time
 except ImportError:
   pass
 
@@ -44,5 +45,6 @@ __all__ = (
     "exceptions",
     "get_reddit_post",
     "embed",
-    "checks"
+    "checks",
+    "time",
 )

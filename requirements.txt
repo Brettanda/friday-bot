@@ -105,3 +105,4 @@ pytest-asyncio==0.15.1
 pytest-dependency==0.5.1
 lru-dict==1.1.7
 aiohttp-cors==0.7.0
+parsedatetime==2.6
