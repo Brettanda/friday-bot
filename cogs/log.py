@@ -7,6 +7,7 @@ import io
 
 import typing
 from typing import TYPE_CHECKING
+from pycord.wavelink import errors as wavelink_errors
 from discord.ext import commands  # , tasks
 # from discord_slash.http import SlashCommandRequest
 from functions import MessageColors, embed, relay_info, exceptions, config, views, MyContext, cache  # , FakeInteractionMessage
@@ -385,10 +386,11 @@ class Log(commands.Cog):
       return
 
     ignored = (commands.CommandNotFound, commands.NotOwner, )
+    wave_errors = (wavelink_errors.LoadTrackError, wavelink_errors.WavelinkError,)
     just_send = (commands.DisabledCommand, commands.BotMissingPermissions, commands.MissingPermissions, commands.RoleNotFound, asyncio.TimeoutError)
     error = getattr(error, 'original', error)
 
-    if isinstance(error, ignored) or (hasattr(error, "log") and error.log is False):
+    if isinstance(error, (*ignored, *wave_errors)) or (hasattr(error, "log") and error.log is False):
       return
 
     if isinstance(error, just_send):
