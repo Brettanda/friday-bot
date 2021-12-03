@@ -2,3 +2,8 @@
 	path = spice
 	url = git@github.com:Brettanda/friday-bot-spice.git
 	branch = master
+
+[submodule "docs"]
+	path = docs
+	url = git@github.com:Brettanda/friday-docs.git
+	branch = master
