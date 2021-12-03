@@ -1,7 +1,7 @@
-import discord
+# import discord
 from discord.ext import commands
 
-from functions import embed, MyContext, cache
+from functions import MyContext, cache
 from typing import Optional
 from typing_extensions import TYPE_CHECKING
 

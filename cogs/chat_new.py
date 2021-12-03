@@ -1,4 +1,4 @@
-import asyncio
+# import asyncio
 import datetime
 import os
 from collections import defaultdict
@@ -10,7 +10,7 @@ import validators
 from google.cloud import translate_v2 as translate
 # import json
 from discord.ext import commands
-from numpy import random
+# from numpy import random
 from profanity import profanity
 from six.moves.html_parser import HTMLParser
 # import profanity
@@ -333,7 +333,7 @@ class ChatNew(commands.Cog):
             # f"{my_prompt_name}: I don't like it when that happens\n"
             # f"{author_prompt_name}: Do you enjoy talking with people?\n"
             # f"{my_prompt_name}: Always!\n"
-            )
+    )
 
   def get_user_name(self, user: discord.User or discord.Member, *, guild_id: int = None) -> str:
     if guild_id is not None and guild_id in self.nicknames and user.id in self.nicknames[guild_id]:

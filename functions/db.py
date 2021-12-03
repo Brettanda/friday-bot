@@ -1,13 +1,13 @@
 import asyncpg
 import asyncio
 import os
-import json
+# import json
 
-import discord
-from discord.ext import commands
+# import discord
+# from discord.ext import commands
 from typing_extensions import TYPE_CHECKING
 from typing import Optional, Union
-import collections
+# import collections
 
 if TYPE_CHECKING:
   from index import Friday as Bot

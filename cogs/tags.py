@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 
-from functions import embed, cache
+from functions import cache
 
 from typing import Optional
 from typing_extensions import TYPE_CHECKING
