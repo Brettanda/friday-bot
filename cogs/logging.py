@@ -128,8 +128,8 @@ class Logging(commands.Cog):
       return
 
     action: discord.AuditLogEntry = audit[0]
-    reg = REASON_REG.match(member.reason)
-    reason = member.reason if reg is None and member.reason is not None else reg[2] if reg is not None and reg[2] is not None else "No reason given"
+    reg = REASON_REG.match(action.reason)
+    reason = member.reason if hasattr(member, "reason") and reg is None and member.reason is not None else reg[2] if reg is not None and reg[2] is not None else "No reason given"
 
     self.bot.dispatch("log_event", guild.id, "ban", offender=member, moderator=action.user, reason=reason)
 
@@ -150,8 +150,8 @@ class Logging(commands.Cog):
       return
 
     action: discord.AuditLogEntry = audit[0]
-    reg = REASON_REG.match(member.reason)
-    reason = member.reason if reg is None and member.reason is not None else reg[2] if reg is not None and reg[2] is not None else "No reason given"
+    reg = REASON_REG.match(action.reason)
+    reason = action.reason if reg is None and action.reason is not None else reg[2] if reg is not None and reg[2] is not None else "No reason given"
 
     self.bot.dispatch("log_event", guild.id, "unban", offender=member, moderator=action.user, reason=reason)
 
