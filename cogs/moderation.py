@@ -7,15 +7,10 @@ from typing import Optional, Union
 import discord
 # import validators
 import pycountry
-# from interactions import Context as SlashContext, cog_ext, ComponentContext
-# from discord_slash.model import SlashCommandOptionType
-# from discord_slash.utils.manage_commands import create_option, create_choice
-# from discord_slash.utils.manage_components import create_select, create_select_option, create_button, create_actionrow
 from discord.ext import commands
 from typing_extensions import TYPE_CHECKING
-from collections import defaultdict
 
-from functions import (MessageColors, MyContext, cache, checks, config, embed,
+from functions import (MessageColors, MyContext, cache, embed,
                        relay_info, time)
 
 if TYPE_CHECKING:
