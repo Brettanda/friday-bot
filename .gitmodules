@@ -7,3 +7,8 @@
 	path = docs
 	url = git@github.com:Brettanda/friday-docs.git
 	branch = master
+
+[submodule "i18n"]
+	path = i18n
+	url = git@github.com:Brettanda/friday-i18n.git
+	branch = master
