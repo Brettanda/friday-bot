@@ -3,17 +3,14 @@ import json
 from typing import Optional
 import numpy.random as random
 import asyncio
-import datetime
 from async_timeout import timeout
 
-import discord
-from discord.ext import commands, tasks
+from discord.ext import commands
 # from discord_slash import cog_ext, SlashContext
 # from discord_slash.utils.manage_commands import create_choice, create_option, SlashCommandOptionType
 
 # sys.path.insert(1, os.path.join(sys.path[0], '..'))
-from pyfiglet import figlet_format
-from functions import MessageColors, embed, exceptions, checks
+from functions import MessageColors, embed, exceptions
 from typing_extensions import TYPE_CHECKING
 from functions import MyContext
 
