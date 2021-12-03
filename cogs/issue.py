@@ -1,62 +1,47 @@
-import asyncio
+import os
 
+import discord
 from discord.ext import commands
-from discord_slash import cog_ext
+from typing_extensions import TYPE_CHECKING
 
-from functions import embed, relay_info, checks
+from functions import MessageColors, embed, relay_info  # ,checks
+
+from .log import CustomWebhook
+
+# from discord_slash import cog_ext
+
+
+if TYPE_CHECKING:
+  from index import Friday as Bot
+
+
+class SupportServer(discord.ui.View):
+  def __init__(self):
+    super().__init__()
+    self.add_item(discord.ui.Button(label="Support Server", style=discord.ButtonStyle.grey, url="https://discord.gg/NTRuFjU"))
 
 
 class Issue(commands.Cog):
-  def __init__(self, bot):
+  """Report your issues you have with Friday"""
+
+  def __init__(self, bot: "Bot"):
     self.bot = bot
 
-  @commands.command(name="issue", aliases=["problem"], description="If you have an issue or noticed a bug with Friday, this will send a message to the developer.", usage="<Description of issue and steps to recreate the issue>")
+  def __repr__(self):
+    return "<cogs.Issue>"
+
+  @discord.utils.cached_property
+  def log_issues(self) -> CustomWebhook:
+    return CustomWebhook.partial(os.environ.get("WEBHOOKISSUESID"), os.environ.get("WEBHOOKISSUESTOKEN"), session=self.bot.session)
+
+  @commands.command(name="issue", aliases=["problem", "feedback"], help="If you have an issue or noticed a bug with Friday, this will send a message to the developer.", usage="<Description of issue and steps to recreate the issue>")
   @commands.cooldown(1, 30, commands.BucketType.channel)
-  async def norm_feedback(self, ctx, *, issue: str):
-    await self.feedback(ctx, issue)
-
-  @cog_ext.cog_slash(name="issue", description="If you have an issue or noticed a bug with Friday, this will send a message to the developer.")
-  @commands.cooldown(1, 30, commands.BucketType.channel)
-  @checks.slash(user=True, private=False)
-  async def slash_feedback(self, ctx, *, issue: str):
-    await self.feedback(ctx, issue, True)
-
-  async def feedback(self, ctx, issue: str, slash=False):
-    timeout = 20
-    if slash:
-      confirm = await ctx.send(f"Please confirm your feedback by reacting with ✅. This will cancel after {timeout} seconds", embed=embed(title="Are you sure you would like to submit this issue?", description=f"{issue}"))
-    else:
-      confirm = await ctx.reply(f"Please confirm your feedback by reacting with ✅. This will cancel after {timeout} seconds", embed=embed(title="Are you sure you would like to submit this issue?", description=f"{issue}"))
-    delay = self.bot.get_guild_delete_commands(ctx.guild)
-    if not slash:
-      await ctx.message.delete(delay=delay)
-    await confirm.add_reaction("✅")
-
-    def check(reaction, user):
-      return str(reaction.emoji) == "✅" and user == ctx.author
-
-    try:
-      await self.bot.wait_for("reaction_add", timeout=float(timeout), check=check)
-    except asyncio.TimeoutError:
-      await confirm.edit(content="", embed=embed(title="Canceled"))
-    else:
-      await confirm.edit(content="", embed=embed(title="Sent. For a follow up to this issue please join the support server https://discord.gg/NTRuFjU"))
-      await relay_info("", embed=embed(title="Issue", description=f"{issue}", ctx=ctx), bot=self.bot, webhook=self.bot.log_issues)
-    finally:
-      if not slash:
-        await confirm.delete(delay=delay)
-      try:
-        await confirm.clear_reaction("✅")
-      except BaseException:
-        await confirm.remove_reaction("✅", self.bot.user)
-
-  @commands.command(name="support", description="Get an invite link to my support server")
-  async def norm_support(self, ctx):
-    await ctx.reply("https://discord.gg/NTRuFjU")
-
-  @cog_ext.cog_slash(name="support", description="Support server link")
-  async def slash_support(self, ctx):
-    await ctx.send("https://discord.gg/NTRuFjU", hidden=True)
+  @commands.has_guild_permissions(manage_guild=True)
+  async def norm_issue(self, ctx, *, issue: str):
+    confirm = await ctx.prompt("Please confirm your feedback.", embed=embed(title="Are you sure you would like to submit this issue?", description=f"{issue}"))
+    if not confirm:
+      return await ctx.send(embed=embed(title="Canceled", color=MessageColors.ERROR))
+    await relay_info("", embed=embed(title="Issue", description=f"{issue}", author_icon=ctx.author.display_avatar.url, author_name=ctx.author.display_name), bot=self.bot, webhook=self.log_issues)
 
 
 def setup(bot):

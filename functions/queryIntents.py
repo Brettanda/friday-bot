@@ -8,12 +8,16 @@ import numpy as np
 import pandas as pd
 # from flair.data import Sentence
 # from flair.models import MultiTagger  # , SequenceTagger
-# from keras.layers import Dropout, Activation, Dense
-from keras.models import load_model  # , Sequential
-# from keras.optimizers import SGD
+# from tensorflow.keras.layers import Dropout, Activation, Dense
+from tensorflow.keras.models import load_model  # , Sequential
+# from tensorflow.keras.optimizers import SGD
 from nltk.sentiment import SentimentIntensityAnalyzer
 # from nltk.stem.lancaster import LancasterStemmer
 from nltk.stem import PorterStemmer
+
+from spellchecker import SpellChecker
+
+spell = SpellChecker()
 
 try:
   nltk.data.find('tokenizers/punkt.zip')
@@ -79,6 +83,16 @@ def clean_up_sentence(sentence):
 def bow(sentence, wrds, show_details=True, mentioned=False):
   # tokenize the pattern
   sentence_words = clean_up_sentence(sentence)
+  x = 0
+  for word in sentence_words:
+    corrected_word = spell.correction(word)
+    if word == "r":
+      sentence_words[x] = "are"
+    elif word == "u":
+      sentence_words[x] = "you"
+    elif word != corrected_word:
+      sentence_words[x] = corrected_word
+    x += 1
   # bag of words - matrix of N words, vocabulary matrix
   bag = [0] * len(wrds)
   inbag = ""
@@ -90,7 +104,7 @@ def bow(sentence, wrds, show_details=True, mentioned=False):
         bag[i] = 1
         if show_details:
           inbag += f"{w} "
-          # print ("found in bag: %s" % w)
+          # print ("found in bag: ?" % w)
   # sentiment = sia.polarity_scores(" ".join(sentence))
   # bag.insert(0, sentiment["neg"])
   # bag.insert(0, sentiment["neu"])

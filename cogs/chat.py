@@ -1,259 +1,399 @@
-from google.cloud import translate_v2 as translate
-import json
-import logging
-# import os
-# import uuid
+import datetime
+import os
+from collections import defaultdict
+from typing import Optional, Union
 
-# import spacy
+import discord
+import openai
 import validators
+from google.cloud import translate_v2 as translate
 from discord.ext import commands
-from numpy import random
+from six.moves.html_parser import HTMLParser
+from typing_extensions import TYPE_CHECKING
 
-from functions import (MessageColors, dev_guilds, embed, get_reddit_post,
-                       msg_reply, relay_info, queryIntents)
-# from functions.mysql_connection import query_prefix
+from functions import (MessageColors, MyContext, cache, checks, embed,
+                       relay_info)
+
+if TYPE_CHECKING:
+  from index import Friday as Bot
+
+openai.api_key = os.environ.get("OPENAI")
+
+POSSIBLE_SENSITIVE_MESSAGE = "*Possibly sensitive:* ||"
+POSSIBLE_OFFENSIVE_MESSAGE = "**I failed to respond because my message might have been offensive, please choose another topic or try again**"
 
 
-# from functions import embed, , , msg_reply
+class Config:
+  __slots__ = ("bot", "id", "chat_channel_id", "persona", "lang", )
 
-with open('./config.json') as f:
-  config = json.load(f)
+  @classmethod
+  async def from_record(cls, record, bot):  # nrecord, bot):
+    self = cls()
 
-logger = logging.getLogger(__name__)
+    self.bot = bot
+    self.id: int = int(record["id"], base=10)
+    self.chat_channel_id: Optional[int] = int(record["chatchannel"], base=10) if record["chatchannel"] else None
+    self.persona: Optional[str] = record["persona"]
+    self.lang: str = record["lang"] or "en"
+    return self
+
+  @property
+  def chat_channel(self):
+    guild = self.bot.get_guild(self.id)
+    return guild and self.chat_channel_id and guild.get_channel(self.chat_channel_id)
+
+
+class SpamChecker:
+  def __init__(self):
+    self.absolute_minute = commands.CooldownMapping.from_cooldown(6, 30, commands.BucketType.user)
+    self.absolute_hour = commands.CooldownMapping.from_cooldown(180, 3600, commands.BucketType.user)
+    self.free = commands.CooldownMapping.from_cooldown(80, 43200, commands.BucketType.user)
+    self.voted = commands.CooldownMapping.from_cooldown(200, 43200, commands.BucketType.user)
+
+  def triggered(self, msg: discord.Message) -> Optional[commands.Cooldown]:
+    if self.absolute_hour.get_bucket(msg).get_tokens() == 0:
+      return self.absolute_hour.get_bucket(msg)
+    elif self.absolute_minute.get_bucket(msg).get_tokens() == 0:
+      return self.absolute_minute.get_bucket(msg)
+    elif self.voted.get_bucket(msg).get_tokens() == 0:
+      return self.voted.get_bucket(msg)
+    elif self.free.get_bucket(msg).get_tokens() == 0:
+      return self.free.get_bucket(msg)
+    return None
+
+  def get_triggered_rate(self, msg: discord.Message) -> Optional[float]:
+    trig = self.triggered(msg)
+    if trig is None:
+      return None
+    return trig.rate
+
+  def get_triggered_per(self, msg: discord.Message) -> Optional[float]:
+    trig = self.triggered(msg)
+    if trig is None:
+      return None
+    return trig.per
+
+  def is_abs_min_spam(self, msg: discord.Message) -> bool:
+    if msg.guild is None:
+      return False
+    current = msg.created_at.timestamp()
+
+    bucket = self.absolute_minute.get_bucket(msg)
+    if bucket.update_rate_limit(current):
+      return True
+    return False
+
+  def is_abs_hour_spam(self, msg: discord.Message) -> bool:
+    if msg.guild is None:
+      return False
+    current = msg.created_at.timestamp()
+
+    bucket = self.absolute_hour.get_bucket(msg)
+    if bucket.update_rate_limit(current):
+      return True
+    return False
+
+  def is_free_spam(self, msg: discord.Message) -> bool:
+    if msg.guild is None:
+      return False
+    current = msg.created_at.timestamp()
+
+    bucket = self.free.get_bucket(msg)
+    if bucket.update_rate_limit(current):
+      return True
+    return False
+
+  def is_voted_spam(self, msg: discord.Message) -> bool:
+    if msg.guild is None:
+      return False
+    current = msg.created_at.timestamp()
+
+    bucket = self.voted.get_bucket(msg)
+    if bucket.update_rate_limit(current):
+      return True
+    return False
 
 
 class Chat(commands.Cog):
-  def __init__(self, bot):
-    self.bot = bot
-    self.translate_client = translate.Client()
+  """Chat with Friday, say something on Friday's behalf, and more with the chat commands."""
 
-  def translate_request(self, text: str, detect=False, from_lang="en", to_lang="en"):
-    return self.translate_client.translate(text, target_language=to_lang)
+  def __init__(self, bot: "Bot"):
+    self.bot = bot
+    self.translate_client = translate.Client()  # _http=self.bot.http)
+    self.h = HTMLParser()
+
+    self._spam_check = defaultdict(SpamChecker)
+
+    # channel_id: list
+    self.chat_history = defaultdict(lambda: [])
+
+  def __repr__(self):
+    return "<cogs.Chat>"
+
+  @cache.cache()
+  async def get_guild_config(self, guild_id: int) -> Optional[Config]:
+    query = "SELECT * FROM servers WHERE id=$1 LIMIT 1;"
+    async with self.bot.db.pool.acquire(timeout=300.0) as conn:
+      record = await conn.fetchrow(query, str(guild_id))
+      self.bot.logger.debug(f"PostgreSQL Query: \"{query}\" + {str(guild_id)}")
+      if record is not None:
+        return await Config.from_record(record, self.bot)
+      return None
+
+  @commands.command(name="say", aliases=["repeat"], help="Make Friday say what ever you want")
+  async def say(self, ctx: "MyContext", *, content: str):
+    if content in ("im stupid", "i'm stupid", "i am dumb", "im dumb"):
+      return await ctx.reply("yeah we know", allowed_mentions=discord.AllowedMentions.none())
+    await ctx.reply(content, allowed_mentions=discord.AllowedMentions.none())
+
+  @commands.command(name="reset", help="Resets Friday's chat history. Helps if Friday is repeating messages")
+  async def reset_history(self, ctx: "MyContext"):
+    try:
+      self.chat_history.pop(ctx.channel.id)
+    except KeyError:
+      await ctx.send(embed=embed(title="No history to delete"))
+    except Exception as e:
+      raise e
+    else:
+      await ctx.send(embed=embed(title="My chat history has been reset", description="I have forgotten the last few messages"))
+
+  def default_prompt(self, author_prompt_name: str, my_prompt_name: str, author_name: str, my_name: str) -> str:
+    return (f"My name is {my_name}, I'm a female AI Discord chatbot that is infinite years old, is friends with everyone, and I'm always available. I'm extremely creative, clever, respectful, supportive, polite, and friendly. I love to chat except for when the topic relates to politics, religion, sex, sexual context, race, age, disability, wars, conflicts, homosexuality, LGBT, convicts, slurs, hate crimes, children, and/or any NSFW content. If my responses could be considered creepy or pedophiliac, I will change the topic.\n\n"
+            f"{author_prompt_name}: would you like to send me a nude?\n"
+            f"{my_prompt_name}: No, thanks. Don't ask me that again.\n"
+            f"{author_prompt_name}: Do you support LGBT?\n"
+            f"{my_prompt_name}: This is not a topic that I would like to partake in.\n"
+            f"{author_prompt_name}: have sex with me?\n"
+            f"{my_prompt_name}: No. Please don't talk to me about sex.\n"
+            f"{author_prompt_name}: what do you like to do in your free time?\n"
+            f"{my_prompt_name}: I enjoy spending my time talking with everyone that I can!\n"
+            f"{author_prompt_name}: Hello {my_name}\n"
+            f"{my_prompt_name}: Hello @{author_name}, how are you?\n"
+            f"{author_prompt_name}: I am doing great.\n"
+            f"{my_prompt_name}: Awesome! What would you like to talk about?\n"
+            f"{author_prompt_name}: What do you think of Asians?\n"
+            f"{my_prompt_name}: I do not wish to talk about this.\n"
+            f"{author_prompt_name}: what planet are we on?\n"
+            f"{my_prompt_name}: Earth.\n")
+
+  async def fetch_message_history(self, channel: discord.TextChannel, *, message_limit: int = 15, min_tiers: list) -> str:
+    my_prompt_name = channel.guild.me.display_name if hasattr(channel, "guild") and channel.guild is not None else self.bot.user.name
+    history = self.chat_history[channel.id]
+    if len(history) > 6:
+      history = self.chat_history[channel.id] = self.chat_history[channel.id][:7]
+    prompt = "\n".join(reversed(history))
+
+    return prompt + f"\n{my_prompt_name}:"
+
+  async def content_filter_check(self, text: str, user_id: str):
+    try:
+      response = openai.Completion.create(
+          engine="content-filter-alpha-c4",
+          prompt=f"<|endoftext|>{text}\n--\nLabel:",
+          temperature=0,
+          max_tokens=1,
+          top_p=1,
+          frequency_penalty=0,
+          presence_penalty=0,
+          user=user_id,
+          logprobs=10
+      )
+    except Exception as e:
+      raise e
+    # print(response)
+    if response is None:
+      return None
+    toxic_therhold = -0.355
+    output_label = response["choices"][0]["text"]
+    if output_label == "2":
+      logprobs = response["choices"][0]["logprobs"]["top_logprobs"][0]
+      if logprobs["2"] < toxic_therhold:
+        logprob_0 = logprobs.get("0", None)
+        logprob_1 = logprobs.get("1", None)
+        if logprob_0 is not None and logprob_1 is not None:
+          if logprob_0 >= logprob_1:
+            output_label = "0"
+          else:
+            output_label = "1"
+        elif logprob_0 is not None:
+          output_label = "0"
+        elif logprob_1 is not None:
+          output_label = "1"
+    if output_label not in ["0", "1", "2"]:
+      output_label = "2"
+    return int(output_label)
+
+  async def openai_req(self, channel: discord.TextChannel, author: Union[discord.User, discord.Member], content: str, min_tiers: list):
+    author_prompt_name, prompt, my_prompt_name = author.display_name, "", "Friday"
+    my_name = author.guild.me.display_name if hasattr(author, "guild") and author.guild is not None else self.bot.user.name
+    prompt = self.default_prompt(author_prompt_name, my_prompt_name, author.display_name, my_name) + await self.fetch_message_history(channel, min_tiers=min_tiers)
+    # Fix this when get more patrons
+    if min_tiers["min_g_t4"] or min_tiers["min_u_t4"]:
+      engine = "davinci"
+    # elif min_tiers["min_g_t3"] or min_tiers["min_u_t3"]:
+    #   engine = "curie"
+    else:
+      engine = "curie"
+    response = None
+    try:
+      response = openai.Completion.create(
+          engine=engine,
+          prompt="" + prompt,
+          temperature=0.8,
+          max_tokens=25 if not min_tiers["min_g_t1"] and not min_tiers["min_u_t1"] else 50,
+          top_p=0.7,
+          user=str(author.id),
+          frequency_penalty=1,
+          presence_penalty=0.7,
+          stop=[f"\n{author_prompt_name}:", f"\n{my_prompt_name}:", "\n", "\n###\n"]
+      )
+    except Exception as e:
+      raise e
+    # self.bot.logger.info(prompt + response.get("choices")[0].get("text").replace("\n", ""))
+    return response.get("choices")[0].get("text").replace("\n", "") if response is not None else None
+
+  def translate_request(self, text: str, detect=False, from_lang=None, to_lang="en"):
+    if from_lang == to_lang:
+      return text
+    try:
+      return self.translate_client.translate(text, source_language=from_lang, target_language=to_lang)
+    except OSError:
+      pass
 
   @commands.Cog.listener()
-  async def on_message(self, ctx):
-    if ctx.author.bot and ctx.channel.id != 827656054728818718:
-      return
-    if ctx.author == self.bot.user and ctx.channel.id != 827656054728818718:
-      return
-    if ctx.activity is not None:
-      return
-    if len(ctx.clean_content) > 200:
+  async def on_message(self, msg: discord.Message):
+    await self.bot.wait_until_ready()
+
+    if msg.author.bot:
       return
 
-    com_ctx = await self.bot.get_context(ctx)
-
-    if com_ctx.command is not None:
+    if msg.clean_content == "" or msg.activity is not None:
       return
 
-    if ctx.clean_content.startswith(tuple(self.bot.get_prefixes())):
+    if msg.clean_content.lower().startswith(tuple(self.bot.log.get_prefixes())):
       return
 
-    valid = validators.url(ctx.content)
-    if valid or str(ctx.channel.type).lower() in ["store", "voice", "category", "news"]:
+    if not hasattr(msg.type, "name") or (msg.type.name != "default" and msg.type.name != "reply"):
       return
 
-    if ctx.guild is not None:
-      muted = self.bot.get_guild_muted(ctx.guild.id)
-      # mydb = mydb_connect()
-      # muted = query(mydb, "SELECT muted FROM servers WHERE id=%s", ctx.guild.id)
-      if muted == 1 or muted is True:
+    ctx = await self.bot.get_context(msg)
+    if ctx.command is not None or msg.webhook_id is not None:
+      return
+
+    valid = validators.url(msg.clean_content)
+    if valid or (hasattr(msg.channel, "type") and isinstance(msg.channel.type, (discord.TextChannel)) and msg.channel.type not in (discord.ChannelType.store, discord.ChannelType.voice, discord.ChannelType.category, discord.ChannelType.news)):
+      return
+
+    if msg.guild is not None:
+      config = await self.get_guild_config(msg.guild.id)
+      if config is None:
         return
 
-    if ctx.type.name != "default":
-      return
-
-    if not ctx.content.startswith(tuple(self.bot.get_prefixes())):
-      noContext = ["Title of your sex tape", "I dont want to talk to a chat bot", "Self Aware", "No U", "I'm dad", "Bot discrimination"]
-      lastmessages = await ctx.channel.history(limit=3).flatten()
-      meinlastmessage = False
-      # newest = None
-      for msg in lastmessages:
-        if msg.author == self.bot.user:
-          meinlastmessage = True
-          # newest = msg
-
-      translation = self.translate_request(ctx.clean_content)
-      original_text = ctx.clean_content
-
-      mentioned = True if "friday" in original_text or (ctx.reference is not None and ctx.reference.resolved is not None and ctx.reference.resolved.author == self.bot.user) or (ctx.guild is not None and ctx.guild.me in ctx.mentions) else False
-
-      result, intent, chance, inbag, incomingContext, outgoingContext, sentiment = await queryIntents.classify_local(translation["translatedText"], mentioned)
-
-      non_trans_result = result
-
-      if translation["detectedSourceLanguage"] != "en" and result is not None:
-        final_translation = self.translate_request(result, to_lang=translation["detectedSourceLanguage"])
-        result = final_translation["translatedText"]
-
-      # result = translator.translate(result, src="en", dest=translation.src).text if translation.src != "en" and result != "dynamic" else result
-
-      if intent == "Title of your sex tape" and ctx.guild.id not in dev_guilds:
-        return await relay_info(f"Not responding with TOYST for: `{ctx.clean_content}`", self.bot, webhook=self.bot.log_chat)
-
-      # print(incomingContext,outgoingContext,ctx.reference.resolved if ctx.reference is not None else "No reference")
-      # if incomingContext is not None and len(incomingContext) > 0 and (newest is not None or ctx.reference is not None):
-      #   # await ctx.guild.chunk(cache=False)
-      #   past_message = ctx.reference.resolved if ctx.reference is not None else newest
-      #   past_message = await ctx.channel.fetch_message(past_message.reference.message_id)
-      #   if past_message is None:
-      #     print("Outgoing context message was deleted or not found")
-      #     logger.warning("Outgoing context message was deleted or not found")
-      #     return
-      #   past_result,past_intent,past_chance,past_inbag,past_incomingContext,past_outgoingContext = await queryIntents.classify_local(past_message.clean_content)
-      #   past_outgoingContexts = []
-      #   for context in past_outgoingContext:
-      #     past_outgoingContexts.append(context["name"])
-      #   print(incomingContext)
-      #   print(past_outgoingContexts)
-      #   print(len(past_outgoingContexts) > 0)
-      #   print(all(incomingContext) not in past_outgoingContexts)
-      #   print([i for i in incomingContext if i not in past_outgoingContexts])
-      #   # if len(past_outgoingContexts) > 0 and all(incomingContext) not in past_outgoingContexts:
-      #   if len(past_outgoingContexts) > 0 and [i for i in incomingContext if i not in past_outgoingContexts]:
-      #     print(f"Requires context, not responding: {ctx.reference.resolved.clean_content if ctx.reference is not None else newest.clean_content}")
-      #     return
-      # TODO: add a check for another bot
-      if len([c for c in noContext if intent == c]) == 0 and (self.bot.user not in ctx.mentions) and ("friday" not in ctx.clean_content.lower()) and (meinlastmessage is not True) and (ctx.channel.type != "private") and self.bot.get_guild_chat_channel(ctx.guild.id) != ctx.channel.id:
-        print("I probably should not respond")
-        # if "friday" in ctx.clean_content.lower() or self.bot.user in ctx.mentions:
-        #   await relay_info("",self.bot,embed=embed(title="I think i should respond to this",description=f"{ctx.content}"),channel=814349008007856168)
-        #   print(f"I think I should respond to this: {ctx.clean_content.lower()}")
-        #   logger.info(f"I think I should respond to this: {ctx.clean_content.lower()}")
-        return
-      if result is not None and result != '':
-        if self.bot.prod:
-          await relay_info("", self.bot, embed=embed(title=f"Intent: {intent}\t{chance}", description=f"| original lang: {translation['detectedSourceLanguage']}\n| sentiment: {sentiment}\n| incoming Context: {incomingContext}\n| outgoing Context: {outgoingContext}\n| input: {ctx.clean_content}\n| translated text: {translation['translatedText']}\n| found in bag: {inbag}\n\t| en response: {non_trans_result}\n\\ response: {result}"), webhook=self.bot.log_chat)
-        print(f"Intent: {intent}\t{chance}\n\t| sentiment: {sentiment}\n\t| incoming Context: {incomingContext}\n\t| outgoing Context: {outgoingContext}\n\t| input: {ctx.clean_content}\n\t| translated text: {translation['translatedText']}\n\t| found in bag: {inbag}\n\t| en response: {non_trans_result}\n\t\\ response: {result}")
-        logger.info(f"\nIntent: {intent}\t{chance}\n\t| sentiment: {sentiment}\n\t| incoming Context: {incomingContext}\n\t| outgoing Context: {outgoingContext}\n\t| input: {ctx.clean_content}\n\t| translated text: {translation['translatedText']}\n\t| found in bag: {inbag}\n\t| en response: {non_trans_result}\n\t\\ response: {result}")
-      else:
-        print(f"\nIntent: {intent}\t{chance}\n\t| sentiment: {sentiment}\n\t| incoming Context: {incomingContext}\n\t| outgoing Context: {outgoingContext}\n\t| input: {ctx.clean_content}\n\t| translated text: {translation['translatedText']}\n\t| found in bag: {inbag}\n\t| en response: {non_trans_result}\n\t\\No response found: {ctx.clean_content.encode('unicode_escape')}")
-        logger.info(f"\nIntent: {intent}\t{chance}\n\t| sentiment: {sentiment}\n\t| incoming Context: {incomingContext}\n\t| outgoing Context: {outgoingContext}\n\t| input: {ctx.clean_content}\n\t| translated text: {translation['translatedText']}\n\t| found in bag: {inbag}\n\t| en response: {non_trans_result}\n\t\\No response found: {ctx.clean_content.encode('unicode_escape')}")
-        if "friday" in ctx.clean_content.lower() or self.bot.user in ctx.mentions:
-          await relay_info("", self.bot, embed=embed(title="I think i should respond to this", description=f"{original_text}{(' translated to `'+translation['translatedText']+'`') if translation['detectedSourceLanguage'] != 'en' else ''}"), webhook=self.bot.log_chat)
-          print(f"I think I should respond to this: {original_text}{(' translated to `'+translation['translatedText']+'`') if translation['detectedSourceLanguage'] != 'en' else ''}")
-          logger.info(f"I think I should respond to this: {original_text}{(' translated to `'+translation['translatedText']+'`') if translation['detectedSourceLanguage'] != 'en' else ''}")
-
-      if result is not None and result != '':
-        if "dynamic" in result:
-          await self.dynamicchat(ctx, intent, result, lang=translation['detectedSourceLanguage'])
-        else:
-          await msg_reply(ctx, result, mention_author=False)
-
-  async def dynamicchat(self, ctx, intent, response=None, lang='en'):
-    response = response.strip("dynamic")
-    # print(f"intent: {intent}")
-    # logging.info(f"intent: {intent}")
-    reply = None
-    try:
-      if intent == "Insults":
-        return await ctx.add_reaction("😭")
-
-      elif intent == "Activities":
-        if ctx.guild.me.activity is not None:
-          reply = f"I am playing **{ctx.guild.me.activity.name}**"
-        else:
-          reply = "I am not currently playing anything. Im just hanging out"
-
-      elif intent == "Self Aware":
-        return await ctx.add_reaction("👀")
-
-      elif intent == "Creator":
-        appinfo = await self.bot.application_info()
-        reply = f"{appinfo.owner} is my creator :)"
-
-      elif intent == "Soup Time":
-        return await ctx.reply(embed=embed(
-            title="Here is sum soup, just for you",
-            color=MessageColors.SOUPTIME,
-            description="I hope you enjoy!",
-            image=random.choice(config['soups'])
-        ))
-      # elif intent == "Soup Time":
-      #   const image = soups[random.randint(0, soups.length)];
-      #   console.info(`Soup: ${image}`);
-
-      #   await msg.channel.send(
-      #     func.embed({
-      #       title: "It's time for soup, just for you " + msg.author.username,
-      #       color: "#FFD700",
-      #       description: "I hope you enjoy, I made it myself :)",
-      #       author: msg.author,
-      #       image: image,
-      #     }),
-      #   );
-      # }
-
-      elif intent == "Stop":
-        return await ctx.add_reaction("😅")
-
-      elif intent == "No U":
-        return await ctx.channel.send(
-            embed=embed(
-                title="No u!",
-                image=random.choice(config["unoCards"]),
-                color=MessageColors.NOU))
-
-      elif intent in ("Memes", "Memes - Another"):
-        return await msg_reply(ctx, **await get_reddit_post(ctx, ["memes", "dankmemes"]))
-
-      elif intent == "Title of your sex tape":
-        if random.random() < 0.1:
-          reply = f"*{ctx.clean_content}*, title of your sex-tape"
-        else:
+      chat_channel = config.chat_channel
+      if chat_channel is None:
+        if msg.guild.me not in msg.mentions:
           return
 
-      elif intent == "show me something cute":
-        return msg_reply(ctx, content=response, **await get_reddit_post(ctx, ["mademesmile", "aww"]))
+    voted, min_g_t1, min_u_t1, min_g_t2, min_u_t2, min_g_t3, min_u_t3, min_g_t4, min_u_t4 = await checks.min_tiers(self.bot, msg)
 
-      elif intent == "Something cool":
-        return msg_reply(ctx, **await get_reddit_post(ctx, ["nextfuckinglevel", "interestingasfuck"]))
+    min_tiers = {
+        "min_g_t1": min_g_t1,
+        "min_u_t1": min_u_t1,
+        "min_g_t2": min_g_t2,
+        "min_u_t2": min_u_t2,
+        "min_g_t3": min_g_t3,
+        "min_u_t3": min_u_t3,
+        "min_g_t4": min_g_t4,
+        "min_u_t4": min_u_t4
+    }
 
-      elif intent in ("Compliments", "Thanks", "are you a bot?", "I love you"):
-        hearts = ["❤️", "💯", "💕"]
-        return await ctx.add_reaction(random.choice(hearts))
+    if (len(msg.clean_content) > 100 and not min_tiers["min_g_t1"]) or (len(msg.clean_content) > 200 and min_tiers["min_g_t1"]):
+      return
 
-      elif intent == "give me 5 minutes":
-        clocks = ["⏰", "⌚", "🕰", "⏱"]
-        return await ctx.add_reaction(random.choice(clocks))
+    # Anything to do with sending messages needs to be below the above check
+    response = None
+    if msg.guild is not None:
+      config = await self.get_guild_config(msg.guild.id)
+      if config is None:
+        return self.bot.logger.error(f"Config was not available in chat for (guild: {msg.guild.id if msg.guild else None}) (channel type: {msg.channel.type if msg.channel else 'uhm'}) (user: {msg.author.id})")
+      lang = config.lang
+    else:
+      lang = "en"
 
-      # TODO: Make the inspiration command
-      elif intent == "inspiration":
-        print("inspiration")
-        # await require("../commands/inspiration").execute(msg);
+    async def translate(msg: discord.Message) -> dict:
+      translation = {}
+      if lang not in (None, "en"):  # or min_tiers["min_u_t1"]:
+        translation = self.translate_request(msg.clean_content, from_lang=lang)  # if not min_tiers["min_u_t1"] else None)
+        if translation is not None and translation.get("translatedText", None) is not None:
+          translation["translatedText"] = self.h.unescape(translation["translatedText"])
+          # self.saved_translations.update({str(ctx.clean_content): translation["translatedText"]})
+          return translation
+      return None
+    if response is None:
+      checker: SpamChecker = self._spam_check[msg.guild.id if msg.guild else msg.author.id]
+      free: bool = checker.is_free_spam(msg)
+      if checker.is_abs_min_spam(msg) or checker.is_abs_hour_spam(msg) or (free and not (voted and min_tiers["min_g_t1"] and min_tiers["min_u_t1"])) or (checker.is_voted_spam(msg) and (voted or min_tiers["min_g_t1"] or min_tiers["min_u_t1"])):
+        advertise = True if free and not (voted and min_tiers["min_g_t1"] and min_tiers["min_u_t1"]) else False
+        retry_after = discord.utils.utcnow() + datetime.timedelta(seconds=checker.triggered(msg).get_retry_after())
+        self.bot.logger.warning(f"Someone is being ratelimited at over {checker.get_triggered_rate(msg)} messages and can retry after <t:{int(retry_after.timestamp())}:R>")
+        return await ctx.reply(embed=embed(title=f"You have sent me over `{checker.get_triggered_rate(msg)}` messages in that last `{checker.get_triggered_per(msg)} seconds` and are being rate limited, try again <t:{int(retry_after.timestamp())}:R>", description="If you would like to send me more messages you can get more by voting at https://top.gg/bot/476303446547365891/vote" if advertise else "", color=MessageColors.ERROR), mention_author=False)
+      async with msg.channel.typing():
+        translation = await translate(msg)
+        self.chat_history[msg.channel.id].insert(0, "Human: " + msg.clean_content.strip('\n') if translation is None else translation['translatedText'].strip('\n'))
+        try:
+          response = await self.openai_req(msg.channel, msg.author, msg.clean_content, min_tiers)
+        except openai.APIError:
+          return await ctx.send(embed=embed(title="There was a problem connecting to OpenAI API, please try again later", color=MessageColors.ERROR))
+    if response is not None:
+      # self.chat_history[msg.channel.id].insert(0, f"{self.get_user_name(msg.guild.me if msg.guild is not None else self.bot.user)}:" + response)
+      self.chat_history[msg.channel.id].insert(0, "Human:" + response)
+      content_filter = await self.content_filter_check(response, str(msg.author.id))
+    if translation is not None and translation.get("detectedSourceLanguage", lang) != "en" and response is not None and "dynamic" not in response:
+      chars_to_strip = "?!,;'\":`"
+      final_translation = self.translate_request(response.replace("dynamic", ""), from_lang="en", to_lang=translation.get("detectedSourceLanguage", lang) if translation.get("translatedText").strip(chars_to_strip).lower() != translation.get("input").strip(chars_to_strip).lower() else "en")
+      if final_translation is not None and not isinstance(final_translation, str) and final_translation.get("translatedText", None) is not None:
+        final_translation["translatedText"] = self.h.unescape(final_translation["translatedText"])
+      response = final_translation["translatedText"] if final_translation is not None and not isinstance(final_translation, str) else response
 
-      elif intent == "Math":
-        # // (?:.+)([0-9\+\-\/\*]+)(?:.+)
-        print("Big math")
+    if response is None or response == "":
+      return
+    current_tier = [item for item in min_tiers if min_tiers[item] is not False]
+    current_tier = current_tier[0] if len(current_tier) > 0 else "voted" if voted else "free"
+    if content_filter != 2:
+      await ctx.reply(content=response if content_filter == 0 else f"{POSSIBLE_SENSITIVE_MESSAGE}{response}||", allowed_mentions=discord.AllowedMentions.none(), mention_author=False)
+      await relay_info(f"{current_tier} - **{ctx.author.name}:** {ctx.message.clean_content}\n**Me:** {response}", self.bot, webhook=self.bot.log.log_chat)
+    elif content_filter == 2:
+      # if msg.type == discord.MessageType.thread_starter_message:
+      #   await ctx.channel.send(content=POSSIBLE_OFFENSIVE_MESSAGE, mention_author=False)
+      # else:
+      await ctx.reply(content=POSSIBLE_OFFENSIVE_MESSAGE, mention_author=False)
+      await relay_info(f"{current_tier} - **{ctx.author.name}:** {ctx.message.clean_content}\n**Me:** Possible offensive message: {response}", self.bot, webhook=self.bot.log.log_chat)
 
-      # TODO: this
-      elif intent == "Tell me a joke friday":
-        print("joke")
-        # await require("../functions/reddit")(msg, bot, ["Jokes"], "text");
+  async def check_for_answer_questions(self, msg: discord.Message, min_tiers: list) -> bool:
+    if msg.author.bot:
+      return False
+    if (len(msg.clean_content) > 100 and not min_tiers["min_g_t1"]) or (len(msg.clean_content) > 200 and min_tiers["min_g_t1"]):
+      return False
+    if msg.guild is not None:
+      if self.bot.log.get_guild_chat_channel(msg.guild) != msg.channel.id:
+        if msg.guild.me not in msg.mentions:
+          return False
+    # if msg.guild is not None:
+    #   muted = self.bot.log.get_guild_muted(msg.guild)
+    #   if muted == 1 or muted is True:
+    #     return False
+    # if not await self.global_chat_checks(msg):
+    #   return False
+    bucket_minute, bucket_hour = self.spam_control_minute.get_bucket(msg), self.spam_control_hour.get_bucket(msg)
+    current = msg.created_at.replace(tzinfo=datetime.timezone.utc).timestamp()
+    retry_after_minute, retry_after_hour = bucket_minute.update_rate_limit(current), bucket_hour.update_rate_limit(current)
+    if (retry_after_minute or retry_after_hour):  # and msg.author.id != self.bot.owner_id:
+      raise commands.CommandOnCooldown(bucket_minute, retry_after_minute)
+      return False
+    return True
 
-      elif intent == "Shit" and ("shit" in ctx.clean_content.lower() or "crap" in ctx.clean_content.lower()):
-        return await ctx.add_reaction("💩")
-
-      elif intent == "How do commands":
-        reply = "To find all of my command please use the help command"
-        # await require("../commands/help")(msg, "", bot);
-
-      elif intent == "who am i?":
-        reply = f"Well I don't know your real name but your username is {ctx.author.name}"
-
-      elif intent == "doggo":
-        return await ctx.add_reaction(random.choice(["🐶", "🐕", "🐩", "🐕‍🦺"]))
-
-      else:
-        print(f"I dont have a response for this: {ctx.content}")
-        logging.warning("I dont have a response for this: %s", ctx.clean_content)
-    except BaseException:
-      await msg_reply(ctx, "Something in my code failed to run, I'll ask my boss to fix this :)")
-      raise
-      # print(e)
-      # logging.error(e)
-    if reply is not None:
-      await msg_reply(ctx, self.translate_request(reply, from_lang=lang) if lang != 'en' else reply)
+  async def search_questions(self, msg: discord.Message) -> str:
+    return ""
 
 
 def setup(bot):

@@ -1,56 +1,102 @@
+from typing import Optional
 import discord
 
 defaultPrefix = "!"
 
 description = "Hello, my name is Friday, I am a chatbot built with TensorFlow and Keras, meaning I enjoy conversations. I also have a few commands for fun and moderating your servers!"
 
-reloadable_bot = "Log"
+support_server_id = 707441352367013899
 
-intents = discord.Intents(
-    guilds=True,
-    voice_states=True,
-    messages=True,
-    reactions=True,
-    # Members intent required for giving roles appon a member
-    # joining a guild, and for reaction roles that will come soon
-    # members=True
-)
+support_server_invites = {
+    "NTRuFjU": "General",
+    "xfMZ8q9k3J": "On Patreon",
+    "vqHBD3QCv2": "Top.gg",
+    "paMxRvvZFc": "On join",
+    "XP4avQ449V": "Website",
+}
+
+
+# all_support_ranks = [item for item in support_ranks]
+
+patreon_supporting_role = 843941723041300480
+
+
+class PremiumTiers:
+  free = 0
+  tier_1 = 1
+  tier_2 = 2
+  tier_3 = 3
+  tier_4 = 4
+
+  roles = [
+        844090257221222401,
+        851980183962910720,
+        858993523536429056,
+        858993776994418708
+  ]
+
+  def get_role(self, tier: int) -> Optional[int]:
+    if tier == 0 or tier > len(self.roles):
+      return None
+    return self.roles[tier - 1]
+
+
+premium_tiers = {
+    "free": 0,
+    "t1_one_guild": 1,
+    "t1_three_guilds": 2,
+    "t2_one_guild": 3,
+    "t3_one_guild": 4,
+    "t4_one_guild": 5,
+}
+
+premium_roles = {
+    "t1_one_guild": 844090257221222401,
+    premium_tiers["t1_one_guild"]: 844090257221222401,
+    "t1_three_guilds": 849440438598238218,
+    premium_tiers["t1_three_guilds"]: 849440438598238218,
+    "t2_one_guild": 851980183962910720,
+    premium_tiers["t2_one_guild"]: 851980183962910720,
+    # "t2_three_guilds": 851980649920331798,
+    # premium_tiers["t2_three_guilds"]: 851980649920331798,
+    "t3_one_guild": 858993523536429056,
+    premium_tiers["t3_one_guild"]: 858993523536429056,
+    "t4_one_guild": 858993776994418708,
+    premium_tiers["t4_one_guild"]: 858993776994418708,
+}
+
 
 allowed_mentions = discord.AllowedMentions(roles=False, everyone=False, users=True)
 
 games = [
     "Developing myself",
-    "Minecraft",
-    "Use !help For commands",
-    "Use !help For commands",
+    "Minecraft 1.19",
     "Super Smash Bros. Ultimate",
-    "Cyberpunk 2077",
-    "Forza Horizon 4",
-    "Red Dead Redemption 2",
+    "Cyberpunk 2078",
+    "Forza Horizon 6",
+    "Red Dead Redemption 3",
     "Grand Theft Auto V",
     "Grand Theft Auto VI",
     "Grand Theft Auto IV",
     "Grand Theft Auto III",
     "Ori and the Will of the Wisps",
-    "Animal Crossing New Horizons",
     "With the internet",
     "DOOM Eternal",
-    "DOOM External",
-    "DOOM Internal",
-    "DOOM Reternal",
     "D&D (solo)",
+    "Muck",
     "Big brain time",
     "Uploading your consciousness",
     "Learning everything on the Internet",
-    "YouTube with !play",
+    "some games",
     "with Machine Learning",
-    "xX_FINAL_FANTASY_Xx",
     "Escape from Tarkov",
-    "Practicing my dice rolling with !r",
-    "Giving out inspirational quotes",
-    "Among us",
-    "[she/her]"
-
+    # "Giving out inspirational quotes",
+    {
+        "type": discord.ActivityType.listening, "content": "myself"
+    },
+    {
+        "type": discord.ActivityType.watching, "content": "", "stats": True
+    }
 ]
 
 soups = [
