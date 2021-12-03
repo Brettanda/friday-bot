@@ -13,6 +13,7 @@ from typing import Optional, Union
 
 import discord
 from discord.ext import commands
+from dotenv import load_dotenv
 from typing_extensions import TYPE_CHECKING
 
 import cogs
@@ -201,17 +202,18 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       await ctx.send(f"```sh\n{stdout}\n{stderr}```")
 
   @norm_dev.group(name="reload", invoke_without_command=True)
-  async def reload(self, ctx, command: str):
+  async def reload(self, ctx, module: str):
     async with ctx.typing():
-      com = self.bot.get_command(command)
+      com = self.bot.get_command(module)
       if com is not None and com.cog_name is not None:
-        command = com.cog_name
-      path = "spice.cogs." if command.lower() in cogs.spice else "cogs."
+        module = com.cog_name
+      path = "spice.cogs." if module.lower() in cogs.spice else "cogs."
+      load_dotenv()
       try:
-        self.bot.reload_extension(f"{path}{command.lower() if command is not None else None}")
+        self.bot.reload_extension(f"{path}{module.lower() if module is not None else None}")
       except discord.ExtensionNotLoaded:
-        self.bot.load_extension(f"{path}{command.lower() if command is not None else None}")
-    await ctx.reply(embed=embed(title=f"Cog *{command}* has been reloaded"))
+        self.bot.load_extension(f"{path}{module.lower() if module is not None else None}")
+    await ctx.reply(embed=embed(title=f"Cog *{module}* has been reloaded"))
 
   _GIT_PULL_REGEX = re.compile(r'\s*(?P<filename>.+?)\s*\|\s*[0-9]+\s*[+-]+')
 
@@ -250,6 +252,8 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
         stdout, stderr = await self.run_process("git pull origin master && git submodule update")
       else:
         return await ctx.reply(embed=embed(title="You are not on a branch", color=MessageColors.ERROR))
+
+    load_dotenv()
 
     if stdout.startswith("Already up-to-date."):
       return await ctx.send(stdout)
