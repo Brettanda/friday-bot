@@ -296,9 +296,9 @@ class Moderation(commands.Cog):
         failed += 1
 
     if len(members) == 1:
-      await ctx.send(embed=embed(title=f"Banned {members[0]}{' and reversed '+time.format_dt(duration.dt,style='R') if duration else ''}"))
+      await ctx.send(embed=embed(title=f"Banned {members[0]}{' and retracted '+time.format_dt(duration.dt,style='R') if duration else ''}"))
     else:
-      await ctx.send(embed=embed(title=f"Banned {len(members) - failed}/{len(members)} members{' and reversed '+time.format_dt(duration.dt,style='R') if duration else ''}."))
+      await ctx.send(embed=embed(title=f"Banned {len(members) - failed}/{len(members)} members{' and retracted '+time.format_dt(duration.dt,style='R') if duration else ''}."))
 
   @commands.Cog.listener()
   async def on_tempban_timer_complete(self, timer):
@@ -476,9 +476,9 @@ class Moderation(commands.Cog):
           failed += 1
 
     if len(members) == 1:
-      await ctx.send(embed=embed(title=f"Muted {members[0]}{' and reversed '+time.format_dt(duration.dt,style='R') if duration else ''}"))
+      await ctx.send(embed=embed(title=f"Muted {members[0]}{' and retracted '+time.format_dt(duration.dt,style='R') if duration else ''}"))
     else:
-      await ctx.send(embed=embed(title=f"Muted {len(members) - failed}/{len(members)} members{' and reversed '+time.format_dt(duration.dt,style='R') if duration else ''}."))
+      await ctx.send(embed=embed(title=f"Muted {len(members) - failed}/{len(members)} members{' and retracted '+time.format_dt(duration.dt,style='R') if duration else ''}."))
 
   @commands.Cog.listener()
   async def on_tempmute_timer_complete(self, timer):
@@ -616,13 +616,13 @@ class Moderation(commands.Cog):
     if duration.dt < (created_at + datetime.timedelta(minutes=5)):
       return await ctx.send(embed=embed(title="Duration is too short. Must be at least 5 minutes.", color=MessageColors.ERROR))
 
-    confirm = await ctx.prompt("", embed=embed(title=f"Are you sure you want to self-mute, and reversed {time.format_dt(duration.dt, style='R')}?", description="Do not ask the moderators to undo this!"))
+    confirm = await ctx.prompt("", embed=embed(title=f"Are you sure you want to self-mute, and retracted {time.format_dt(duration.dt, style='R')}?", description="Do not ask the moderators to undo this!"))
     if not confirm:
       return await ctx.send(embed=embed(title="Cancelled.", color=MessageColors.ERROR))
 
     await ctx.author.add_roles(discord.Object(id=role_id), reason=f"Self-mute for {ctx.author} (ID: {ctx.author.id}) for {time.human_timedelta(duration.dt, source=created_at)}")
     await reminder.create_timer(duration.dt, "tempmute", ctx.guild.id, ctx.author.id, ctx.author.id, role_id, created=created_at)
-    await ctx.send(embed=embed(title=f"Muted, and reversed {time.format_dt(duration.dt, style='R')}. Be sure not to bother anyone about it."))
+    await ctx.send(embed=embed(title=f"Muted, and retracted {time.format_dt(duration.dt, style='R')}. Be sure not to bother anyone about it."))
 
   @selfmute.error
   async def on_selfmute_error(self, ctx: "MyContext", error: Exception):
