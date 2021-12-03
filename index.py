@@ -3,14 +3,13 @@ import logging
 import os
 import sys
 from collections import defaultdict
-from importlib import reload
 from logging.handlers import RotatingFileHandler
 from typing import Optional
 
 import aiohttp
 import discord
-from dotenv import load_dotenv
 from discord.ext import commands
+from dotenv import load_dotenv
 from typing_extensions import TYPE_CHECKING
 
 import cogs
@@ -49,15 +48,23 @@ class Friday(commands.AutoShardedBot):
         command_prefix=get_prefix,
         strip_after_prefix=True,
         case_insensitive=True,
-        intents=functions.config.intents,
+        intents=discord.Intents(
+            guilds=True,
+            voice_states=True,
+            messages=True,
+            reactions=True,
+            members=True,
+            bans=True,
+            # invites=True,
+        ),
         status=discord.Status.idle,
         owner_id=215227961048170496,
+        debug_guild=243159711237537802,
         description=functions.config.description,
-        member_cache_flags=functions.config.member_cache,
+        member_cache_flags=discord.MemberCacheFlags.all(),
         chunk_guilds_at_startup=False,
-        allowed_mentions=functions.config.allowed_mentions,
+        allowed_mentions=discord.AllowedMentions(roles=False, everyone=False, users=True),
         enable_debug_events=True,
-        # heartbeat_timeout=150.0,
         loop=self.loop, **kwargs
     )
 
@@ -99,7 +106,7 @@ class Friday(commands.AutoShardedBot):
   async def setup(self, load_extentions: bool = False):
     self.session: aiohttp.ClientSession() = aiohttp.ClientSession(loop=self.loop)
 
-    for guild_id, prefix in await self.db.query("SELECT id,prefix FROM servers"):
+    for guild_id, prefix in await self.db.query("SELECT id,prefix FROM servers WHERE prefix!=$1::text", "!"):
       self.prefixes[int(guild_id, base=10)] = prefix
 
     if load_extentions:
@@ -109,20 +116,6 @@ class Friday(commands.AutoShardedBot):
           self.load_extension(f"{path}{cog}")
         except Exception as e:
           self.logger.error(f"Failed to load extenstion {cog} with \n {e}")
-
-  async def reload_cogs(self):
-    self.ready = False
-    reload(cogs)
-    reload(functions)
-
-    for i in functions.modules:
-      if not i.startswith("_"):
-        reload(getattr(functions, i))
-
-    self.reload_extension("cogs.log")
-    for i in cogs.default:
-      self.reload_extension(f"cogs.{i}")
-    self.ready = True
 
   async def on_message(self, ctx):
     if not self.ready:
@@ -168,7 +161,7 @@ if __name__ == "__main__":
 
   log = logging.getLogger("Friday")
   log.setLevel(logging.INFO)
-  filehandler = RotatingFileHandler(filename="logging.log", encoding="utf-8", maxBytes=max_bytes, backupCount=5)
+  filehandler = RotatingFileHandler(filename="logging.log", encoding="utf-8", mode="w", maxBytes=max_bytes, backupCount=5)
   formatter = logging.Formatter("%(levelname)s:%(name)s: %(message)s")
   filehandler.setFormatter(logging.Formatter("%(asctime)s:%(name)s:%(levelname)-8s%(message)s"))
   handler = logging.StreamHandler(sys.stdout)

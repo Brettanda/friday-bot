@@ -279,7 +279,6 @@ class API(commands.Cog):
 
       return web.json_response({"success": True, "passes": f"{passes}/{len(cogs)}"})
 
-    self.log.info(f"Starting aiohttp.web on port {self.port}")
     try:
       ssl_ctx = None
       if self.bot.prod or self.bot.canary:

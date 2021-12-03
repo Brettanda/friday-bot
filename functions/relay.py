@@ -14,9 +14,8 @@ MISSING = discord.utils.MISSING
 async def relay_info(msg: str, bot: "Bot", embed: discord.Embed = MISSING, file=MISSING, filefirst=MISSING, short: str = MISSING, webhook: "CustomWebhook" = MISSING, logger=logging.getLogger(__name__)):
   if webhook is MISSING:
     webhook = bot.log.log_info
-  while bot.is_closed():
-    await asyncio.sleep(0.5)
   if bot.prod or bot.canary:
+    await bot.wait_until_ready()
     thispath = os.getcwd()
     if "\\" in thispath:
       seperator = "\\\\"

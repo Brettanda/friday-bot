@@ -28,17 +28,9 @@ class Support(commands.Cog, name="Support"):
   async def norm_support(self, ctx):
     await ctx.reply(SUPPORT_SERVER_INVITE)
 
-  # @cog_ext.cog_slash(name="support", description="Support server link")
-  # async def slash_support(self, ctx):
-  #   await ctx.send(SUPPORT_SERVER_INVITE, hidden=True)
-
   @commands.command(name="donate", help="Get the Patreon link for Friday")
   async def norm_donate(self, ctx):
     await ctx.reply(PATREON_LINK)
-
-  # @cog_ext.cog_slash(name="donate", description="Get the Patreon link for Friday")
-  # async def slash_donate(self, ctx):
-  #   await ctx.send(PATREON_LINK, hidden=True)
 
   @commands.Cog.listener()
   async def on_message(self, msg):

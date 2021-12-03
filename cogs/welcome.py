@@ -39,6 +39,21 @@ class Welcome(commands.Cog):
   def __init__(self, bot: "Bot"):
     self.bot = bot
 
+    # welcome = bot.command_group("welcome", "Friday's settings for welcomeing new members to your servers")
+
+    # @welcome.command()
+    # @commands.guild_only()
+    # @discord.option("role", description="Role to add to new members", required=False)
+    # async def role(self, ctx, role: discord.Role = None):
+    #   ...
+
+    # @welcome.command()
+    # @commands.guild_only()
+    # @discord.option("channel", description="Channel to send welcome message to", required=False)
+    # @discord.option("message", description="Message to send to new members", required=False)
+    # async def message_channel(self, ctx, channel: discord.TextChannel = None, message: str = None):
+    #   ...
+
   def __repr__(self):
     return "<cogs.Welcome>"
 

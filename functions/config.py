@@ -16,18 +16,6 @@ support_server_invites = {
 }
 
 
-intents = discord.Intents(
-    guilds=True,
-    voice_states=True,
-    messages=True,
-    reactions=True,
-    members=True,
-    bans=True,
-    # invites=True,
-)
-
-member_cache = discord.MemberCacheFlags(joined=True)
-
 # all_support_ranks = [item for item in support_ranks]
 
 patreon_supporting_role = 843941723041300480
@@ -95,6 +83,7 @@ games = [
     "With the internet",
     "DOOM Eternal",
     "D&D (solo)",
+    "Muck",
     "Big brain time",
     "Uploading your consciousness",
     "Learning everything on the Internet",

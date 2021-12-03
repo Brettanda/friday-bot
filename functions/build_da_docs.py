@@ -18,11 +18,11 @@ def build(bot: "Friday", prefix: str = "!"):
     seperator = "\\\\"
   else:
     seperator = "/"
-  for f in glob.glob(f"{thispath}{seperator}docs{seperator}commands{seperator}*"):
+  for f in glob.glob(f"{thispath}{seperator}docs{seperator}docs{seperator}commands{seperator}*"):
     os.remove(f)
   for cog in sorted(cogs, key=lambda x: x.qualified_name):
     cog_name = cog.qualified_name
-    with open(f"docs/commands/{cog_name.lower().replace(' ','_')}.md", "w") as f:
+    with open(f"docs/docs/commands/{cog_name.lower().replace(' ','_')}.md", "w") as f:
       f.write(f"---\ntitle: {cog_name.capitalize()}\n{('description: '+cog.description) if cog.description != '' else ''}\n---\n")
       f.write(f"# {cog_name.capitalize()}\n\n{cog.description}\n")
       for com in sorted(commands, key=lambda x: x.name):
