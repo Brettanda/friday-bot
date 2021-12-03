@@ -104,20 +104,24 @@ class TopGG(commands.Cog):
 
     support_server = self.bot.get_guild(config.support_server_id)
     member = await self.bot.get_or_fetch_member(support_server, user_id)
+    role_removed = False
     if member is not None:
       try:
         await member.remove_roles(discord.Object(id=VOTE_ROLE), reason="Top.gg vote expired")
       except discord.HTTPException:
         pass
       else:
-        self.bot.logger.info(f"Removed vote from from {member.id}")
-
+        role_removed = True
+    reminder_sent = False
     try:
       private = await self.bot.fetch_user(user_id)
       await private.send(embed=embed(title="Your vote time has refreshed.", description="You can now vote again!"), view=Refresh())
     except discord.HTTPException:
       pass
-    self.bot.logger.info(f"Vote reminder for {user_id} sent")
+    else:
+      reminder_sent = True
+
+    self.bot.logger.info(f"Vote expired for {user_id}. Reminder sent: {reminder_sent}, role removed: {role_removed}")
 
   # @commands.Cog.listener()
   # async def on_dbl_test(self, data):
