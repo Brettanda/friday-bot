@@ -161,7 +161,7 @@ class Reminder(commands.Cog):
     return timer
 
   @commands.group("reminder", aliases=["timer", "remind"], usage="<when> <message>", invoke_without_command=True)
-  async def reminder(self, ctx: MyContext, *, when: time.UserFriendlyTime(commands.clean_content, default="\u2026")):
+  async def reminder(self, ctx: MyContext, *, when: time.UserFriendlyTime(commands.clean_content, default="...")):
     await self.create_timer(
         when.dt,
         "reminder",
