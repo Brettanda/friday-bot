@@ -527,6 +527,33 @@ class Moderation(commands.Cog):
       return await ctx.send(embed=embed(title=f"Friday will now use `{role}` as the new mute role"))
     await ctx.send(embed=embed(title="The saved mute role has been removed"))
 
+  @mute_role.command(name="update", help="Updates every channel with the mute role overwrites")
+  @commands.guild_only()
+  @commands.has_guild_permissions(manage_roles=True)
+  @commands.bot_has_guild_permissions(manage_roles=True)
+  @commands.cooldown(1, 60.0, commands.BucketType.guild)
+  async def mute_role_update(self, ctx: "MyContext"):
+    config = await self.get_guild_config(ctx.guild.id)
+    if config.mute_role_id is None:
+      ctx.command.reset_cooldown(ctx)
+      return await ctx.send(embed=embed(title=f"The mute role is not set, please set it with `{ctx.prefix}mute role`", color=MessageColors.ERROR))
+
+    role = config.mute_role
+    async with ctx.typing():
+      success, failed, skipped = 0, 0, 0
+      for channel in ctx.guild.channels:
+        perms = channel.permissions_for(ctx.guild.me)
+        if perms.manage_roles:
+          try:
+            await channel.set_permissions(role, send_messages=False, send_messages_in_threads=False, create_public_threads=False, create_private_threads=False, speak=False, add_reactions=False, reason=f"Mute role overwrites by {ctx.author} (ID: {ctx.author.id})")
+          except discord.HTTPException:
+            failed += 1
+          else:
+            success += 1
+        else:
+          skipped += 1
+      await ctx.send(embed=embed(title="Mute role successfully created.", description=f"Overwrites:\nUpdated: {success}, Failed: {failed}, Skipped: {skipped}"))
+
   @mute_role.command("create", help="Don't have a muted role? Let Friday create a basic one for you.")
   @commands.guild_only()
   @commands.has_guild_permissions(manage_roles=True)
