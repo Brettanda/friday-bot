@@ -74,6 +74,12 @@ class Reminder(commands.Cog):
   def cog_unload(self) -> None:
     self._task.cancel()
 
+  async def cog_command_error(self, ctx, error):
+    if isinstance(error, commands.BadArgument):
+      await ctx.send(embed=embed(title=error, color=MessageColors.ERROR))
+    if isinstance(error, commands.TooManyArguments):
+      await ctx.send(embed=embed(title=f'You called the {ctx.command.name} command with too many arguments.', color=MessageColors.ERROR))
+
   async def get_active_timer(self, *, connection=None, days=7):
     query = "SELECT * FROM reminders WHERE expires < (CURRENT_DATE + $1::interval) ORDER BY expires LIMIT 1;"
     con = connection or self.bot.db.pool
