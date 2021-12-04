@@ -299,6 +299,12 @@ class Log(commands.Cog):
     if ctx.command is None:
       return
 
+    if ctx.author.id in self.bot.blacklist:
+      return
+
+    if ctx.guild is not None and ctx.guild.id in self.bot.blacklist:
+      return
+
     bucket = self.spam_control.get_bucket(message)
     current = message.created_at.replace(tzinfo=datetime.timezone.utc).timestamp()
     retry_after = bucket.update_rate_limit(current)
