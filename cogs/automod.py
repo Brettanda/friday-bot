@@ -174,6 +174,7 @@ class AutoMod(commands.Cog):
     return "<cogs.AutoMod>"
 
   async def cog_command_error(self, ctx: "MyContext", error: Exception):
+    error = getattr(error, "original", error)
     if isinstance(error, (commands.MissingRequiredArgument)):
       return
     self.bot.logger.error(f"Error in {ctx.command.qualified_name}: {type(error).__name__}: {error}")

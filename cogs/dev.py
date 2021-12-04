@@ -320,6 +320,19 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
   #     print(error)
   #     self.bot.logger.error(error)
 
+  @norm_dev.command(name="block")
+  async def block(self, ctx, object_id: int):
+    await self.bot.blacklist.put(object_id, True)
+    await ctx.send(embed=embed(title=f"{object_id} has been blocked"))
+
+  @norm_dev.command(name="unblock")
+  async def unblock(self, ctx, object_id: int):
+    try:
+      await self.bot.blacklist.remove(object_id)
+    except KeyError:
+      pass
+    await ctx.send(embed=embed(title=f"{object_id} has been unblocked"))
+
   @norm_dev.command(name="voice")
   async def voice(self, ctx):
     await ctx.send(embed=embed(title=f"I am in `{len(self.bot.voice_clients)}` voice channels"))

@@ -78,6 +78,8 @@ class Friday(commands.AutoShardedBot):
     self.canary = True if len(sys.argv) > 1 and (sys.argv[1] == "--canary") else False
     self.ready = False
 
+    self.blacklist = functions.config.Config("blacklist.json")
+
     self.load_extension("cogs.database")
     self.load_extension("cogs.log")
     self.loop.run_until_complete(self.setup(True))

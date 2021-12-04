@@ -137,3 +137,5 @@ friday-trans-key.json
 *.sql
 *.sqlite
 *.zip
+
+blacklist.json

@@ -299,6 +299,12 @@ class Log(commands.Cog):
     if ctx.command is None:
       return
 
+    if ctx.author.id in self.bot.blacklist:
+      return
+
+    if ctx.guild is not None and ctx.guild.id in self.bot.blacklist:
+      return
+
     bucket = self.spam_control.get_bucket(message)
     current = message.created_at.replace(tzinfo=datetime.timezone.utc).timestamp()
     retry_after = bucket.update_rate_limit(current)
@@ -387,7 +393,7 @@ class Log(commands.Cog):
 
     ignored = (commands.CommandNotFound, commands.NotOwner, )
     wave_errors = (wavelink_errors.LoadTrackError, wavelink_errors.WavelinkError,)
-    just_send = (commands.DisabledCommand, commands.BotMissingPermissions, commands.MissingPermissions, commands.RoleNotFound, asyncio.TimeoutError)
+    just_send = (commands.DisabledCommand, commands.BotMissingPermissions, commands.MissingPermissions, commands.RoleNotFound, asyncio.TimeoutError,)
     error = getattr(error, 'original', error)
 
     if isinstance(error, (*ignored, *wave_errors)) or (hasattr(error, "log") and error.log is False):
