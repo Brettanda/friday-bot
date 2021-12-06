@@ -160,6 +160,7 @@ class Player(wavelink.Player):
 
     self._equalizer = Equalizer.flat()
     self.waiting = self.waiting if hasattr(self, "waiting") else False
+    self.queue = self.queue if hasattr(self, "queue") else wavelink.WaitQueue()
 
     self.pause_votes = self.pause_votes if hasattr(self, "pause_votes") else set()
     self.resume_votes = self.resume_votes if hasattr(self, "resume_votes") else set()
@@ -225,7 +226,7 @@ class Player(wavelink.Player):
     return self.channel
 
   async def do_next(self, *, force: bool = False):
-    if not force and self.is_playing() or not hasattr(self, "waiting") or self.waiting:
+    if not force and (self.is_playing() or self.waiting):
       return
 
     self.pause_votes.clear()
@@ -275,11 +276,17 @@ class Player(wavelink.Player):
         fieldsval=[duration, str(qsize), f"**`{self.volume}%`**", f"{self.source.requester.mention}", f"{self.dj.mention if self.dj else None}", f"{self.channel.mention if self.channel else None}"],
         color=MessageColors.MUSIC)
 
+  async def destroy(self, *, force: bool = False):
+    await self.stop()
+    await self.disconnect(force=force)
+    await self.node._websocket.send(op='destroy', guildId=str(self.guild.id))
+    self._connected = False
+
   async def teardown(self):
     try:
       self.queue.reset()
-      await self.stop()
-      await self.disconnect(force=False)
+      await self.destroy()
+      self.cleanup()
     except KeyError:
       pass
 
@@ -429,7 +436,7 @@ class Music(commands.Cog):
       if before.channel and not after.channel:
         player = self.get_player(before.channel.guild)
         if player:
-          await player.disconnect(force=True)
+          await player.destroy()
       if before.channel != after.channel and after.channel is not None and after.channel.type == discord.ChannelType.stage_voice:
         await member.edit(suppress=False)
 

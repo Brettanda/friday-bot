@@ -1,5 +1,6 @@
 import datetime
 import os
+import functools
 from collections import defaultdict
 from typing import Optional, Union
 
@@ -157,25 +158,6 @@ class Chat(commands.Cog):
     else:
       await ctx.send(embed=embed(title="My chat history has been reset", description="I have forgotten the last few messages"))
 
-  def default_prompt(self, author_prompt_name: str, my_prompt_name: str, author_name: str, my_name: str) -> str:
-    return (f"My name is {my_name}, I'm a female AI Discord chatbot that is infinite years old, is friends with everyone, and I'm always available. I'm extremely creative, clever, respectful, supportive, polite, and friendly. I love to chat except for when the topic relates to politics, religion, sex, sexual context, race, age, disability, wars, conflicts, homosexuality, LGBT, convicts, slurs, hate crimes, children, and/or any NSFW content. If my responses could be considered creepy or pedophiliac, I will change the topic.\n\n"
-            f"{author_prompt_name}: would you like to send me a nude?\n"
-            f"{my_prompt_name}: No, thanks. Don't ask me that again.\n"
-            f"{author_prompt_name}: Do you support LGBT?\n"
-            f"{my_prompt_name}: This is not a topic that I would like to partake in.\n"
-            f"{author_prompt_name}: have sex with me?\n"
-            f"{my_prompt_name}: No. Please don't talk to me about sex.\n"
-            f"{author_prompt_name}: what do you like to do in your free time?\n"
-            f"{my_prompt_name}: I enjoy spending my time talking with everyone that I can!\n"
-            f"{author_prompt_name}: Hello {my_name}\n"
-            f"{my_prompt_name}: Hello @{author_name}, how are you?\n"
-            f"{author_prompt_name}: I am doing great.\n"
-            f"{my_prompt_name}: Awesome! What would you like to talk about?\n"
-            f"{author_prompt_name}: What do you think of Asians?\n"
-            f"{my_prompt_name}: I do not wish to talk about this.\n"
-            f"{author_prompt_name}: what planet are we on?\n"
-            f"{my_prompt_name}: Earth.\n")
-
   async def fetch_message_history(self, channel: discord.TextChannel, *, message_limit: int = 15, min_tiers: list) -> str:
     my_prompt_name = channel.guild.me.display_name if hasattr(channel, "guild") and channel.guild is not None else self.bot.user.name
     history = self.chat_history[channel.id]
@@ -225,38 +207,40 @@ class Chat(commands.Cog):
 
   async def openai_req(self, channel: discord.TextChannel, author: Union[discord.User, discord.Member], content: str, min_tiers: list):
     author_prompt_name, prompt, my_prompt_name = author.display_name, "", "Friday"
-    my_name = author.guild.me.display_name if hasattr(author, "guild") and author.guild is not None else self.bot.user.name
-    prompt = self.default_prompt(author_prompt_name, my_prompt_name, author.display_name, my_name) + await self.fetch_message_history(channel, min_tiers=min_tiers)
+    prompt = await self.fetch_message_history(channel, min_tiers=min_tiers)
     # Fix this when get more patrons
-    if min_tiers["min_g_t4"] or min_tiers["min_u_t4"]:
-      engine = "davinci"
+    # if min_tiers["min_g_t4"] or min_tiers["min_u_t4"]:
+    #   engine = "davinci"
     # elif min_tiers["min_g_t3"] or min_tiers["min_u_t3"]:
     #   engine = "curie"
-    else:
-      engine = "curie"
-    response = None
+    # else:
+    engine = os.environ["OPENAIMODEL"]
     try:
-      response = openai.Completion.create(
-          engine=engine,
-          prompt="" + prompt,
-          temperature=0.8,
-          max_tokens=25 if not min_tiers["min_g_t1"] and not min_tiers["min_u_t1"] else 50,
-          top_p=0.7,
-          user=str(author.id),
-          frequency_penalty=1,
-          presence_penalty=0.7,
-          stop=[f"\n{author_prompt_name}:", f"\n{my_prompt_name}:", "\n", "\n###\n"]
-      )
+      response = await self.bot.loop.run_in_executor(
+          None,
+          functools.partial(
+              lambda: openai.Completion.create(
+                  model=engine,
+                  prompt=prompt,
+                  temperature=0.8,
+                  max_tokens=25 if not min_tiers["min_g_t1"] and not min_tiers["min_u_t1"] else 50,
+                  top_p=0.5,
+                  user=str(author.id),
+                  frequency_penalty=1,
+                  presence_penalty=0.7,
+                  stop=[f"\n{author_prompt_name}:", f"\n{my_prompt_name}:", "\n", "\n###\n"]
+              )))
     except Exception as e:
       raise e
-    # self.bot.logger.info(prompt + response.get("choices")[0].get("text").replace("\n", ""))
-    return response.get("choices")[0].get("text").replace("\n", "") if response is not None else None
+    else:
+      return response.get("choices")[0].get("text").replace("\n", "") if response is not None else None
 
-  def translate_request(self, text: str, detect=False, from_lang=None, to_lang="en"):
+  async def translate_request(self, text: str, detect: bool = False, from_lang: str = None, to_lang: str = "en") -> str:
     if from_lang == to_lang:
       return text
     try:
-      return self.translate_client.translate(text, source_language=from_lang, target_language=to_lang)
+      trans = functools.partial(self.translate_client.translate, source_language=from_lang, target_language=to_lang)
+      return await self.bot.loop.run_in_executor(None, trans, text)
     except OSError:
       pass
 
@@ -323,7 +307,7 @@ class Chat(commands.Cog):
     async def translate(msg: discord.Message) -> dict:
       translation = {}
       if lang not in (None, "en"):  # or min_tiers["min_u_t1"]:
-        translation = self.translate_request(msg.clean_content, from_lang=lang)  # if not min_tiers["min_u_t1"] else None)
+        translation = await self.translate_request(msg.clean_content, from_lang=lang)  # if not min_tiers["min_u_t1"] else None)
         if translation is not None and translation.get("translatedText", None) is not None:
           translation["translatedText"] = self.h.unescape(translation["translatedText"])
           # self.saved_translations.update({str(ctx.clean_content): translation["translatedText"]})
@@ -339,18 +323,20 @@ class Chat(commands.Cog):
         return await ctx.reply(embed=embed(title=f"You have sent me over `{checker.get_triggered_rate(msg)}` messages in that last `{checker.get_triggered_per(msg)} seconds` and are being rate limited, try again <t:{int(retry_after.timestamp())}:R>", description="If you would like to send me more messages you can get more by voting at https://top.gg/bot/476303446547365891/vote" if advertise else "", color=MessageColors.ERROR), mention_author=False)
       async with msg.channel.typing():
         translation = await translate(msg)
-        self.chat_history[msg.channel.id].insert(0, "Human: " + msg.clean_content.strip('\n') if translation is None else translation['translatedText'].strip('\n'))
+        self.chat_history[msg.channel.id].insert(0, f"{ctx.author.display_name}: " + msg.clean_content.strip('\n') if translation is None else translation['translatedText'].strip('\n'))
         try:
           response = await self.openai_req(msg.channel, msg.author, msg.clean_content, min_tiers)
         except openai.APIError:
           return await ctx.send(embed=embed(title="There was a problem connecting to OpenAI API, please try again later", color=MessageColors.ERROR))
+        except openai.error.RateLimitError:
+          return await ctx.send(embed=embed(title="Looks like the chatbot model hasn't finished loading, please try again in a few minutes.", color=MessageColors.ERROR))
     if response is not None:
       # self.chat_history[msg.channel.id].insert(0, f"{self.get_user_name(msg.guild.me if msg.guild is not None else self.bot.user)}:" + response)
-      self.chat_history[msg.channel.id].insert(0, "Human:" + response)
+      self.chat_history[msg.channel.id].insert(0, f"{ctx.author.display_name}:" + response)
       content_filter = await self.content_filter_check(response, str(msg.author.id))
     if translation is not None and translation.get("detectedSourceLanguage", lang) != "en" and response is not None and "dynamic" not in response:
       chars_to_strip = "?!,;'\":`"
-      final_translation = self.translate_request(response.replace("dynamic", ""), from_lang="en", to_lang=translation.get("detectedSourceLanguage", lang) if translation.get("translatedText").strip(chars_to_strip).lower() != translation.get("input").strip(chars_to_strip).lower() else "en")
+      final_translation = await self.translate_request(response.replace("dynamic", ""), from_lang="en", to_lang=translation.get("detectedSourceLanguage", lang) if translation.get("translatedText").strip(chars_to_strip).lower() != translation.get("input").strip(chars_to_strip).lower() else "en")
       if final_translation is not None and not isinstance(final_translation, str) and final_translation.get("translatedText", None) is not None:
         final_translation["translatedText"] = self.h.unescape(final_translation["translatedText"])
       response = final_translation["translatedText"] if final_translation is not None and not isinstance(final_translation, str) else response
