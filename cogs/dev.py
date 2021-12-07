@@ -240,7 +240,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
   def reload_or_load_extention(self, module):
     try:
       self.bot.reload_extension(module)
-    except commands.ExtensionNotLoaded:
+    except discord.ExtensionNotLoaded:
       self.bot.load_extension(module)
 
   @reload.command(name="all")
