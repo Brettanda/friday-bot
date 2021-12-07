@@ -12,23 +12,6 @@ if TYPE_CHECKING:
   from index import Friday as Bot
 
 
-async def min_tiers(bot: "Bot", msg: discord.Message) -> tuple:
-  guild = bot.get_guild(config.support_server_id)
-  member = await bot.get_or_fetch_member(guild, msg.author.id)
-  voted, t1_user, t1_guild = await user_voted(bot, member), await user_is_min_tier(bot, member, config.PremiumTiers.tier_1), await guild_is_min_tier(bot, guild, config.PremiumTiers.tier_1)
-  if t1_user or t1_guild:
-    return (voted, t1_user, t1_guild, t1_user, t1_guild, t1_user, t1_guild, t1_user, t1_guild)
-  t2_user, t2_guild = await user_is_min_tier(bot, member, config.PremiumTiers.tier_2), await guild_is_min_tier(bot, guild, config.PremiumTiers.tier_2)
-  if t2_user or t2_guild:
-    return (voted, t1_user, t1_guild, t2_user, t2_guild, t2_user, t2_guild, t2_user, t2_guild)
-  t3_user, t3_guild = await user_is_min_tier(bot, member, config.PremiumTiers.tier_3), await guild_is_min_tier(bot, guild, config.PremiumTiers.tier_3)
-  if t3_user or t3_guild:
-    return (voted, t1_user, t1_guild, t2_user, t2_guild, t3_user, t3_guild, t3_user, t3_guild)
-  t4_user, t4_guild = await user_is_min_tier(bot, member, config.PremiumTiers.tier_4), await guild_is_min_tier(bot, guild, config.PremiumTiers.tier_4)
-  if t4_user or t4_guild:
-    return (voted, t1_user, t1_guild, t2_user, t2_guild, t3_user, t3_guild, t4_user, t4_guild)
-  return (voted, False, False, False, False, False, False, False, False)
-
 # def guild_is_tier(tier: str) -> "_CheckDecorator":
 
 
@@ -124,12 +107,14 @@ def is_supporter_or_voted() -> "_CheckDecorator":
 
 
 async def user_voted(bot: "Bot", user: discord.User) -> bool:
-  user_id = await bot.db.query("SELECT id FROM votes WHERE id=$1", str(user.id))
-  if isinstance(user_id, list) and len(user_id) > 0:
-    user_id = user_id[0]
-  elif isinstance(user_id, list) and len(user_id) == 0:
-    user_id = None
-  return True if user_id is not None else False
+  query = """SELECT id
+              FROM reminders
+              WHERE event = 'vote'
+              AND extra #>> '{args,0}' = $1
+              ORDER BY expires
+              LIMIT 1;"""
+  record = await bot.db.pool.fetchrow(query, str(user.id))
+  return True if record else False
 
 
 def is_admin() -> "_CheckDecorator":

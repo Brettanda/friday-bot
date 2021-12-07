@@ -111,10 +111,20 @@ patreon_supporting_role = 843941723041300480
 
 class PremiumTiers:
   free = 0
-  tier_1 = 1
-  tier_2 = 2
-  tier_3 = 3
-  tier_4 = 4
+  voted = 1
+  tier_1 = 2
+  tier_2 = 3
+  tier_3 = 4
+  tier_4 = 5
+
+  names = {
+      0: "Free",
+      1: "Voted",
+      2: "Tier 1",
+      3: "Tier 2",
+      4: "Tier 3",
+      5: "Tier 4",
+  }
 
   roles = [
         844090257221222401,
@@ -122,6 +132,10 @@ class PremiumTiers:
         858993523536429056,
         858993776994418708
   ]
+
+  @classmethod
+  def get_tier_name(cls, tier: int) -> str:
+    return cls.names[tier]
 
   def get_role(self, tier: int) -> Optional[int]:
     if tier == 0 or tier > len(self.roles):
