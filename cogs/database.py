@@ -55,7 +55,7 @@ class Database(commands.Cog):
         "patrons": [
             "user_id text PRIMARY KEY NOT NULL",
             "tier smallint NOT NULL DEFAULT 0",
-            "guild_id text NULL DEFAULT NULL"
+            "guild_ids text[] NOT NULL DEFAULT array[]::text[]",
         ],
         "countdowns": [
             "guild text NULL",
