@@ -39,15 +39,6 @@ async def test_rockpaperscissors(bot: "bot", channel: "channel", choice):
 
 
 @pytest.mark.asyncio
-async def test_countdown(bot: "bot", channel: "channel"):
-  content = "!countdown 0 0 20"
-  await channel.send(content)
-
-  msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
-  assert msg.embeds[0].title == "Countdown:"
-
-
-@pytest.mark.asyncio
 async def test_poll(bot: "bot", channel: "channel"):
   content = '!poll "this is a title" "yes" "no"'
   await channel.send(content)
