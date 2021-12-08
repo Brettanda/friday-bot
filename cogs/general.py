@@ -1,10 +1,8 @@
-from typing import Optional
-
 import discord
 from discord.ext import commands
 from typing_extensions import TYPE_CHECKING
 
-from functions import MyContext, config, embed, MessageColors, views
+from functions import MyContext, config, embed, views
 
 if TYPE_CHECKING:
   from index import Friday as Bot
