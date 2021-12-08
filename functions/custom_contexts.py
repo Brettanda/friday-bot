@@ -134,6 +134,10 @@ class ConfirmationView(discord.ui.View):
 
 
 class MyContext(Context):
+  def __init__(self, *args, **kwargs):
+    self.to_bot_channel: int = None
+    super().__init__(*args, **kwargs)
+
   def __repr__(self) -> str:
     return "<Context>"
 
@@ -172,6 +176,19 @@ class MyContext(Context):
     message = None
     if not hasattr(kwargs, "mention_author") and self.message.type.name != "application_command":
       kwargs.update({"mention_author": False})
+    if self.to_bot_channel is not None:
+      content = f"{self.author.mention}\n{content if content else ''}"
+      try:
+        channel = self.bot.get_channel(self.to_bot_channel)
+        if channel is None:
+          channel = await self.bot.fetch_channel(self.to_bot_channel)
+          if channel is None:
+            # Bruh
+            return
+        message = await channel.send(content, **kwargs)
+      except (discord.Forbidden, discord.HTTPException):
+        return message
+      return message
     try:
       if self.message.type == discord.MessageType.thread_starter_message:
         message = await self.message.channel.send(content, **kwargs)

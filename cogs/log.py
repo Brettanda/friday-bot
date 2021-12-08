@@ -32,7 +32,7 @@ if TYPE_CHECKING:
 #   return True
 
 class Config:
-  __slots__ = ("bot", "id", "chat_channel", "tier", "lang",)
+  __slots__ = ("bot", "id", "chat_channel", "disabled_commands", "restricted_commands", "bot_channel", "tier", "lang",)
 
   @classmethod
   async def from_record(cls, record, bot):
@@ -41,6 +41,9 @@ class Config:
     self.bot: "Bot" = bot
     self.id: int = int(record["id"], base=10)
     self.chat_channel = record["chatchannel"]
+    self.disabled_commands = set(record["disabled_commands"] or [])
+    self.restricted_commands = set(record["restricted_commands"] or [])
+    self.bot_channel = record["botchannel"]
     self.tier = record["tier"]
     self.lang = record["lang"]
     return self
@@ -299,11 +302,20 @@ class Log(commands.Cog):
     if ctx.command is None:
       return
 
-    if ctx.author.id in self.bot.blacklist:
-      return
+    if ctx.command.cog_name != "Dev":
+      if ctx.author.id in self.bot.blacklist:
+        return
 
-    if ctx.guild is not None and ctx.guild.id in self.bot.blacklist:
-      return
+      if ctx.guild is not None and ctx.guild.id in self.bot.blacklist:
+        return
+
+      if ctx.guild is not None:
+        config = await self.get_guild_config(ctx.guild.id)
+        if config is not None:
+          if ctx.command.name in config.disabled_commands:
+            return
+          if ctx.command.name in config.restricted_commands and not ctx.author.guild_permissions.manage_guild:
+            ctx.to_bot_channel = config.bot_channel
 
     bucket = self.spam_control.get_bucket(message)
     current = message.created_at.replace(tzinfo=datetime.timezone.utc).timestamp()
