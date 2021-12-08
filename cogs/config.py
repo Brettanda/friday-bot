@@ -113,8 +113,10 @@ class Config(commands.Cog):
       return await ctx.send(embed=embed(title="This functionality is not currently available. Try again later?", color=MessageColors.ERROR))
 
     await ctx.pool.execute(query, command, str(ctx.guild.id))
+    log_cog.get_guild_config.invalidate(log_cog, ctx.guild.id)
     await ctx.send(embed=embed(title=f"**{command}** has been disabled."))
 
 
 def setup(bot):
-  bot.add_cog(Config(bot))
+  ...
+  # bot.add_cog(Config(bot))

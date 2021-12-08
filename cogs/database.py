@@ -89,7 +89,8 @@ class Database(commands.Cog):
         'max_size': 20,
         'min_size': 20,
     }
-    self._connection: asyncpg.Pool = self.loop.run_until_complete(asyncpg.create_pool(host=hostname, user=username, password=password, database=database, loop=self.loop, **kwargs))
+    if not hasattr(self.bot, "pool") or self.bot.pool is None:
+      self.bot.pool = self.loop.run_until_complete(asyncpg.create_pool(host=hostname, user=username, password=password, database=database, loop=self.loop, **kwargs))
     if self.bot.cluster_idx == 0:
       self.loop.run_until_complete(self.create_tables())
       self.loop.run_until_complete(self.sync_table_columns())
@@ -99,7 +100,7 @@ class Database(commands.Cog):
 
   @property
   def pool(self) -> asyncpg.Pool:
-    return self._connection
+    return self.bot.pool
 
   @commands.Cog.listener()
   async def on_ready(self):
