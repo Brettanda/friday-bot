@@ -1,11 +1,11 @@
 import asyncio
-import logging
+# import logging
 import os
 
 from discord.ext import tasks
 from dotenv import load_dotenv
 
-from launcher import Launcher
+# from launcher import Launcher
 from index import Friday
 import cogs
 
@@ -45,5 +45,5 @@ class Friday_testing(Friday):
 
 
 def test_will_it_blend():
-  loop = asyncio.get_event_loop()
+  # loop = asyncio.get_event_loop()
   # Launcher(loop).start()
