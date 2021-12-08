@@ -147,9 +147,6 @@ class Database(commands.Cog):
         return None
       return result
 
-  def cog_unload(self):
-    self.update_local_values.stop()
-
 
 def setup(bot):
   bot.add_cog(Database(bot))
