@@ -70,17 +70,6 @@ class General(commands.Cog):
     #   action: discord.AuditLogEntry = audit[0]
     #   await self.bot.db.query("UPDATE ")
 
-  @commands.command(name="prefix", extras={"examples": ["?", "f!"]}, help="Sets the prefix for Fridays commands")
-  @commands.guild_only()
-  @commands.has_guild_permissions(manage_guild=True)
-  async def _prefix(self, ctx: "MyContext", new_prefix: Optional[str] = config.defaultPrefix):
-    new_prefix = new_prefix.lower()
-    if len(new_prefix) > 5:
-      return await ctx.reply(embed=embed(title="Can't set a prefix with more than 5 characters", color=MessageColors.ERROR))
-    await self.bot.db.query("UPDATE servers SET prefix=$1 WHERE id=$2", str(new_prefix), str(ctx.guild.id))
-    self.bot.prefixes[ctx.guild.id] = new_prefix
-    await ctx.reply(embed=embed(title=f"My new prefix is `{new_prefix}`"))
-
   @commands.command(name="intro", help="Replies with the intro message for the bot")
   async def norm_intro(self, ctx: "MyContext"):
     await ctx.send(**self.welcome_message())
