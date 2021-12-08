@@ -89,11 +89,11 @@ class Database(commands.Cog):
         'max_size': 20,
         'min_size': 20,
     }
-    if not hasattr(self.bot, "pool") or self.bot.pool is None:
-      self.bot.pool = self.loop.run_until_complete(asyncpg.create_pool(host=hostname, user=username, password=password, database=database, loop=self.loop, **kwargs))
-    if self.bot.cluster_idx == 0:
-      self.loop.run_until_complete(self.create_tables())
-      self.loop.run_until_complete(self.sync_table_columns())
+    if not hasattr(bot, "pool") or bot.pool is None:
+      bot.pool = bot.loop.run_until_complete(asyncpg.create_pool(host=hostname, user=username, password=password, database=database, loop=bot.loop, **kwargs))
+      if bot.cluster_idx == 0:
+        bot.loop.run_until_complete(self.create_tables())
+      # self.loop.create_task(self.sync_table_columns())
 
   def __repr__(self):
     return "<cogs.Database>"
@@ -116,6 +116,7 @@ class Database(commands.Cog):
       async with conn.transaction():
         for table in self.columns:
           await conn.execute(f"CREATE TABLE IF NOT EXISTS {table} ({','.join(self.columns[table])});")
+          self.bot.logger.debug(f"PostgreSQL Query: \"CREATE TABLE IF NOT EXISTS {table} ({','.join(self.columns[table])});\"")
 
   async def sync_table_columns(self):
     # https://stackoverflow.com/questions/9991043/how-can-i-test-if-a-column-exists-in-a-table-using-an-sql-statement
