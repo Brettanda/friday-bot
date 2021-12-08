@@ -73,19 +73,6 @@ class TestRemoveInvites:
     assert l_msg.embeds[0].title == "I will no longer remove invites"
 
 
-@pytest.mark.asyncio
-async def test_deletecommandsafter(bot: "bot", channel: "channel"):
-  content = "!deletecommandsafter 120"
-  await channel.send(content)
-
-  f_msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
-  assert f_msg.embeds[0].title == "I will now delete commands after `120` seconds"
-  content = "!deletecommandsafter"
-  await channel.send(content)
-  l_msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
-  assert l_msg.embeds[0].title == "I will no longer delete command messages"
-
-
 class TestBlacklist:
   @pytest.mark.asyncio
   async def test_blacklist(self, bot, channel):
