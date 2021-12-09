@@ -332,7 +332,7 @@ class Chat(commands.Cog):
           return
 
       current_tier = config.tier
-    lang = config.lang or "en"
+    lang = config.lang if msg.guild is not None else "en"
 
     voted = await checks.user_voted(self.bot, msg.author)
 
