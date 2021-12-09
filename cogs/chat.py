@@ -199,7 +199,7 @@ class Chat(commands.Cog):
   @commands.Cog.listener()
   async def on_invalidate_patreon(self, guild_id: int, user_id: int):
     self.get_guild_config.invalidate(self, guild_id)
-    self.get_guilget_user_patron_configd_config.invalidate(self, user_id)
+    self.get_user_patron_config.invalidate(self, user_id)
 
   @commands.command(name="say", aliases=["repeat"], help="Make Friday say what ever you want")
   async def say(self, ctx: "MyContext", *, content: str):
@@ -284,10 +284,10 @@ class Chat(commands.Cog):
                   prompt=prompt,
                   temperature=0.8,
                   max_tokens=25 if not current_tier >= function_config.PremiumTiers.tier_1 else 50,
-                  top_p=0.5,
+                  top_p=0.9,
                   user=str(author.id),
-                  frequency_penalty=1,
-                  presence_penalty=0.7,
+                  frequency_penalty=1.5,
+                  presence_penalty=1.5,
                   stop=[f"\n{author_prompt_name}:", f"\n{my_prompt_name}:", "\n", "\n###\n"]
               )))
     except Exception as e:
@@ -323,6 +323,7 @@ class Chat(commands.Cog):
     if msg.guild is not None:
       config = await self.get_guild_config(msg.guild.id)
       if config is None:
+        self.bot.logger.error(f"Config was not available in chat for (guild: {msg.guild.id if msg.guild else None}) (channel type: {msg.channel.type if msg.channel else 'uhm'}) (user: {msg.author.id})")
         return
 
       chat_channel = config.chat_channel
@@ -331,6 +332,7 @@ class Chat(commands.Cog):
           return
 
       current_tier = config.tier
+    lang = config.lang or "en"
 
     voted = await checks.user_voted(self.bot, msg.author)
 
@@ -346,33 +348,24 @@ class Chat(commands.Cog):
 
     # Anything to do with sending messages needs to be below the above check
     response = None
-    if msg.guild is not None:
-      config = await self.get_guild_config(msg.guild.id)
-      if config is None:
-        return self.bot.logger.error(f"Config was not available in chat for (guild: {msg.guild.id if msg.guild else None}) (channel type: {msg.channel.type if msg.channel else 'uhm'}) (user: {msg.author.id})")
-      lang = config.lang
-    else:
-      lang = "en"
-
-    if response is None:
-      checker: SpamChecker = self._spam_check[msg.guild.id if msg.guild else msg.author.id]
-      free: bool = checker.is_free_spam(msg)
-      if checker.is_abs_min_spam(msg) or checker.is_abs_hour_spam(msg) or (free and not (voted and current_tier >= function_config.PremiumTiers.tier_1)) or (checker.is_voted_spam(msg) and (voted or current_tier >= function_config.PremiumTiers.tier_1)):
-        advertise = True if free and not (voted and current_tier >= function_config.PremiumTiers.tier_1) else False
-        retry_after = discord.utils.utcnow() + datetime.timedelta(seconds=checker.triggered(msg).get_retry_after())
-        self.bot.logger.warning(f"Someone is being ratelimited at over {checker.get_triggered_rate(msg)} messages and can retry after <t:{int(retry_after.timestamp())}:R>")
-        return await ctx.reply(embed=embed(title=f"You have sent me over `{checker.get_triggered_rate(msg)}` messages in that last `{checker.get_triggered_per(msg)} seconds` and are being rate limited, try again <t:{int(retry_after.timestamp())}:R>", description="If you would like to send me more messages you can get more by voting at https://top.gg/bot/476303446547365891/vote" if advertise else "", color=MessageColors.ERROR), mention_author=False)
-      async with msg.channel.typing():
-        translation = await Translation.from_text(msg.clean_content, from_lang=lang, parent=self)
-        self.chat_history[msg.channel.id].insert(0, f"{ctx.author.display_name}: " + str(translation).strip('\n'))
-        try:
-          response = await self.openai_req(msg.channel, msg.author, msg.clean_content, current_tier)
-        except openai.APIError:
-          return await ctx.send(embed=embed(title="There was a problem connecting to OpenAI API, please try again later", color=MessageColors.ERROR))
-        except openai.error.RateLimitError:
-          return await ctx.send(embed=embed(title="Looks like the chatbot model hasn't finished loading, please try again in a few minutes.", color=MessageColors.ERROR))
+    checker: SpamChecker = self._spam_check[msg.guild.id if msg.guild else msg.author.id]
+    free: bool = checker.is_free_spam(msg)
+    if checker.is_abs_min_spam(msg) or checker.is_abs_hour_spam(msg) or (free and not (voted and current_tier >= function_config.PremiumTiers.tier_1)) or (checker.is_voted_spam(msg) and (voted or current_tier >= function_config.PremiumTiers.tier_1)):
+      advertise = True if free and not (voted and current_tier >= function_config.PremiumTiers.tier_1) else False
+      retry_after = discord.utils.utcnow() + datetime.timedelta(seconds=checker.triggered(msg).get_retry_after())
+      self.bot.logger.warning(f"Someone is being ratelimited at over {checker.get_triggered_rate(msg)} messages and can retry after <t:{int(retry_after.timestamp())}:R>")
+      return await ctx.reply(embed=embed(title=f"You have sent me over `{checker.get_triggered_rate(msg)}` messages in that last `{checker.get_triggered_per(msg)} seconds` and are being rate limited, try again <t:{int(retry_after.timestamp())}:R>", description="If you would like to send me more messages you can get more by voting at https://top.gg/bot/476303446547365891/vote" if advertise else "", color=MessageColors.ERROR), mention_author=False)
+    async with msg.channel.typing():
+      translation = await Translation.from_text(msg.clean_content, from_lang=lang, parent=self)
+      self.chat_history[msg.channel.id].insert(0, f"{ctx.author.display_name}: " + str(translation).strip('\n'))
+      try:
+        response = await self.openai_req(msg.channel, msg.author, msg.clean_content, current_tier)
+      except openai.APIError:
+        return await ctx.send(embed=embed(title="There was a problem connecting to OpenAI API, please try again later", color=MessageColors.ERROR))
+      except openai.error.RateLimitError:
+        return await ctx.send(embed=embed(title="Looks like the chatbot model hasn't finished loading, please try again in a few minutes.", color=MessageColors.ERROR))
     if response is not None:
-      self.chat_history[msg.channel.id].insert(0, f"{ctx.author.display_name}:" + response)
+      self.chat_history[msg.channel.id].insert(0, f"{msg.guild.me.display_name if msg.guild is not None else self.bot.user.display_name}:" + response)
       content_filter = await self.content_filter_check(response, str(msg.author.id))
     if translation is not None and translation.detectedSourceLanguage != "en" and response is not None and "dynamic" not in response:
       chars_to_strip = "?!,;'\":`"
