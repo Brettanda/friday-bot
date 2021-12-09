@@ -358,7 +358,7 @@ class Log(commands.Cog):
 
   async def fetch_user_tier(self, user: discord.User):
     if user.id == self.bot.owner_id:
-      return list(config.premium_tiers)[-1]
+      return config.PremiumTiers.tier_4
     if user is not None:
       member = await self.bot.get_or_fetch_member(self.bot.get_guild(config.support_server_id), user.id)
       if member is None:
@@ -368,7 +368,7 @@ class Log(commands.Cog):
         raise exceptions.NotSupporter()
       # role = [role for role in roles if role in config.premium_roles.values()]
       # something = list(config.premium_roles.values())[::2]
-      available_tiers_roles = [tier for tier in config.premium_roles.values() if tier != 843941723041300480]
+      available_tiers_roles = [tier for tier in config.PremiumTiers.roles if tier != 843941723041300480]
       available_tiers_roles = available_tiers_roles[::2]
       x, final_tier = 0, None
       for tier in available_tiers_roles:

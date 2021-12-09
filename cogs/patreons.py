@@ -40,7 +40,7 @@ class Patreons(commands.Cog):
     if tier is None or patreon_user is None:
       user_tier = await self.bot.log.fetch_user_tier(ctx.author)
       # Probably check what server has it and remove it instead of saying the following
-      if user_tier == list(config.premium_tiers)[1] and len(await self.bot.db.query("SELECT id,tier,patreon_user FROM servers WHERE patreon_user=$1", str(ctx.author.id))) >= 1:
+      if user_tier == config.PremiumTiers.tier_1 and len(await self.bot.db.query("SELECT tier,user_id FROM patrons WHERE user_id=$1", str(ctx.author.id))) >= 1:
         return await ctx.reply(embed=embed(title="You have already used your patronage on another server", color=MessageColors.ERROR))
       await self.bot.db.query("UPDATE servers SET tier=$1, patreon_user=$2 WHERE id=$3", str(user_tier), str(ctx.author.id), str(ctx.guild.id))
       # self.bot.log.change_guild_tier(ctx.guild.id, user_tier)

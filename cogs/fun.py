@@ -32,6 +32,7 @@ class Fun(commands.Cog):
     self.bot = bot
     self.countdowns = []
     self.bot.loop.create_task(self.setup())
+    self.rpsoptions = ["rock", "paper", "scissors"]
     self.countdown_messages = []
     self.loop_countdown.add_exception_type(discord.NotFound)
     self.loop_countdown.start()

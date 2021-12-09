@@ -71,6 +71,8 @@ def is_supporter() -> "_CheckDecorator":
   """" Checks if the user has the 'is supporting' role that ALL patrons get"""
 
   async def predicate(ctx: "MyContext") -> bool:
+    if ctx.author.id == ctx.bot.owner_id:
+      return True
     guild = ctx.bot.get_guild(config.support_server_id)
     member = await ctx.bot.get_or_fetch_member(guild, ctx.author.id)
     if member is None:
