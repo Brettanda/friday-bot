@@ -108,6 +108,7 @@ class Friday(commands.AutoShardedBot):
   async def setup(self, load_extentions: bool = False):
     self.session: aiohttp.ClientSession() = aiohttp.ClientSession(loop=self.loop)
 
+    # Should replace with a json file at some point
     for guild_id, prefix in await self.db.query("SELECT id,prefix FROM servers WHERE prefix!=$1::text", "!"):
       self.prefixes[int(guild_id, base=10)] = prefix
 
