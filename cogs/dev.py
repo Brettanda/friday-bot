@@ -204,18 +204,49 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       await ctx.send(f"```sh\n{stdout}\n{stderr}```")
 
   @norm_dev.group(name="reload", invoke_without_command=True)
-  async def reload(self, ctx, module: str):
-    async with ctx.typing():
-      com = self.bot.get_command(module)
-      if com is not None and com.cog_name is not None:
-        module = com.cog_name
-      path = "spice.cogs." if module.lower() in cogs.spice else "cogs."
-      load_dotenv()
-      try:
-        self.bot.reload_extension(f"{path}{module.lower() if module is not None else None}")
-      except discord.ExtensionNotLoaded:
-        self.bot.load_extension(f"{path}{module.lower() if module is not None else None}")
-    await ctx.reply(embed=embed(title=f"Cog *{module}* has been reloaded"))
+  async def reload(self, ctx, *, modules: str):
+    modules = [mod.strip("\"") for mod in modules.split(" ")]
+    await ctx.trigger_typing()
+    ret = []
+    for module in modules:
+      if module.startswith("cogs"):
+        ret.append((0, module.replace("/", ".")))  # root.count("/") - 1 # if functions moves to cog folder
+      elif module.startswith("functions"):
+        ret.append((1, module.replace("/", ".")))
+      elif module.startswith("spice/cogs") or module.startswith("spice.cogs"):
+        ret.append((0, module.replace("/", ".")))
+      elif module.startswith("spice/functions") or module.startswith("spice.functions"):
+        ret.append((1, module.replace("/", ".")))
+      elif module.replace("/", ".") in sys.modules:
+        ret.append((1, module.replace("/", ".")))
+      elif self.bot.get_cog(module.capitalize()) is not None:
+        ret.append((0, "cogs." + module.replace("/", ".")))
+      else:
+        ret.append((1, module.replace("/", ".")))
+
+    statuses = []
+    for is_func, module in ret:
+      if is_func:
+        try:
+          actual_module = sys.modules[module]
+        except KeyError:
+          statuses.append((":zzz:", module))
+        else:
+          try:
+            importlib.reload(actual_module)
+          except Exception:
+            statuses.append((":x:", module))
+          else:
+            statuses.append((":white_check_mark:", module))
+      else:
+        try:
+          self.reload_or_load_extention(module)
+        except discord.ExtensionError:
+          statuses.append((":x:", module))
+        else:
+          statuses.append((":white_check_mark:", module))
+
+    await ctx.send(embed=embed(title="Reloading modules", description="\n".join(f"{status} {module}" for status, module in statuses)))
 
   _GIT_PULL_REGEX = re.compile(r'\s*(?P<filename>.+?)\s*\|\s*[0-9]+\s*[+-]+')
 
