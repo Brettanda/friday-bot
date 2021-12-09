@@ -369,7 +369,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     if stdout.startswith("Already up-to-date."):
       return
     await ctx.trigger_typing()
-    stdout, stderr = await self.run_process("python -m pip install --upgrade pip && python -m pip install -r requirements.txt --no-cache-dir")
+    stdout, stderr = await self.run_process("python -m pip install --upgrade pip && python -m pip install -r requirements.txt --upgrade --no-cache-dir")
     await ctx.safe_send(stdout)
 
   @norm_dev.command(name="cogs")
