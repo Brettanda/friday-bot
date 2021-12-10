@@ -54,69 +54,78 @@ class Config(commands.Cog):
     self.bot.prefixes[ctx.guild.id] = new_prefix
     await ctx.reply(embed=embed(title=f"My new prefix is `{new_prefix}`"))
 
-  @commands.group("botchannel", invoke_without_command=True)
-  async def botchannel(self, ctx: "MyContext", *, channel: discord.TextChannel = None):
-    if channel is None:
-      return await ctx.send_help(ctx.command)
-    log_cog = self.bot.log
-    if log_cog is None:
-      return await ctx.send(embed=embed(title="This functionality is not currently available. Try again later?", color=MessageColors.ERROR))
+  # @commands.group("botchannel", invoke_without_command=True)
+  # async def botchannel(self, ctx: "MyContext", *, channel: discord.TextChannel = None):
+  #   if channel is None:
+  #     return await ctx.send_help(ctx.command)
+  #   log_cog = self.bot.log
+  #   if log_cog is None:
+  #     return await ctx.send(embed=embed(title="This functionality is not currently available. Try again later?", color=MessageColors.ERROR))
 
-    query = "UPDATE servers SET botchannel=$2 WHERE id=$1;"
+  #   query = "UPDATE servers SET botchannel=$2 WHERE id=$1;"
 
-    await ctx.pool.execute(query, str(ctx.guild.id), str(channel.id))
-    log_cog.get_guild_config.invalidate(log_cog, ctx.guild.id)
-    await ctx.send(embed=embed(title="Bot Channel", description=f"Bot channel set to {channel.mention}."))
+  #   await ctx.pool.execute(query, str(ctx.guild.id), str(channel.id))
+  #   log_cog.get_guild_config.invalidate(log_cog, ctx.guild.id)
+  #   await ctx.send(embed=embed(title="Bot Channel", description=f"Bot channel set to {channel.mention}."))
 
-  @botchannel.command("clear")
-  async def botchannel_clear(self, ctx: "MyContext"):
-    await ctx.pool.execute("UPDATE servers SET botchannel=NULL WHERE id=$1;", str(ctx.guild.id))
-    await ctx.send(embed=embed(title="Bot Channel", description="Bot channel cleared."))
+  # @botchannel.command("clear")
+  # async def botchannel_clear(self, ctx: "MyContext"):
+  #   await ctx.pool.execute("UPDATE servers SET botchannel=NULL WHERE id=$1;", str(ctx.guild.id))
+  #   await ctx.send(embed=embed(title="Bot Channel", description="Bot channel cleared."))
 
-  @commands.command("restrict", help="Restricts the selected command to the bot channel. Ignored with manage server permission.")
-  async def restrict(self, ctx: "MyContext", *, command: CommandName):
-    query = "UPDATE servers SET restricted_commands=array_append(restricted_commands, $1) WHERE id=$2 AND NOT ($1=any(restricted_commands));"
-    log_cog = self.bot.log
-    if log_cog is None:
-      return await ctx.send(embed=embed(title="This functionality is not currently available. Try again later?", color=MessageColors.ERROR))
-    await ctx.pool.execute(query, command, str(ctx.guild.id))
-    log_cog.get_guild_config.invalidate(log_cog, ctx.guild.id)
-    await ctx.send(embed=embed(title=f"**{command}** has been restricted to the bot channel."))
+  # @commands.command("restrict", help="Restricts the selected command to the bot channel. Ignored with manage server permission.")
+  # async def restrict(self, ctx: "MyContext", *, command: CommandName):
+  #   query = "UPDATE servers SET restricted_commands=array_append(restricted_commands, $1) WHERE id=$2 AND NOT ($1=any(restricted_commands));"
+  #   log_cog = self.bot.log
+  #   if log_cog is None:
+  #     return await ctx.send(embed=embed(title="This functionality is not currently available. Try again later?", color=MessageColors.ERROR))
+  #   await ctx.pool.execute(query, command, str(ctx.guild.id))
+  #   log_cog.get_guild_config.invalidate(log_cog, ctx.guild.id)
+  #   await ctx.send(embed=embed(title=f"**{command}** has been restricted to the bot channel."))
 
-  @commands.command("unrestrict", help="Unrestricts the selected command.")
-  async def unrestrict(self, ctx: "MyContext", *, command: CommandName):
-    query = "UPDATE servers SET restricted_commands=array_remove(restricted_commands, $1) WHERE id=$2;"
-    log_cog = self.bot.log
-    if log_cog is None:
-      return await ctx.send(embed=embed(title="This functionality is not currently available. Try again later?", color=MessageColors.ERROR))
+  # @commands.command("unrestrict", help="Unrestricts the selected command.")
+  # async def unrestrict(self, ctx: "MyContext", *, command: CommandName):
+  #   query = "UPDATE servers SET restricted_commands=array_remove(restricted_commands, $1) WHERE id=$2;"
+  #   log_cog = self.bot.log
+  #   if log_cog is None:
+  #     return await ctx.send(embed=embed(title="This functionality is not currently available. Try again later?", color=MessageColors.ERROR))
 
-    await ctx.pool.execute(query, command, str(ctx.guild.id))
-    log_cog.get_guild_config.invalidate(log_cog, ctx.guild.id)
-    await ctx.send(embed=embed(title=f"**{command}** has been unrestricted."))
+  #   await ctx.pool.execute(query, command, str(ctx.guild.id))
+  #   log_cog.get_guild_config.invalidate(log_cog, ctx.guild.id)
+  #   await ctx.send(embed=embed(title=f"**{command}** has been unrestricted."))
 
-  @commands.group("enable", help="Enables the selected command(s).", invoke_without_command=True)
-  async def enable(self, ctx: "MyContext", *, command: CommandName):
-    query = "UPDATE servers SET disabled_commands=array_remove(disabled_commands, $1) WHERE id=$2;"
-    log_cog = self.bot.log
-    if log_cog is None:
-      return await ctx.send(embed=embed(title="This functionality is not currently available. Try again later?", color=MessageColors.ERROR))
+  # @commands.group("enable", help="Enables the selected command(s).", invoke_without_command=True)
+  # async def enable(self, ctx: "MyContext", *, command: CommandName):
+  #   query = "UPDATE servers SET disabled_commands=array_remove(disabled_commands, $1) WHERE id=$2;"
+  #   log_cog = self.bot.log
+  #   if log_cog is None:
+  #     return await ctx.send(embed=embed(title="This functionality is not currently available. Try again later?", color=MessageColors.ERROR))
 
-    await ctx.pool.execute(query, command, str(ctx.guild.id))
-    log_cog.get_guild_config.invalidate(log_cog, ctx.guild.id)
-    await ctx.send(embed=embed(title=f"**{command}** has been enabled."))
+  #   await ctx.pool.execute(query, command, str(ctx.guild.id))
+  #   log_cog.get_guild_config.invalidate(log_cog, ctx.guild.id)
+  #   await ctx.send(embed=embed(title=f"**{command}** has been enabled."))
 
-  @commands.group(name="disable", extras={"examples": ["ping", "ping last", "\"blacklist add\" ping"]}, aliases=["disablecmd"], help="Disable a command", invoke_without_command=True)
-  async def disable(self, ctx: "MyContext", *, command: CommandName):
-    query = "UPDATE servers SET disabled_commands=array_append(disabled_commands, $1) WHERE id=$2 AND NOT ($1=any(disabled_commands));"
-    log_cog = self.bot.log
-    if log_cog is None:
-      return await ctx.send(embed=embed(title="This functionality is not currently available. Try again later?", color=MessageColors.ERROR))
+  # @enable.command("all", help="Enables all commands.", hidden=True)
+  # @commands.is_owner()
+  # async def enable_all(self, ctx: "MyContext"):
+  #   ...
 
-    await ctx.pool.execute(query, command, str(ctx.guild.id))
-    log_cog.get_guild_config.invalidate(log_cog, ctx.guild.id)
-    await ctx.send(embed=embed(title=f"**{command}** has been disabled."))
+  # @commands.group(name="disable", extras={"examples": ["ping", "ping last", "\"blacklist add\" ping"]}, aliases=["disablecmd"], help="Disable a command", invoke_without_command=True)
+  # async def disable(self, ctx: "MyContext", *, command: CommandName):
+  #   query = "UPDATE servers SET disabled_commands=array_append(disabled_commands, $1) WHERE id=$2 AND NOT ($1=any(disabled_commands));"
+  #   log_cog = self.bot.log
+  #   if log_cog is None:
+  #     return await ctx.send(embed=embed(title="This functionality is not currently available. Try again later?", color=MessageColors.ERROR))
+
+  #   await ctx.pool.execute(query, command, str(ctx.guild.id))
+  #   log_cog.get_guild_config.invalidate(log_cog, ctx.guild.id)
+  #   await ctx.send(embed=embed(title=f"**{command}** has been disabled."))
+
+  # @disable.command("all", help="Disables all commands.", hidden=True)
+  # @commands.is_owner()
+  # async def disable_all(self, ctx: "MyContext"):
+  #   ...
 
 
 def setup(bot):
-  ...
-  # bot.add_cog(Config(bot))
+  bot.add_cog(Config(bot))
