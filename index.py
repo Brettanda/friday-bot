@@ -2,191 +2,187 @@ import asyncio
 import logging
 import os
 import sys
-import traceback
+from collections import defaultdict
+from logging.handlers import RotatingFileHandler
+from typing import Optional
 
+import aiohttp
 import discord
 from discord.ext import commands
-from discord_slash import SlashCommand#, SlashContext
 from dotenv import load_dotenv
+from typing_extensions import TYPE_CHECKING
 
-# from chatml import queryGen
-# from chatml import queryIntents
-from cogs.cleanup import get_delete_time
-from cogs.help import cmd_help
-from functions import (MessageColors, embed, exceptions,
-                       relay_info)
-from functions.mysql_connection import query_prefix
+import cogs
+import functions
 
-logging.basicConfig(
-  level=logging.INFO,
-  format="%(asctime)s:%(name)s:%(levelname)-8s%(message)s",
-  datefmt="%y-%m-%d %H:%M:%S",
-  filemode="w",
-  filename="logging.log"
-)
+if TYPE_CHECKING:
+  from .cogs.database import Database
+  from .cogs.log import Log
 
 load_dotenv()
-TOKEN = os.getenv('TOKENTEST')
 
-intents = discord.Intents.default()
-# Members intent required for giving roles appon a member
-# joining a guild, and for reaction roles that will come soon
-# intents.members = True
+TOKEN = os.environ.get('TOKENTEST')
 
 
-# slash = SlashCommand(bot,sync_on_cog_reload=True,sync_commands=True)
+async def get_prefix(bot: "Friday", message: discord.Message):
+  if message.guild is not None:
+    return commands.when_mentioned_or(bot.prefixes[message.guild.id])(bot, message)
+  return commands.when_mentioned_or(functions.config.defaultPrefix)(bot, message)
 
-songqueue = {}
-restartPending = False
-
-
-class MyContext(commands.Context):
-  async def reply(self,content=None,**kwargs):
-    ignore_coms = ["log","help","meme","issue","reactionrole","minesweeper"]
-    if not hasattr(kwargs,"delete_after") and self.command.name not in ignore_coms:
-      delete = await get_delete_time(self)
-      delete = delete if delete is not None and delete != 0 else None
-      if delete is not None:
-        kwargs.update({"delete_after":delete})
-        await self.message.delete(delay=delete)
-    try:
-      return await self.message.reply(content,**kwargs)
-    except discord.HTTPException as e:
-      if "Unknown message" in str(e):
-        return await self.message.channel.send(content,**kwargs)
-      else:
-        raise e
 
 class Friday(commands.AutoShardedBot):
-  def __init__(self,*args,**kwargs):
-    super().__init__(*args,**kwargs)
+  """Friday is a discord bot that is designed to be a flexible and easy to use bot."""
 
-    self.restartPending = restartPending
-    self.slash = SlashCommand(self,sync_on_cog_reload=True,sync_commands=True,override_type=True)
+  def __init__(self, loop=None, **kwargs):
+    self.cluster_name = kwargs.pop("cluster_name", None)
+    self.cluster_idx = kwargs.pop("cluster_idx", 0)
+    self.should_start = kwargs.pop("start", False)
+    self._logger = kwargs.pop("logger")
 
-    for com in os.listdir("./cogs"):
-      if com.endswith(".py"):
-        self.load_extension(f"cogs.{com[:-3]}")
-
-  async def get_context(self,message,*,cls=MyContext):
-    return await super().get_context(message,cls=cls)
-
-  def check(self,ctx):
-    required_perms = [("send_messages",True),("read_messages",True),("embed_links",True),("read_message_history",True),("add_reactions",True),("manage_messages",True)]
-    guild = ctx.guild
-    me = guild.me if guild is not None else ctx.bot.user
-    permissions = ctx.channel.permissions_for(me)
-    missing = [perm for perm,value in required_perms if getattr(permissions,perm) != value]
-
-    if not missing:
-      return True
-
-    raise commands.BotMissingPermissions(missing)
-
-  async def on_command_error(self,ctx,error):
-    if hasattr(ctx.command, 'on_error'):
-      return
-
-    # if ctx.cog:
-      # if ctx.cog._get_overridden_method(ctx.cog.cog_command_error) is not None:
-        # return
-
-    delete = await get_delete_time(ctx)
-    if isinstance(error,commands.NotOwner):
-      print("Someone found a dev command")
-      logging.info("Someone found a dev command")
-    elif isinstance(error,commands.MissingRequiredArgument):
-      await cmd_help(ctx,ctx.command,"You're missing some arguments, here is how the command should look")
-    elif isinstance(error,commands.CommandNotFound):
-      # await ctx.reply(embed=embed(title=f"Command `{ctx.message.content}` was not found",color=MessageColors.ERROR))
-      return
-    # elif isinstance(error,commands.RoleNotFound):
-    #   await ctx.reply(embed=embed(title=f"{error}",color=MessageColors.ERROR))
-    elif isinstance(error,commands.CommandOnCooldown):
-      await ctx.reply(embed=embed(title=f"This command is on a cooldown, please wait {error.retry_after:,.2f} sec(s)",color=MessageColors.ERROR),delete_after=30)
-      await ctx.delete(delay=30)
-    elif isinstance(error,commands.NoPrivateMessage):
-      await ctx.reply(embed=embed(title="This command does not work in non-server text channels",color=MessageColors.ERROR))
-    elif isinstance(error,commands.ChannelNotFound):
-      await ctx.reply(embed=embed(title="Could not find that channel",description="Make sure it is the right channel type",color=MessageColors.ERROR))
-    elif isinstance(error,commands.DisabledCommand):
-      await ctx.reply(embed=embed(title="This command has been disabled",color=MessageColors.ERROR))
-    elif isinstance(error,commands.TooManyArguments):
-      await cmd_help(ctx,ctx.command,"Too many arguments were passed for this command, here is how the command should look")
-    # elif isinstance(error,commands.CommandError) or isinstance(error,commands.CommandInvokeError):
-    #   await ctx.reply(embed=embed(title=f"{error}",color=MessageColors.ERROR))
-    elif (
-      isinstance(error,(
-        commands.MissingPermissions,
-        commands.BotMissingPermissions,
-        commands.MaxConcurrencyReached,
-        exceptions.UserNotInVoiceChannel,
-        exceptions.NoCustomSoundsFound,
-        exceptions.ArgumentTooLarge)
-      )):
-      try:
-        await ctx.reply(embed=embed(title=f"{error}",color=MessageColors.ERROR),delete_after=delete)
-      except discord.Forbidden:
-        try:
-          await ctx.reply(f"{error}",delete_after=delete)
-        except discord.Forbidden:
-          logging.warning("well guess i just can't respond then")
+    if loop is None:
+      self.loop = asyncio.new_event_loop()
+      asyncio.set_event_loop(self.loop)
     else:
-      try:
-        await ctx.reply(embed=embed(title=f"{error}",color=MessageColors.ERROR),delete_after=delete)
-      except discord.Forbidden:
+      self.loop = loop
+    super().__init__(
+        command_prefix=get_prefix,
+        strip_after_prefix=True,
+        case_insensitive=True,
+        intents=discord.Intents(
+            guilds=True,
+            voice_states=True,
+            messages=True,
+            reactions=True,
+            members=True,
+            bans=True,
+            # invites=True,
+        ),
+        status=discord.Status.idle,
+        owner_id=215227961048170496,
+        debug_guild=243159711237537802,
+        description=functions.config.description,
+        member_cache_flags=discord.MemberCacheFlags.all(),
+        chunk_guilds_at_startup=False,
+        allowed_mentions=discord.AllowedMentions(roles=False, everyone=False, users=True),
+        enable_debug_events=True,
+        loop=self.loop, **kwargs
+    )
+
+    self.session = None
+    self.restartPending = False
+    self.views_loaded = False
+
+    # guild_id: str("!")
+    self.prefixes = defaultdict(lambda: str("!"))
+    self.prod = True if len(sys.argv) > 1 and (sys.argv[1] == "--prod" or sys.argv[1] == "--production") else False
+    self.canary = True if len(sys.argv) > 1 and (sys.argv[1] == "--canary") else False
+    self.ready = False
+
+    self.blacklist = functions.config.Config("blacklist.json")
+
+    self.load_extension("cogs.database")
+    self.load_extension("cogs.log")
+    self.loop.run_until_complete(self.setup(True))
+    self.logger.info(f"Cluster Starting {kwargs.get('shard_ids', None)}, {kwargs.get('shard_count', 1)}")
+    if self.should_start:
+      self.run(kwargs["token"])
+
+  def __repr__(self) -> str:
+    return f"<Friday username=\"{self.user.display_name}\" id={self.user.id}>"
+
+  @property
+  def log(self) -> Optional["Log"]:
+    return self.get_cog("Log")
+
+  @property
+  def logger(self) -> logging.Logger:
+    return self._logger
+
+  @property
+  def db(self) -> Optional["Database"]:
+    return self.get_cog("Database")
+
+  async def get_context(self, message, *, cls=None) -> functions.MyContext:
+    return await super().get_context(message, cls=functions.MyContext)
+
+  async def setup(self, load_extentions: bool = False):
+    self.session: aiohttp.ClientSession() = aiohttp.ClientSession(loop=self.loop)
+
+    # Should replace with a json file at some point
+    for guild_id, prefix in await self.db.query("SELECT id,prefix FROM servers WHERE prefix!=$1::text", "!"):
+      self.prefixes[int(guild_id, base=10)] = prefix
+
+    if load_extentions:
+      for cog in [*cogs.default, *cogs.spice]:
+        path = "spice.cogs." if cog.lower() in cogs.spice else "cogs."
         try:
-          await ctx.reply(f"{error}",delete_after=delete)
-        except discord.Forbidden:
-          print("well guess i just can't respond then")
-          logging.warning("well guess i just can't respond then")
-      raise error
+          self.load_extension(f"{path}{cog}")
+        except Exception as e:
+          self.logger.error(f"Failed to load extenstion {cog} with \n {e}")
 
-  async def on_error(self,*args,**kwargs):
-    # await self.get_guild(707441352367013899).chunk(cache=False)
-    appinfo = await self.application_info()
-    owner = self.get_user(appinfo.team.owner.id)
+  async def on_message(self, ctx):
+    if not self.ready:
+      return
 
-    trace = traceback.format_exc()
-    try:
-      await relay_info(
-        f"{owner.mention if self.intents.members is True else ''}\n```bash\n{trace}```",
-        self,
-        short="Error sent",
-        channel=713270561840824361
-      )
-    except discord.HTTPException:
-      with open("err.log","w") as f:
-        f.write(f"{trace}")
-        f.close()
-        await relay_info(
-          f"{owner.mention if self.intents.members is True else ''}",
-          self,
-          file="err.log",
-          channel=713270561840824361
-        )
-
-    print(trace)
-    logging.error(trace)
-
-  async def on_message(self,ctx):
-    if ctx.author.bot:
+    if ctx.author.bot and not ctx.author.id == 892865928520413245:
       return
 
     await self.process_commands(ctx)
 
+  async def get_or_fetch_member(self, guild: discord.Guild, member_id: int) -> Optional[discord.Member]:
+    member = guild.get_member(member_id)
+    if member is not None:
+      return member
+
+    shard = self.get_shard(guild.shard_id)
+    if shard.is_ws_ratelimited():
+      try:
+        member = await guild.fetch_member(member_id)
+      except discord.HTTPException:
+        return None
+      else:
+        return member
+
+    members = await guild.query_members(limit=1, user_ids=[member_id], cache=True)
+    if not members:
+      return None
+    return members[0]
+
+  async def on_error(self, event_method, *args, **kwargs):
+    return await self.log.on_error(event_method, *args, **kwargs)
+
+  async def close(self):
+    await super().close()
+    await self.session.close()
+
+
 if __name__ == "__main__":
   print(f"Python version: {sys.version}")
-  bot = Friday(command_prefix=query_prefix or "!",case_insensitive=True,intents=intents,owner_id=215227961048170496)
+  max_bytes = 32 * 1024 * 1024  # 32 MiB
+  logging.getLogger("discord").setLevel(logging.INFO)
+  logging.getLogger("discord.http").setLevel(logging.WARNING)
+
+  log = logging.getLogger("Friday")
+  log.setLevel(logging.INFO)
+  filehandler = RotatingFileHandler(filename="logging.log", encoding="utf-8", mode="w", maxBytes=max_bytes, backupCount=5)
+  formatter = logging.Formatter("%(levelname)s:%(name)s: %(message)s")
+  filehandler.setFormatter(logging.Formatter("%(asctime)s:%(name)s:%(levelname)-8s%(message)s"))
+  handler = logging.StreamHandler(sys.stdout)
+  handler.setFormatter(formatter)
+  log.addHandler(handler)
+  log.addHandler(filehandler)
+  handler.setFormatter(formatter)
+
+  bot = Friday(logger=log)
   if len(sys.argv) > 1:
     if sys.argv[1] == "--prod" or sys.argv[1] == "--production":
-      TOKEN = os.getenv("TOKEN")
-      bot.load_extension("functions.dbl")
+      TOKEN = os.environ.get("TOKEN")
+    elif sys.argv[1] == "--canary":
+      TOKEN = os.environ.get("TOKENCANARY")
   loop = asyncio.get_event_loop()
   try:
-    loop.run_until_complete(bot.start(TOKEN,bot=True,reconnect=True))
+    loop.run_until_complete(bot.start(TOKEN, reconnect=True))
   except KeyboardInterrupt:
-    # mydb.close()
     logging.info("STOPED")
     loop.run_until_complete(bot.close())
   finally:

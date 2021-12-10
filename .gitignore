@@ -114,7 +114,8 @@ venv.bak/
 .ropeproject
 
 # mkdocs documentation
-/site
+site/
+# /docs/commands
 
 # mypy
 .mypy_cache/
@@ -129,3 +130,12 @@ WikiQACorpus
 old/
 old_*
 .vscode
+guilds.json
+friday-trans-key.json
+*.csv
+*.db
+*.sql
+*.sqlite
+*.zip
+
+blacklist.json

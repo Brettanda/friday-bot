@@ -1,0 +1,18 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: friday-bot
+spec:
+  selector:
+    matchLabels:
+      app: friday-bot
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: friday-bot
+    spec:
+      containers:
+      - name: friday-bot
+        image: friday-bot:latest
+        imagePullPolicy: Never

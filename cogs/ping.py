@@ -1,29 +1,28 @@
 from discord.ext import commands
-from discord_slash import SlashContext, cog_ext
 
-from functions import embed  # ,MySlashContext#,profile
+from functions import embed
+
+from typing_extensions import TYPE_CHECKING
+
+if TYPE_CHECKING:
+  from index import Friday as Bot
 
 
 class Ping(commands.Cog):
-  def __init__(self,bot):
+  """Ping? Pong!"""
+
+  def __init__(self, bot: "Bot"):
     self.bot = bot
 
-  @commands.command(name="ping",description="Pong!")
-  async def norm_ping(self,ctx):
-    post = await self.ping(ctx)
-    await ctx.reply(**post)
+  def __repr__(self) -> str:
+    return "<cogs.Ping content=\"Pong\">"
 
-  @cog_ext.cog_slash(name="ping",description="Ping!")
-  async def slash_ping(self,ctx:SlashContext):
-    await ctx.respond(True)
-    post = await self.ping(ctx)
-    await ctx.send_hidden(**post)
+  @commands.command(name="ping", help="Pong!")
+  async def norm_ping(self, ctx):
+    """Pong!"""
+    latency = f"{self.bot.get_shard(ctx.guild.shard_id).latency*1000:,.0f}" if ctx.guild is not None else f"{self.bot.latency*1000:,.0f}"
+    return await ctx.send(embed=embed(title="Pong!", description=f"⏳ API is {latency}ms"))
 
-  async def ping(self,ctx):
-    if isinstance(ctx, SlashContext):
-      return dict(content="Pong!")
-    else:
-      return dict(embed=embed(title="Pong!"))
 
 def setup(bot):
   bot.add_cog(Ping(bot))

@@ -1,13 +1,15 @@
-name: Check syntax #Will it launch
+name: Will it blend?
 
-on: [push,pull_request]
+on: [push]
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  lint:
+    runs-on: ${{ matrix.os }}
+    name: Linter os ${{ matrix.os }}, Python ${{ matrix.python-version }}
     strategy:
       matrix:
-        python-version: [3.8,3.9]
+        os: [ubuntu-latest]
+        python-version: [3.8]
 
     steps:
     - uses: actions/checkout@v2
@@ -15,18 +17,122 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
+    - name: Cache dependencies
+      id: cache
+      uses: actions/cache@v2
+      env:
+        cache-name: cache-friday-lint-dep
+      with:
+        path: |
+          ${{ env.pythonLocation}}/lib/python${{ matrix.python-version }}/site-packages/*
+          ~/venv
+        key: ${{ matrix.os }}-pip-${{ env.cache-name }}-${{ hashfiles('lint-requirements.txt') }}
+        restore-keys: |
+          ${{ matrix.os }}-pip-${{ env.cache-name }}-${{ hashfiles('lint-requirements.txt') }}
+          ${{ matrix.os }}-pip-${{ env.cache-name }}-
+          ${{ matrix.os }}-pip-
+          ${{ matrix.os }}-
     - name: Install dependencies
+      if: steps.cache.outputs.cache-hit != 'true'
       run: |
+        python -m venv ~/venv
+        . ~/venv/bin/activate
         python -m pip install --upgrade pip
-        pip install flake8 
-      #pytest
-      # if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        pip install flake8
     - name: Lint with flake8
       run: |
+        . ~/venv/bin/activate
         # stop the build if there are Python syntax errors or undefined names
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
         # exit-zero treats all errors as warnings. The Github editor is 127 chars wide
-        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-    # - name: Test with pytest
-    #   run: |
-    #     pytest
+        flake8 . --count --statistics --config=./setup.cfg
+  build:
+    runs-on: ${{ matrix.os }}
+    name: Launch check os ${{ matrix.os }}, Python ${{ matrix.python-version }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        python-version: [3.8]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Cache dependencies
+      id: cache
+      uses: actions/cache@v2
+      env:
+        cache-name: cache-friday-build-dep
+      with:
+        path: |
+          ${{ env.pythonLocation}}/lib/python${{ matrix.python-version }}/site-packages/*
+          ~/venv
+        key: ${{ matrix.os }}-pip-${{ env.cache-name }}-${{ hashfiles('requirements.txt') }}
+        restore-keys: |
+          ${{ matrix.os }}-pip-${{ env.cache-name }}-${{ hashfiles('requirements.txt') }}
+          ${{ matrix.os }}-pip-${{ env.cache-name }}-
+          ${{ matrix.os }}-pip-
+          ${{ matrix.os }}-
+    - name: Install dependencies
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: |
+        python -m venv ~/venv
+        . ~/venv/bin/activate
+        python -m pip install --upgrade pip
+        pip install pytest
+        if [ -f requirements.txt ]; then python -m pip install -r requirements.txt; fi
+    - name: Install google key for translations
+      env:
+        PROJECT_ID: ${{ secrets.PROJECT_ID }}
+        PRIVATE_KEY_ID: ${{ secrets.PRIVATE_KEY_ID }}
+        PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+        CLIENT_EMAIL: ${{ secrets.CLIENT_EMAIL }}
+        CLIENT_ID: ${{ secrets.CLIENT_ID }}
+        CLIENT_CERT_URL: ${{ secrets.CLIENT_CERT_URL }}
+      run: |
+        . ~/venv/bin/activate
+        if ! [ -f friday-trans-key.json ]; then python create_trans_key.py; fi
+        if [ -f friday-trans-key.json ]; then printf "File created"; fi
+    - name: Test with pytest
+      env:
+        DBHOSTNAME: ${{ secrets.DBHOSTNAME }}
+        DBUSERNAME: ${{ secrets.DBUSERNAME }}
+        DBUSERNAMECANARY: ${{ secrets.DBUSERNAMECANARY }}
+        DBUSERNAMELOCAL: ${{ secrets.DBUSERNAMELOCAL }}
+        DBPASSWORD: ${{ secrets.DBPASSWORD }}
+        DBPASSWORDCANARY: ${{ secrets.DBPASSWORDCANARY }}
+        DBPASSWORDLOCAL: ${{ secrets.DBPASSWORDLOCAL }}
+        DBDATABASE: ${{ secrets.DBDATABASE }}
+        DBDATABASECANARY: ${{ secrets.DBDATABASECANARY }}
+        DBDATABASELOCAL: ${{ secrets.DBDATABASELOCAL }}
+        TOKENTEST: ${{ secrets.TOKENTEST }}
+        DBLWEBHOOKPASS: ${{ secrets.DBLWEBHOOKPASS }}
+        WEBHOOKSPAMID: ${{ secrets.WEBHOOKSPAMID }}
+        WEBHOOKISSUESID: ${{ secrets.WEBHOOKISSUESID }}
+        WEBHOOKINFOID: ${{ secrets.WEBHOOKINFOID }}
+        WEBHOOKERRORSID: ${{ secrets.WEBHOOKERRORSID }}
+        WEBHOOKCHATID: ${{ secrets.WEBHOOKCHATID }}
+        WEBHOOKJOINID: ${{ secrets.WEBHOOKJOINID }}
+        WEBHOOKSPAMTOKEN: ${{ secrets.WEBHOOKSPAMTOKEN }}
+        WEBHOOKISSUESTOKEN: ${{ secrets.WEBHOOKISSUESTOKEN }}
+        WEBHOOKINFOTOKEN: ${{ secrets.WEBHOOKINFOTOKEN }}
+        WEBHOOKERRORSTOKEN: ${{ secrets.WEBHOOKERRORSTOKEN }}
+        WEBHOOKCHATTOKEN: ${{ secrets.WEBHOOKCHATTOKEN }}
+        WEBHOOKJOINTOKEN: ${{ secrets.WEBHOOKJOINTOKEN }}
+        PROJECT_ID: ${{ secrets.PROJECT_ID }}
+        PRIVATE_KEY_ID: ${{ secrets.PRIVATE_KEY_ID }}
+        PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+        CLIENT_EMAIL: ${{ secrets.CLIENT_EMAIL }}
+        CLIENT_ID: ${{ secrets.CLIENT_ID }}
+        CLIENT_CERT_URL: ${{ secrets.CLIENT_CERT_URL }}
+        GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
+        REDDITCLIENTID: ${{ secrets.REDDITCLIENTID }}
+        REDDITCLIENTSECRET: ${{ secrets.REDDITCLIENTSECRET }}
+        REDDITPASSWORD: ${{ secrets.REDDITPASSWORD }}
+        APIREQUESTS: ${{ secrets.APIREQUESTS }}
+      run: |
+        . ~/venv/bin/activate
+        if [ -f friday-trans-key.json ]; then printf "Google file here"; fi
+        pytest test_will_it_blend.py

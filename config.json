@@ -2,6 +2,7 @@
   "prefix": "!",
   "delMSGtimeout": 40000,
   "typingTime": 3000,
+  "description": "Hello, my name is Friday, I am a chatbot built with TensorFlow and Keras, meaning I enjoy conversations. I also have a few commands for fun and moderating your servers!",
   "games": [
     "Developing myself",
     "Minecraft",
@@ -27,12 +28,13 @@
     "Uploading your consciousness",
     "Learning everything on the Internet",
     "YouTube with !play",
-    "with Machince Learning",
+    "with Machine Learning",
     "xX_FINAL_FANTASY_Xx",
     "Escape from Tarkov",
     "Practicing my dice rolling with !r",
     "Giving out inspirational quotes",
-    "Among us"
+    "Among us",
+    "[she/her]"
   ],
   "soups": [
     "https://cdn.discordapp.com/attachments/503687266594586634/504016368618700801/homemade-chicken-noodle-soup.png",

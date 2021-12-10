@@ -1,34 +1,42 @@
 import d20
 
 from discord.ext import commands
-from discord_slash import cog_ext
+# from discord_slash import cog_ext
 
-from functions import embed
+from functions import embed, MessageColors  # , checks
+
+from functions import MyContext
+
 
 class Dice(commands.Cog):
-  def __init__(self,bot):
-    self.bot = bot
+  """Roll some dice with advantage or just do some basic math."""
 
-  @commands.command(name="dice",aliases=["d","r","roll"])
-  async def norm_dice(self,ctx,*,roll:str):
-    async with ctx.typing():
-      post = await self.dice(roll)
-    await ctx.reply(**post)
+  def __repr__(self):
+    return "<cogs.Dice>"
 
-  @cog_ext.cog_slash(name="dice",description="D&D dice rolling")
-  async def slash_dice(self,ctx,*,roll:str):
-    await ctx.defer()
-    post = await self.dice(roll)
-    await ctx.send(**post)
-
-  async def dice(self,roll):
-    roll = roll.lower()
-
+  @commands.command(name="dice", extras={"slash": True, "examples": ["1d20", "5d10k3", "d6"]}, aliases=["d", "r", "roll"], help="D&D dice rolling")
+  async def norm_dice(self, ctx: "MyContext", *, roll: str):
     if "bump" in roll:
       return
 
-    result = d20.roll(roll)
-    return dict(embed=embed(title=f"Your total: {str(result.total)}",description=f"Query: {str(result.ast)}\nResult: {str(result)}"))
+    return await self.dice(ctx, roll)
+
+  # @cog_ext.cog_slash(name="dice", description="D&D dice rolling")
+  # @checks.slash(user=False, private=True)
+  # async def slash_dice(self, ctx: "MyContext", *, roll: str):
+  #   return await self.dice(ctx, roll)
+
+  async def dice(self, ctx: "MyContext", roll):
+    roll = roll.lower()
+
+    result = None
+    try:
+      result = d20.roll(roll)
+    except Exception as e:
+      return await ctx.send(embed=embed(title=f"{e}", color=MessageColors.ERROR))
+    else:
+      return await ctx.send(embed=embed(title=f"Your total: {str(result.total)}", description=f"Query: {str(result.ast)}\nResult: {str(result)}"))
+
 
 def setup(bot):
   bot.add_cog(Dice(bot))
