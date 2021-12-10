@@ -78,14 +78,17 @@ class TopGG(commands.Cog):
     vote_message = f"Your next vote time is: {time.format_dt(expires, style='R')}" if expires is not None else "You can vote now"
     await ctx.reply(embed=embed(title="Voting", description=f"{vote_message}\n\nWhen you vote you get:", fieldstitle=["Better rate limiting"], fieldsval=["200 messages/12 hours instead of 80 messages/12 hours."]), view=VoteView(self))
 
-  @vote.command(name="fake", hidden=True)
+  @vote.command(name="fake", extras={"examples": ["test", "upvote"]}, hidden=True)
   @commands.is_owner()
-  async def vote_fake(self, ctx: "MyContext"):
+  async def vote_fake(self, ctx: "MyContext", _type: str = "test"):
     data = {
-        "type": "test",
-        "user": ctx.author.id,
+        "type": _type,
+        "user": str(ctx.author.id),
+        "query": {},
+        "bot": self.bot.user.id,
+        "is_weekend": False
     }
-    self.bot.dispatch("dbl_vote", data, time=datetime.datetime.now())
+    self.bot.dispatch("dbl_vote", data)
     await ctx.send("Fake vote sent")
 
   async def update_stats(self):
@@ -130,18 +133,18 @@ class TopGG(commands.Cog):
   #   await self.on_dbl_vote(data, time)
 
   @commands.Cog.listener()
-  async def on_dbl_vote(self, data: dict, time=discord.utils.utcnow() + datetime.timedelta(hours=12)):
+  async def on_dbl_vote(self, data: dict, fut=time.FutureTime("12h")):
     _type, user, isWeekend = data.get("type", None), data.get("user", None), data.get("isWeekend", False)
     self.bot.logger.info(f'Received an upvote, {data}')
     if _type == "test":
-      time = discord.utils.utcnow() + datetime.timedelta(minutes=2)
+      fut = time.FutureTime("2m")
     if user is None:
       return
     reminder = self.bot.get_cog("Reminder")
     if reminder is None:
       return
-    await reminder.create_timer(time, "vote", user)
-    if _type == "test" or user not in (215227961048170496, 813618591878086707):
+    await reminder.create_timer(fut.dt, "vote", user)
+    if _type == "test" or int(user, base=10) not in (215227961048170496, 813618591878086707):
       if user is not None:
         support_server = self.bot.get_guild(config.support_server_id)
         member = await self.bot.get_or_fetch_member(support_server, user)
