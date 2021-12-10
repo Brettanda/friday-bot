@@ -8,7 +8,7 @@ if TYPE_CHECKING:
 
 # @pytest.mark.parametrize("bot,voice_channel,channel", [bot, voice_channel, channel])
 @pytest.mark.asyncio
-@pytest.mark.parametrize("url", ["https://www.youtube.com/watch?v=dQw4w9WgXcQ", "https://www.youtube.com/watch?v=jCQd6YqTnOk&list=PLQSoWXSpjA3_FFnFo4yWTtVbZrMkbm-h7", "https://www.youtube.com/watch?v=2ZIpFytCSVc"])
+@pytest.mark.parametrize("url", ["https://www.youtube.com/watch?v=dQw4w9WgXcQ", "https://www.youtube.com/watch?v=jCQd6YqTnOk&list=PLQSoWXSpjA3_FFnFo4yWTtVbZrMkbm-h7", "https://www.youtube.com/watch?v=2ZIpFytCSVc", "some kind of magic"])
 @pytest.mark.dependency(name="test_play")
 async def test_play(bot: "bot", voice_channel: "voice_channel", channel: "channel", url: str):
   try:
@@ -20,6 +20,61 @@ async def test_play(bot: "bot", voice_channel: "voice_channel", channel: "channe
 
   msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
   assert "Now playing: **" in msg.embeds[0].title or "Added **" in msg.embeds[0].title or "Added the playlist" in msg.embeds[0].title
+
+
+# @pytest.mark.asyncio
+# async def test_play_after_force_dc(bot: "bot", voice_channel: "voice_channel", channel: "channel"):
+#   try:
+#     await voice_channel.connect()
+#   except discord.ClientException:
+#     pass
+#   content = "!p https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+#   await channel.send(content)
+
+#   msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
+#   assert "Now playing: **" in msg.embeds[0].title or "Added **" in msg.embeds[0].title or "Added the playlist" in msg.embeds[0].title
+
+#   await msg.author.move_to(None)
+
+#   content = "!p https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+#   await channel.send(content)
+
+#   msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
+#   assert "Now playing: **" in msg.embeds[0].title or "Added **" in msg.embeds[0].title or "Added the playlist" in msg.embeds[0].title
+
+#   await channel.send("!stop")
+
+#   msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content="!stop"), timeout=pytest.timeout)
+#   assert "stop" in msg.embeds[0].title or msg.embeds[0].title == "I am not playing anything."
+
+
+# @pytest.mark.asyncio
+# async def test_play_after_stop(bot: "bot", voice_channel: "voice_channel", channel: "channel"):
+#   try:
+#     await voice_channel.connect()
+#   except discord.ClientException:
+#     pass
+#   content = "!p https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+#   await channel.send(content)
+
+#   msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
+#   assert "Now playing: **" in msg.embeds[0].title or "Added **" in msg.embeds[0].title or "Added the playlist" in msg.embeds[0].title
+
+#   await channel.send("!stop")
+
+#   msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content="!stop"), timeout=pytest.timeout)
+#   assert "stop" in msg.embeds[0].title or msg.embeds[0].title == "I am not playing anything."
+
+#   content = "!p https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+#   await channel.send(content)
+
+#   msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
+#   assert "Now playing: **" in msg.embeds[0].title or "Added **" in msg.embeds[0].title or "Added the playlist" in msg.embeds[0].title
+
+#   await channel.send("!stop")
+
+#   msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content="!stop"), timeout=pytest.timeout)
+#   assert "stop" in msg.embeds[0].title or msg.embeds[0].title == "I am not playing anything."
 
 
 @pytest.mark.asyncio
@@ -90,7 +145,7 @@ class TestCustomSounds:
     await channel.send(content)
 
     msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
-    assert msg.embeds[0].title == "!custom" or msg.embeds[0].title == "You must be in a voice channel to use this command"
+    assert msg.embeds[0].title == "The list of custom sounds" or "Now playing:" in msg.embeds[0].title or "Added" in msg.embeds[0].title or msg.embeds[0].title == "You must be in a voice channel to use this command"
 
   @pytest.mark.asyncio
   @pytest.mark.dependency(name="test_add", scope="class")

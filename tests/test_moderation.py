@@ -137,7 +137,7 @@ class TestWelcome:
     await channel.send(content)
 
     msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
-    assert "!welcome" in msg.embeds[0].title
+    assert "Current Welcome Settings" == msg.embeds[0].title
 
   @pytest.mark.asyncio
   async def test_display(self, bot, channel):

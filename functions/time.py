@@ -268,7 +268,7 @@ class UserFriendlyTime(commands.Converter):
       if begin not in (0, 1) and end != len(argument):
         raise commands.BadArgument('Time is either in an inappropriate location, which '
                                    'must be either at the end or beginning of your input, '
-                                   'or I just flat out did not understand what you meant. Sorry.')
+                                   'or I did not understand what you meant. Sorry.')
 
       if not status.hasTime:
         # replace it with the current time
