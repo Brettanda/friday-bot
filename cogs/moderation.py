@@ -271,7 +271,7 @@ class Moderation(commands.Cog):
   @commands.guild_only()
   @commands.bot_has_guild_permissions(ban_members=True)
   @commands.has_guild_permissions(ban_members=True)
-  async def norm_ban(self, ctx, duration: Optional[time.FutureTime], members: commands.Greedy[MemberOrID], *, reason: Optional[ActionReason] = None):
+  async def norm_ban(self, ctx, duration: Optional[time.FutureTime] = None, members: commands.Greedy[MemberOrID] = [], *, reason: Optional[ActionReason] = None):
     if not isinstance(members, list):
       members = [members]
     if reason is None:
@@ -290,7 +290,7 @@ class Moderation(commands.Cog):
     for member in members:
       try:
         await ctx.guild.ban(member, reason=reason)
-        if reminder:
+        if duration is not None:
           await reminder.create_timer(duration.dt, "tempban", ctx.guild.id, ctx.author.id, member.id, connection=ctx.pool, created=ctx.message.created_at)
       except discord.HTTPException:
         failed += 1
@@ -470,7 +470,7 @@ class Moderation(commands.Cog):
       for member in members:
         try:
           await member.add_roles(role, reason=reason)
-          if duration:
+          if duration is not None and reminder:
             await reminder.create_timer(duration.dt, "tempmute", ctx.guild.id, ctx.author.id, member.id, role.id, created=ctx.message.created_at)
         except discord.HTTPException:
           failed += 1
