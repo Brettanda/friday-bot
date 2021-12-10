@@ -55,7 +55,7 @@ class API(commands.Cog):
     # TODO: Add CORS support https://github.com/aio-libs/aiohttp-cors  allow_origin=["https://friday-bot.com"], allow_methods=["GET"]
     cors = aiohttp_cors.setup(app, defaults={
         "http://localhost:3000": aiohttp_cors.ResourceOptions(),
-        "https://friday-bot.com": aiohttp_cors.ResourceOptions()
+        "https://friday-bot.com": aiohttp_cors.ResourceOptions(allow_headers="*", allow_credentials=True)
     })
     routes = web.RouteTableDef()
 
