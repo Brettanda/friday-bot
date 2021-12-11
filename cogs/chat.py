@@ -331,7 +331,7 @@ class Chat(commands.Cog):
         if msg.guild.me not in msg.mentions:
           return
 
-      if chat_channel != msg.channel:
+      if chat_channel is not None and chat_channel != msg.channel:
         return
 
       current_tier = config.tier
