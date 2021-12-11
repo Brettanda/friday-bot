@@ -331,6 +331,9 @@ class Chat(commands.Cog):
         if msg.guild.me not in msg.mentions:
           return
 
+      if chat_channel != msg.channel:
+        return
+
       current_tier = config.tier
     lang = config.lang if msg.guild is not None else "en"
 
