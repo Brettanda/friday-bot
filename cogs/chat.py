@@ -327,12 +327,11 @@ class Chat(commands.Cog):
         return
 
       chat_channel = config.chat_channel
-      if chat_channel is None:
+      if chat_channel is not None and msg.channel != chat_channel:
         if msg.guild.me not in msg.mentions:
           return
-
-      if chat_channel is not None and chat_channel != msg.channel:
-        return
+      elif chat_channel is None and msg.guild.me not in msg.mentions:
+          return
 
       current_tier = config.tier
     lang = config.lang if msg.guild is not None else "en"
