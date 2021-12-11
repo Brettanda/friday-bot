@@ -337,7 +337,7 @@ class AutoMod(commands.Cog):
     if words is None or len(words) == 0:
       return
     try:
-      if bool([word for word in words if word in cleansed_msg]):
+      if bool([word for word in words if word in cleansed_msg or word in msg.clean_content]):
         try:
           await config.apply_punishment(msg.guild, msg, config.blacklist_punishments, reason="Blacklisted word.")
         except Exception as e:
