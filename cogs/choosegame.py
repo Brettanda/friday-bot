@@ -66,9 +66,7 @@ class ChooseGame(commands.Cog):
 
   @tasks.loop(minutes=1)
   async def status_updates(self, shard_id: int):
-    member_count = 0
-    for guild in self.bot.guilds:
-      member_count += len(guild.members)
+    member_count = sum(guild.member_count for guild in self.bot.guilds)
     await self.bot.change_presence(
         activity=discord.Activity(
             type=discord.ActivityType.watching,
