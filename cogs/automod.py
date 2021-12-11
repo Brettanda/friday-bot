@@ -177,6 +177,8 @@ class AutoMod(commands.Cog):
     error = getattr(error, "original", error)
     if isinstance(error, (commands.MissingRequiredArgument)):
       return
+    if isinstance(error, commands.BadArgument):
+      return await ctx.send(embed=embed(title=str(error), color=MessageColors.ERROR))
     self.bot.logger.error(f"Error in {ctx.command.qualified_name}: {type(error).__name__}: {error}")
 
   async def cog_after_invoke(self, ctx: "MyContext"):
@@ -335,16 +337,13 @@ class AutoMod(commands.Cog):
     if words is None or len(words) == 0:
       return
     try:
-      for blacklisted_word in words:
-        if blacklisted_word in cleansed_msg:
-          try:
-            await msg.delete()
-          except Exception as e:
-            await relay_info(f"Error when trying to remove message {type(e).__name__}: {e}", self.bot, logger=self.bot.log.log_errors)
-          else:
-            return await msg.author.send(embed=embed(title=f"Your message `{msg.content}` was removed for containing a blacklisted word "))
+      if bool([word for word in words if word in cleansed_msg]):
+        try:
+          await config.apply_punishment(msg.guild, msg, config.blacklist_punishments, reason="Blacklisted word.")
+        except Exception as e:
+          await relay_info(f"Error when trying to apply punishment {type(e).__name__}: {e}", self.bot, logger=self.bot.log.log_errors)
     except Exception as e:
-      await relay_info(f"Error when trying to remove message (big) {type(e).__name__}: {e}", self.bot, logger=self.bot.log.log_errors)
+      await relay_info(f"Error when trying to apply punishment (big) {type(e).__name__}: {e}", self.bot, logger=self.bot.log.log_errors)
 
   @commands.command(name="whitelist", aliases=["wl"], extras={"examples": ["#memes", "#admin @admin 707457407512739951"]}, invoke_without_command=True, case_insensitive=True, help="Whitelist channels and/or roles from being automoded.")
   @commands.guild_only()
@@ -389,6 +388,8 @@ class AutoMod(commands.Cog):
   @commands.has_guild_permissions(manage_messages=True)
   @commands.bot_has_guild_permissions(manage_messages=True)
   async def _blacklist_add_word(self, ctx, *, phrase: str):
+    if len(phrase) < 3:
+      raise commands.BadArgument("Word must be at least 3 characters long.")
     if len(await self.bot.db.query("SELECT words FROM blacklist WHERE guild_id=$1::text AND $2::text = ANY(words)", str(ctx.guild.id), phrase)) > 0:
       return await ctx.reply(embed=embed(title="Can't add duplicate word", color=MessageColors.ERROR))
     await self.bot.db.query("INSERT INTO blacklist (guild_id,words) VALUES ($1::text,array[$2]::text[]) ON CONFLICT(guild_id) DO UPDATE SET words = array_append(blacklist.words, $2)", str(ctx.guild.id), phrase)
