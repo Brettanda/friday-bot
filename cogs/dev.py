@@ -221,6 +221,8 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
         ret.append((1, module.replace("/", ".")))
       elif self.bot.get_cog(module.capitalize()) is not None:
         ret.append((0, "cogs." + module.replace("/", ".")))
+      elif self.bot.get_command(module) is not None:
+        ret.append((0, "cogs." + self.bot.get_command(module).cog_name.lower()))
       else:
         ret.append((1, module.replace("/", ".")))
 
