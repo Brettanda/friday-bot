@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 # https://pypi.org/project/mcrcon/
 
 
-class NaCl(commands.Cog, command_attrs=dict(hidden=True)):
+class NaClServer(commands.Cog, command_attrs=dict(hidden=True)):
   def __init__(self, bot: "Bot"):
     self.bot = bot
 
@@ -29,26 +29,25 @@ class NaCl(commands.Cog, command_attrs=dict(hidden=True)):
       self.mcron = None
 
   def cog_unload(self):
-    if self.mcron:
+    if self.mcron is not None:
       self.mcron.disconnect()
 
   async def cog_check(self, ctx: "MyContext") -> bool:
-    if ctx.author.id not in (222560984709988352, 215227961048170496):
-      raise commands.NotOwner()
-    return True
+    if ctx.author.id in (222560984709988352, 215227961048170496):
+      return True
+    raise commands.NotOwner()
 
   @commands.group("nacl", invoke_without_command=True)
-  async def nacl(self, ctx: "MyContext"):
-    ...
+  async def _nacl(self, ctx: "MyContext"):
+    await ctx.send_help(ctx.command)
 
-  @nacl.command("minecraft", aliases=["mc"], help="Run commands in Minecraft")
+  @_nacl.command("minecraft", aliases=["mc"], help="Run commands in Minecraft. Must include / for commands.")
   async def nacl_minecraft(self, ctx: "MyContext", *, command: str):
     if not self.mcron:
       return await ctx.send(embed=embed(title="Minecraft is not running.", color=MessageColors.ERROR))
-    command = "/" + command if "/" not in command else command
     resp = await self.bot.loop.run_in_executor(None, self.mcron.command, command)
     await ctx.send(f"Response\n```json\n{str(resp)}\n```")
 
 
 def setup(bot):
-  bot.add_cog(NaCl(bot))
+  bot.add_cog(NaClServer(bot))
