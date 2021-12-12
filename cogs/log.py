@@ -302,7 +302,7 @@ class Log(commands.Cog):
     if ctx.command is None:
       return
 
-    if ctx.command.cog_name != "Dev":
+    if ctx.command.cog_name not in ("Dev", "Config"):
       if ctx.author.id in self.bot.blacklist:
         return
 
