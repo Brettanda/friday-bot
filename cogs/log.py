@@ -43,7 +43,7 @@ class Config:
     self.chat_channel = record["chatchannel"]
     self.disabled_commands = set(record["disabled_commands"] or [])
     self.restricted_commands = set(record["restricted_commands"] or [])
-    self.bot_channel = record["botchannel"]
+    self.bot_channel = int(record["botchannel"], base=10) if record["botchannel"] else None
     self.tier = record["tier"]
     self.lang = record["lang"]
     return self
