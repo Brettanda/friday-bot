@@ -142,7 +142,7 @@ class TopGG(commands.Cog):
     reminder = self.bot.get_cog("Reminder")
     if reminder is None:
       return
-    await reminder.create_timer(fut.dt, "vote", user)
+    await reminder.create_timer(fut.dt, "vote", user, created=discord.utils.utcnow())
     if _type == "test" or int(user, base=10) not in (215227961048170496, 813618591878086707):
       if user is not None:
         support_server = self.bot.get_guild(config.support_server_id)
