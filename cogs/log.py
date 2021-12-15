@@ -407,7 +407,7 @@ class Log(commands.Cog):
 
     ignored = (commands.CommandNotFound, commands.NotOwner, )
     wave_errors = (wavelink_errors.LoadTrackError, wavelink_errors.WavelinkError,)
-    just_send = (commands.DisabledCommand, commands.BotMissingPermissions, commands.MissingPermissions, commands.RoleNotFound, asyncio.TimeoutError,)
+    just_send = (commands.DisabledCommand, commands.BotMissingPermissions, commands.MissingPermissions, commands.RoleNotFound, asyncio.TimeoutError, commands.BadArgument)
     error = getattr(error, 'original', error)
 
     if isinstance(error, (*ignored, *wave_errors)) or (hasattr(error, "log") and error.log is False):

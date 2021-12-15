@@ -41,10 +41,6 @@ class Config(commands.Cog, command_attrs=dict(extras={"permissions": ["manage_gu
       raise commands.MissingPermissions(["manage_guild"])
     return True
 
-  async def cog_command_error(self, ctx: "MyContext", error: Exception):
-    if isinstance(error, commands.BadArgument):
-      await ctx.send(embed=embed(title=f"{error}", color=MessageColors.ERROR))
-
   @commands.command(name="prefix", extras={"examples": ["?", "f!"]}, help="Sets the prefix for Fridays commands")
   async def prefix(self, ctx: "MyContext", new_prefix: Optional[str] = config.defaultPrefix):
     new_prefix = new_prefix.lower()
