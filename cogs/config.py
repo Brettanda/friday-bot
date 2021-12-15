@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
 
 class CommandName(commands.Converter):
-  async def convert(self, ctx: "MyContext", argument):
+  async def convert(self, ctx: "MyContext", argument: str):
     lowered = argument.lower()
 
     valid_commands = {
@@ -21,7 +21,7 @@ class CommandName(commands.Converter):
     }
 
     if lowered not in valid_commands:
-      raise commands.BadArgument(f"Command {lowered!r} does not exist.")
+      raise commands.BadArgument(f"Command {lowered!r} does not exist. Make sure you're using the full name not an alias.")
 
     return lowered
 
@@ -40,10 +40,6 @@ class Config(commands.Cog, command_attrs=dict(extras={"permissions": ["manage_gu
     if not ctx.author.guild_permissions.manage_guild:
       raise commands.MissingPermissions(["manage_guild"])
     return True
-
-  async def cog_command_error(self, ctx: "MyContext", error: Exception):
-    if isinstance(error, commands.BadArgument):
-      await ctx.send(embed=embed(title=f"{error}", color=MessageColors.ERROR))
 
   @commands.command(name="prefix", extras={"examples": ["?", "f!"]}, help="Sets the prefix for Fridays commands")
   async def prefix(self, ctx: "MyContext", new_prefix: Optional[str] = config.defaultPrefix):
