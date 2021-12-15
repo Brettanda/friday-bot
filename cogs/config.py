@@ -70,7 +70,12 @@ class Config(commands.Cog, command_attrs=dict(extras={"permissions": ["manage_gu
 
   @botchannel.command("clear")
   async def botchannel_clear(self, ctx: "MyContext"):
+    log_cog = self.bot.log
+    if log_cog is None:
+      return await ctx.send(embed=embed(title="This functionality is not currently available. Try again later?", color=MessageColors.ERROR))
+
     await ctx.pool.execute("UPDATE servers SET botchannel=NULL WHERE id=$1;", str(ctx.guild.id))
+    log_cog.get_guild_config.invalidate(log_cog, ctx.guild.id)
     await ctx.send(embed=embed(title="Bot Channel", description="Bot channel cleared."))
 
   @commands.group("restrict", help="Restricts the selected command to the bot channel. Ignored with manage server permission.", invoke_without_command=True)

@@ -43,7 +43,7 @@ class Config:
     self.chat_channel = record["chatchannel"]
     self.disabled_commands = set(record["disabled_commands"] or [])
     self.restricted_commands = set(record["restricted_commands"] or [])
-    self.bot_channel = record["botchannel"]
+    self.bot_channel = int(record["botchannel"], base=10) if record["botchannel"] else None
     self.tier = record["tier"]
     self.lang = record["lang"]
     return self
@@ -314,8 +314,10 @@ class Log(commands.Cog):
         if config is not None:
           if ctx.command.name in config.disabled_commands:
             return
-          if ctx.command.name in config.restricted_commands and not ctx.author.guild_permissions.manage_guild:
-            ctx.to_bot_channel = config.bot_channel
+
+          if config.bot_channel is not None and ctx.channel.id != config.bot_channel:
+            if ctx.command.name in config.restricted_commands and not ctx.author.guild_permissions.manage_guild:
+              ctx.to_bot_channel = config.bot_channel
 
     bucket = self.spam_control.get_bucket(message)
     current = message.created_at.replace(tzinfo=datetime.timezone.utc).timestamp()
