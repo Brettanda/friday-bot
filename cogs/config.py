@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
 
 class CommandName(commands.Converter):
-  async def convert(self, ctx: "MyContext", argument):
+  async def convert(self, ctx: "MyContext", argument: str):
     lowered = argument.lower()
 
     valid_commands = {
@@ -21,7 +21,7 @@ class CommandName(commands.Converter):
     }
 
     if lowered not in valid_commands:
-      raise commands.BadArgument(f"Command {lowered!r} does not exist.")
+      raise commands.BadArgument(f"Command {lowered!r} does not exist. Make sure you're using the full name not an alias.")
 
     return lowered
 
