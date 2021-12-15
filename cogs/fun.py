@@ -13,9 +13,8 @@ from discord.ext import commands, tasks
 
 # sys.path.insert(1, os.path.join(sys.path[0], '..'))
 from pyfiglet import figlet_format
-from functions import MessageColors, embed, exceptions, checks
+from functions import MessageColors, embed, exceptions, checks, MyContext
 from typing_extensions import TYPE_CHECKING
-from functions import MyContext
 
 if TYPE_CHECKING:
   from index import Friday as Bot
@@ -253,7 +252,7 @@ class Fun(commands.Cog):
 
   @commands.command(name='souptime', help='Soup Time')
   @commands.cooldown(1, 7, commands.BucketType.user)
-  async def norm_souptime(self, ctx):
+  async def norm_souptime(self, ctx: "MyContext"):
     await ctx.reply(**self.souptime())
 
   # @commands.cooldown(1,7, commands.BucketType.user)
@@ -271,7 +270,7 @@ class Fun(commands.Cog):
     ))
 
   @commands.command(name="coinflip", aliases=["coin"], help="Flip a coin")
-  async def norm_coinflip(self, ctx):
+  async def norm_coinflip(self, ctx: "MyContext"):
     await ctx.reply(embed=embed(title="The coin landed on: " + random.choice(["Heads", "Tails"])))
 
   # @cog_ext.cog_slash(

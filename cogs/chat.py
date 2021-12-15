@@ -311,6 +311,12 @@ class Chat(commands.Cog):
     if not hasattr(msg.type, "name") or (msg.type.name != "default" and msg.type.name != "reply"):
       return
 
+    if msg.author.id in self.bot.blacklist:
+      return
+
+    if msg.guild is not None and msg.guild.id in self.bot.blacklist:
+      return
+
     ctx = await self.bot.get_context(msg)
     if ctx.command is not None or msg.webhook_id is not None:
       return
