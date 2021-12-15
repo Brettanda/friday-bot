@@ -314,8 +314,10 @@ class Log(commands.Cog):
         if config is not None:
           if ctx.command.name in config.disabled_commands:
             return
-          if ctx.command.name in config.restricted_commands and not ctx.author.guild_permissions.manage_guild:
-            ctx.to_bot_channel = config.bot_channel
+
+          if config.bot_channel is not None and ctx.channel.id != config.bot_channel:
+            if ctx.command.name in config.restricted_commands and not ctx.author.guild_permissions.manage_guild:
+              ctx.to_bot_channel = config.bot_channel
 
     bucket = self.spam_control.get_bucket(message)
     current = message.created_at.replace(tzinfo=datetime.timezone.utc).timestamp()
