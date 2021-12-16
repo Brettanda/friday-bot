@@ -125,13 +125,11 @@ class Reminder(commands.Cog):
     event_name = f'{timer.event}_timer_complete'
     self.bot.dispatch(event_name, timer)
 
-  async def create_timer(self, *args, **kwargs):
-    when, event, *args = args
-
+  async def create_timer(self, when: datetime.datetime, event: str, *args, **kwargs) -> Timer:
     try:
       connection = kwargs.pop('connection')
     except KeyError:
-      connection = self.bot.db.pool
+      connection = self.bot.pool
 
     try:
       now = kwargs.pop('created')
@@ -166,8 +164,9 @@ class Reminder(commands.Cog):
 
     return timer
 
-  @commands.group("reminder", aliases=["timer", "remind"], usage="<when> <message>", invoke_without_command=True)
+  @commands.group("reminder", aliases=["timer", "remind"], extras={"examples": ["20m go buy food", "do something in 20m", "jan 1st happy new years"]}, usage="<when> <message>", invoke_without_command=True)
   async def reminder(self, ctx: MyContext, *, when: time.UserFriendlyTime(commands.clean_content, default="...")):
+    """ Create a reminder for a certain time in the future. """
     await self.create_timer(
         when.dt,
         "reminder",
@@ -182,6 +181,7 @@ class Reminder(commands.Cog):
 
   @reminder.command("list", ignore_extra=False)
   async def reminder_list(self, ctx: MyContext):
+    """ List all reminders. """
     query = """SELECT id,expires, extra #>> '{args,2}'
               FROM reminders
               WHERE event = 'reminder'
@@ -206,8 +206,9 @@ class Reminder(commands.Cog):
 
     await ctx.send(embed=embed(title="Reminders", fieldstitle=titles, fieldsval=fields, fieldsin=[False for _ in range(len(records))], footer=footer))
 
-  @reminder.command("delete", aliases=["remove", "cancel"], ignore_extra=False)
+  @reminder.command("delete", aliases=["remove", "cancel"], extras={"examples": ["1", "200"]}, ignore_extra=False)
   async def reminder_delete(self, ctx: MyContext, *, id: int):
+    """ Delete a reminder. """
     query = """DELETE FROM reminders
               WHERE id=$1
               AND event='reminder'
@@ -225,6 +226,7 @@ class Reminder(commands.Cog):
 
   @reminder.command("clear", ignore_extra=False)
   async def reminder_clear(self, ctx: MyContext):
+    """ Delete all your reminders. """
     query = """SELECT COUNT(*)
               FROM reminders
               WHERE event='reminder'

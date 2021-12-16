@@ -311,6 +311,12 @@ class Chat(commands.Cog):
     if not hasattr(msg.type, "name") or (msg.type.name != "default" and msg.type.name != "reply"):
       return
 
+    if msg.author.id in self.bot.blacklist:
+      return
+
+    if msg.guild is not None and msg.guild.id in self.bot.blacklist:
+      return
+
     ctx = await self.bot.get_context(msg)
     if ctx.command is not None or msg.webhook_id is not None:
       return
@@ -366,6 +372,8 @@ class Chat(commands.Cog):
         return await ctx.send(embed=embed(title="There was a problem connecting to OpenAI API, please try again later", color=MessageColors.ERROR))
       except openai.error.RateLimitError:
         return await ctx.send(embed=embed(title="Looks like the chatbot model hasn't finished loading, please try again in a few minutes.", color=MessageColors.ERROR))
+      except openai.error.ServiceUnavailableError:
+        return await ctx.send(embed=embed(title="Chatbot service is currently unavailable, please try again later.", color=MessageColors.ERROR))
     if response is not None:
       self.chat_history[msg.channel.id].insert(0, f"{msg.guild.me.display_name if msg.guild is not None else self.bot.user.display_name}:" + response)
       content_filter = await self.content_filter_check(response, str(msg.author.id))
