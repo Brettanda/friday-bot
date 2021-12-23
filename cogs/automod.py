@@ -116,7 +116,7 @@ class SpamChecker:
 
     self.bot = bot
     self.message_spam = commands.CooldownMapping.from_cooldown(config.max_messages["rate"], config.max_messages["seconds"], commands.BucketType.user) if config.max_messages else None
-    self.mention_spam = commands.CooldownMapping.from_cooldown(config.max_mentions["mentions"], config.max_mentions["seconds"], commands.BucketType.user) if config.max_mentions else None
+    self.mention_spam = commands.CooldownMapping.from_cooldown(config.max_mentions["rate"], config.max_mentions["seconds"], commands.BucketType.user) if config.max_mentions else None
     self.content_spam = CooldownByContent.from_cooldown(config.max_content["rate"], config.max_content["seconds"], commands.BucketType.member) if config.max_content else None
 
     return self
