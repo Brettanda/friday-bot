@@ -85,37 +85,8 @@ def can_mute():
 
     is_owner = await ctx.bot.is_owner(ctx.author)
 
-    if not ctx.author.guild_permissions.manage_roles and not is_owner:
-      return False
-
-    ctx.guild_config = config = await ctx.cog.get_guild_config(ctx.guild.id)
-    role = config and config.mute_role
-    if role is None:
-      raise MissingMuteRole()
-
-    return ctx.author.top_role > role or ctx.author.guild_permissions.manage_roles or is_owner
+    return ctx.author.guild_permissions.moderate_members or is_owner
   return commands.check(predicate)
-
-
-class Config:
-  @classmethod
-  async def from_record(cls, record, bot):
-    self = cls()
-
-    self.bot = bot
-    self.id: int = int(record["id"], base=10)
-    self.muted_members = set(record["muted_members"] or [])
-    self.mute_role_id = int(record["mute_role"], base=10) if record["mute_role"] else None
-    return self
-
-  @property
-  def mute_role(self):
-    guild = self.bot.get_guild(self.id)
-    return guild and self.mute_role_id and guild.get_role(self.mute_role_id)
-
-  async def mute(self, member: discord.Member, reason: str) -> None:
-    if self.mute_role_id:
-      await member.add_roles(discord.Object(id=self.mute_role_id), reason=reason)
 
 
 class Moderation(commands.Cog):
@@ -151,16 +122,6 @@ class Moderation(commands.Cog):
     else:
       self.bot.logger.error(error)
 
-  @cache.cache()
-  async def get_guild_config(self, guild_id: int) -> Optional[Config]:
-    query = "SELECT * FROM servers WHERE id=$1 LIMIT 1;"
-    async with self.bot.db.pool.acquire(timeout=300.0) as conn:
-      record = await conn.fetchrow(query, str(guild_id))
-      self.bot.logger.debug(f"PostgreSQL Query: \"{query}\" + {str(guild_id)}")
-      if record is not None:
-        return await Config.from_record(record, self.bot)
-      return None
-
   @commands.Cog.listener()
   async def on_invalidate_mod(self, guild_id: int):
     self.get_guild_config.invalidate(self, guild_id)
@@ -171,25 +132,6 @@ class Moderation(commands.Cog):
       return
     time = discord.utils.utcnow()
     self.last_to_leave_vc[before.channel.id] = {"member": member, "time": time.timestamp()}
-
-  # @commands.command(name="mute")
-  # @commands.is_owner()
-  # @commands.has_guild_permissions(manage_roles=True)
-  # async def mute(self,ctx,members:commands.Greedy[discord.Member]=None):
-  #   if self.bot.user in members:
-  #     muted = await query(self.bot.log.mydb,"SELECT muted FROM servers WHERE id=?",ctx.guild.id)
-  #     if muted == 0:
-  #       await query(self.bot.log.mydb,"UPDATE servers SET muted=? WHERE id=?",1,ctx.guild.id)
-  #       await ctx.reply(embed=embed(title="I will now only respond to commands"))
-  #     else:
-  #       await query(self.bot.log.mydb,"UPDATE servers SET muted=? WHERE id=?",0,ctx.guild.id)
-  #       await ctx.reply(embed=embed(title="I will now respond to chat message as well as commands"))
-
-  # @commands.group(name="set", invoke_without_command=True, case_insensitive=True)
-  # @commands.guild_only()
-  # @commands.has_guild_permissions(manage_channels=True)
-  # async def settings_bot(self, ctx):
-  #   await ctx.send_help(ctx.command)
 
   # @cog_ext.cog_slash(name="bot", description="Bot settings")
   # @commands.has_guild_permissions(manage_channels=True)
@@ -448,30 +390,18 @@ class Moderation(commands.Cog):
   @can_mute()
   @commands.has_guild_permissions(manage_roles=True)
   @commands.bot_has_guild_permissions(manage_roles=True)
-  async def norm_mute(self, ctx: "MyContext", duration: Optional[time.FutureTime], members: commands.Greedy[discord.Member], *, reason: Optional[ActionReason] = None):
+  async def norm_mute(self, ctx: "MyContext", duration: time.TimeoutTime, members: commands.Greedy[discord.Member], *, reason: Optional[ActionReason] = None):
     if not isinstance(members, list):
       members = [members]
 
     if reason is None:
       reason = f"[Muted by {ctx.author} (ID: {ctx.author.id})]"
 
-    reminder = self.bot.get_cog("Reminder")
-    if reminder is None:
-      confirm = await ctx.prompt("", embed=embed(title="Tempmute functionality is not currently available.", description="Do you still want to continue with the mute?"))
-      if not confirm:
-        return await ctx.send(embed=embed(title="Mute cancelled.", color=MessageColors.ERROR))
-
-    role = discord.Object(id=ctx.guild_config.mute_role_id)
-    if len(members) == 0:
-      return await ctx.send(embed=embed(title="Missing members to mute.", color=MessageColors.ERROR))
-
     failed = 0
     async with ctx.typing():
       for member in members:
         try:
-          await member.add_roles(role, reason=reason)
-          if duration is not None and reminder:
-            await reminder.create_timer(duration.dt, "tempmute", ctx.guild.id, ctx.author.id, member.id, role.id, created=ctx.message.created_at)
+          await member.timeout(duration.dt, reason=reason)
         except discord.HTTPException:
           failed += 1
 
@@ -479,118 +409,6 @@ class Moderation(commands.Cog):
       await ctx.send(embed=embed(title=f"Muted {members[0]}{' and retracted '+time.format_dt(duration.dt,style='R') if duration else ''}"))
     else:
       await ctx.send(embed=embed(title=f"Muted {len(members) - failed}/{len(members)} members{' and retracted '+time.format_dt(duration.dt,style='R') if duration else ''}."))
-
-  @commands.Cog.listener()
-  async def on_tempmute_timer_complete(self, timer):
-    guild_id, mod_id, member_id, role_id = timer.args
-    await self.bot.wait_until_ready()
-
-    guild = self.bot.get_guild(guild_id)
-    if guild is None:
-      return
-
-    member = await self.bot.get_or_fetch_member(guild, member_id)
-    if member is None or not member._roles.has(role_id):
-      async with self.bot.db.pool.acquire() as conn:
-        await conn.query("UPDATE servers SET muted_members=array_remove(muted_members, $1) WHERE id=$2", str(member_id), str(guild_id))
-      return
-
-    if mod_id != member_id:
-      moderator = await self.bot.get_or_fetch_member(guild, mod_id)
-      if moderator is None:
-        try:
-          moderator = await self.bot.fetch_user(mod_id)
-        except BaseException:
-          moderator = f"Mod ID {mod_id}"
-        else:
-          moderator = f"{moderator} (ID: {mod_id})"
-      else:
-        moderator = f"{moderator} (ID: {mod_id})"
-
-      reason = f"Automatic unmute from timer mode on {timer.created_at} by {moderator}"
-    else:
-      reason = f"Expiring self-mute made on {timer.created_at} by {member}"
-
-    try:
-      await member.remove_roles(discord.Object(id=role_id), reason=reason)
-    except discord.HTTPException:
-      async with self.bot.db.pool.acquire() as conn:
-        await conn.query("UPDATE servers SET muted_members=array_remove(muted_members, $1) WHERE id=$2", str(member_id), str(guild_id))
-
-  @norm_mute.group("role", help="Set the role to be applied to members that get muted", invoke_without_command=True, case_insensitive=True)
-  @commands.guild_only()
-  @commands.has_guild_permissions(manage_roles=True)
-  @commands.bot_has_guild_permissions(manage_roles=True)
-  async def mute_role(self, ctx: "MyContext", *, role: Optional[discord.Role] = None):
-    await self.bot.db.query("UPDATE servers SET mute_role=$1 WHERE id=$2", str(role.id) if role is not None else None, str(ctx.guild.id))
-    if role is not None:
-      return await ctx.send(embed=embed(title=f"Friday will now use `{role}` as the new mute role"))
-    await ctx.send(embed=embed(title="The saved mute role has been removed"))
-
-  @mute_role.command(name="update", help="Updates every channel with the mute role overwrites")
-  @commands.guild_only()
-  @commands.has_guild_permissions(manage_roles=True)
-  @commands.bot_has_guild_permissions(manage_roles=True)
-  @commands.cooldown(1, 60.0, commands.BucketType.guild)
-  async def mute_role_update(self, ctx: "MyContext"):
-    config = await self.get_guild_config(ctx.guild.id)
-    if config.mute_role_id is None:
-      ctx.command.reset_cooldown(ctx)
-      return await ctx.send(embed=embed(title=f"The mute role is not set, please set it with `{ctx.prefix}mute role`", color=MessageColors.ERROR))
-
-    role = config.mute_role
-    async with ctx.typing():
-      success, failed, skipped = 0, 0, 0
-      for channel in ctx.guild.channels:
-        perms = channel.permissions_for(ctx.guild.me)
-        if perms.manage_roles:
-          try:
-            await channel.set_permissions(role, send_messages=False, send_messages_in_threads=False, create_public_threads=False, create_private_threads=False, speak=False, add_reactions=False, reason=f"Mute role overwrites by {ctx.author} (ID: {ctx.author.id})")
-          except discord.HTTPException:
-            failed += 1
-          else:
-            success += 1
-        else:
-          skipped += 1
-      await ctx.send(embed=embed(title="Mute role successfully created.", description=f"Overwrites:\nUpdated: {success}, Failed: {failed}, Skipped: {skipped}"))
-
-  @mute_role.command("create", help="Don't have a muted role? Let Friday create a basic one for you.")
-  @commands.guild_only()
-  @commands.has_guild_permissions(manage_roles=True)
-  @commands.bot_has_guild_permissions(manage_roles=True)
-  @commands.cooldown(1, 60.0, commands.BucketType.guild)
-  async def mute_role_create(self, ctx: "MyContext", *, name: Optional[str] = "Muted"):
-    config = await self.get_guild_config(ctx.guild.id)
-    if config.mute_role is not None:
-      ctx.command.reset_cooldown(ctx)
-      return await ctx.send(embed=embed(title="This server already has a mute role.", color=MessageColors.ERROR))
-
-    try:
-      role = await ctx.guild.create_role(name=name, reason=f"Mute Role created by {ctx.author} (ID: {ctx.author.id})")
-    except discord.HTTPException as e:
-      ctx.command.reset_cooldown(ctx)
-      return await ctx.send(embed=embed(title="An error occurred", description=str(e), color=MessageColors.ERROR))
-
-    await self.bot.db.query("UPDATE servers SET mute_role=$1 WHERE id=$2", str(role.id), str(ctx.guild.id))
-
-    confirm = await ctx.prompt("Would you like to update the channel overwrites")
-    if not confirm:
-      return await ctx.send(embed=embed(title="Mute role successfully created."))
-
-    async with ctx.typing():
-      success, failed, skipped = 0, 0, 0
-      for channel in ctx.guild.channels:
-        perms = channel.permissions_for(ctx.guild.me)
-        if perms.manage_roles:
-          try:
-            await channel.set_permissions(role, send_messages=False, send_messages_in_threads=False, create_public_threads=False, create_private_threads=False, speak=False, add_reactions=False, reason=f"Mute role overwrites by {ctx.author} (ID: {ctx.author.id})")
-          except discord.HTTPException:
-            failed += 1
-          else:
-            success += 1
-        else:
-          skipped += 1
-      await ctx.send(embed=embed(title="Mute role successfully created.", description=f"Overwrites:\nUpdated: {success}, Failed: {failed}, Skipped: {skipped}"))
 
   @commands.command(name="unmute", extras={"examples": ["@Motostar @steve they said sorry", "@steve 9876543210", "@Motostar", "0123456789"]}, help="Unmute a member from text channels")
   @commands.guild_only()
@@ -604,15 +422,12 @@ class Moderation(commands.Cog):
     if reason is None:
       reason = f"[Unmuted by {ctx.author} (ID: {ctx.author.id})]"
 
-    role = discord.Object(id=ctx.guild_config.mute_role_id)
-    if len(members) == 0:
-      return await ctx.send(embed=embed(title="Missing members to unmute.", color=MessageColors.ERROR))
-
     failed = 0
     async with ctx.typing():
       for member in members:
         try:
-          await member.remove_roles(role, reason=reason)
+          await member.remove_timeout(reason=reason)
+          # await member.remove_roles(role, reason=reason)
         except discord.HTTPException:
           failed += 1
     if len(members) == 1:
@@ -624,18 +439,6 @@ class Moderation(commands.Cog):
   @commands.guild_only()
   @commands.bot_has_guild_permissions(manage_roles=True)
   async def selfmute(self, ctx: "MyContext", *, duration: time.ShortTime):
-    reminder = self.bot.get_cog("Reminder")
-    if reminder is None:
-      return await ctx.send(embed=embed(title="Sorry, this funcitonality is not available.", color=MessageColors.ERROR))
-
-    config = await self.get_guild_config(ctx.guild.id)
-    role_id = config and config.mute_role_id
-    if role_id is None:
-      raise MissingMuteRole()
-
-    if ctx.author._roles.has(role_id):
-      return await ctx.send(embed=embed(title="You are already muted. 🤔🤔", color=MessageColors.ERROR))
-
     created_at = ctx.message.created_at
     if duration.dt > (created_at + datetime.timedelta(days=1)):
       return await ctx.send(embed=embed(title="Duration is too long. Must be at most 24 hours.", color=MessageColors.ERROR))
@@ -647,8 +450,7 @@ class Moderation(commands.Cog):
     if not confirm:
       return await ctx.send(embed=embed(title="Cancelled.", color=MessageColors.ERROR))
 
-    await ctx.author.add_roles(discord.Object(id=role_id), reason=f"Self-mute for {ctx.author} (ID: {ctx.author.id}) for {time.human_timedelta(duration.dt, source=created_at)}")
-    await reminder.create_timer(duration.dt, "tempmute", ctx.guild.id, ctx.author.id, ctx.author.id, role_id, created=created_at)
+    await ctx.author.edit(communication_disabled_until=duration.dt, reason=f"Self-mute for {ctx.author} (ID: {ctx.author.id}) for {time.human_timedelta(duration.dt, source=created_at)}")
     await ctx.send(embed=embed(title=f"Muted, and retracted {time.format_dt(duration.dt, style='R')}. Be sure not to bother anyone about it."))
 
   @selfmute.error
@@ -682,8 +484,6 @@ class Moderation(commands.Cog):
 
   @norm_chatchannel.after_invoke
   @music_channel.after_invoke
-  @mute_role.after_invoke
-  @mute_role_create.after_invoke
   async def settings_after_invoke(self, ctx: "MyContext"):
     if not ctx.guild:
       return
