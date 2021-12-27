@@ -10,7 +10,7 @@ import pycountry
 from discord.ext import commands
 from typing_extensions import TYPE_CHECKING
 
-from functions import (MessageColors, MyContext, cache, embed,
+from functions import (MessageColors, MyContext, embed,
                        relay_info, time)
 
 if TYPE_CHECKING:
