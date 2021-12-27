@@ -22,6 +22,14 @@ class HTTPImATeaPot(web.HTTPClientError):
     return self._reason or "I'm a teapot"
 
 
+class HTTPBlocked(web.HTTPClientError):
+  status_code = 403
+
+  @property
+  def reason(self) -> str:
+    return self._reason or "You have been blocked from using this Service"
+
+
 class API(commands.Cog):
   def __init__(self, bot: "Bot"):
     self.app = web.Application(logger=bot.logger, debug=not bot.prod and not bot.canary)
@@ -123,7 +131,7 @@ class API(commands.Cog):
             await bot.fetch_guild(guild_id)
         except discord.Forbidden:
           continue
-        if guild is not None:
+        if guild is not None and guild.id not in self.bot.blacklist:
           guilds.append(guild)
       if len(guilds) == 0:
         return web.json_response([])
@@ -143,6 +151,9 @@ class API(commands.Cog):
           return web.HTTPNotFound(reason=f"Guild not found: {e}")
       elif guild.unavailable:
         return web.HTTPBadGateway(reason="Guild is unavailable")
+
+      if gid in self.bot.blacklist:
+        return HTTPBlocked(reason="This server is blacklisted from the bot.")
 
       channels = [{
           "name": i.name,
@@ -180,6 +191,9 @@ class API(commands.Cog):
           return web.HTTPNotFound(reason=f"Guild not found: {e}")
       elif guild.unavailable:
         return web.HTTPBadGateway(reason="Guild is unavailable")
+
+      if gid in self.bot.blacklist:
+        return HTTPBlocked(reason="This server is blacklisted from the bot.")
 
       channels = [{
           "name": i.name,
@@ -240,6 +254,9 @@ class API(commands.Cog):
       elif guild.unavailable:
         return web.HTTPBadGateway(reason="Guild is unavailable")
 
+      if gid in self.bot.blacklist:
+        return HTTPBlocked(reason="This server is blacklisted from the bot.")
+
       try:
         customsounds = await self.bot.db.query("SELECT customSounds FROM servers WHERE id=$1 LIMIT 1", str(guild.id))
       except Exception as e:
@@ -262,6 +279,10 @@ class API(commands.Cog):
           return web.HTTPNotFound(reason=f"Guild not found: {e}")
       elif guild.unavailable:
         return web.HTTPBadGateway(reason="Guild is unavailable")
+
+      if gid in self.bot.blacklist:
+        return HTTPBlocked(reason="This server is blacklisted from the bot.")
+
       passes = 0
       cogs = [
           self.bot.get_cog("Moderation"),
