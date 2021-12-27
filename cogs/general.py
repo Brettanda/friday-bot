@@ -1,13 +1,48 @@
 import discord
+import datetime
+import typing
+import psutil
 from discord.ext import commands
+from discord.utils import oauth_url, cached_property
 from typing_extensions import TYPE_CHECKING
 
-from functions import MyContext, config, embed, views
+from functions import MyContext, config, embed, views, MessageColors
 
 if TYPE_CHECKING:
   from index import Friday as Bot
 
 GENERAL_CHANNEL_NAMES = {"welcome", "general", "lounge", "chat", "talk", "main"}
+
+
+INVITE_PERMISSIONS = discord.Permissions(
+    administrator=True,
+    manage_roles=True,
+    manage_channels=True,
+    manage_guild=True,
+    kick_members=True,
+    ban_members=True,
+    send_messages=True,
+    manage_threads=True,
+    send_messages_in_threads=True,
+    create_private_threads=True,
+    manage_messages=True,
+    embed_links=True,
+    attach_files=True,
+    read_message_history=True,
+    add_reactions=True,
+    connect=True,
+    speak=True,
+    move_members=True,
+    use_voice_activation=True,
+    view_audit_log=True,
+    moderate_members=True,
+)
+
+
+class InviteButtons(discord.ui.View):
+  def __init__(self, link: str):
+    super().__init__(timeout=None)
+    self.add_item(discord.ui.Button(emoji="\N{HEAVY PLUS SIGN}", label="Invite me!", style=discord.ButtonStyle.link, url=link, row=1))
 
 
 class General(commands.Cog):
@@ -71,6 +106,88 @@ class General(commands.Cog):
   @commands.command(name="intro", help="Replies with the intro message for the bot")
   async def norm_intro(self, ctx: "MyContext"):
     await ctx.send(**self.welcome_message())
+
+  @cached_property
+  def link(self):
+    return oauth_url(self.bot.user.id, permissions=INVITE_PERMISSIONS, scopes=["bot", "applications.commands"])
+
+  @commands.command("invite", help="Get the invite link to add me to your server")
+  async def _norm_invite(self, ctx):
+    await ctx.send(embed=embed(title="Invite me :)"), view=InviteButtons(self.link))
+
+  # @cog_ext.cog_slash(name="invite", description="Get the invite link to add me to your server")
+  # async def _slash_invite(self, ctx):
+  #   await ctx.send(embed=embed(title="Invite me :)", description=f"[Invite link]({self.link})"))
+
+  @commands.command(name="info", aliases=["about"], help="Displays some information about myself :)")
+  async def norm_info(self, ctx):
+    await self.info(ctx)
+
+  async def info(self, ctx: "MyContext"):
+    appinfo = await self.bot.application_info()
+    owner = appinfo.team.members[0]
+    delta = datetime.datetime.utcnow() - self.bot.uptime
+    weeks, remainder = divmod(int(delta.total_seconds()), 604800)
+    days, remainder = divmod(remainder, 86400)
+    hours, remainder = divmod(remainder, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    if weeks > 0:
+      uptime = "{w}w {d}d {h}h".format(w=weeks, d=days, h=hours)
+    elif days > 0:
+      uptime = "{d}d {h}h {m}m".format(d=days, h=hours, m=minutes)
+    else:
+      uptime = "{h}h {m}m {s}s".format(h=hours, m=minutes, s=seconds)
+    return await ctx.send(
+        embed=embed(
+            title=f"{self.bot.user.name} - About",
+            thumbnail=self.bot.user.display_avatar.url,
+            author_icon=owner.display_avatar.url,
+            author_name=owner,
+            description="Big thanks to all Patrons!",
+            fieldstitle=["Servers joined", "Latency", "Shards", "Loving Life", "Uptime", "CPU/RAM", "Existed since"],
+            fieldsval=[len(self.bot.guilds), f"{(self.bot.get_shard(ctx.guild.shard_id).latency if ctx.guild else self.bot.latency)*1000:,.0f} ms", self.bot.shard_count, "True", uptime, f"CPU: {psutil.cpu_percent()}%\nRAM: {psutil.virtual_memory()[2]}%", f"<t:{int(self.bot.user.created_at.timestamp())}:D>"],
+        ), view=views.Links()
+    )
+
+  @commands.command(name="serverinfo", aliases=["guildinfo"], help="Shows information about the server")
+  @commands.guild_only()
+  async def norm_serverinfo(self, ctx):
+    await self.server_info(ctx)
+
+  # @cog_ext.cog_slash(name="serverinfo", description="Info about a server")
+  # @commands.guild_only()
+  # async def slash_serverinfo(self, ctx):
+  #   await self.server_info(ctx)
+
+  async def server_info(self, ctx: "MyContext"):
+    return await ctx.send(
+        embed=embed(
+            title=ctx.guild.name + " - Info",
+            thumbnail=ctx.guild.icon.url if ctx.guild.icon is not None else None,
+            fieldstitle=["Server Name", "Members", "Server ID", "Region", "Created", "Verification level", "Roles"],
+            # fieldsval=[f"```py\n{ctx.guild.name}```", f"```py\n{ctx.guild.member_count}```", f"```py\n{ctx.guild.id}```", f"```py\n{ctx.guild.region}```", f'```py\n{ctx.guild.created_at.strftime("%b %d, %Y")}```', f"```py\n{ctx.guild.verification_level}```", f"```py\n{len(ctx.guild.roles)}```"]
+            fieldsval=[ctx.guild.name, ctx.guild.member_count, ctx.guild.id, ctx.guild.region, ctx.guild.created_at.strftime("%b %d, %Y"), ctx.guild.verification_level, len(ctx.guild.roles)]
+        )
+    )
+
+  @commands.command(name="userinfo", extras={"examples": ["@Friday", "476303446547365891"]}, help="Some information on the mentioned user")
+  @commands.guild_only()
+  async def norm_userinfo(self, ctx, user: typing.Optional[discord.Member] = None):
+    await self.user_info(ctx, user if user is not None else ctx.author)
+
+  # @cog_ext.cog_slash(name="userinfo", description="Some information on the mentioned user", options=[create_option(name="user", description="The user to get info for", option_type=SlashCommandOptionType.USER, required=False)])
+  # @checks.slash(user=True, private=False)
+  # async def slash_userinfo(self, ctx, user: typing.Optional[discord.Member] = None):
+  #   await self.user_info(ctx, user if user is not None else ctx.author)
+
+  async def user_info(self, ctx: "MyContext", member: discord.Member):
+    return await ctx.send(embed=embed(
+        title=f"{member.name} - Info",
+        thumbnail=member.display_avatar.url,
+        fieldstitle=["Name", "Nickname", "Mention", "Role count", "Created", "Joined", "Top Role", "Pending Verification"],
+        fieldsval=[member.name, str(member.nick), member.mention, len(member.roles), member.created_at.strftime("%b %d, %Y"), member.joined_at.strftime("%b %d, %Y"), member.top_role.mention, member.pending],
+        color=member.color if member.color.value != 0 else MessageColors.DEFAULT
+    ))
 
 
 def setup(bot):

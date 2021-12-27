@@ -97,7 +97,7 @@ class API(commands.Cog):
 
     @routes.get("/invite")
     async def get_invite(request: web.Request):
-      invite = bot.get_cog("Invite")
+      invite = bot.get_cog("General")
       if invite is None:
         return web.HTTPInternalServerError()
 
