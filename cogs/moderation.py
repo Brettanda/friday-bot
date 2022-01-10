@@ -203,6 +203,7 @@ class Moderation(commands.Cog):
     failed = 0
     for member in members:
       try:
+        await self.bot.get_or_fetch_member(ctx.guild, member.id)
         await ctx.guild.kick(member, reason=reason)
       except discord.HTTPException:
         failed += 1
@@ -231,6 +232,7 @@ class Moderation(commands.Cog):
     failed = 0
     for member in members:
       try:
+        await self.bot.get_or_fetch_member(ctx.guild, member.id)
         await ctx.guild.ban(member, reason=reason)
         if duration is not None:
           await reminder.create_timer(duration.dt, "tempban", ctx.guild.id, ctx.author.id, member.id, connection=ctx.pool, created=ctx.message.created_at)
