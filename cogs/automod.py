@@ -35,7 +35,7 @@ class RoleOrChannel(commands.Converter):
 
 
 class Config:
-  __slots__ = ("bot", "id", "max_mentions", "max_messages", "max_content", "remove_invites", "automod_whitelist", "blacklisted_words", "blacklist_punishments")
+  __slots__ = ("bot", "id", "max_mentions", "max_messages", "max_content", "remove_invites", "automod_whitelist", "blacklisted_words", "blacklist_punishments", "mute_role_id", "muted_members")
 
   @classmethod
   async def from_record(cls, record, blacklist, bot):
@@ -50,9 +50,19 @@ class Config:
     self.automod_whitelist = set(record["automod_whitelist"] or [])
     self.blacklisted_words: List[str] = blacklist["words"] if blacklist else []
     self.blacklist_punishments: List[str] = blacklist["punishments"] if blacklist else []
+    self.muted_members = set(record["muted_members"] or [])
+    self.mute_role_id = int(record["mute_role"], base=10) if record["mute_role"] else None
     return self
 
+  @property
+  def mute_role(self):
+    guild = self.bot.get_guild(self.id)
+    return guild and self.mute_role_id and guild.get_role(self.mute_role_id)
+
   def is_muted(self, member: discord.Member) -> bool:
+    return member.id in [int(i, base=10) for i in self.muted_members]
+
+  def is_timedout(self, member: discord.Member) -> bool:
     return member.communication_disabled_until is not None
 
   def is_whitelisted(self, msg: discord.Message, *, channel: discord.TextChannel = None, member: discord.Member = None) -> bool:
@@ -70,7 +80,11 @@ class Config:
 
     return False
 
-  async def mute(self, member: discord.Member, *, duration: time.TimeoutTime = None, reason: str = "Auto-mute for spamming.") -> None:
+  async def mute(self, member: discord.Member, reason: str = "Auto-mute for spamming.") -> None:
+    if self.mute_role_id:
+      await member.add_roles(discord.Object(id=self.mute_role_id), reason=reason)
+
+  async def timeout(self, member: discord.Member, *, duration: time.TimeoutTime = None, reason: str = "Auto-timeout for spamming.") -> None:
     if not duration:
       duration = time.TimeoutTime("20m")
     try:
@@ -90,13 +104,15 @@ class Config:
   async def ban(self, member: discord.Member, reason: str = "Auto-ban for spamming.") -> None:
     await member.ban(reason=reason)
 
-  async def apply_punishment(self, guild: discord.Guild, msg: discord.Message, punishments: List[str], *, reason: str = None, mute_duration: time.TimeoutTime = None) -> Optional[discord.Message]:
+  async def apply_punishment(self, guild: discord.Guild, msg: discord.Message, punishments: List[str], *, reason: str = None, timeout_duration: time.TimeoutTime = None, mute_duration: time.FutureTime = None) -> Optional[discord.Message]:
     if "delete" in punishments:
       await self.delete(msg)
     if "ban" in punishments:
       await self.ban(msg.author, reason=reason)
     elif "kick" in punishments:
       await self.kick(msg.author, reason=reason)
+    elif "timeout" in punishments:
+      await self.timeout(msg.author, duration=timeout_duration, reason=reason)
     elif "mute" in punishments:
       await self.mute(msg.author, duration=mute_duration, reason=reason)
 
@@ -264,6 +280,51 @@ class AutoMod(commands.Cog):
     if config.max_messages is not None and config.max_content != {}:
       if spam.is_spamming(msg):
         return await config.apply_punishment(msg.guild, msg, config.max_messages["punishments"], reason="Spamming messages.")
+
+  @commands.Cog.listener()
+  async def on_member_join(self, member: discord.Member):
+    guild_id = member.guild.id
+    config = await self.get_guild_config(guild_id)
+    if config is None:
+      return
+
+    if config.is_muted(member):
+      return await config.mute(member, "Member was previously muted.")
+
+  @commands.Cog.listener()
+  async def on_member_update(self, before: discord.Member, after: discord.Member):
+    if before.roles == after.roles:
+      return
+
+    guild_id = after.guild.id
+    config = await self.get_guild_config(guild_id)
+    if config is None:
+      return
+
+    if config.mute_role_id is None:
+      return
+
+    before_has = before._roles.has(config.mute_role_id)
+    after_has = after._roles.has(config.mute_role_id)
+
+    if before_has == after_has:
+      return
+
+    if after_has:
+      await self.bot.db.query("UPDATE servers SET muted_members=array_append(muted_members, $1) WHERE id=$2 AND NOT ($1=any(muted_members))", str(after.id), str(guild_id))
+    else:
+      await self.bot.db.query("UPDATE servers SET muted_members=array_remove(muted_members, $1) WHERE id=$2", str(after.id), str(guild_id))
+    self.bot.dispatch("invalidate_mod", before.guild.id)
+
+  @commands.Cog.listener()
+  async def on_guild_role_delete(self, role: discord.Role):
+    guild_id = role.guild.id
+    config = await self.get_guild_config(guild_id)
+    if config is None or config.mute_role_id != role.id:
+      return
+
+    await self.bot.db.query("UPDATE servers SET (mute_role, muted_members) = (NULL, '{}'::text[]) WHERE id=$1", str(guild_id))
+    self.bot.dispatch("invalidate_mod", role.guild.id)
 
   def do_slugify(self, string):
     string = slugify(string).replace("-", "")
