@@ -74,10 +74,10 @@ class Tags(commands.Cog):
   async def norm_tags_list(self, ctx):
     ...
 
-  @discord.slash_command(name="tag")
-  @discord.option("tag", autocomplete=tags_autocomplete)
-  async def slash_tag(self, ctx, tag: str):
-    ...
+  # @discord.slash_command(name="tag")
+  # @discord.option("tag", autocomplete=tags_autocomplete)
+  # async def slash_tag(self, ctx, tag: str):
+  #   ...
 
 
 def setup(bot):
