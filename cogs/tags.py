@@ -36,14 +36,14 @@ class Tags(commands.Cog):
   def __init__(self, bot: "Bot"):
     self.bot = bot
 
-    tags = bot.command_group("tags", "Tag editing commands")
+    # tags = bot.command_group("tags", "Tag editing commands")
 
-    @tags.command()
-    @discord.option("name", description="Tag name")
-    @discord.option("content", description="Tag content")
-    async def add(ctx, name: str, content: str):
-      """Add a tag."""
-      ...
+    # @tags.command()
+    # @discord.option("name", description="Tag name")
+    # @discord.option("content", description="Tag content")
+    # async def add(ctx, name: str, content: str):
+    #   """Add a tag."""
+    #   ...
 
   def __repr__(self) -> str:
     return "<cogs.Tags>"
