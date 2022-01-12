@@ -107,6 +107,27 @@ def can_timeout():
   return commands.check(predicate)
 
 
+class Config:
+  @classmethod
+  async def from_record(cls, record, bot):
+    self = cls()
+
+    self.bot = bot
+    self.id: int = int(record["id"], base=10)
+    self.muted_members = set(record["muted_members"] or [])
+    self.mute_role_id = int(record["mute_role"], base=10) if record["mute_role"] else None
+    return self
+
+  @property
+  def mute_role(self):
+    guild = self.bot.get_guild(self.id)
+    return guild and self.mute_role_id and guild.get_role(self.mute_role_id)
+
+  async def mute(self, member: discord.Member, reason: str) -> None:
+    if self.mute_role_id:
+      await member.add_roles(discord.Object(id=self.mute_role_id), reason=reason)
+
+
 class Moderation(commands.Cog):
   """Manage your server with these commands"""
 
@@ -139,6 +160,16 @@ class Moderation(commands.Cog):
       await ctx.send(embed=embed(title=error, color=MessageColors.ERROR))
     else:
       self.bot.logger.error(error)
+
+  @cache.cache()
+  async def get_guild_config(self, guild_id: int) -> Optional[Config]:
+    query = "SELECT * FROM servers WHERE id=$1 LIMIT 1;"
+    async with self.bot.db.pool.acquire(timeout=300.0) as conn:
+      record = await conn.fetchrow(query, str(guild_id))
+      self.bot.logger.debug(f"PostgreSQL Query: \"{query}\" + {str(guild_id)}")
+      if record is not None:
+        return await Config.from_record(record, self.bot)
+      return None
 
   @commands.Cog.listener()
   async def on_invalidate_mod(self, guild_id: int):
