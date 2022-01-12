@@ -186,20 +186,9 @@ class Chat(commands.Cog):
         return await Config.from_record(record, precord, self.bot)
       return None
 
-  @cache.cache()
-  async def get_user_patron_config(self, user_id: int) -> Optional[UserConfig]:
-    query = "SELECT * FROM patrons WHERE user_id=$1 LIMIT 1;"
-    async with self.bot.db.pool.acquire(timeout=300.0) as conn:
-      record = await conn.fetchrow(query, str(user_id))
-      self.bot.logger.debug(f"PostgreSQL Query: \"{query}\" + {str(user_id)}")
-      if record is not None:
-        return await UserConfig.from_record(record, self.bot)
-      return None
-
   @commands.Cog.listener()
-  async def on_invalidate_patreon(self, guild_id: int, user_id: int):
+  async def on_invalidate_patreon(self, guild_id: int):
     self.get_guild_config.invalidate(self, guild_id)
-    self.get_user_patron_config.invalidate(self, user_id)
 
   @commands.command(name="say", aliases=["repeat"], help="Make Friday say what ever you want")
   async def say(self, ctx: "MyContext", *, content: str):
@@ -337,21 +326,30 @@ class Chat(commands.Cog):
         if msg.guild.me not in msg.mentions:
           return
       elif chat_channel is None and msg.guild.me not in msg.mentions:
-          return
+        return
 
       current_tier = config.tier
     lang = config.lang if msg.guild is not None else "en"
 
     voted = await checks.user_voted(self.bot, msg.author)
 
-    user_config = await self.get_user_patron_config(msg.author.id)
-    if user_config is not None:
-      current_tier = user_config.tier if user_config.tier > current_tier else current_tier
-
     if voted and not current_tier > function_config.PremiumTiers.voted:
       current_tier = function_config.PremiumTiers.voted
 
-    if (len(msg.clean_content) > 100 and current_tier != function_config.PremiumTiers.free) or (len(msg.clean_content) > 200 and current_tier > function_config.PremiumTiers.free):
+    patron_cog = self.bot.get_cog("Patreons")
+    if patron_cog is None:
+      self.bot.logger.error("Patrons cog is not loaded")
+
+    if patron_cog is not None:
+      patrons = await patron_cog.get_patrons()
+
+      patron = next((p for p in patrons if p.id == msg.author.id), None)
+
+      if patron is not None:
+        current_tier = patron.tier if patron.tier > current_tier else current_tier
+
+    char_count = len(msg.clean_content)
+    if (char_count > 100 and current_tier != function_config.PremiumTiers.free) or (char_count > 200 and current_tier > function_config.PremiumTiers.free):
       return
 
     # Anything to do with sending messages needs to be below the above check
