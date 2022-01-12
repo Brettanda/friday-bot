@@ -293,6 +293,13 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     if stdout.startswith("Already up-to-date."):
       return await ctx.send(stdout)
 
+    confirm = await ctx.prompt("Would you like to run pip install upgrade?")
+    if confirm:
+      pstdout, pstderr = await self.run_process("python -m pip install --upgrade pip && python -m pip install -r requirements.txt --upgrade --no-cache-dir")
+      if pstderr:
+        return await ctx.send(embed=embed(title="Error", description=pstderr, color=MessageColors.ERROR))
+      await ctx.safe_send(pstdout)
+
     modules = self.modules_from_git(stdout)
     mods_text = "\n".join(f"{index}. `{module}`" for index, (_, module) in enumerate(modules, start=1))
     confirm = await ctx.prompt(f"This will update the following modules, are you sure?\n{mods_text}")
