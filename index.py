@@ -59,7 +59,7 @@ class Friday(commands.AutoShardedBot):
         ),
         status=discord.Status.idle,
         owner_id=215227961048170496,
-        debug_guild=243159711237537802,
+        debug_guilds=[243159711237537802],
         description=functions.config.description,
         member_cache_flags=discord.MemberCacheFlags.all(),
         chunk_guilds_at_startup=False,
@@ -88,7 +88,7 @@ class Friday(commands.AutoShardedBot):
       self.run(kwargs["token"])
 
   def __repr__(self) -> str:
-    return f"<Friday username=\"{self.user.display_name}\" id={self.user.id}>"
+    return f"<Friday username=\"{self.user.display_name if self.user else None}\" id={self.user.id if self.user else None}>"
 
   @property
   def log(self) -> Optional["Log"]:

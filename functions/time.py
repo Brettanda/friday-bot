@@ -19,6 +19,7 @@ __all__ = (
     "HumanTime",
     "Time",
     "FutureTime",
+    "TimeoutTime",
     "UserFriendlyTime",
 )
 
@@ -189,6 +190,16 @@ class FutureTime(Time):
 
     if self._past:
       raise commands.BadArgument('this time is in the past')
+
+
+class TimeoutTime(FutureTime):
+  def __init__(self, argument, *, now=None):
+    super().__init__(argument, now=now)
+
+    now = now or datetime.datetime.now(datetime.timezone.utc)
+
+    if self.dt > (now + datetime.timedelta(days=28)):
+      raise commands.BadArgument('This time is too far in the future. Must be sooner than 28 days.')
 
 
 class UserFriendlyTime(commands.Converter):

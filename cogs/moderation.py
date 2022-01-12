@@ -84,7 +84,6 @@ def can_mute():
       return False
 
     is_owner = await ctx.bot.is_owner(ctx.author)
-
     if not ctx.author.guild_permissions.manage_roles and not is_owner:
       return False
 
@@ -94,6 +93,17 @@ def can_mute():
       raise MissingMuteRole()
 
     return ctx.author.top_role > role or ctx.author.guild_permissions.manage_roles or is_owner
+  return commands.check(predicate)
+
+
+def can_timeout():
+  async def predicate(ctx: "MyContext") -> bool:
+    if ctx.guild is None:
+      return False
+
+    is_owner = await ctx.bot.is_owner(ctx.author)
+
+    return ctx.author.guild_permissions.moderate_members or is_owner
   return commands.check(predicate)
 
 
@@ -172,25 +182,6 @@ class Moderation(commands.Cog):
     time = discord.utils.utcnow()
     self.last_to_leave_vc[before.channel.id] = {"member": member, "time": time.timestamp()}
 
-  # @commands.command(name="mute")
-  # @commands.is_owner()
-  # @commands.has_guild_permissions(manage_roles=True)
-  # async def mute(self,ctx,members:commands.Greedy[discord.Member]=None):
-  #   if self.bot.user in members:
-  #     muted = await query(self.bot.log.mydb,"SELECT muted FROM servers WHERE id=?",ctx.guild.id)
-  #     if muted == 0:
-  #       await query(self.bot.log.mydb,"UPDATE servers SET muted=? WHERE id=?",1,ctx.guild.id)
-  #       await ctx.reply(embed=embed(title="I will now only respond to commands"))
-  #     else:
-  #       await query(self.bot.log.mydb,"UPDATE servers SET muted=? WHERE id=?",0,ctx.guild.id)
-  #       await ctx.reply(embed=embed(title="I will now respond to chat message as well as commands"))
-
-  # @commands.group(name="set", invoke_without_command=True, case_insensitive=True)
-  # @commands.guild_only()
-  # @commands.has_guild_permissions(manage_channels=True)
-  # async def settings_bot(self, ctx):
-  #   await ctx.send_help(ctx.command)
-
   # @cog_ext.cog_slash(name="bot", description="Bot settings")
   # @commands.has_guild_permissions(manage_channels=True)
   # @checks.slash(user=True, private=False)
@@ -261,6 +252,7 @@ class Moderation(commands.Cog):
     failed = 0
     for member in members:
       try:
+        await self.bot.get_or_fetch_member(ctx.guild, member.id)
         await ctx.guild.kick(member, reason=reason)
       except discord.HTTPException:
         failed += 1
@@ -289,6 +281,7 @@ class Moderation(commands.Cog):
     failed = 0
     for member in members:
       try:
+        await self.bot.get_or_fetch_member(ctx.guild, member.id)
         await ctx.guild.ban(member, reason=reason)
         if duration is not None:
           await reminder.create_timer(duration.dt, "tempban", ctx.guild.id, ctx.author.id, member.id, connection=ctx.pool, created=ctx.message.created_at)
@@ -441,7 +434,77 @@ class Moderation(commands.Cog):
         ctx.message.delete(delay=10)
     )
 
-  # TODO: Add a timeout
+  @commands.command(name="timeout", extras={"examples": ["20m @Motostar @steve they were annoying me", "1week @steve 9876543210", "5d @Motostar spamming general", "0123456789"]}, help="Timeout a member from chating, replying, reacting, and joining voice channels.")
+  @commands.guild_only()
+  @can_timeout()
+  @commands.has_guild_permissions(moderate_members=True)
+  @commands.bot_has_guild_permissions(moderate_members=True)
+  async def timeout(self, ctx: "MyContext", duration: time.TimeoutTime, members: commands.Greedy[discord.Member], *, reason: Optional[ActionReason] = None):
+    if not isinstance(members, list):
+      members = [members]
+
+    if reason is None:
+      reason = f"[Timed out by {ctx.author} (ID: {ctx.author.id})]"
+
+    failed = 0
+    async with ctx.typing():
+      for member in members:
+        try:
+          await member.timeout(duration.dt, reason=reason)
+        except discord.HTTPException:
+          failed += 1
+
+    if len(members) == 1:
+      await ctx.send(embed=embed(title=f"Timed out {members[0]}{' and retracted '+time.format_dt(duration.dt,style='R') if duration else ''}"))
+    else:
+      await ctx.send(embed=embed(title=f"Timed out {len(members) - failed}/{len(members)} members{' and retracted '+time.format_dt(duration.dt,style='R') if duration else ''}."))
+
+  @commands.command(name="untimeout", aliases=["removetimeout"], extras={"examples": ["@Motostar @steve they said sorry", "@steve 9876543210", "@Motostar", "0123456789"]}, help="Remove the timeout of a member")
+  @commands.guild_only()
+  @can_timeout()
+  @commands.has_guild_permissions(moderate_members=True)
+  @commands.bot_has_guild_permissions(moderate_members=True)
+  async def norm_untimeout(self, ctx: "MyContext", members: commands.Greedy[discord.Member], *, reason: ActionReason = None):
+    if not isinstance(members, list):
+      members = [members]
+
+    if reason is None:
+      reason = f"[Timeout removed by {ctx.author} (ID: {ctx.author.id})]"
+
+    failed = 0
+    async with ctx.typing():
+      for member in members:
+        try:
+          await member.remove_timeout(reason=reason)
+        except discord.HTTPException:
+          failed += 1
+    if len(members) == 1:
+      await ctx.send(embed=embed(title=f"Removed timeout for {members[0]}"))
+    else:
+      await ctx.send(embed=embed(title=f"Removed timeout for {len(members) - failed}/{len(members)} members."))
+
+  @commands.command(extras={"examples": ["20m", "1h20m", "5h"]}, help="Temporarily timeout yourself for the specified duration, min 5 minutes, max 24 hours")
+  @commands.guild_only()
+  @commands.bot_has_guild_permissions(manage_roles=True)
+  async def selftimeout(self, ctx: "MyContext", *, duration: time.ShortTime):
+    created_at = ctx.message.created_at
+    if duration.dt > (created_at + datetime.timedelta(days=1)):
+      return await ctx.send(embed=embed(title="Duration is too long. Must be at most 24 hours.", color=MessageColors.ERROR))
+
+    if duration.dt < (created_at + datetime.timedelta(minutes=5)):
+      return await ctx.send(embed=embed(title="Duration is too short. Must be at least 5 minutes.", color=MessageColors.ERROR))
+
+    confirm = await ctx.prompt("", embed=embed(title=f"Are you sure you want to self-timeout, and retracted {time.format_dt(duration.dt, style='R')}?", description="Do not ask the moderators to undo this!"))
+    if not confirm:
+      return await ctx.send(embed=embed(title="Cancelled.", color=MessageColors.ERROR))
+
+    await ctx.author.edit(communication_disabled_until=duration.dt, reason=f"Self-timeout for {ctx.author} (ID: {ctx.author.id}) for {time.human_timedelta(duration.dt, source=created_at)}")
+    await ctx.send(embed=embed(title=f"Timed out, and retracted {time.format_dt(duration.dt, style='R')}. Be sure not to bother anyone about it."))
+
+  @selftimeout.error
+  async def on_selftimeout_error(self, ctx: "MyContext", error: Exception):
+    if isinstance(error, commands.MissingRequiredArgument):
+      await ctx.send(embed=embed(title="Missing duration.", color=MessageColors.ERROR))
 
   @commands.group(name="mute", extras={"examples": ["20m @Motostar @steve they were annoying me", "@steve 9876543210", "30d @Motostar spamming general", "0123456789"]}, help="Mute a member from text channels", invoke_without_command=True, case_insensitive=True)
   @commands.guild_only()
@@ -533,12 +596,12 @@ class Moderation(commands.Cog):
   @commands.bot_has_guild_permissions(manage_roles=True)
   @commands.cooldown(1, 60.0, commands.BucketType.guild)
   async def mute_role_update(self, ctx: "MyContext"):
-    config = await self.get_guild_config(ctx.guild.id)
-    if config.mute_role_id is None:
+    con = await self.get_guild_config(ctx.guild.id)
+    if con.mute_role_id is None:
       ctx.command.reset_cooldown(ctx)
       return await ctx.send(embed=embed(title=f"The mute role is not set, please set it with `{ctx.prefix}mute role`", color=MessageColors.ERROR))
 
-    role = config.mute_role
+    role = con.mute_role
     async with ctx.typing():
       success, failed, skipped = 0, 0, 0
       for channel in ctx.guild.channels:
@@ -560,8 +623,8 @@ class Moderation(commands.Cog):
   @commands.bot_has_guild_permissions(manage_roles=True)
   @commands.cooldown(1, 60.0, commands.BucketType.guild)
   async def mute_role_create(self, ctx: "MyContext", *, name: Optional[str] = "Muted"):
-    config = await self.get_guild_config(ctx.guild.id)
-    if config.mute_role is not None:
+    con = await self.get_guild_config(ctx.guild.id)
+    if con.mute_role is not None:
       ctx.command.reset_cooldown(ctx)
       return await ctx.send(embed=embed(title="This server already has a mute role.", color=MessageColors.ERROR))
 
@@ -604,15 +667,12 @@ class Moderation(commands.Cog):
     if reason is None:
       reason = f"[Unmuted by {ctx.author} (ID: {ctx.author.id})]"
 
-    role = discord.Object(id=ctx.guild_config.mute_role_id)
-    if len(members) == 0:
-      return await ctx.send(embed=embed(title="Missing members to unmute.", color=MessageColors.ERROR))
-
     failed = 0
     async with ctx.typing():
       for member in members:
         try:
-          await member.remove_roles(role, reason=reason)
+          await member.remove_timeout(reason=reason)
+          # await member.remove_roles(role, reason=reason)
         except discord.HTTPException:
           failed += 1
     if len(members) == 1:
@@ -628,8 +688,8 @@ class Moderation(commands.Cog):
     if reminder is None:
       return await ctx.send(embed=embed(title="Sorry, this funcitonality is not available.", color=MessageColors.ERROR))
 
-    config = await self.get_guild_config(ctx.guild.id)
-    role_id = config and config.mute_role_id
+    con = await self.get_guild_config(ctx.guild.id)
+    role_id = con and con.mute_role_id
     if role_id is None:
       raise MissingMuteRole()
 
@@ -642,13 +702,13 @@ class Moderation(commands.Cog):
 
     if duration.dt < (created_at + datetime.timedelta(minutes=5)):
       return await ctx.send(embed=embed(title="Duration is too short. Must be at least 5 minutes.", color=MessageColors.ERROR))
-
     confirm = await ctx.prompt("", embed=embed(title=f"Are you sure you want to self-mute, and retracted {time.format_dt(duration.dt, style='R')}?", description="Do not ask the moderators to undo this!"))
     if not confirm:
       return await ctx.send(embed=embed(title="Cancelled.", color=MessageColors.ERROR))
 
     await ctx.author.add_roles(discord.Object(id=role_id), reason=f"Self-mute for {ctx.author} (ID: {ctx.author.id}) for {time.human_timedelta(duration.dt, source=created_at)}")
     await reminder.create_timer(duration.dt, "tempmute", ctx.guild.id, ctx.author.id, ctx.author.id, role_id, created=created_at)
+    await ctx.author.edit(communication_disabled_until=duration.dt, reason=f"Self-mute for {ctx.author} (ID: {ctx.author.id}) for {time.human_timedelta(duration.dt, source=created_at)}")
     await ctx.send(embed=embed(title=f"Muted, and retracted {time.format_dt(duration.dt, style='R')}. Be sure not to bother anyone about it."))
 
   @selfmute.error

@@ -119,7 +119,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     await ctx.send_help(ctx.command)
 
   @norm_dev.command(name="say", rest_is_raw=True,)
-  async def say(self, ctx, channel: Optional[discord.TextChannel] = None, *, say: str):
+  async def say(self, ctx, channel: Optional[GlobalChannel] = None, *, say: str):
     channel = ctx.channel if channel is None else channel
     try:
       await ctx.message.delete()
@@ -292,6 +292,13 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
 
     if stdout.startswith("Already up-to-date."):
       return await ctx.send(stdout)
+
+    confirm = await ctx.prompt("Would you like to run pip install upgrade?")
+    if confirm:
+      pstdout, pstderr = await self.run_process("python -m pip install --upgrade pip && python -m pip install -r requirements.txt --upgrade --no-cache-dir")
+      if pstderr:
+        return await ctx.send(embed=embed(title="Error", description=pstderr, color=MessageColors.ERROR))
+      await ctx.safe_send(pstdout)
 
     modules = self.modules_from_git(stdout)
     mods_text = "\n".join(f"{index}. `{module}`" for index, (_, module) in enumerate(modules, start=1))

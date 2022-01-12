@@ -7,7 +7,7 @@ from discord.ext import commands
 from slugify import slugify
 from typing_extensions import TYPE_CHECKING
 
-from functions import MessageColors, MyContext, cache, embed, relay_info
+from functions import MessageColors, MyContext, cache, embed, relay_info, time
 
 from .moderation import can_execute_action
 
@@ -62,6 +62,9 @@ class Config:
   def is_muted(self, member: discord.Member) -> bool:
     return member.id in [int(i, base=10) for i in self.muted_members]
 
+  def is_timedout(self, member: discord.Member) -> bool:
+    return member.communication_disabled_until is not None
+
   def is_whitelisted(self, msg: discord.Message, *, channel: discord.TextChannel = None, member: discord.Member = None) -> bool:
     channel = channel or msg.channel
     roles = (member.roles if member is not None else None) or msg.author.roles
@@ -81,6 +84,14 @@ class Config:
     if self.mute_role_id:
       await member.add_roles(discord.Object(id=self.mute_role_id), reason=reason)
 
+  async def timeout(self, member: discord.Member, *, duration: time.TimeoutTime = None, reason: str = "Auto-timeout for spamming.") -> None:
+    if not duration:
+      duration = time.TimeoutTime("20m")
+    try:
+      await member.edit(communication_disabled_until=duration.dt, reason=reason)
+    except (discord.Forbidden, discord.HTTPException):
+      pass
+
   async def delete(self, msg: discord.Message) -> None:
     try:
       await msg.delete()
@@ -93,15 +104,17 @@ class Config:
   async def ban(self, member: discord.Member, reason: str = "Auto-ban for spamming.") -> None:
     await member.ban(reason=reason)
 
-  async def apply_punishment(self, guild: discord.Guild, msg: discord.Message, punishments: List[str], *, reason: str = "Spamming") -> Optional[discord.Message]:
+  async def apply_punishment(self, guild: discord.Guild, msg: discord.Message, punishments: List[str], *, reason: str = None, timeout_duration: time.TimeoutTime = None, mute_duration: time.FutureTime = None) -> Optional[discord.Message]:
     if "delete" in punishments:
       await self.delete(msg)
     if "ban" in punishments:
-      await self.ban(msg.author)
+      await self.ban(msg.author, reason=reason)
     elif "kick" in punishments:
-      await self.kick(msg.author)
+      await self.kick(msg.author, reason=reason)
+    elif "timeout" in punishments:
+      await self.timeout(msg.author, duration=timeout_duration, reason=reason)
     elif "mute" in punishments:
-      await self.mute(msg.author)
+      await self.mute(msg.author, duration=mute_duration, reason=reason)
 
 
 class CooldownByContent(commands.CooldownMapping):
@@ -116,7 +129,7 @@ class SpamChecker:
 
     self.bot = bot
     self.message_spam = commands.CooldownMapping.from_cooldown(config.max_messages["rate"], config.max_messages["seconds"], commands.BucketType.user) if config.max_messages else None
-    self.mention_spam = commands.CooldownMapping.from_cooldown(config.max_mentions["mentions"], config.max_mentions["seconds"], commands.BucketType.user) if config.max_mentions else None
+    self.mention_spam = commands.CooldownMapping.from_cooldown(config.max_mentions["rate"], config.max_mentions["seconds"], commands.BucketType.user) if config.max_mentions else None
     self.content_spam = CooldownByContent.from_cooldown(config.max_content["rate"], config.max_content["seconds"], commands.BucketType.member) if config.max_content else None
 
     return self

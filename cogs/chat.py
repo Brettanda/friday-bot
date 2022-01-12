@@ -90,45 +90,34 @@ class SpamChecker:
       return None
     return trig.per
 
-  def is_abs_min_spam(self, msg: discord.Message) -> bool:
+  def is_spamming(self, msg: discord.Message, tier: int, voted: bool):
     if msg.guild is None:
       return False
     current = msg.created_at.timestamp()
 
-    bucket = self.absolute_minute.get_bucket(msg)
-    if bucket.update_rate_limit(current):
-      return True
-    return False
+    min_bucket = self.absolute_minute.get_bucket(msg)
+    hour_bucket = self.absolute_hour.get_bucket(msg)
+    free_bucket = self.free.get_bucket(msg)
+    voted_bucket = self.voted.get_bucket(msg)
 
-  def is_abs_hour_spam(self, msg: discord.Message) -> bool:
-    if msg.guild is None:
-      return False
-    current = msg.created_at.timestamp()
+    min_rate = min_bucket.update_rate_limit(current)
+    hour_rate = hour_bucket.update_rate_limit(current)
+    free_rate = free_bucket.update_rate_limit(current)
+    voted_rate = voted_bucket.update_rate_limit(current)
 
-    bucket = self.absolute_hour.get_bucket(msg)
-    if bucket.update_rate_limit(current):
-      return True
-    return False
+    if min_rate:
+      return True, min_bucket
 
-  def is_free_spam(self, msg: discord.Message) -> bool:
-    if msg.guild is None:
-      return False
-    current = msg.created_at.timestamp()
+    if hour_rate:
+      return True, hour_bucket
 
-    bucket = self.free.get_bucket(msg)
-    if bucket.update_rate_limit(current):
-      return True
-    return False
+    if free_rate and not (voted and tier >= function_config.PremiumTiers.tier_1):
+      return True, free_bucket
 
-  def is_voted_spam(self, msg: discord.Message) -> bool:
-    if msg.guild is None:
-      return False
-    current = msg.created_at.timestamp()
+    if voted_rate and (voted or tier >= function_config.PremiumTiers.tier_1):
+      return True, voted_bucket
 
-    bucket = self.voted.get_bucket(msg)
-    if bucket.update_rate_limit(current):
-      return True
-    return False
+    return False, None
 
 
 class Translation:
@@ -186,20 +175,9 @@ class Chat(commands.Cog):
         return await Config.from_record(record, precord, self.bot)
       return None
 
-  @cache.cache()
-  async def get_user_patron_config(self, user_id: int) -> Optional[UserConfig]:
-    query = "SELECT * FROM patrons WHERE user_id=$1 LIMIT 1;"
-    async with self.bot.db.pool.acquire(timeout=300.0) as conn:
-      record = await conn.fetchrow(query, str(user_id))
-      self.bot.logger.debug(f"PostgreSQL Query: \"{query}\" + {str(user_id)}")
-      if record is not None:
-        return await UserConfig.from_record(record, self.bot)
-      return None
-
   @commands.Cog.listener()
-  async def on_invalidate_patreon(self, guild_id: int, user_id: int):
+  async def on_invalidate_patreon(self, guild_id: int):
     self.get_guild_config.invalidate(self, guild_id)
-    self.get_user_patron_config.invalidate(self, user_id)
 
   @commands.command(name="say", aliases=["repeat"], help="Make Friday say what ever you want")
   async def say(self, ctx: "MyContext", *, content: str):
@@ -337,32 +315,41 @@ class Chat(commands.Cog):
         if msg.guild.me not in msg.mentions:
           return
       elif chat_channel is None and msg.guild.me not in msg.mentions:
-          return
+        return
 
       current_tier = config.tier
     lang = config.lang if msg.guild is not None else "en"
 
     voted = await checks.user_voted(self.bot, msg.author)
 
-    user_config = await self.get_user_patron_config(msg.author.id)
-    if user_config is not None:
-      current_tier = user_config.tier if user_config.tier > current_tier else current_tier
-
     if voted and not current_tier > function_config.PremiumTiers.voted:
       current_tier = function_config.PremiumTiers.voted
 
-    if (len(msg.clean_content) > 100 and current_tier != function_config.PremiumTiers.free) or (len(msg.clean_content) > 200 and current_tier > function_config.PremiumTiers.free):
+    patron_cog = self.bot.get_cog("Patreons")
+    if patron_cog is None:
+      self.bot.logger.error("Patrons cog is not loaded")
+
+    if patron_cog is not None:
+      patrons = await patron_cog.get_patrons()
+
+      patron = next((p for p in patrons if p.id == msg.author.id), None)
+
+      if patron is not None:
+        current_tier = patron.tier if patron.tier > current_tier else current_tier
+
+    char_count = len(msg.clean_content)
+    if (char_count > 100 and current_tier != function_config.PremiumTiers.free) or (char_count > 200 and current_tier > function_config.PremiumTiers.free):
       return
 
     # Anything to do with sending messages needs to be below the above check
     response = None
     checker: SpamChecker = self._spam_check[msg.guild.id if msg.guild else msg.author.id]
-    free: bool = checker.is_free_spam(msg)
-    if checker.is_abs_min_spam(msg) or checker.is_abs_hour_spam(msg) or (free and not (voted and current_tier >= function_config.PremiumTiers.tier_1)) or (checker.is_voted_spam(msg) and (voted or current_tier >= function_config.PremiumTiers.tier_1)):
-      advertise = True if free and not (voted and current_tier >= function_config.PremiumTiers.tier_1) else False
-      retry_after = discord.utils.utcnow() + datetime.timedelta(seconds=checker.triggered(msg).get_retry_after())
-      self.bot.logger.warning(f"Someone is being ratelimited at over {checker.get_triggered_rate(msg)} messages and can retry after <t:{int(retry_after.timestamp())}:R>")
-      return await ctx.reply(embed=embed(title=f"You have sent me over `{checker.get_triggered_rate(msg)}` messages in that last `{checker.get_triggered_per(msg)} seconds` and are being rate limited, try again <t:{int(retry_after.timestamp())}:R>", description="If you would like to send me more messages you can get more by voting at https://top.gg/bot/476303446547365891/vote" if advertise else "", color=MessageColors.ERROR), mention_author=False)
+    is_spamming, rate_limiter = checker.is_spamming(msg, current_tier, voted)
+    if is_spamming:
+      advertise = bool(not (voted and current_tier >= function_config.PremiumTiers.tier_1))
+      retry_after = discord.utils.utcnow() + datetime.timedelta(seconds=rate_limiter.get_retry_after())
+      self.bot.logger.warning(f"Someone is being ratelimited at over {rate_limiter.rate} messages and can retry after <t:{int(retry_after.timestamp())}:R>")
+      return await ctx.reply(embed=embed(title=f"You have sent me over `{rate_limiter.rate}` messages in that last `{rate_limiter.per} seconds` and are being rate limited, try again <t:{int(retry_after.timestamp())}:R>", description="If you would like to send me more messages you can get more by voting at https://top.gg/bot/476303446547365891/vote" if advertise else "", color=MessageColors.ERROR), mention_author=False)
     async with msg.channel.typing():
       translation = await Translation.from_text(msg.clean_content, from_lang=lang, parent=self)
       self.chat_history[msg.channel.id].insert(0, f"{ctx.author.display_name}: " + str(translation).strip('\n'))

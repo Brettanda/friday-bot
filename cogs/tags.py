@@ -1,4 +1,4 @@
-import discord
+# import discord
 from discord.ext import commands
 
 from functions import cache
@@ -36,14 +36,14 @@ class Tags(commands.Cog):
   def __init__(self, bot: "Bot"):
     self.bot = bot
 
-    tags = bot.command_group("tags", "Tag editing commands")
+    # tags = bot.command_group("tags", "Tag editing commands")
 
-    @tags.command()
-    @discord.option("name", description="Tag name")
-    @discord.option("content", description="Tag content")
-    async def add(ctx, name: str, content: str):
-      """Add a tag."""
-      ...
+    # @tags.command()
+    # @discord.option("name", description="Tag name")
+    # @discord.option("content", description="Tag content")
+    # async def add(ctx, name: str, content: str):
+    #   """Add a tag."""
+    #   ...
 
   def __repr__(self) -> str:
     return "<cogs.Tags>"
@@ -74,10 +74,10 @@ class Tags(commands.Cog):
   async def norm_tags_list(self, ctx):
     ...
 
-  @discord.slash_command(name="tag")
-  @discord.option("tag", autocomplete=tags_autocomplete)
-  async def slash_tag(self, ctx, tag: str):
-    ...
+  # @discord.slash_command(name="tag")
+  # @discord.option("tag", autocomplete=tags_autocomplete)
+  # async def slash_tag(self, ctx, tag: str):
+  #   ...
 
 
 def setup(bot):
