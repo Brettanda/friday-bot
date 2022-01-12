@@ -10,7 +10,7 @@ import pycountry
 from discord.ext import commands
 from typing_extensions import TYPE_CHECKING
 
-from functions import (MessageColors, MyContext, embed,
+from functions import (MessageColors, MyContext, cache, embed,
                        relay_info, time)
 
 if TYPE_CHECKING:
@@ -601,7 +601,7 @@ class Moderation(commands.Cog):
       ctx.command.reset_cooldown(ctx)
       return await ctx.send(embed=embed(title=f"The mute role is not set, please set it with `{ctx.prefix}mute role`", color=MessageColors.ERROR))
 
-    role = config.mute_role
+    role = con.mute_role
     async with ctx.typing():
       success, failed, skipped = 0, 0, 0
       for channel in ctx.guild.channels:
