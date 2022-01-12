@@ -90,45 +90,34 @@ class SpamChecker:
       return None
     return trig.per
 
-  def is_abs_min_spam(self, msg: discord.Message) -> bool:
+  def is_spamming(self, msg: discord.Message, tier: int, voted: bool):
     if msg.guild is None:
       return False
     current = msg.created_at.timestamp()
 
-    bucket = self.absolute_minute.get_bucket(msg)
-    if bucket.update_rate_limit(current):
-      return True
-    return False
+    min_bucket = self.absolute_minute.get_bucket(msg)
+    hour_bucket = self.absolute_hour.get_bucket(msg)
+    free_bucket = self.free.get_bucket(msg)
+    voted_bucket = self.voted.get_bucket(msg)
 
-  def is_abs_hour_spam(self, msg: discord.Message) -> bool:
-    if msg.guild is None:
-      return False
-    current = msg.created_at.timestamp()
+    min_rate = min_bucket.update_rate_limit(current)
+    hour_rate = hour_bucket.update_rate_limit(current)
+    free_rate = free_bucket.update_rate_limit(current)
+    voted_rate = voted_bucket.update_rate_limit(current)
 
-    bucket = self.absolute_hour.get_bucket(msg)
-    if bucket.update_rate_limit(current):
-      return True
-    return False
+    if min_rate:
+      return True, min_bucket
 
-  def is_free_spam(self, msg: discord.Message) -> bool:
-    if msg.guild is None:
-      return False
-    current = msg.created_at.timestamp()
+    if hour_rate:
+      return True, hour_bucket
 
-    bucket = self.free.get_bucket(msg)
-    if bucket.update_rate_limit(current):
-      return True
-    return False
+    if free_rate and not (voted and tier >= function_config.PremiumTiers.tier_1):
+      return True, free_bucket
 
-  def is_voted_spam(self, msg: discord.Message) -> bool:
-    if msg.guild is None:
-      return False
-    current = msg.created_at.timestamp()
+    if voted_rate and (voted or tier >= function_config.PremiumTiers.tier_1):
+      return True, voted_bucket
 
-    bucket = self.voted.get_bucket(msg)
-    if bucket.update_rate_limit(current):
-      return True
-    return False
+    return False, None
 
 
 class Translation:
@@ -355,12 +344,12 @@ class Chat(commands.Cog):
     # Anything to do with sending messages needs to be below the above check
     response = None
     checker: SpamChecker = self._spam_check[msg.guild.id if msg.guild else msg.author.id]
-    free: bool = checker.is_free_spam(msg)
-    if checker.is_abs_min_spam(msg) or checker.is_abs_hour_spam(msg) or (free and not (voted and current_tier >= function_config.PremiumTiers.tier_1)) or (checker.is_voted_spam(msg) and (voted or current_tier >= function_config.PremiumTiers.tier_1)):
-      advertise = True if free and not (voted and current_tier >= function_config.PremiumTiers.tier_1) else False
-      retry_after = discord.utils.utcnow() + datetime.timedelta(seconds=checker.triggered(msg).get_retry_after())
-      self.bot.logger.warning(f"Someone is being ratelimited at over {checker.get_triggered_rate(msg)} messages and can retry after <t:{int(retry_after.timestamp())}:R>")
-      return await ctx.reply(embed=embed(title=f"You have sent me over `{checker.get_triggered_rate(msg)}` messages in that last `{checker.get_triggered_per(msg)} seconds` and are being rate limited, try again <t:{int(retry_after.timestamp())}:R>", description="If you would like to send me more messages you can get more by voting at https://top.gg/bot/476303446547365891/vote" if advertise else "", color=MessageColors.ERROR), mention_author=False)
+    is_spamming, rate_limiter = checker.is_spamming(msg, current_tier, voted)
+    if is_spamming:
+      advertise = bool(not (voted and current_tier >= function_config.PremiumTiers.tier_1))
+      retry_after = discord.utils.utcnow() + datetime.timedelta(seconds=rate_limiter.get_retry_after())
+      self.bot.logger.warning(f"Someone is being ratelimited at over {rate_limiter.rate} messages and can retry after <t:{int(retry_after.timestamp())}:R>")
+      return await ctx.reply(embed=embed(title=f"You have sent me over `{rate_limiter.rate}` messages in that last `{rate_limiter.per} seconds` and are being rate limited, try again <t:{int(retry_after.timestamp())}:R>", description="If you would like to send me more messages you can get more by voting at https://top.gg/bot/476303446547365891/vote" if advertise else "", color=MessageColors.ERROR), mention_author=False)
     async with msg.channel.typing():
       translation = await Translation.from_text(msg.clean_content, from_lang=lang, parent=self)
       self.chat_history[msg.channel.id].insert(0, f"{ctx.author.display_name}: " + str(translation).strip('\n'))
