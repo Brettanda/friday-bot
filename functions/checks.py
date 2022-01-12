@@ -109,14 +109,17 @@ def is_supporter_or_voted() -> "_CheckDecorator":
 
 
 async def user_voted(bot: "Bot", user: discord.User) -> bool:
-  query = """SELECT id
-              FROM reminders
-              WHERE event = 'vote'
-              AND extra #>> '{args,0}' = $1
-              ORDER BY expires
-              LIMIT 1;"""
-  record = await bot.db.pool.fetchrow(query, str(user.id))
-  return True if record else False
+  dbl_cog = bot.get_cog("TopGG")
+  if dbl_cog is None:
+    query = """SELECT id
+                FROM reminders
+                WHERE event = 'vote'
+                AND extra #>> '{args,0}' = $1
+                ORDER BY expires
+                LIMIT 1;"""
+    record = await bot.db.pool.fetchrow(query, str(user.id))
+    return True if record else False
+  return await dbl_cog.user_has_voted(user.id)
 
 
 def is_admin() -> "_CheckDecorator":
