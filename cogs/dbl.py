@@ -5,7 +5,7 @@ import topgg
 from discord.ext import commands
 from typing_extensions import TYPE_CHECKING
 
-from functions import MyContext, config, embed, time
+from functions import MyContext, config, embed, time, cache
 
 from .log import CustomWebhook
 
@@ -51,6 +51,17 @@ class TopGG(commands.Cog):
   def log_bumps(self) -> CustomWebhook:
     return CustomWebhook.partial(os.environ.get("WEBHOOKBUMPSID"), os.environ.get("WEBHOOKBUMPSTOKEN"), session=self.bot.session)
 
+  @cache.cache()
+  async def user_has_voted(self, user_id: int) -> bool:
+    query = """SELECT id
+              FROM reminders
+              WHERE event = 'vote'
+              AND extra #>> '{args,0}' = $1
+              ORDER BY expires
+              LIMIT 1;"""
+    record = await self.bot.pool.fetchrow(query, str(user_id))
+    return True if record else False
+
   @commands.Cog.listener()
   async def on_ready(self):
     if not self.bot.views_loaded:
@@ -79,10 +90,12 @@ class TopGG(commands.Cog):
 
   @vote.command(name="fake", extras={"examples": ["test", "upvote"]}, hidden=True)
   @commands.is_owner()
-  async def vote_fake(self, ctx: "MyContext", _type: str = "test"):
+  async def vote_fake(self, ctx: "MyContext", _type: str = "test", user: discord.User = None):
+    if user is None:
+      user = ctx.author
     data = {
         "type": _type,
-        "user": str(ctx.author.id),
+        "user": str(user.id),
         "query": {},
         "bot": self.bot.user.id,
         "is_weekend": False
@@ -103,6 +116,8 @@ class TopGG(commands.Cog):
   async def on_vote_timer_complete(self, timer):
     user_id = timer.args[0]
     await self.bot.wait_until_ready()
+
+    self.user_has_voted.invalidate(self, user_id)
 
     support_server = self.bot.get_guild(config.support_server_id)
     member = await self.bot.get_or_fetch_member(support_server, user_id)
@@ -144,6 +159,7 @@ class TopGG(commands.Cog):
     if reminder is None:
       return
     await reminder.create_timer(fut.dt, "vote", user, created=discord.utils.utcnow())
+    self.user_has_voted.invalidate(self, int(user, base=10))
     if _type == "test" or int(user, base=10) not in (215227961048170496, 813618591878086707):
       if user is not None:
         support_server = self.bot.get_guild(config.support_server_id)
