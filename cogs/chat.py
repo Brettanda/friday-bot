@@ -91,8 +91,6 @@ class SpamChecker:
     return trig.per
 
   def is_spamming(self, msg: discord.Message, tier: int, voted: bool):
-    if msg.guild is None:
-      return False
     current = msg.created_at.timestamp()
 
     min_bucket = self.absolute_minute.get_bucket(msg)
@@ -111,7 +109,7 @@ class SpamChecker:
     if hour_rate:
       return True, hour_bucket
 
-    if free_rate and not (voted and tier >= function_config.PremiumTiers.tier_1):
+    if free_rate and not voted and not tier >= function_config.PremiumTiers.tier_1:
       return True, free_bucket
 
     if voted_rate and (voted or tier >= function_config.PremiumTiers.tier_1):
