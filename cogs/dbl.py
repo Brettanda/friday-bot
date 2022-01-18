@@ -86,7 +86,7 @@ class TopGG(commands.Cog):
     record = await ctx.pool.fetchrow(query, str(ctx.author.id))
     expires = record["expires"] if record else None
     vote_message = f"Your next vote time is: {time.format_dt(expires, style='R')}" if expires is not None else "You can vote now"
-    await ctx.reply(embed=embed(title="Voting", description=f"{vote_message}\n\nWhen you vote you get:", fieldstitle=["Better rate limiting"], fieldsval=["200 messages/12 hours instead of 80 messages/12 hours."]), view=VoteView(self))
+    await ctx.reply(embed=embed(title="Voting", description=f"{vote_message}\n\nWhen you vote you get:", fieldstitle=["Better rate limiting"], fieldsval=["100 messages/12 hours instead of 50 messages/12 hours."]), view=VoteView(self))
 
   @vote.command(name="fake", extras={"examples": ["test", "upvote"]}, hidden=True)
   @commands.is_owner()
