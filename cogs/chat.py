@@ -64,31 +64,9 @@ class SpamChecker:
   def __init__(self):
     self.absolute_minute = commands.CooldownMapping.from_cooldown(6, 30, commands.BucketType.user)
     self.absolute_hour = commands.CooldownMapping.from_cooldown(180, 3600, commands.BucketType.user)
-    self.free = commands.CooldownMapping.from_cooldown(80, 43200, commands.BucketType.user)
-    self.voted = commands.CooldownMapping.from_cooldown(200, 43200, commands.BucketType.user)
-
-  def triggered(self, msg: discord.Message) -> Optional[commands.Cooldown]:
-    if self.absolute_hour.get_bucket(msg).get_tokens() == 0:
-      return self.absolute_hour.get_bucket(msg)
-    elif self.absolute_minute.get_bucket(msg).get_tokens() == 0:
-      return self.absolute_minute.get_bucket(msg)
-    elif self.voted.get_bucket(msg).get_tokens() == 0:
-      return self.voted.get_bucket(msg)
-    elif self.free.get_bucket(msg).get_tokens() == 0:
-      return self.free.get_bucket(msg)
-    return None
-
-  def get_triggered_rate(self, msg: discord.Message) -> Optional[float]:
-    trig = self.triggered(msg)
-    if trig is None:
-      return None
-    return trig.rate
-
-  def get_triggered_per(self, msg: discord.Message) -> Optional[float]:
-    trig = self.triggered(msg)
-    if trig is None:
-      return None
-    return trig.per
+    self.free = commands.CooldownMapping.from_cooldown(50, 43200, commands.BucketType.user)
+    self.voted = commands.CooldownMapping.from_cooldown(100, 43200, commands.BucketType.user)
+    self.patron = commands.CooldownMapping.from_cooldown(150, 43200, commands.BucketType.user)
 
   def is_spamming(self, msg: discord.Message, tier: int, voted: bool):
     current = msg.created_at.timestamp()
@@ -97,11 +75,13 @@ class SpamChecker:
     hour_bucket = self.absolute_hour.get_bucket(msg)
     free_bucket = self.free.get_bucket(msg)
     voted_bucket = self.voted.get_bucket(msg)
+    patron_bucket = self.patron.get_bucket(msg)
 
     min_rate = min_bucket.update_rate_limit(current)
     hour_rate = hour_bucket.update_rate_limit(current)
     free_rate = free_bucket.update_rate_limit(current)
     voted_rate = voted_bucket.update_rate_limit(current)
+    patron_rate = patron_bucket.update_rate_limit(current)
 
     if min_rate:
       return True, min_bucket
@@ -112,8 +92,11 @@ class SpamChecker:
     if free_rate and not voted and not tier >= function_config.PremiumTiers.tier_1:
       return True, free_bucket
 
-    if voted_rate and (voted or tier >= function_config.PremiumTiers.tier_1):
+    if voted_rate and voted and tier < function_config.PremiumTiers.tier_1:
       return True, voted_bucket
+
+    if patron_rate and tier >= function_config.PremiumTiers.tier_1:
+      return True, patron_bucket
 
     return False, None
 
@@ -344,10 +327,12 @@ class Chat(commands.Cog):
     checker: SpamChecker = self._spam_check[msg.guild.id if msg.guild else msg.author.id]
     is_spamming, rate_limiter = checker.is_spamming(msg, current_tier, voted)
     if is_spamming:
-      advertise = bool(not (voted and current_tier >= function_config.PremiumTiers.tier_1))
+      vote_advertise = bool(not voted)
+      patreon_advertise = bool(not (current_tier >= function_config.PremiumTiers.tier_1))
       retry_after = discord.utils.utcnow() + datetime.timedelta(seconds=rate_limiter.get_retry_after())
       self.bot.logger.warning(f"Someone is being ratelimited at over {rate_limiter.rate} messages and can retry after <t:{int(retry_after.timestamp())}:R>")
-      return await ctx.reply(embed=embed(title=f"You have sent me over `{rate_limiter.rate}` messages in that last `{rate_limiter.per} seconds` and are being rate limited, try again <t:{int(retry_after.timestamp())}:R>", description="If you would like to send me more messages you can get more by voting at https://top.gg/bot/476303446547365891/vote" if advertise else "", color=MessageColors.ERROR), mention_author=False)
+      ad_message = "If you would like to send me more messages you can get more by voting at https://top.gg/bot/476303446547365891/vote" if vote_advertise else "If you would like to send even more messages please support Friday on Patreon at https://patreon.com/join/fridaybot" if patreon_advertise else ""
+      return await ctx.reply(embed=embed(title=f"You have sent me over `{rate_limiter.rate}` messages in that last `{rate_limiter.per} seconds` and are being rate limited, try again <t:{int(retry_after.timestamp())}:R>", description=ad_message, color=MessageColors.ERROR), mention_author=False)
     async with msg.channel.typing():
       translation = await Translation.from_text(msg.clean_content, from_lang=lang, parent=self)
       self.chat_history[msg.channel.id].insert(0, f"{ctx.author.display_name}: " + str(translation).strip('\n'))
