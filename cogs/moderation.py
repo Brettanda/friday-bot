@@ -875,12 +875,15 @@ class Moderation(commands.Cog):
     if reason is None:
       reason = f"[Unmuted by {ctx.author} (ID: {ctx.author.id})]"
 
+    role = discord.Object(id=ctx.guild_config.mute_role_id)
+    if len(members) == 0:
+      return await ctx.send(embed=embed(title="Missing members to unmute.", color=MessageColors.ERROR))
+
     failed = 0
     async with ctx.typing():
       for member in members:
         try:
-          await member.remove_timeout(reason=reason)
-          # await member.remove_roles(role, reason=reason)
+          await member.remove_roles(role, reason=reason)
         except discord.HTTPException:
           failed += 1
     if len(members) == 1:
