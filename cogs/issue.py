@@ -41,7 +41,7 @@ class Issue(commands.Cog):
     confirm = await ctx.prompt("Please confirm your feedback.", embed=embed(title="Are you sure you would like to submit this issue?", description=f"{issue}"))
     if not confirm:
       return await ctx.send(embed=embed(title="Canceled", color=MessageColors.ERROR))
-    await relay_info("", embed=embed(title="Issue", description=f"{issue}", author_icon=ctx.author.display_avatar.url, author_name=ctx.author.display_name), bot=self.bot, webhook=self.log_issues)
+    await relay_info("", embed=embed(title="Issue", description=f"{issue}", author_icon=ctx.author.display_avatar.url, author_name=ctx.author.display_name + f"(ID: {ctx.author.id})"), bot=self.bot, webhook=self.log_issues)
 
 
 def setup(bot):
