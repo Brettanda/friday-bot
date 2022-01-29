@@ -57,6 +57,10 @@ class MemberOrID(commands.Converter):
       else:
         member = await ctx.bot.get_or_fetch_member(ctx.guild, member_id)
         if member is None:
+          try:
+            await commands.UserConverter().convert(ctx, argument)
+          except commands.UserNotFound:
+            raise commands.BadArgument(f"Could not find `{member_id}` on Discord at all.")
           return type("_HackBan", (), {"id": member_id, "__str__": lambda c: f"Member ID {c.id}"})()
     if not can_execute_action(ctx, ctx.author, member):
       raise commands.BadArgument("Your role hierarchy is too low for this action.")
@@ -291,7 +295,7 @@ class Moderation(commands.Cog):
       reason = f"[Banned by {ctx.author} (ID: {ctx.author.id})]"
 
     if len(members) == 0:
-      return await ctx.send(embed=embed(title="Missing members to ban.", color=MessageColors.ERROR))
+      return await ctx.send(embed=embed(title="Missing or failed to get members to ban.", color=MessageColors.ERROR))
 
     reminder = self.bot.get_cog("Reminder")
     if reminder is None:
@@ -422,7 +426,7 @@ class Moderation(commands.Cog):
     try:
       args = parser.parse_args(shlex.split(args))
     except Exception as e:
-      return await ctx.send(embed=embed(title=str(e)), color=MessageColors.ERROR)
+      return await ctx.send(embed=embed(title=str(e), color=MessageColors.ERROR))
 
     members = []
 
@@ -875,12 +879,15 @@ class Moderation(commands.Cog):
     if reason is None:
       reason = f"[Unmuted by {ctx.author} (ID: {ctx.author.id})]"
 
+    role = discord.Object(id=ctx.guild_config.mute_role_id)
+    if len(members) == 0:
+      return await ctx.send(embed=embed(title="Missing members to unmute.", color=MessageColors.ERROR))
+
     failed = 0
     async with ctx.typing():
       for member in members:
         try:
-          await member.remove_timeout(reason=reason)
-          # await member.remove_roles(role, reason=reason)
+          await member.remove_roles(role, reason=reason)
         except discord.HTTPException:
           failed += 1
     if len(members) == 1:

@@ -46,7 +46,7 @@ class NaCl(commands.Cog):
     if len(sex.voice_states) >= sex.user_limit:
       return
 
-    await member.edit(voice_channel=sex, reason="Sex")
+    await member.edit(voice_channel=sex, reason="Got that 6.9% Sexed")
 
 
 def setup(bot):
