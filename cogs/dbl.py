@@ -161,16 +161,15 @@ class TopGG(commands.Cog):
     await reminder.create_timer(fut.dt, "vote", user, created=discord.utils.utcnow())
     self.user_has_voted.invalidate(self, int(user, base=10))
     if _type == "test" or int(user, base=10) not in (215227961048170496, 813618591878086707):
-      if user is not None:
-        support_server = self.bot.get_guild(config.support_server_id)
-        member = await self.bot.get_or_fetch_member(support_server, user)
-        if member is not None:
-          try:
-            await member.add_roles(discord.Object(id=VOTE_ROLE), reason="Voted on Top.gg")
-          except discord.HTTPException:
-            pass
-          else:
-            self.bot.logger.info(f"Added vote role to {member.id}")
+      support_server = self.bot.get_guild(config.support_server_id)
+      member = await self.bot.get_or_fetch_member(support_server, user)
+      if member is not None:
+        try:
+          await member.add_roles(discord.Object(id=VOTE_ROLE), reason="Voted on Top.gg")
+        except discord.HTTPException:
+          pass
+        else:
+          self.bot.logger.info(f"Added vote role to {member.id}")
       await self.log_bumps.send(
           username=self.bot.user.display_name,
           avatar_url=self.bot.user.display_avatar.url,
@@ -178,7 +177,7 @@ class TopGG(commands.Cog):
               title=f"Somebody Voted - {_type}",
               fieldstitle=["Member", "Is week end"],
               fieldsval=[
-                  f'{self.bot.get_user(user)} (ID: {user})',
+                  f'{member and member.mention} (ID: {user})',
                   f'{isWeekend}'],
               fieldsin=[False, False]
           )
