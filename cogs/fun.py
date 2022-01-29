@@ -1,4 +1,5 @@
 import json
+import re
 # import random
 from typing import Optional
 import numpy.random as random
@@ -24,6 +25,9 @@ with open('./config.json') as f:
   config = json.load(f)
 
 
+POLLNAME_REGEX = re.compile(r'(?:\s{4}|\t)(.+)')
+
+
 class Fun(commands.Cog):
   """Fun games and other commands to give more life to your Discord server."""
 
@@ -37,6 +41,8 @@ class Fun(commands.Cog):
     self.loop_countdown.start()
     # self.timeouter = None
     # self.timeoutCh = None
+
+    self.poll_edit_lock = asyncio.Lock()
 
   def __repr__(self):
     return "<cogs.Fun>"
@@ -308,7 +314,10 @@ class Fun(commands.Cog):
       9: "🔟"
   }
 
-  @commands.command(name="poll", extras={"examples": ["\"this is a title\" '1' '2' '3'"]}, help="Make a poll. Contain each option in qoutes `'option' 'option 2'`")
+  def is_poll(self, msg: discord.Message) -> bool:
+    return msg.embeds[0].title.startswith("Poll: ")
+
+  @commands.group(name="poll", extras={"examples": ["\"this is a title\" '1' '2' '3'"]}, help="Make a poll. Contain each option in qoutes `'option' 'option 2'`", invoke_without_command=True)
   # @commands.group(name="poll", extras={"examples": ["\"this is a title\" 1;;2;;3"]}, help="Make a poll. Seperate the options with `;;`")
   @commands.guild_only()
   @commands.bot_has_permissions(manage_messages=True)
@@ -388,41 +397,84 @@ class Fun(commands.Cog):
       return
     if len(message.embeds) == 0:
       return
-    if not message.embeds[0].title.startswith("Poll: ") and not message.embeds[0].title.startswith("Pole: "):
+    if not self.is_poll(message):
       return
     # for react in message.reactions:
     #   if not react.me and react.emoji not in self.POLLEMOTES.values():
     #     return
 
-    available_reactions = []
-    x = 0
-    for _ in message.embeds[0].fields:
-      available_reactions.append(self.POLLEMOTES[x])
-      x += 1
+    async with self.poll_edit_lock:
+      available_reactions = []
+      x = 0
+      for _ in message.embeds[0].fields:
+        available_reactions.append(self.POLLEMOTES[x])
+        x += 1
 
-    react_count = 0
-    x = 0
-    me = [me for me in (await message.reactions[x].users().flatten()) if me == self.bot.user] if len(message.reactions) == len(available_reactions) else []
-    for item in available_reactions:
-      if len(me) == 0:
-        await message.add_reaction(item)
-        message = await (self.bot.get_channel(payload.channel_id)).fetch_message(payload.message_id)
-      react_count += message.reactions[x].count
-      x += 1
-    react_count = react_count - len(message.embeds[0].fields)
-    react_count = react_count if react_count > 0 else 1
+      react_count = 0
+      x = 0
+      me = [me for me in (await message.reactions[x].users().flatten()) if me == self.bot.user] if len(message.reactions) == len(available_reactions) else []
+      for item in available_reactions:
+        if len(me) == 0:
+          await message.add_reaction(item)
+          message = await (self.bot.get_channel(payload.channel_id)).fetch_message(payload.message_id)
+        react_count += message.reactions[x].count
+        x += 1
+      react_count = react_count - len(message.embeds[0].fields)
+      react_count = react_count if react_count > 0 else 1
 
-    x = 0
-    titles = []
-    vals = []
-    ins = []
-    for field in message.embeds[0].fields:
-      titles.append(field.name)
-      ins.append(False)
-      vals.append(self.bar(message.reactions[x].count - 1, react_count))
-      x += 1
+      x = 0
+      titles = []
+      vals = []
+      ins = []
+      for field in message.embeds[0].fields:
+        t = POLLNAME_REGEX.findall(field.name)
+        titles.append(f"{self.POLLEMOTES[x]}\t{t[0]}")
+        ins.append(False)
+        vals.append(self.bar(message.reactions[x].count - 1, react_count))
+        x += 1
 
-    await message.edit(embed=embed(title=message.embeds[0].title.replace("Pole: ", "Poll: "), fieldstitle=titles, fieldsval=vals, fieldsin=ins))
+    # TODO: Add some kind of lock on this for if a large server did a pole and 100+ people voted at once
+      await message.edit(embed=embed(title=message.embeds[0].title.replace("Pole: ", "Poll: "), fieldstitle=titles, fieldsval=vals, fieldsin=ins))
+
+  @norm_poll.command("title", hidden=True)
+  @commands.guild_only()
+  @commands.is_owner()
+  async def poll_edit_title(self, ctx: "MyContext", message: discord.Message, *, new_title: str):
+    if not self.is_poll(message):
+      return
+
+    message.embeds[0].title = "Poll: " + new_title
+    await message.edit(embed=message.embeds[0])
+    await ctx.send(embed=embed(title="Poll Edited", description=f"The poll's title has been changed to `{new_title}`."))
+
+  @norm_poll.command("option", aliases=["addoption"], hidden=True)
+  @commands.guild_only()
+  @commands.is_owner()
+  async def poll_edit_option(self, ctx: "MyContext", message: discord.Message, option_id: int, *, new_name: str):
+    if not self.is_poll(message):
+      return
+
+    option_id = option_id - 1
+
+    if not len(message.embeds[0].fields) > 1:
+      message.embeds[0].add_field(name=f"{self.POLLEMOTES[option_id]}\t{new_name}", value=self.bar(0, 1))
+    else:
+      message.embeds[0]._fields[option_id]["name"] = f"{self.POLLEMOTES[option_id]}\t{new_name}"
+
+    await message.edit(embed=message.embeds[0])
+    await ctx.send(embed=embed(title="Poll Edited", description=f"The poll's option `{option_id+1}` has been changed to `{new_name}`."))
+
+  @norm_poll.command("remove", hidden=True)
+  @commands.guild_only()
+  @commands.is_owner()
+  async def poll_edit_remove(self, ctx: "MyContext", message: discord.Message, option_id: int):
+    if not self.is_poll(message):
+      return
+
+    message.embeds[0].remove_field(option_id - 1)
+    await message.edit(embed=message.embeds[0])
+    await message.remove_reaction(self.POLLEMOTES[option_id - 1], ctx.guild.me)
+    await ctx.send(embed=embed(title="Poll Edited", description=f"The poll's option `{option_id}` has been removed."))
 
   # @norm_poll.command(name="conclude", help="Concludes the poll", hidden=True)
   # @commands.guild_only()
