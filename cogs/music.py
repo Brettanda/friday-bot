@@ -278,7 +278,10 @@ class Player(wavelink.Player):
 
   async def destroy(self, *, force: bool = False):
     await self.stop()
-    await self.disconnect(force=force)
+    try:
+      await self.disconnect(force=force)
+    except ValueError:
+      pass
     await self.node._websocket.send(op='destroy', guildId=str(self.guild.id))
     self._connected = False
 
