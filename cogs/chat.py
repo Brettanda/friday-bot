@@ -148,12 +148,16 @@ class Chat(commands.Cog):
     query = "SELECT * FROM servers WHERE id=$1 LIMIT 1;"
     pquery = "SELECT * FROM patrons WHERE $1::text = ANY(guild_ids) LIMIT 1;"
     async with self.bot.db.pool.acquire(timeout=300.0) as conn:
-      record = await conn.fetchrow(query, str(guild_id))
-      precord = await conn.fetchrow(pquery, str(guild_id))
-      self.bot.logger.debug(f"PostgreSQL Query: \"{query}\" + {str(guild_id)}")
-      self.bot.logger.debug(f"PostgreSQL Query: \"{pquery}\" + {str(guild_id)}")
-      if record is not None:
-        return await Config.from_record(record, precord, self.bot)
+      try:
+        record = await conn.fetchrow(query, str(guild_id))
+        precord = await conn.fetchrow(pquery, str(guild_id))
+      except Exception as e:
+        raise e
+      else:
+        self.bot.logger.debug(f"PostgreSQL Query: \"{query}\" + {str(guild_id)}")
+        self.bot.logger.debug(f"PostgreSQL Query: \"{pquery}\" + {str(guild_id)}")
+        if record is not None:
+          return await Config.from_record(record, precord, self.bot)
       return None
 
   @commands.Cog.listener()
