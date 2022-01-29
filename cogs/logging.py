@@ -13,6 +13,7 @@ if TYPE_CHECKING:
 
 EVENT_TYPES = ["bans", "mutes", "unbans", "unmutes", "kicks"]
 REASON_REG = re.compile(r"\[[\w\s]+.+#\d{4}\s\(ID:\s(\d{18})\)\](?:\:\s(.+))?")
+REASON_ID_REG = re.compile(r"[0-9]{18}")
 
 
 class Config:
@@ -131,7 +132,9 @@ class Logging(commands.Cog):
     reg = REASON_REG.match(action.reason)
     reason = member.reason if hasattr(member, "reason") and reg is None and member.reason is not None else reg[2] if reg is not None and reg[2] is not None else "No reason given"
 
-    self.bot.dispatch("log_event", guild.id, "ban", offender=member, moderator=action.user, reason=reason)
+    moderator = action.user if action.user.id != self.bot.user.id and reg is not None else await self.bot.fetch_user(REASON_ID_REG.findall(reg.string)[0])
+
+    self.bot.dispatch("log_event", guild.id, "ban", offender=member, moderator=moderator, reason=reason)
 
   @commands.Cog.listener()
   async def on_member_unban(self, guild: discord.Guild, member: Union[discord.User, discord.Member]):
@@ -153,7 +156,9 @@ class Logging(commands.Cog):
     reg = REASON_REG.match(action.reason)
     reason = action.reason if reg is None and action.reason is not None else reg[2] if reg is not None and reg[2] is not None else "No reason given"
 
-    self.bot.dispatch("log_event", guild.id, "unban", offender=member, moderator=action.user, reason=reason)
+    moderator = action.user if action.user.id != self.bot.user.id and reg is not None else await self.bot.fetch_user(REASON_ID_REG.findall(reg.string)[0])
+
+    self.bot.dispatch("log_event", guild.id, "unban", offender=member, moderator=moderator, reason=reason)
 
   @commands.Cog.listener()
   async def on_member_remove(self, member: discord.Member):
