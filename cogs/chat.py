@@ -323,7 +323,7 @@ class Chat(commands.Cog):
         current_tier = patron.tier if patron.tier > current_tier else current_tier
 
     char_count = len(msg.clean_content)
-    if (char_count > 100 and current_tier != function_config.PremiumTiers.free) or (char_count > 200 and current_tier > function_config.PremiumTiers.free):
+    if (char_count > 100 and current_tier == function_config.PremiumTiers.free) or char_count > 200:
       return
 
     # Anything to do with sending messages needs to be below the above check
