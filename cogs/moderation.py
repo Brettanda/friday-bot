@@ -426,7 +426,7 @@ class Moderation(commands.Cog):
     try:
       args = parser.parse_args(shlex.split(args))
     except Exception as e:
-      return await ctx.send(embed=embed(title=str(e)), color=MessageColors.ERROR)
+      return await ctx.send(embed=embed(title=str(e), color=MessageColors.ERROR))
 
     members = []
 
