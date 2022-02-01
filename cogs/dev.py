@@ -297,7 +297,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     if confirm:
       pstdout, pstderr = await self.run_process("python -m pip install --upgrade pip && python -m pip install -r requirements.txt --upgrade --no-cache-dir")
       if pstderr:
-        return await ctx.send(embed=embed(title="Error", description=pstderr, color=MessageColors.ERROR))
+        self.bot.logger.error(pstderr)
       await ctx.safe_send(pstdout)
 
     modules = self.modules_from_git(stdout)
@@ -492,28 +492,39 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       channel = self.bot.get_channel(713270475031183390)
 
       def predicate(message):
-        return message.author.id == 476303446547365891
+        return message.author.display_name == "Friday" \
+            and message.author.id in (476303446547365891, 836186774270902333)   # Bot, Bot webhook ids
 
-      messages = await channel.history(limit=None, oldest_first=True).filter(predicate).flatten()
-      with open("join_sheet.csv", "w") as f:
-        f.write("time,count,ads\n")
-        for msg in messages:
-          content = discord.utils.remove_markdown(msg.content)
-          # if msg.author.id != 751680714948214855 and msg.author.id != 760615464300445726:
-          time = msg.created_at.strftime("%Y-%m-%d %H:%M:%S")
-          title = msg.embeds[0].title if len(msg.embeds) != 0 else discord.Embed.Empty
-          ads = ["2021-05-26 05:14:31", "2021-06-12 03:26:15", "2021-07-01 19:46:52"]
-          description = msg.embeds[0].description if len(msg.embeds) != 0 else discord.Embed.Empty
-          count = description.split(" ")[-1] if not isinstance(description, discord.embeds._EmptyEmbed) else title.split(" ")[-1] if not isinstance(title, discord.embeds._EmptyEmbed) else None
-          count = content.split(" ")[-1] if content != "" else count
-          f.write(f"{time},{count}{',Ad'if time in ads else ''}\n")
-        f.close()
-    thispath = os.getcwd()
-    if "\\" in thispath:
-      seperator = "\\\\"
-    else:
-      seperator = "/"
-    await ctx.reply(file=discord.File(fp=f"{thispath}{seperator}join_sheet.csv", filename="join_sheet.csv"))
+      w = "time,count,ads\n"
+      async for msg in channel.history(limit=None, oldest_first=True).filter(predicate):
+        content = discord.utils.remove_markdown(msg.content)
+        time = msg.created_at.strftime("%Y-%m-%d %H:%M:%S")
+        title = msg.embeds[0].title if len(msg.embeds) != 0 else discord.Embed.Empty
+        ads = ["2021-05-26 05:14:31", "2021-06-12 03:26:15", "2021-07-01 19:46:52", "2021-09-20 16:15:57"]
+        description = msg.embeds[0].description if len(msg.embeds) != 0 else discord.Embed.Empty
+        count = description.split(" ")[-1] if not isinstance(description, discord.embeds._EmptyEmbed) else title.split(" ")[-1] if not isinstance(title, discord.embeds._EmptyEmbed) else None
+        count = content.split(" ")[-1] if content != "" else count
+        w += f"{time},{count}{',Ad'if time in ads else ''}\n"
+    fp = io.BytesIO(w.encode())
+    await ctx.reply(file=discord.File(fp=fp, filename="join_sheet.csv"))
+
+  @norm_dev.command("pirate")
+  async def pirate(self, ctx):
+    pattern = r'completion.:.\s(.+)\\n.}'
+    async with ctx.typing():
+      with open("spice/ml/openai/default-persona.jsonl", "r") as f:
+        with open("spice/ml/openai/pirate-persona.jsonl", "w") as f2:
+          for line in f.readlines():
+            this = re.findall(pattern, line)
+            if len(this) != 0:
+              async with self.bot.session.post(f"https://pirate.monkeyness.com/api/translate?english={this[0]}") as r:
+                if r.status == 200:
+                  text = await r.text()
+                  if "Hellohow fares yer day?" in text:
+                    text = "Hello how fares yer day?"
+                  new = re.sub(pattern, f"""completion":" {text}""" + r'\\n"}', line)
+                  f2.write(new)
+    await ctx.send("Done")
 
   # @norm_dev.command(name="joinleave")
   # async def norm_dev_join_leave(self, ctx):

@@ -128,15 +128,15 @@ class SpamChecker:
     self = cls()
 
     self.bot = bot
-    self.message_spam = commands.CooldownMapping.from_cooldown(config.max_messages["rate"], config.max_messages["seconds"], commands.BucketType.user) if config.max_messages else None
-    self.mention_spam = commands.CooldownMapping.from_cooldown(config.max_mentions["rate"], config.max_mentions["seconds"], commands.BucketType.user) if config.max_mentions else None
-    self.content_spam = CooldownByContent.from_cooldown(config.max_content["rate"], config.max_content["seconds"], commands.BucketType.member) if config.max_content else None
+    self._message_spam = commands.CooldownMapping.from_cooldown(config.max_messages["rate"], config.max_messages["seconds"], commands.BucketType.user) if config.max_messages else None
+    self._mention_spam = commands.CooldownMapping.from_cooldown(config.max_mentions["rate"], config.max_mentions["seconds"], commands.BucketType.user) if config.max_mentions else None
+    self._content_spam = CooldownByContent.from_cooldown(config.max_content["rate"], config.max_content["seconds"], commands.BucketType.member) if config.max_content else None
 
     return self
 
   @property
   def is_disabled(self) -> bool:
-    return not self.message_spam and not self.mention_spam and not self.content_spam
+    return not self._message_spam and not self._mention_spam and not self._content_spam
 
   def is_spamming(self, message: discord.Message) -> bool:
     if message.guild is None:
@@ -144,7 +144,7 @@ class SpamChecker:
 
     current = message.created_at.timestamp()
 
-    bucket = self.message_spam.get_bucket(message)
+    bucket = self._message_spam and self._message_spam.get_bucket(message)
     if bucket.update_rate_limit(current):
       return True
 
@@ -156,7 +156,7 @@ class SpamChecker:
 
     current = message.created_at.timestamp()
 
-    bucket = self.content_spam.get_bucket(message)
+    bucket = self._content_spam and self._content_spam.get_bucket(message)
     if bucket.update_rate_limit(current):
       return True
 
@@ -168,7 +168,7 @@ class SpamChecker:
 
     current = message.created_at.timestamp()
 
-    bucket = self.mention_spam.get_bucket(message)
+    bucket = self._mention_spam and self._mention_spam.get_bucket(message)
     if bucket.update_rate_limit(current):
       return True
 
