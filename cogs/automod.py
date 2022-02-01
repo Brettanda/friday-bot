@@ -104,7 +104,7 @@ class Config:
   async def ban(self, member: discord.Member, reason: str = "Auto-ban for spamming.") -> None:
     await member.ban(reason=reason)
 
-  async def apply_punishment(self, guild: discord.Guild, msg: discord.Message, punishments: List[str], *, reason: str = None, timeout_duration: time.TimeoutTime = None, mute_duration: time.FutureTime = None) -> Optional[discord.Message]:
+  async def apply_punishment(self, guild: discord.Guild, msg: discord.Message, punishments: List[str], *, reason: str = None) -> Optional[discord.Message]:
     if "delete" in punishments:
       await self.delete(msg)
     if "ban" in punishments:
@@ -112,9 +112,9 @@ class Config:
     elif "kick" in punishments:
       await self.kick(msg.author, reason=reason)
     elif "timeout" in punishments:
-      await self.timeout(msg.author, duration=timeout_duration, reason=reason)
+      await self.timeout(msg.author, reason=reason)
     elif "mute" in punishments:
-      await self.mute(msg.author, duration=mute_duration, reason=reason)
+      await self.mute(msg.author, reason=reason)
 
 
 class CooldownByContent(commands.CooldownMapping):
