@@ -60,6 +60,7 @@ class General(commands.Cog):
         description=f"I will respond to messages when I am mentioned. To get started with commands type `{prefix}help` or `@{self.bot.user.name} help`.\n"
         f"If something goes terribly wrong and you want it to stop, talk to my creator with the command `{prefix}issue <message>`",
         thumbnail=self.bot.user.display_avatar.url,
+        footer="Made with ❤️!",
         fieldstitle=["Prefix", "Setting a language", "Notice for chat system", "Chatbot intelligence"],
         fieldsval=[
             f"To change my prefix use the `{prefix}prefix` command.",
@@ -143,6 +144,7 @@ class General(commands.Cog):
             thumbnail=self.bot.user.display_avatar.url,
             author_icon=owner.display_avatar.url,
             author_name=owner,
+            footer="Made with ❤️!",
             description="Big thanks to all Patrons!",
             fieldstitle=["Servers joined", "Latency", "Shards", "Loving Life", "Uptime", "CPU/RAM", "Existed since"],
             fieldsval=[len(self.bot.guilds), f"{(self.bot.get_shard(ctx.guild.shard_id).latency if ctx.guild else self.bot.latency)*1000:,.0f} ms", self.bot.shard_count, "True", uptime, f"CPU: {psutil.cpu_percent()}%\nRAM: {psutil.virtual_memory()[2]}%", f"<t:{int(self.bot.user.created_at.timestamp())}:D>"],
