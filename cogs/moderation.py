@@ -213,21 +213,6 @@ class Moderation(commands.Cog):
   # async def slash_settings_bot(self, ctx):
   #   print("askjdhla")
 
-  @commands.command(name="chatchannel", help="Set the current channel so that I will always try to respond with something")
-  @commands.guild_only()
-  @commands.has_guild_permissions(manage_channels=True)
-  async def norm_chatchannel(self, ctx):
-    chat_channel = await self.bot.db.query("SELECT chatchannel FROM servers WHERE id=$1 LIMIT 1", str(ctx.guild.id))
-    chat = self.bot.get_cog("Chat")
-    if chat is not None:
-      chat.get_guild_config.invalidate(chat, ctx.guild.id)
-    if chat_channel is None:
-      await self.bot.db.query("UPDATE servers SET chatchannel=$1 WHERE id=$2", str(ctx.channel.id), str(ctx.guild.id))
-      return await ctx.send(embed=embed(title="I will now respond to every message in this channel"))
-    else:
-      await self.bot.db.query("UPDATE servers SET chatchannel=$1 WHERE id=$2", None, str(ctx.guild.id))
-      return await ctx.send(embed=embed(title="I will no longer respond to all messages from this channel"))
-
   @commands.command(name="musicchannel", help="Set the channel where I can join and play music. If none then I will join any VC", hidden=True)
   @commands.is_owner()
   @commands.has_guild_permissions(manage_channels=True)
@@ -766,8 +751,8 @@ class Moderation(commands.Cog):
 
     member = await self.bot.get_or_fetch_member(guild, member_id)
     if member is None or not member._roles.has(role_id):
-      async with self.bot.db.pool.acquire() as conn:
-        await conn.query("UPDATE servers SET muted_members=array_remove(muted_members, $1) WHERE id=$2", str(member_id), str(guild_id))
+      async with self.bot.db.pool.acquire(timeout=300.0) as conn:
+        await conn.execute("UPDATE servers SET muted_members=array_remove(muted_members, $1) WHERE id=$2", str(member_id), str(guild_id))
       return
 
     if mod_id != member_id:
@@ -955,7 +940,6 @@ class Moderation(commands.Cog):
       chat.get_guild_config.invalidate(chat, ctx.guild.id)
     return await ctx.reply(embed=embed(title=f"New language set to: `{final_lang_name}`"))
 
-  @norm_chatchannel.after_invoke
   @music_channel.after_invoke
   @mute_role.after_invoke
   @mute_role_create.after_invoke

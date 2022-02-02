@@ -9,6 +9,8 @@ from typing_extensions import TYPE_CHECKING
 if TYPE_CHECKING:
   from index import Friday as Bot
 
+UPDATES_CHANNEL = 744652167142441020
+
 
 class CommandName(commands.Converter):
   async def convert(self, ctx: "MyContext", argument: str):
@@ -49,6 +51,20 @@ class Config(commands.Cog, command_attrs=dict(extras={"permissions": ["manage_gu
     await self.bot.db.query("UPDATE servers SET prefix=$1 WHERE id=$2", str(new_prefix), str(ctx.guild.id))
     self.bot.prefixes[ctx.guild.id] = new_prefix
     await ctx.reply(embed=embed(title=f"My new prefix is `{new_prefix}`"))
+
+  @commands.command("updates", help="Recieve updates on new features and changes for Friday")
+  @commands.has_permissions(manage_webhooks=True)
+  @commands.bot_has_permissions(manage_webhooks=True)
+  async def updates(self, ctx: "MyContext", channel: discord.TextChannel):
+    updates_channel: discord.TextChannel = self.bot.get_channel(UPDATES_CHANNEL)
+
+    if updates_channel.id in [w.source_channel and w.source_channel.id for w in await channel.webhooks()]:
+      confirm = await ctx.prompt("This channel is already subscribed to updates. Are you sure you want to subscribe again?")
+      if not confirm:
+        return await ctx.reply(embed=embed(title="Cancelled"))
+
+    await updates_channel.follow(destination=channel, reason="Called updates command, for Friday updates")
+    await ctx.reply(embed=embed(title="Updates channel followed"))
 
   @commands.group("botchannel", invoke_without_command=True)
   async def botchannel(self, ctx: "MyContext", *, channel: discord.TextChannel = None):

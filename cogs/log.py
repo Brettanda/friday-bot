@@ -204,10 +204,6 @@ class Log(commands.Cog):
     await self.bot.process_commands(after)
 
   @commands.Cog.listener()
-  async def on_command(self, ctx: "MyContext"):
-    self.logger.info(f"Command: {ctx.message.clean_content}")
-
-  @commands.Cog.listener()
   async def on_command_completion(self, ctx: "MyContext"):
     self.logger.debug(f"Finished Command: {ctx.message.clean_content.encode('unicode_escape')}")
 
