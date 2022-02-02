@@ -1,5 +1,4 @@
 import discord
-import datetime
 import typing
 import psutil
 from discord.ext import commands
