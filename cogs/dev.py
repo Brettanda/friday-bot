@@ -118,6 +118,14 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
   async def norm_dev(self, ctx):
     await ctx.send_help(ctx.command)
 
+  @norm_dev.command("chain")
+  async def norm_dev_chain(self, ctx, *, commands: str):
+    commands = commands.split("&&")
+    await ctx.message.add_reaction("\N{OK HAND SIGN}")
+
+    for command in commands:
+      await ctx.invoke(self.bot.get_command(command))
+
   @norm_dev.command(name="say", rest_is_raw=True,)
   async def say(self, ctx, channel: Optional[GlobalChannel] = None, *, say: str):
     channel = ctx.channel if channel is None else channel
