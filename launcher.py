@@ -58,7 +58,7 @@ class Launcher:
         "https://discord.com/api/v9/gateway/bot",
         headers={
             "Authorization": f"Bot {os.environ.get('TOKEN')}",
-            "User-Agent": f'DiscordBot (https://github.com/Rapptz/discord.py {discord.__version__}) Python/{sys.version_info.major}.{sys.version_info.minor} requests/{requests.__version__}'
+            "User-Agent": f'DiscordBot ({discord.__author__} {discord.__version__}) Python/{sys.version_info.major}.{sys.version_info.minor}'
         }
     )
     data.raise_for_status()

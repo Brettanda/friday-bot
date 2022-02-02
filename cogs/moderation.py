@@ -766,8 +766,8 @@ class Moderation(commands.Cog):
 
     member = await self.bot.get_or_fetch_member(guild, member_id)
     if member is None or not member._roles.has(role_id):
-      async with self.bot.db.pool.acquire() as conn:
-        await conn.query("UPDATE servers SET muted_members=array_remove(muted_members, $1) WHERE id=$2", str(member_id), str(guild_id))
+      async with self.bot.db.pool.acquire(timeout=300.0) as conn:
+        await conn.execute("UPDATE servers SET muted_members=array_remove(muted_members, $1) WHERE id=$2", str(member_id), str(guild_id))
       return
 
     if mod_id != member_id:

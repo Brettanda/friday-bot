@@ -158,7 +158,7 @@ class Friday(commands.AutoShardedBot):
 
 if __name__ == "__main__":
   print(f"Python version: {sys.version}")
-  max_bytes = 32 * 1024 * 1024  # 32 MiB
+  max_bytes = 8 * 1024 * 1024  # 8 MiB
   logging.getLogger("discord").setLevel(logging.INFO)
   logging.getLogger("discord.http").setLevel(logging.WARNING)
 
