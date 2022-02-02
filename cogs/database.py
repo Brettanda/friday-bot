@@ -60,6 +60,16 @@ class Database(commands.Cog):
             "tier smallint NOT NULL DEFAULT 0",
             "guild_ids text[] NOT NULL DEFAULT array[]::text[]",
         ],
+        "commands": [
+          "id bigserial PRIMARY KEY NOT NULL",
+          "guild_id text NOT NULL",
+          "channel_id text NOT NULL",
+          "author_id text NOT NULL",
+          "used TIMESTAMP WITH TIME ZONE",
+          "prefix text",
+          "command text",
+          "failed boolean",
+        ],
         "countdowns": [
             "guild text NULL",
             "channel text NOT NULL",
