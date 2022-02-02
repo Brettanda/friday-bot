@@ -6,7 +6,7 @@ from discord.ext import commands
 from discord.utils import oauth_url, cached_property
 from typing_extensions import TYPE_CHECKING
 
-from functions import MyContext, config, embed, views, MessageColors
+from functions import MyContext, config, embed, views, MessageColors, time
 
 if TYPE_CHECKING:
   from index import Friday as Bot
@@ -49,6 +49,7 @@ class General(commands.Cog):
 
   def __init__(self, bot: "Bot"):
     self.bot = bot
+    self.process = psutil.Process()
 
   def __repr__(self) -> str:
     return "<cogs.General>"
@@ -127,17 +128,9 @@ class General(commands.Cog):
   async def info(self, ctx: "MyContext"):
     appinfo = await self.bot.application_info()
     owner = appinfo.team.members[0]
-    delta = datetime.datetime.utcnow() - self.bot.uptime
-    weeks, remainder = divmod(int(delta.total_seconds()), 604800)
-    days, remainder = divmod(remainder, 86400)
-    hours, remainder = divmod(remainder, 3600)
-    minutes, seconds = divmod(remainder, 60)
-    if weeks > 0:
-      uptime = "{w}w {d}d {h}h".format(w=weeks, d=days, h=hours)
-    elif days > 0:
-      uptime = "{d}d {h}h {m}m".format(d=days, h=hours, m=minutes)
-    else:
-      uptime = "{h}h {m}m {s}s".format(h=hours, m=minutes, s=seconds)
+    uptime = time.human_timedelta(self.bot.uptime, accuracy=None, brief=True, suffix=False)
+    memory_usage = self.process.memory_full_info().uss / 1024**2
+    cpu_usage = self.process.cpu_percent() / psutil.cpu_count()
     return await ctx.send(
         embed=embed(
             title=f"{self.bot.user.name} - About",
@@ -147,7 +140,7 @@ class General(commands.Cog):
             footer="Made with ❤️!",
             description="Big thanks to all Patrons!",
             fieldstitle=["Servers joined", "Latency", "Shards", "Loving Life", "Uptime", "CPU/RAM", "Existed since"],
-            fieldsval=[len(self.bot.guilds), f"{(self.bot.get_shard(ctx.guild.shard_id).latency if ctx.guild else self.bot.latency)*1000:,.0f} ms", self.bot.shard_count, "True", uptime, f"CPU: {psutil.cpu_percent()}%\nRAM: {psutil.virtual_memory()[2]}%", f"<t:{int(self.bot.user.created_at.timestamp())}:D>"],
+            fieldsval=[len(self.bot.guilds), f"{(self.bot.get_shard(ctx.guild.shard_id).latency if ctx.guild else self.bot.latency)*1000:,.0f} ms", self.bot.shard_count, "True", uptime, f'{memory_usage:.2f} MiB\n{cpu_usage:.2f}% CPU', f"<t:{int(self.bot.user.created_at.timestamp())}:D>"],
         ), view=views.Links()
     )
 
