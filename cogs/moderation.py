@@ -940,7 +940,6 @@ class Moderation(commands.Cog):
       chat.get_guild_config.invalidate(chat, ctx.guild.id)
     return await ctx.reply(embed=embed(title=f"New language set to: `{final_lang_name}`"))
 
-  @norm_chatchannel.after_invoke
   @music_channel.after_invoke
   @mute_role.after_invoke
   @mute_role_create.after_invoke
