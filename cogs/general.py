@@ -125,17 +125,20 @@ class General(commands.Cog):
     await self.info(ctx)
 
   async def info(self, ctx: "MyContext"):
-    appinfo = await self.bot.application_info()
-    owner = appinfo.team.members[0]
+    support_guild = self.bot.get_guild(707441352367013899)
+    owner = await self.bot.get_or_fetch_member(support_guild, self.bot.owner_id)
+
     uptime = time.human_timedelta(self.bot.uptime, accuracy=None, brief=True, suffix=False)
+
     memory_usage = self.process.memory_full_info().uss / 1024**2
     cpu_usage = self.process.cpu_percent() / psutil.cpu_count()
+
     return await ctx.send(
         embed=embed(
             title=f"{self.bot.user.name} - About",
             thumbnail=self.bot.user.display_avatar.url,
             author_icon=owner.display_avatar.url,
-            author_name=owner,
+            author_name=str(owner),
             footer="Made with ❤️!",
             description="Big thanks to all Patrons!",
             fieldstitle=["Servers joined", "Latency", "Shards", "Loving Life", "Uptime", "CPU/RAM", "Existed since"],
