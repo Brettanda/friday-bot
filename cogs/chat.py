@@ -62,20 +62,20 @@ class UserConfig:
 
 class SpamChecker:
   def __init__(self):
-    self.absolute_minute = commands.CooldownMapping.from_cooldown(6, 30, commands.BucketType.user)
-    self.absolute_hour = commands.CooldownMapping.from_cooldown(180, 3600, commands.BucketType.user)
-    self.free = commands.CooldownMapping.from_cooldown(50, 43200, commands.BucketType.user)
-    self.voted = commands.CooldownMapping.from_cooldown(100, 43200, commands.BucketType.user)
-    self.patron = commands.CooldownMapping.from_cooldown(150, 43200, commands.BucketType.user)
+    self._absolute_minute = commands.CooldownMapping.from_cooldown(6, 30, commands.BucketType.user)
+    self._absolute_hour = commands.CooldownMapping.from_cooldown(180, 3600, commands.BucketType.user)
+    self._free = commands.CooldownMapping.from_cooldown(30, 43200, commands.BucketType.user)
+    self._voted = commands.CooldownMapping.from_cooldown(60, 43200, commands.BucketType.user)
+    self._patron = commands.CooldownMapping.from_cooldown(100, 43200, commands.BucketType.user)
 
   def is_spamming(self, msg: discord.Message, tier: int, voted: bool):
     current = msg.created_at.timestamp()
 
-    min_bucket = self.absolute_minute.get_bucket(msg)
-    hour_bucket = self.absolute_hour.get_bucket(msg)
-    free_bucket = self.free.get_bucket(msg)
-    voted_bucket = self.voted.get_bucket(msg)
-    patron_bucket = self.patron.get_bucket(msg)
+    min_bucket = self._absolute_minute.get_bucket(msg)
+    hour_bucket = self._absolute_hour.get_bucket(msg)
+    free_bucket = self._free.get_bucket(msg)
+    voted_bucket = self._voted.get_bucket(msg)
+    patron_bucket = self._patron.get_bucket(msg)
 
     min_rate = min_bucket.update_rate_limit(current)
     hour_rate = hour_bucket.update_rate_limit(current)
@@ -84,21 +84,21 @@ class SpamChecker:
     patron_rate = patron_bucket.update_rate_limit(current)
 
     if min_rate:
-      return True, min_bucket
+      return True, min_bucket, None
 
     if hour_rate:
-      return True, hour_bucket
+      return True, hour_bucket, None
 
     if free_rate and not voted and not tier >= function_config.PremiumTiers.tier_1:
-      return True, free_bucket
+      return True, free_bucket, "free"
 
     if voted_rate and voted and tier < function_config.PremiumTiers.tier_1:
-      return True, voted_bucket
+      return True, voted_bucket, "voted"
 
     if patron_rate and tier >= function_config.PremiumTiers.tier_1:
-      return True, patron_bucket
+      return True, patron_bucket, "patron"
 
-    return False, None
+    return False, None, None
 
 
 class Translation:
@@ -355,10 +355,10 @@ class Chat(commands.Cog):
     # Anything to do with sending messages needs to be below the above check
     response = None
     checker: SpamChecker = self._spam_check[msg.guild.id if msg.guild else msg.author.id]
-    is_spamming, rate_limiter = checker.is_spamming(msg, current_tier, voted)
+    is_spamming, rate_limiter, rate_name = checker.is_spamming(msg, current_tier, voted)
     if is_spamming:
-      vote_advertise = bool(not voted)
-      patreon_advertise = bool(not (current_tier >= function_config.PremiumTiers.tier_1))
+      vote_advertise = bool(rate_name == "free" and not voted)
+      patreon_advertise = bool(rate_name == "voted" and not (current_tier >= function_config.PremiumTiers.tier_1))
       retry_after = discord.utils.utcnow() + datetime.timedelta(seconds=rate_limiter.get_retry_after())
       self.bot.logger.warning(f"Someone is being ratelimited at over {rate_limiter.rate} messages and can retry after <t:{int(retry_after.timestamp())}:R>")
       ad_message = "If you would like to send me more messages you can get more by voting at https://top.gg/bot/476303446547365891/vote" if vote_advertise else "If you would like to send even more messages please support Friday on Patreon at https://patreon.com/join/fridaybot" if patreon_advertise else ""
