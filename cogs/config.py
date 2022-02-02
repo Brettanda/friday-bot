@@ -58,6 +58,11 @@ class Config(commands.Cog, command_attrs=dict(extras={"permissions": ["manage_gu
   async def updates(self, ctx: "MyContext", channel: discord.TextChannel):
     updates_channel: discord.TextChannel = self.bot.get_channel(UPDATES_CHANNEL)
 
+    if updates_channel.id in [w.source_channel and w.source_channel.id for w in await channel.webhooks()]:
+      confirm = await ctx.prompt("This channel is already subscribed to updates. Are you sure you want to subscribe again?")
+      if not confirm:
+        return await ctx.reply(embed=embed(title="Cancelled"))
+
     await updates_channel.follow(destination=channel, reason="Called updates command, for Friday updates")
     await ctx.reply(embed=embed(title="Updates channel followed"))
 
