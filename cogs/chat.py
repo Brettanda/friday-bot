@@ -181,6 +181,32 @@ class Chat(commands.Cog):
     else:
       await ctx.send(embed=embed(title="My chat history has been reset", description="I have forgotten the last few messages"))
 
+  @commands.group(name="chatchannel", help="Set the current channel so that I will always try to respond with something", invoke_without_command=True)
+  @commands.guild_only()
+  @commands.has_guild_permissions(manage_channels=True)
+  async def chatchannel(self, ctx: "MyContext", channel: discord.TextChannel = None):
+    if channel is None:
+      chat_channel = await ctx.pool.fetchval("SELECT chatchannel FROM servers WHERE id=$1 LIMIT 1", str(ctx.guild.id))
+      chat_channel = chat_channel and await self.bot.fetch_channel(chat_channel)
+      return await ctx.send(embed=embed(title="Current chat channel", description=f"{chat_channel.mention if chat_channel else 'None'}"))
+
+    await ctx.pool.execute("UPDATE servers SET chatchannel=$1 WHERE id=$2", str(channel.id), str(ctx.guild.id))
+    await ctx.send(embed=embed(title="Chat channel set", description=f"I will now respond to every message in this channel\n{channel.mention}"))
+
+  @chatchannel.command(name="clear", help="Clear the current chat channel")
+  @commands.guild_only()
+  @commands.has_guild_permissions(manage_channels=True)
+  async def chatchannel_clear(self, ctx: "MyContext"):
+    await ctx.pool.execute("UPDATE servers SET chatchannel=NULL WHERE id=$1", str(ctx.guild.id))
+    await ctx.send(embed=embed(title="Chat channel cleared", description="I will no longer respond to messages in this channel"))
+
+  @chatchannel.after_invoke
+  async def settings_after_invoke(self, ctx: "MyContext"):
+    if not ctx.guild:
+      return
+
+    self.get_guild_config.invalidate(self, ctx.guild.id)
+
   async def fetch_message_history(self, channel: discord.TextChannel, *, message_limit: int = 15, current_tier: int) -> str:
     my_prompt_name = channel.guild.me.display_name if hasattr(channel, "guild") and channel.guild is not None else self.bot.user.name
     history = self.chat_history[channel.id]
