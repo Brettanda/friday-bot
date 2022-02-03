@@ -266,6 +266,65 @@ class API(commands.Cog):
           "customsounds": [json.loads(i) for i in customsounds]
       })
 
+    @routes.get("/guilds/{gid}/commands")
+    async def get_commands(request: web.Request):
+      gid = request.match_info["gid"]
+      guild = bot.get_guild(int(gid, base=10))
+      if guild is None:
+        try:
+          guild = await bot.fetch_guild(int(gid, base=10))
+          if guild is None:
+            return web.HTTPNotFound(reason="Guild not found")
+        except Exception as e:
+          return web.HTTPNotFound(reason=f"Guild not found: {e}")
+      elif guild.unavailable:
+        return web.HTTPBadGateway(reason="Guild is unavailable")
+
+      if gid in self.bot.blacklist:
+        return HTTPBlocked(reason="This server is blacklisted from the bot.")
+
+      log_config = await self.get_guild_config("Log", int(gid, base=10))
+
+      channels = [{
+          "name": i.name,
+          "id": str(i.id),
+          "type": str(i.type),
+          "position": i.position,
+          "parent_id": i.category.id if i.category is not None else None,
+      } for i in guild.channels if i.type in (discord.ChannelType.text, discord.ChannelType.category)]
+
+      cogs = [
+          {
+              "name": cog.qualified_name,
+              "description": cog.description,
+              "commands": {
+                  com.qualified_name: {
+                      "name": com.qualified_name,
+                      "description": com.description,
+                      "enabled": bool(com.qualified_name not in log_config.disabled_commands),
+                      "restricted": bool(com.qualified_name in log_config.restricted_commands),
+                      "checks": False,
+                      "subcommands": {
+                          sub.qualified_name: {
+                              "name": sub.qualified_name,
+                              "description": sub.description,
+                              "enabled": bool(sub.qualified_name not in log_config.disabled_commands),
+                              "restricted": bool(sub.qualified_name in log_config.restricted_commands),
+                              "checks": False,
+                          } for sub in com.commands
+                      } if hasattr(com, "commands") else {}
+                  } for com in cog.get_commands()}
+          } for cog in self.bot.cogs.values() if len(cog.get_commands()) > 0
+      ]
+
+      return web.json_response({
+          "channels": channels,
+          "cogs": cogs,
+          "config": {
+              "bot_channel": log_config.bot_channel if log_config is not None else None,
+          }
+      })
+
     @routes.post("/guilds/{gid}/invalidate")
     async def guild_invalidate(request: web.Request):
       gid = request.match_info["gid"]
