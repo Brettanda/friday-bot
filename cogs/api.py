@@ -300,21 +300,21 @@ class API(commands.Cog):
               "commands": {
                   com.qualified_name: {
                       "name": com.qualified_name,
-                      "description": com.description,
+                      "description": com.help,
                       "enabled": bool(com.qualified_name not in log_config.disabled_commands),
                       "restricted": bool(com.qualified_name in log_config.restricted_commands),
                       "checks": False,
                       "subcommands": {
                           sub.qualified_name: {
                               "name": sub.qualified_name,
-                              "description": sub.description,
+                              "description": sub.help,
                               "enabled": bool(sub.qualified_name not in log_config.disabled_commands),
                               "restricted": bool(sub.qualified_name in log_config.restricted_commands),
                               "checks": False,
                           } for sub in com.commands
                       } if hasattr(com, "commands") else {}
                   } for com in cog.get_commands()}
-          } for cog in self.bot.cogs.values() if len(cog.get_commands()) > 0
+          } for cog in self.bot.cogs.values() if len(cog.get_commands()) > 0 and cog.qualified_name not in ("Dev", "Config") and not cog.__cog_settings__.get("hidden", False)
       ]
 
       return web.json_response({
