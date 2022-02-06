@@ -6,7 +6,7 @@ from discord.ext import commands
 
 from functions import embed, MyContext, config, MessageColors
 
-from typing import Optional
+
 from typing_extensions import TYPE_CHECKING
 
 if TYPE_CHECKING:

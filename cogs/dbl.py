@@ -2,7 +2,7 @@ import os
 
 import discord
 import topgg
-from discord.ext import commands
+from discord.ext import commands, tasks
 from typing_extensions import TYPE_CHECKING
 
 from functions import MyContext, config, embed, time, cache
@@ -39,10 +39,12 @@ class TopGG(commands.Cog):
     self.bot = bot
     self.token = os.getenv("TOKENDBL")
     self.topgg = topgg.DBLClient(self.bot, self.token, autopost=False)
+    self._current_len_guilds = len(self.bot.guilds)
     if self.bot.cluster_idx == 0:
       if not hasattr(self.bot, "topgg_webhook"):
         self.bot.topgg_webhook = topgg.WebhookManager(self.bot).dbl_webhook("/dblwebhook", os.environ["DBLWEBHOOKPASS"])
         self.bot.topgg_webhook.run(5000)
+      self._update_stats_loop.start()
 
   def __repr__(self):
     return "<cogs.TopGG>"
@@ -50,6 +52,9 @@ class TopGG(commands.Cog):
   @discord.utils.cached_property
   def log_bumps(self) -> CustomWebhook:
     return CustomWebhook.partial(os.environ.get("WEBHOOKBUMPSID"), os.environ.get("WEBHOOKBUMPSTOKEN"), session=self.bot.session)
+
+  def cog_unload(self):
+    self._update_stats_loop.cancel()
 
   @cache.cache()
   async def user_has_voted(self, user_id: int) -> bool:
@@ -66,13 +71,12 @@ class TopGG(commands.Cog):
   async def on_ready(self):
     if not self.bot.views_loaded:
       self.bot.add_view(VoteView(self))
-    if self.bot.prod:
-      await self.update_stats()
 
-  @commands.Cog.listener("on_guild_join")
-  @commands.Cog.listener("on_guild_remove")
-  async def guild_change(self, guild):
+  @tasks.loop(minutes=10.0)
+  async def _update_stats_loop(self):
     if self.bot.prod:
+      if self._current_len_guilds == len(self.bot.guilds):
+        return
       await self.update_stats()
 
   @commands.group(name="vote", help="Get the link to vote for me on Top.gg", invoke_without_command=True, case_insensitive=True)
