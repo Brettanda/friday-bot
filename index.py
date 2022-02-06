@@ -4,7 +4,7 @@ import os
 import sys
 from collections import defaultdict
 from logging.handlers import RotatingFileHandler
-from typing import Optional, Dict
+from typing import Optional
 
 import aiohttp
 import discord

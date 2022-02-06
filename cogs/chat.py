@@ -25,6 +25,7 @@ POSSIBLE_OFFENSIVE_MESSAGE = "**I failed to respond because my message might hav
 
 PERSONAS = [("🥰", "default", "Fridays default persona"), ("🏴‍☠️", "pirate", "Friday becomes one with the sea")]
 
+
 class Config:
   __slots__ = ("bot", "id", "chat_channel_id", "persona", "lang", "tier", "puser",)
 
