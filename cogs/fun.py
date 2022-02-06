@@ -480,7 +480,7 @@ class Fun(commands.Cog):
   # @commands.guild_only()
   # @commands.bot_has_permissions(manage_messages=True)
   # async def norm_poll_conclude(self, ctx: "MyContext", poll: discord.Message):
-  #   if not poll.embeds[0].title.startswith("Poll: "):
+  #   if not self.is_poll(poll):
   #     return await ctx.send(embed=embed(title="That message is not a poll", color=MessageColors.ERROR))
 
   # @cog_ext.cog_subcommand(base="poll", base_desc="Make a poll", name="conclude", description="Concludes a poll", options=[create_option(name="message", description="The link to the poll message", option_type=SlashCommandOptionType.STRING, required=True)], guild_ids=[243159711237537802])

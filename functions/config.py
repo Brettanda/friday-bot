@@ -89,6 +89,57 @@ class Config:
     return self._db
 
 
+class ReadOnly:
+  """The "database" object. Internally based on ``json``."""
+
+  def __init__(self, name, **options):
+    self.name = name
+    self.object_hook = options.pop('object_hook', None)
+    self.encoder = options.pop('encoder', None)
+
+    try:
+      hook = options.pop('hook')
+    except KeyError:
+      pass
+    else:
+      self.object_hook = hook.from_json
+      self.encoder = _create_encoder(hook)
+
+    self.loop = options.pop('loop', asyncio.get_event_loop())
+    self.lock = asyncio.Lock()
+    if options.pop('load_later', False):
+      self.loop.create_task(self.load())
+    else:
+      self.load_from_file()
+
+  def load_from_file(self):
+    try:
+      with open(self.name, 'r') as f:
+        self._db = json.load(f, object_hook=self.object_hook)
+    except FileNotFoundError:
+      self._db = {}
+
+  async def load(self):
+    async with self.lock:
+      await self.loop.run_in_executor(None, self.load_from_file)
+
+  def get(self, key, *args):
+    """Retrieves a config entry."""
+    return self._db.get(str(key), *args)
+
+  def __contains__(self, item):
+    return str(item) in self._db
+
+  def __getitem__(self, item):
+    return self._db[item]
+
+  def __len__(self):
+    return len(self._db)
+
+  def all(self):
+    return self._db
+
+
 defaultPrefix = "!"
 
 description = "Hello, my name is Friday, I am a chatbot built with TensorFlow and Keras, meaning I enjoy conversations. I also have a few commands for fun and moderating your servers!"
