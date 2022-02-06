@@ -14,6 +14,7 @@ from typing_extensions import TYPE_CHECKING
 
 import cogs
 import functions
+from functions.config import Config
 
 if TYPE_CHECKING:
   from .cogs.database import Database
@@ -78,7 +79,7 @@ class Friday(commands.AutoShardedBot):
     self.canary = True if len(sys.argv) > 1 and (sys.argv[1] == "--canary") else False
     self.ready = False
 
-    self.blacklist = functions.config.Config("blacklist.json")
+    self.blacklist = Config("blacklist.json")
 
     self.load_extension("cogs.database")
     self.load_extension("cogs.log")
@@ -91,7 +92,7 @@ class Friday(commands.AutoShardedBot):
     return f"<Friday username=\"{self.user.display_name if self.user else None}\" id={self.user.id if self.user else None}>"
 
   @property
-  def log(self) -> Optional["Log"]:
+  def log(self) -> "Log":
     return self.get_cog("Log")
 
   @property

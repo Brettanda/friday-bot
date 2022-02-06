@@ -23,6 +23,8 @@ openai.api_key = os.environ.get("OPENAI")
 POSSIBLE_SENSITIVE_MESSAGE = "*Possibly sensitive:* ||"
 POSSIBLE_OFFENSIVE_MESSAGE = "**I failed to respond because my message might have been offensive, please choose another topic or try again**"
 
+PERSONAS = [("🥰", "default", "Fridays default persona"), ("🏴‍☠️", "pirate", "Friday becomes one with the sea")]
+
 
 class Config:
   __slots__ = ("bot", "id", "chat_channel_id", "persona", "lang", "tier", "puser",)
@@ -219,7 +221,7 @@ class Chat(commands.Cog):
   async def content_filter_check(self, text: str, user_id: str):
     try:
       response = openai.Completion.create(
-          engine="content-filter-alpha-c4",
+          engine="content-filter-alpha",
           prompt=f"<|endoftext|>{text}\n--\nLabel:",
           temperature=0,
           max_tokens=1,
@@ -257,13 +259,11 @@ class Chat(commands.Cog):
   async def openai_req(self, channel: discord.TextChannel, author: Union[discord.User, discord.Member], content: str, current_tier: int):
     author_prompt_name, prompt, my_prompt_name = author.display_name, "", "Friday"
     prompt = await self.fetch_message_history(channel, current_tier=current_tier)
-    # Fix this when get more patrons
-    # if min_tiers["min_g_t4"] or min_tiers["min_u_t4"]:
-    #   engine = "davinci"
-    # elif min_tiers["min_g_t3"] or min_tiers["min_u_t3"]:
-    #   engine = "curie"
-    # else:
+    con = channel.guild and await self.get_guild_config(channel.guild.id)
     engine = os.environ["OPENAIMODEL"]
+    if con is not None:
+      if con.persona == "pirate":
+        engine = os.environ["OPENAIMODELPIRATE"]
     try:
       response = await self.bot.loop.run_in_executor(
           None,

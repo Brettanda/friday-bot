@@ -9,7 +9,6 @@ from typing import Optional, Union
 
 import discord
 # import validators
-import pycountry
 from discord.ext import commands
 from typing_extensions import TYPE_CHECKING
 
