@@ -1,4 +1,7 @@
+from typing import Optional
+
 import discord
+import pycountry
 from discord.ext import commands
 
 from functions import embed, MyContext, config, MessageColors
@@ -65,6 +68,33 @@ class Config(commands.Cog, command_attrs=dict(extras={"permissions": ["manage_gu
 
     await updates_channel.follow(destination=channel, reason="Called updates command, for Friday updates")
     await ctx.reply(embed=embed(title="Updates channel followed"))
+
+  #
+  # TODO: Add the cooldown back to the below command but check if the command fails then reset the cooldown
+  #
+
+  @commands.command(name="language", extras={"examples": ["en", "es", "english", "spanish"]}, aliases=["lang"], help="Change the language that I will speak. This currently only applies to the chatbot messages not the commands.")
+  # @commands.cooldown(1, 3600, commands.BucketType.guild)
+  @commands.has_guild_permissions(administrator=True)
+  async def language(self, ctx, language: Optional[str] = None):
+    lang = ctx.guild.preferred_locale.split("-")[0]
+    if language is None and ctx.guild is not None:
+      language = lang
+
+    new_lang = pycountry.languages.get(alpha_2=language) if len(language) <= 2 else pycountry.languages.get(name=language)
+    if new_lang is None:
+      return await ctx.reply(embed=embed(title=f"Failed to find language: `{language}`", color=MessageColors.ERROR))
+
+    final_lang = new_lang.alpha_2 if new_lang is not None else lang
+    final_lang_name = new_lang.name if new_lang is not None else lang
+    await self.bot.db.query("UPDATE servers SET lang=$1 WHERE id=$2", final_lang, str(ctx.guild.id))
+    await ctx.reply(embed=embed(title=f"New language set to: `{final_lang_name}`"))
+    chat = self.bot.get_cog("Chat")
+    if chat is not None:
+      chat.get_guild_config.invalidate(chat, ctx.guild.id)
+    log = self.bot.get_cog("Log")
+    if log is not None:
+      log.get_guild_config.invalidate(log, ctx.guild.id)
 
   @commands.group("botchannel", invoke_without_command=True)
   async def botchannel(self, ctx: "MyContext", *, channel: discord.TextChannel = None):

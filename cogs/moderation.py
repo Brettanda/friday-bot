@@ -916,30 +916,6 @@ class Moderation(commands.Cog):
     if isinstance(error, commands.MissingRequiredArgument):
       await ctx.send(embed=embed(title="Missing duration.", color=MessageColors.ERROR))
 
-  #
-  # TODO: Add the cooldown back to the below command but check if the command fails then reset the cooldown
-  #
-
-  @commands.command(name="language", extras={"examples": ["en", "es", "english", "spanish"]}, aliases=["lang"], help="Change the language that I will speak. This currently only applies to the chatbot messages not the commands.")
-  # @commands.cooldown(1, 3600, commands.BucketType.guild)
-  @commands.has_guild_permissions(administrator=True)
-  async def language(self, ctx, language: Optional[str] = None):
-    lang = ctx.guild.preferred_locale.split("-")[0]
-    if language is None and ctx.guild is not None:
-      language = lang
-
-    new_lang = pycountry.languages.get(alpha_2=language) if len(language) <= 2 else pycountry.languages.get(name=language)
-    if new_lang is None:
-      return await ctx.reply(embed=embed(title=f"Failed to find language: `{language}`", color=MessageColors.ERROR))
-
-    final_lang = new_lang.alpha_2 if new_lang is not None else lang
-    final_lang_name = new_lang.name if new_lang is not None else lang
-    await self.bot.db.query("UPDATE servers SET lang=$1 WHERE id=$2", final_lang, str(ctx.guild.id))
-    chat = self.bot.get_cog("Chat")
-    if chat is not None:
-      chat.get_guild_config.invalidate(chat, ctx.guild.id)
-    return await ctx.reply(embed=embed(title=f"New language set to: `{final_lang_name}`"))
-
   @music_channel.after_invoke
   @mute_role.after_invoke
   @mute_role_create.after_invoke
