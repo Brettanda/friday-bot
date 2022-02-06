@@ -169,7 +169,7 @@ class General(commands.Cog):
 
   @commands.command(name="userinfo", extras={"examples": ["@Friday", "476303446547365891"]}, help="Some information on the mentioned user")
   @commands.guild_only()
-  async def norm_userinfo(self, ctx, user: typing.Optional[discord.Member] = None):
+  async def norm_userinfo(self, ctx, user: typing.Optional[typing.Union[discord.Member, discord.User]] = None):
     await self.user_info(ctx, user if user is not None else ctx.author)
 
   # @cog_ext.cog_slash(name="userinfo", description="Some information on the mentioned user", options=[create_option(name="user", description="The user to get info for", option_type=SlashCommandOptionType.USER, required=False)])
@@ -182,7 +182,15 @@ class General(commands.Cog):
         title=f"{member.name} - Info",
         thumbnail=member.display_avatar.url,
         fieldstitle=["Name", "Nickname", "Mention", "Role count", "Created", "Joined", "Top Role", "Pending Verification"],
-        fieldsval=[member.name, str(member.nick), member.mention, len(member.roles), member.created_at.strftime("%b %d, %Y"), member.joined_at.strftime("%b %d, %Y"), member.top_role.mention, member.pending],
+        fieldsval=[
+            member.name,
+            member.display_name if member.display_name != member.name else None,
+            member.mention,
+            len(member.roles) if hasattr(member, "roles") else 0,
+            member.created_at.strftime("%b %d, %Y") if hasattr(member, "created_at") else None,
+            member.joined_at.strftime("%b %d, %Y") if hasattr(member, "joined_at") else None,
+            member.top_role.mention if hasattr(member, "top_role") else None,
+            member.pending if hasattr(member, "pending") else None],
         color=member.color if member.color.value != 0 else MessageColors.DEFAULT
     ))
 
