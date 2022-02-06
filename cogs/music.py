@@ -529,6 +529,8 @@ class Music(commands.Cog):
       tracks = await player.node.get_playlist(cls=wavelink.abc.Playlist, identifier=query)
     if not tracks:
       tracks = await wavelink.YouTubeTrack.search(query)
+      if not tracks:
+        return await ctx.send(embed=embed(title='No songs were found with that query. Please try again.', color=MessageColors.ERROR))
       tracks = await player.node.build_track(cls=PartTrack, identifier=tracks[0].id)
       tracks = [tracks]
 
