@@ -135,7 +135,7 @@ class Chat(commands.Cog):
     self.translate_client = translate.Client()  # _http=self.bot.http)
     self.h = HTMLParser()
 
-    self._spam_check = defaultdict(SpamChecker)
+    self._spam_check = SpamChecker()
 
     # channel_id: list
     self.chat_history = defaultdict(lambda: [])
@@ -354,28 +354,36 @@ class Chat(commands.Cog):
 
     # Anything to do with sending messages needs to be below the above check
     response = None
-    checker: SpamChecker = self._spam_check[msg.guild.id if msg.guild else msg.author.id]
-    is_spamming, rate_limiter, rate_name = checker.is_spamming(msg, current_tier, voted)
+    is_spamming, rate_limiter, rate_name = self._spam_check.is_spamming(msg, current_tier, voted)
+    resp = None
     if is_spamming:
       vote_advertise = bool(rate_name == "free" and not voted)
       patreon_advertise = bool(rate_name == "voted" and not (current_tier >= function_config.PremiumTiers.tier_1))
       retry_after = discord.utils.utcnow() + datetime.timedelta(seconds=rate_limiter.get_retry_after())
       self.bot.logger.warning(f"Someone is being ratelimited at over {rate_limiter.rate} messages and can retry after <t:{int(retry_after.timestamp())}:R>")
       ad_message = "If you would like to send me more messages you can get more by voting at https://top.gg/bot/476303446547365891/vote" if vote_advertise else "If you would like to send even more messages please support Friday on Patreon at https://patreon.com/join/fridaybot" if patreon_advertise else ""
-      return await ctx.reply(embed=embed(title=f"You have sent me over `{rate_limiter.rate}` messages in that last `{rate_limiter.per} seconds` and are being rate limited, try again <t:{int(retry_after.timestamp())}:R>", description=ad_message, color=MessageColors.ERROR), mention_author=False)
+      resp = await ctx.reply(embed=embed(title=f"You have sent me over `{rate_limiter.rate}` messages in that last `{rate_limiter.per} seconds` and are being rate limited, try again <t:{int(retry_after.timestamp())}:R>", description=ad_message, color=MessageColors.ERROR), mention_author=False)
+      self.bot.dispatch("chat_completion", msg, resp, True, None)
+      return
     async with msg.channel.typing():
       translation = await Translation.from_text(msg.clean_content, from_lang=lang, parent=self)
       self.chat_history[msg.channel.id].insert(0, f"{ctx.author.display_name}: " + str(translation).strip('\n'))
       try:
         response = await self.openai_req(msg.channel, msg.author, msg.clean_content, current_tier)
       except openai.APIError:
-        return await ctx.send(embed=embed(title="There was a problem connecting to OpenAI API, please try again later", color=MessageColors.ERROR))
+        resp = await ctx.send(embed=embed(title="There was a problem connecting to OpenAI API, please try again later", color=MessageColors.ERROR))
+        self.bot.dispatch("chat_completion", msg, resp, True, None)
+        return
       except openai.error.RateLimitError:
-        return await ctx.send(embed=embed(title="Looks like the chatbot model hasn't finished loading, please try again in a few minutes.", color=MessageColors.ERROR))
+        resp = await ctx.send(embed=embed(title="Looks like the chatbot model hasn't finished loading, please try again in a few minutes.", color=MessageColors.ERROR))
+        self.bot.dispatch("chat_completion", msg, resp, True, None)
+        return
       except openai.error.ServiceUnavailableError:
-        return await ctx.send(embed=embed(title="Chatbot service is currently unavailable, please try again later.", color=MessageColors.ERROR))
+        resp = await ctx.send(embed=embed(title="Chatbot service is currently unavailable, please try again later.", color=MessageColors.ERROR))
+        self.bot.dispatch("chat_completion", msg, resp, True, None)
+        return
     if response is not None:
-      self.chat_history[msg.channel.id].insert(0, f"{msg.guild.me.display_name if msg.guild is not None else self.bot.user.display_name}:" + response)
+      self.chat_history[msg.channel.id].insert(0, f"{msg.guild.me.display_name if msg.guild is not None and msg.guild.me is not None else self.bot.user.display_name}:" + response)
       content_filter = await self.content_filter_check(response, str(msg.author.id))
     if translation is not None and translation.detectedSourceLanguage != "en" and response is not None and "dynamic" not in response:
       chars_to_strip = "?!,;'\":`"
@@ -384,15 +392,18 @@ class Chat(commands.Cog):
 
     if response is None or response == "":
       return
+
     if content_filter != 2:
-      await ctx.reply(content=response if content_filter == 0 else f"{POSSIBLE_SENSITIVE_MESSAGE}{response}||", allowed_mentions=discord.AllowedMentions.none(), mention_author=False)
+      resp = await ctx.reply(content=response if content_filter == 0 else f"{POSSIBLE_SENSITIVE_MESSAGE}{response}||", allowed_mentions=discord.AllowedMentions.none(), mention_author=False)
       await relay_info(f"{function_config.PremiumTiers.get_tier_name(current_tier)} - **{ctx.author.name}:** {ctx.message.clean_content}\n**Me:** {response}", self.bot, webhook=self.bot.log.log_chat)
     elif content_filter == 2:
       # if msg.type == discord.MessageType.thread_starter_message:
       #   await ctx.channel.send(content=POSSIBLE_OFFENSIVE_MESSAGE, mention_author=False)
       # else:
-      await ctx.reply(content=POSSIBLE_OFFENSIVE_MESSAGE, mention_author=False)
+      resp = await ctx.reply(content=POSSIBLE_OFFENSIVE_MESSAGE, mention_author=False)
       await relay_info(f"{function_config.PremiumTiers.get_tier_name(current_tier)} - **{ctx.author.name}:** {ctx.message.clean_content}\n**Me:** Possible offensive message: {response}", self.bot, webhook=self.bot.log.log_chat)
+
+    self.bot.dispatch("chat_completion", msg, resp, False, content_filter)
 
   # async def check_for_answer_questions(self, msg: discord.Message, min_tiers: list) -> bool:
   #   if msg.author.bot:
