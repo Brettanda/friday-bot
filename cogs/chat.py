@@ -202,7 +202,20 @@ class Chat(commands.Cog):
     await ctx.pool.execute("UPDATE servers SET chatchannel=NULL WHERE id=$1", str(ctx.guild.id))
     await ctx.send(embed=embed(title="Chat channel cleared", description="I will no longer respond to messages in this channel"))
 
+  @commands.command(name="persona", help="Change Friday's persona", hidden=True, enabled=False)
+  @commands.guild_only()
+  @checks.is_admin_and_min_tier(function_config.PremiumTiers.tier_1)
+  async def persona(self, ctx: "MyContext"):
+    current = await ctx.pool.fetchval("SELECT persona FROM servers WHERE id=$1", str(ctx.guild.id))
+    choice = await ctx.multi_select("Please select a new persona", [p.capitalize() for _, p, _ in PERSONAS], values=[p for _, p, _ in PERSONAS], emojis=[e for e, _, _ in PERSONAS], descriptions=[d for _, _, d in PERSONAS], default=current, placeholder=f"Current: {current.capitalize()}")
+    if choice is None:
+      return await ctx.send(embed=embed(title="No change made"))
+
+    await ctx.pool.execute("UPDATE servers SET persona=$1 WHERE id=$2", choice[0], str(ctx.guild.id))
+    await ctx.send(embed=embed(title=f"New Persona `{choice[0].capitalize()}`"))
+
   @chatchannel.after_invoke
+  @persona.after_invoke
   async def settings_after_invoke(self, ctx: "MyContext"):
     if not ctx.guild:
       return
@@ -259,7 +272,7 @@ class Chat(commands.Cog):
   async def openai_req(self, channel: discord.TextChannel, author: Union[discord.User, discord.Member], content: str, current_tier: int):
     author_prompt_name, prompt, my_prompt_name = author.display_name, "", "Friday"
     prompt = await self.fetch_message_history(channel, current_tier=current_tier)
-    con = channel.guild and await self.get_guild_config(channel.guild.id)
+    con = hasattr(channel, "guild") and await self.get_guild_config(channel.guild.id)
     engine = os.environ["OPENAIMODEL"]
     if con is not None:
       if con.persona == "pirate":
