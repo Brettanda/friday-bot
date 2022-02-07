@@ -202,7 +202,7 @@ class Chat(commands.Cog):
     await ctx.pool.execute("UPDATE servers SET chatchannel=NULL WHERE id=$1", str(ctx.guild.id))
     await ctx.send(embed=embed(title="Chat channel cleared", description="I will no longer respond to messages in this channel"))
 
-  @commands.command(name="persona", help="Change Friday's persona", hidden=True)
+  @commands.command(name="persona", help="Change Friday's persona", hidden=True, enabled=False)
   @commands.guild_only()
   @checks.is_admin_and_min_tier(function_config.PremiumTiers.tier_1)
   async def persona(self, ctx: "MyContext"):
@@ -272,7 +272,7 @@ class Chat(commands.Cog):
   async def openai_req(self, channel: discord.TextChannel, author: Union[discord.User, discord.Member], content: str, current_tier: int):
     author_prompt_name, prompt, my_prompt_name = author.display_name, "", "Friday"
     prompt = await self.fetch_message_history(channel, current_tier=current_tier)
-    con = channel.guild and await self.get_guild_config(channel.guild.id)
+    con = hasattr(channel, "guild") and await self.get_guild_config(channel.guild.id)
     engine = os.environ["OPENAIMODEL"]
     if con is not None:
       if con.persona == "pirate":
