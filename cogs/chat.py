@@ -275,7 +275,7 @@ class Chat(commands.Cog):
     con = hasattr(channel, "guild") and await self.get_guild_config(channel.guild.id)
     engine = os.environ["OPENAIMODEL"]
     if con is not None:
-      if con.persona == "pirate":
+      if hasattr(con, "persona") and con.persona == "pirate":
         engine = os.environ["OPENAIMODELPIRATE"]
     try:
       response = await self.bot.loop.run_in_executor(
