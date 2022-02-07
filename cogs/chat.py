@@ -272,7 +272,7 @@ class Chat(commands.Cog):
   async def openai_req(self, channel: discord.TextChannel, author: Union[discord.User, discord.Member], content: str, current_tier: int):
     author_prompt_name, prompt, my_prompt_name = author.display_name, "", "Friday"
     prompt = await self.fetch_message_history(channel, current_tier=current_tier)
-    con = channel.guild and await self.get_guild_config(channel.guild.id)
+    con = hasattr(channel, "guild") and await self.get_guild_config(channel.guild.id)
     engine = os.environ["OPENAIMODEL"]
     if con is not None:
       if con.persona == "pirate":
