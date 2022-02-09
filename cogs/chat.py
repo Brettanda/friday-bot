@@ -202,7 +202,7 @@ class Chat(commands.Cog):
     await ctx.pool.execute("UPDATE servers SET chatchannel=NULL WHERE id=$1", str(ctx.guild.id))
     await ctx.send(embed=embed(title="Chat channel cleared", description="I will no longer respond to messages in this channel"))
 
-  @commands.command(name="persona", help="Change Friday's persona", hidden=True, enabled=False)
+  @commands.command(name="persona", help="Change Friday's persona")
   @commands.guild_only()
   @checks.is_admin_and_min_tier(function_config.PremiumTiers.tier_1)
   async def persona(self, ctx: "MyContext"):
