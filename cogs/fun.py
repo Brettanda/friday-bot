@@ -319,7 +319,8 @@ class Fun(commands.Cog):
   }
 
   def is_poll(self, msg: discord.Message) -> bool:
-    return msg.embeds[0].title.startswith("Poll: ")
+    e = msg.embeds[0]
+    return e.title.startswith("Poll: ") and not (e.author and "Poll Ended" in e.author.name)
 
   @commands.group(name="poll", extras={"examples": ["\"this is a title\" '1' '2' '3'"]}, help="Make a poll. Contain each option in qoutes `'option' 'option 2'`", invoke_without_command=True)
   # @commands.group(name="poll", extras={"examples": ["\"this is a title\" 1;;2;;3"]}, help="Make a poll. Seperate the options with `;;`")
@@ -391,13 +392,14 @@ class Fun(commands.Cog):
     async with self.poll_edit_lock:
       for msg in self.poll_edit_batch.values():
         available_reactions = [self.POLLEMOTES[x] for x in range(len(msg.embeds[0].fields))]
+        voter_reactions = [x for x in msg.reactions if x.emoji in available_reactions]
 
         react_count = 0
         x = 0
         for item in available_reactions:
           if len([r for r in msg.reactions if r.emoji in self.POLLEMOTES.values()]) != len(available_reactions):
             await msg.add_reaction(item)
-          react_count += msg.reactions[x].count
+          react_count += voter_reactions[x].count
           x += 1
         react_count = react_count - len(msg.embeds[0].fields)
 
@@ -406,7 +408,7 @@ class Fun(commands.Cog):
           t = POLLNAME_REGEX.findall(field.name)
           titles.append(f"{self.POLLEMOTES[x]}\t{t[0]}")
           ins.append(False)
-          vals.append(self.bar(msg.reactions[x].count - 1, react_count))
+          vals.append(self.bar(voter_reactions[x].count - 1, react_count))
 
         await msg.edit(embed=embed(title=msg.embeds[0].title.replace("Pole: ", "Poll: "), fieldstitle=titles, fieldsval=vals, fieldsin=ins))
       self.poll_edit_batch.clear()
