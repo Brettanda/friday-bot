@@ -6,6 +6,7 @@ import numpy.random as random
 import asyncio
 import datetime
 from async_timeout import timeout
+from collections import defaultdict
 
 import discord
 from discord.ext import commands, tasks
@@ -42,7 +43,9 @@ class Fun(commands.Cog):
     # self.timeouter = None
     # self.timeoutCh = None
 
+    self.poll_edit_batch = defaultdict(None)
     self.poll_edit_lock = asyncio.Lock()
+    self.poll_loop.start()
 
   def __repr__(self):
     return "<cogs.Fun>"
@@ -52,6 +55,7 @@ class Fun(commands.Cog):
 
   def cog_unload(self):
     self.loop_countdown.stop()
+    self.poll_loop.stop()
 
   async def cog_command_error(self, ctx: "MyContext", error: Exception):
     error = getattr(error, "original", error)
@@ -315,7 +319,8 @@ class Fun(commands.Cog):
   }
 
   def is_poll(self, msg: discord.Message) -> bool:
-    return msg.embeds[0].title.startswith("Poll: ")
+    e = msg.embeds[0]
+    return e.title.startswith("Poll: ") and not (e.author and "Poll Ended" in e.author.name)
 
   @commands.group(name="poll", extras={"examples": ["\"this is a title\" '1' '2' '3'"]}, help="Make a poll. Contain each option in qoutes `'option' 'option 2'`", invoke_without_command=True)
   # @commands.group(name="poll", extras={"examples": ["\"this is a title\" 1;;2;;3"]}, help="Make a poll. Seperate the options with `;;`")
@@ -359,11 +364,11 @@ class Fun(commands.Cog):
   #   #     options.append(item)
   #   # await self.poll(ctx, title, options, True)
 
-  def bar(self, iteration, total, length=25, decimals=1, fill="█"):
-    percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
-    filledLength = int(length * iteration // total)
+  def bar(self, iteration=0, total=0, length=25, decimals=1, fill="█"):
+    percent = ("{0:." + str(decimals if iteration != total else 0) + "f}").format(100 * (iteration / float(max(total, 1))))
+    filledLength = int(length * iteration // max(total, 1))
     bar = fill * filledLength + '░' * (length - filledLength)
-    return f"\r |{bar}| {percent}%"
+    return f"\r |{bar}| {percent}% ({iteration}/{total})"
 
   async def poll(self, ctx: "MyContext", title, options=None, slash=False):
     x = 0
@@ -372,14 +377,41 @@ class Fun(commands.Cog):
     ins = []
     for opt in options:
       titles.append(f"{self.POLLEMOTES[x]}\t{opt}")
-      vals.append(f"{self.bar(0,1)}")
+      vals.append(f"{self.bar()}")
       ins.append(False)
       x += 1
     message = await ctx.send(embed=embed(title=f"Poll: {title}", fieldstitle=titles, fieldsval=vals, fieldsin=ins))
-    x = 0
-    for _ in options:
+    for x in range(len(options)):
       await message.add_reaction(self.POLLEMOTES[x])
-      x += 1
+
+  @tasks.loop(seconds=6.0)
+  async def poll_loop(self):
+    await self.bot.wait_until_ready()
+
+    # FIXME: If there are too many polls being used in one channel, add some kind of lock for that
+    async with self.poll_edit_lock:
+      for msg in self.poll_edit_batch.values():
+        available_reactions = [self.POLLEMOTES[x] for x in range(len(msg.embeds[0].fields))]
+        voter_reactions = [x for x in msg.reactions if x.emoji in available_reactions]
+
+        react_count = 0
+        x = 0
+        for item in available_reactions:
+          if len([r for r in msg.reactions if r.emoji in self.POLLEMOTES.values()]) != len(available_reactions):
+            await msg.add_reaction(item)
+          react_count += voter_reactions[x].count
+          x += 1
+        react_count = react_count - len(msg.embeds[0].fields)
+
+        titles, vals, ins = [], [], []
+        for field, x in zip(msg.embeds[0].fields, range(len(msg.embeds[0].fields))):
+          t = POLLNAME_REGEX.findall(field.name)
+          titles.append(f"{self.POLLEMOTES[x]}\t{t[0]}")
+          ins.append(False)
+          vals.append(self.bar(voter_reactions[x].count - 1, react_count))
+
+        await msg.edit(embed=embed(title=msg.embeds[0].title.replace("Pole: ", "Poll: "), fieldstitle=titles, fieldsval=vals, fieldsin=ins))
+      self.poll_edit_batch.clear()
 
   @commands.Cog.listener("on_raw_reaction_add")
   @commands.Cog.listener("on_raw_reaction_remove")
@@ -399,42 +431,9 @@ class Fun(commands.Cog):
       return
     if not self.is_poll(message):
       return
-    # for react in message.reactions:
-    #   if not react.me and react.emoji not in self.POLLEMOTES.values():
-    #     return
 
     async with self.poll_edit_lock:
-      available_reactions = []
-      x = 0
-      for _ in message.embeds[0].fields:
-        available_reactions.append(self.POLLEMOTES[x])
-        x += 1
-
-      react_count = 0
-      x = 0
-      me = [me for me in (await message.reactions[x].users().flatten()) if me == self.bot.user] if len(message.reactions) == len(available_reactions) else []
-      for item in available_reactions:
-        if len(me) == 0:
-          await message.add_reaction(item)
-          message = await (self.bot.get_channel(payload.channel_id)).fetch_message(payload.message_id)
-        react_count += message.reactions[x].count
-        x += 1
-      react_count = react_count - len(message.embeds[0].fields)
-      react_count = react_count if react_count > 0 else 1
-
-      x = 0
-      titles = []
-      vals = []
-      ins = []
-      for field in message.embeds[0].fields:
-        t = POLLNAME_REGEX.findall(field.name)
-        titles.append(f"{self.POLLEMOTES[x]}\t{t[0]}")
-        ins.append(False)
-        vals.append(self.bar(message.reactions[x].count - 1, react_count))
-        x += 1
-
-    # TODO: Add some kind of lock on this for if a large server did a pole and 100+ people voted at once
-      await message.edit(embed=embed(title=message.embeds[0].title.replace("Pole: ", "Poll: "), fieldstitle=titles, fieldsval=vals, fieldsin=ins))
+      self.poll_edit_batch[message.id] = message
 
   @norm_poll.command("title", hidden=True)
   @commands.guild_only()
