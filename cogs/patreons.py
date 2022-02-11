@@ -160,7 +160,7 @@ class Patreons(commands.Cog):
 
     await ctx.send(embed=embed(
         title="Your Patreon Status",
-        description=f"**Connected Discord Account**: {statuses['connected_discord']}\n**Activated Server ID(s)**: {statuses['activated_server_id']}\n**Current Server Activated**: {statuses['current_server_activated']}"
+        description=f"**Connected Discord Account**: {statuses['connected_discord']}\n**Activated Server ID(s)**: {statuses['activated_server_ids']}\n**Current Server Activated**: {statuses['current_server_activated']}"
     ))
 
   @norm_patreon.group("server", description="Activate the server that you would like to apply your patronage to", invoke_without_command=True, case_insensitive=True)
