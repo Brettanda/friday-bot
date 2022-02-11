@@ -115,6 +115,8 @@ class Patreons(commands.Cog):
 
   async def cog_after_invoke(self, ctx: "MyContext"):
     self.get_patrons.invalidate(self)
+    if ctx.guild is None:
+      return
     self.bot.dispatch("invalidate_patreon", ctx.guild.id)
 
   @commands.group(name="patreon", aliases=["patron"], description="Commands for Friday's Patrons", invoke_without_command=True, case_insensitive=True)
@@ -154,7 +156,7 @@ class Patreons(commands.Cog):
     statuses = {
         "connected_discord": ":white_check_mark:" if bool(ctx.author.id in [p.id for p in patrons]) else ":x:",
         "activated_server_ids": ', '.join(patron.guild_ids) if len(patron.guild_ids) > 0 else ":x:",
-        "current_server_activated": ":white_check_mark:" if bool(ctx.guild.id in [item for sublist in patron.guild_ids for item in sublist]) else ":x:",
+        "current_server_activated": ":white_check_mark:" if bool(ctx.guild and ctx.guild.id in [item for sublist in patron.guild_ids for item in sublist]) else ":x:",
         # Add guilds remaining
     }
 
