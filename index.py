@@ -1,10 +1,11 @@
 import asyncio
+import datetime
 import logging
 import os
 import sys
 from collections import defaultdict
 from logging.handlers import RotatingFileHandler
-from typing import Optional
+from typing import Dict, Optional
 
 import aiohttp
 import discord
@@ -14,7 +15,7 @@ from typing_extensions import TYPE_CHECKING
 
 import cogs
 import functions
-from functions.config import Config
+from functions.config import Config, ReadOnly
 
 if TYPE_CHECKING:
   from .cogs.database import Database
@@ -79,6 +80,11 @@ class Friday(commands.AutoShardedBot):
     self.canary = True if len(sys.argv) > 1 and (sys.argv[1] == "--canary") else False
     self.ready = False
 
+    # shard_id: List[datetime.datetime]
+    # shows the last attempted IDENTIFYs and RESUMEs
+    self.resumes = defaultdict(list)
+    self.identifies = defaultdict(list)
+
     self.blacklist = Config("blacklist.json")
 
     self.load_extension("cogs.database")
@@ -103,6 +109,20 @@ class Friday(commands.AutoShardedBot):
   def db(self) -> Optional["Database"]:
     return self.get_cog("Database")
 
+  @property
+  def langs(self) -> Dict[str, ReadOnly]:
+    return {
+        "en": ReadOnly("i18n/source/commands.json"),
+        **{name: ReadOnly(f"i18n/translations/{name}/commands.json") for name in os.listdir("./i18n/translations")}
+    }
+
+  async def get_lang(self, msg: discord.Message) -> ReadOnly:
+    if msg.guild is None:
+      return self.langs["en"]
+    if not self.log:
+      return self.langs.get(msg.guild.preferred_locale[:2], "en")
+    return self.langs.get((await self.log.get_guild_config(msg.guild.id)).lang)
+
   async def get_context(self, message, *, cls=None) -> functions.MyContext:
     return await super().get_context(message, cls=functions.MyContext)
 
@@ -120,6 +140,23 @@ class Friday(commands.AutoShardedBot):
           self.load_extension(f"{path}{cog}")
         except Exception as e:
           self.logger.error(f"Failed to load extenstion {cog} with \n {e}")
+
+  def _clear_gateway_data(self):
+    one_week_ago = discord.utils.utcnow() - datetime.timedelta(weeks=1)
+    for shard_id, dates in self.identifies.items():
+      to_remove = [index for index, dt in enumerate(dates) if dt < one_week_ago]
+      for index in reversed(to_remove):
+        del dates[index]
+
+    for shard_id, dates in self.resumes.items():
+      to_remove = [i for i, dt in enumerate(dates) if dt < one_week_ago]
+      for i in reversed(to_remove):
+        del dates[i]
+
+  async def before_identify_hook(self, shard_id, *, initial):
+    self._clear_gateway_data()
+    self.identifies[shard_id].append(discord.utils.utcnow())
+    await super().before_identify_hook(shard_id, initial=initial)
 
   async def on_message(self, ctx):
     if not self.ready:
