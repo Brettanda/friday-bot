@@ -133,6 +133,48 @@ class ConfirmationView(discord.ui.View):
     self.stop()
 
 
+class MultiSelectView(discord.ui.View):
+  def __init__(self, options: list, *, values: list = [], emojis: list = [], descriptions: list = [], placeholder: str = None, min_values: int = 1, max_values: int = 1, default: str = None, timeout: float, author_id: int, ctx: Context) -> None:
+    super().__init__(timeout=timeout)
+    values = values if len(values) > 0 else [None] * len(options)
+    emojis = emojis if len(emojis) > 0 else [None] * len(options)
+    descriptions = descriptions if len(descriptions) > 0 else [None] * len(options)
+    self.options: list = [discord.SelectOption(label=p, value=v, emoji=e, description=d, default=True if default == v else False) for p, v, e, d in zip(options, values, emojis, descriptions)]
+    self.placeholder: Optional[str] = placeholder
+    self.author_id: int = author_id
+    self.ctx: Context = ctx
+    self.min_values: int = min_values
+    self.max_values: int = max_values
+    self.message: Optional[discord.Message] = None
+
+    self.values: Optional[list] = None
+
+    self.select.options = self.options
+    self.select.placeholder = self.placeholder
+    self.select.min_values = self.min_values
+    self.select.max_values = self.max_values
+
+  @discord.ui.select(custom_id="prompt_select", options=["Loading..."], min_values=0, max_values=0)
+  async def select(self, select: discord.ui.Select, interaction: discord.Interaction):
+    self.values = select.values
+    await interaction.response.defer()
+    await interaction.delete_original_message()
+    self.stop()
+
+  async def interaction_check(self, interaction: discord.Interaction) -> bool:
+    if interaction.user and interaction.user.id == self.author_id:
+      return True
+    else:
+      await interaction.response.send_message('This confirmation dialog is not for you.', ephemeral=True)
+      return False
+
+  async def on_timeout(self) -> None:
+    try:
+      await self.message.delete()
+    except discord.NotFound:
+      pass
+
+
 class MyContext(Context):
   def __init__(self, *args, **kwargs):
     self.to_bot_channel: int = None
@@ -172,7 +214,27 @@ class MyContext(Context):
     await view.wait()
     return view.value
 
-  async def reply(self, content: str = None, *, delete_original: bool = False, **kwargs) -> Optional[Union[discord.Message, FakeInteractionMessage]]:
+  async def multi_select(self, message: str = "Please select one or more of the options.", options: list = [], *, values: list = [], emojis: list = [], descriptions: list = [], default: str = None, placeholder: str = None, min_values: int = 1, max_values: int = 1, timeout: float = 60.0, author_id: Optional[int] = None, **kwargs) -> Optional[list]:
+    author_id = author_id or self.author.id
+    view = MultiSelectView(
+        options=options,
+        values=values,
+        emojis=emojis,
+        descriptions=descriptions,
+        default=default,
+        placeholder=placeholder,
+        timeout=timeout,
+        min_values=min_values,
+        max_values=max_values,
+        ctx=self,
+        author_id=author_id,
+    )
+    kwargs["embed"] = kwargs.pop("embed", embed(title=message))
+    view.message = await self.send(view=view, **kwargs)
+    await view.wait()
+    return view.values
+
+  async def reply(self, content: str = None, *, delete_original: bool = False, reply_to_replied: bool = True, **kwargs) -> Optional[discord.Message]:
     message = None
     if not hasattr(kwargs, "mention_author") and self.message.type.name != "application_command":
       kwargs.update({"mention_author": False})
