@@ -166,11 +166,11 @@ class Log(commands.Cog):
 
   @commands.Cog.listener()
   async def on_shard_disconnect(self, shard_id):
-    await relay_info(f"Shard #{shard_id} has disconnected", self.bot, logger=self.logger)
+    self.logger.info(f"Shard #{shard_id} has disconnected")
 
   @commands.Cog.listener()
   async def on_shard_reconnect(self, shard_id):
-    await relay_info(f"Shard #{shard_id} has reconnected", self.bot, logger=self.logger)
+    self.logger.info(f"Shard #{shard_id} has reconnected")
 
   @commands.Cog.listener()
   async def on_resumed(self):
@@ -178,12 +178,11 @@ class Log(commands.Cog):
 
   @commands.Cog.listener()
   async def on_shard_resumed(self, shard_id):
-    await relay_info(f"Shard #{shard_id} has resumed", self.bot, logger=self.logger)
+    self.logger.info(f"Shard #{shard_id} has resumed")
 
   @commands.Cog.listener()
   async def on_guild_join(self, guild: discord.Guild):
-    while self.bot.is_closed():
-      await asyncio.sleep(0.1)
+    await self.bot.wait_until_ready()
     await self.bot.db.query(f"INSERT INTO servers (id,lang) VALUES ({str(guild.id)},'{guild.preferred_locale.split('-')[0]}') ON CONFLICT DO NOTHING")
     await relay_info(f"I have joined a new guild, making the total **{len(self.bot.guilds)}**", self.bot, short=f"I have joined a new guild, making the total {len(self.bot.guilds)}", webhook=self.log_join, logger=self.logger)
 
