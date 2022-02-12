@@ -404,7 +404,7 @@ class Fun(commands.Cog):
         react_count = react_count - len(msg.embeds[0].fields)
 
         titles, vals, ins = [], [], []
-        for field, x in zip(msg.embeds[0].fields, range(len(msg.embeds[0].fields))):
+        for x, field in enumerate(msg.embeds[0].fields):
           t = POLLNAME_REGEX.findall(field.name)
           titles.append(f"{self.POLLEMOTES[x]}\t{t[0]}")
           ins.append(False)
