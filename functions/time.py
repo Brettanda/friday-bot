@@ -14,7 +14,6 @@ __all__ = (
     "human_timedelta",
     "plural",
     "human_join",
-    "format_dt",
     "ShortTime",
     "HumanTime",
     "Time",
@@ -117,15 +116,6 @@ def human_join(seq, delim=', ', final='or'):
     return f'{seq[0]} {final} {seq[1]}'
 
   return delim.join(seq[:-1]) + f' {final} {seq[-1]}'
-
-
-def format_dt(dt, style=None):
-  if dt.tzinfo is None:
-    dt = dt.replace(tzinfo=datetime.timezone.utc)
-
-  if style is None:
-    return f"<t:{int(dt.timestamp())}>"
-  return f"<t:{int(dt.timestamp())}:{style}>"
 
 
 class ShortTime:

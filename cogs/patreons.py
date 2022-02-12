@@ -119,20 +119,20 @@ class Patreons(commands.Cog):
       return
     self.bot.dispatch("invalidate_patreon", ctx.guild.id)
 
-  @commands.group(name="patreon", aliases=["patron"], description="Commands for Friday's Patrons", invoke_without_command=True, case_insensitive=True)
+  @commands.group(name="patreon", aliases=["patron"], help="Commands for Friday's Patrons", invoke_without_command=True, case_insensitive=True)
   @commands.guild_only()
   async def norm_patreon(self, ctx: "MyContext"):
     await ctx.send(embed=embed(
         title="Become a Patron!",
         description="Become a Patron and get access to awesome features.\n\nYou can view all of the available features on Patreon.\n\nA few of the features that you will get access include:",
-        fieldstitle=["Better Ratelimiting", "Cool role(s)", "Priority Support"],
-        fieldsval=["100 messages/12 hours instead of 30 messages/12 hours.", "You will be granted role(s) in the support server.", "Get priority support for your encounters with Friday"],
+        fieldstitle=["Better Ratelimiting", "Personas", "Cool role(s)", "Priority Support"],
+        fieldsval=["100 messages/12 hours instead of 30 messages/12 hours.", "Change the persona that Friday uses when chatting in your server", "You will be granted role(s) in the support server.", "Get priority support for your encounters with Friday"],
         fieldsin=[False, False, False],
         footer="For the full list of patreon commands type `!help patreon`",
     ),
         view=PatreonButtons())
 
-  @norm_patreon.command("activate", aliases=["update"], description="Run this command to activate your Patronage or update your Patreon tier.")
+  @norm_patreon.command("activate", aliases=["update"], help="Run this command to activate your Patronage or update your Patreon tier.")
   async def patreon_update(self, ctx: "MyContext"):
     self.get_patrons.invalidate(self)
     if ctx.guild is not None:
@@ -165,7 +165,7 @@ class Patreons(commands.Cog):
         description=f"**Connected Discord Account**: {statuses['connected_discord']}\n**Activated Server ID(s)**: {statuses['activated_server_ids']}\n**Current Server Activated**: {statuses['current_server_activated']}"
     ))
 
-  @norm_patreon.group("server", description="Activate the server that you would like to apply your patronage to", invoke_without_command=True, case_insensitive=True)
+  @norm_patreon.group("server", help="Activate the server that you would like to apply your patronage to", invoke_without_command=True, case_insensitive=True)
   @commands.guild_only()
   async def norm_patreon_server(self, ctx: "MyContext"):
     await ctx.send_help(ctx.command)
