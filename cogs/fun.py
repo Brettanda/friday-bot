@@ -394,21 +394,18 @@ class Fun(commands.Cog):
         available_reactions = [self.POLLEMOTES[x] for x in range(len(msg.embeds[0].fields))]
         voter_reactions = [x for x in msg.reactions if x.emoji in available_reactions]
 
-        react_count = 0
-        x = 0
         for item in available_reactions:
           if len([r for r in msg.reactions if r.emoji in self.POLLEMOTES.values()]) != len(available_reactions):
             await msg.add_reaction(item)
-          react_count += voter_reactions[x].count
-          x += 1
-        react_count = react_count - len(msg.embeds[0].fields)
+
+        react_count = sum(e.count - 1 for e in msg.reactions if e.emoji in available_reactions)
 
         titles, vals, ins = [], [], []
-        for field, x in zip(msg.embeds[0].fields, range(len(msg.embeds[0].fields))):
+        for x, field in enumerate(msg.embeds[0].fields):
           t = POLLNAME_REGEX.findall(field.name)
           titles.append(f"{self.POLLEMOTES[x]}\t{t[0]}")
           ins.append(False)
-          vals.append(self.bar(voter_reactions[x].count - 1, react_count))
+          vals.append(self.bar(voter_reactions[x].count - 1 if len(voter_reactions) > x else 0, react_count))
 
         await msg.edit(embed=embed(title=msg.embeds[0].title.replace("Pole: ", "Poll: "), fieldstitle=titles, fieldsval=vals, fieldsin=ins))
       self.poll_edit_batch.clear()
@@ -453,10 +450,13 @@ class Fun(commands.Cog):
     if not self.is_poll(message):
       return
 
+    if option_id <= 0 or option_id > 10:
+      raise commands.BadArgument("Option ID must be between 1 and 10.")
     option_id = option_id - 1
 
-    if not len(message.embeds[0].fields) > 1:
-      message.embeds[0].add_field(name=f"{self.POLLEMOTES[option_id]}\t{new_name}", value=self.bar(0, 1))
+    if not len(message.embeds[0].fields) > 1 or option_id > len(message.embeds[0].fields) - 1:
+      message.embeds[0].add_field(name=f"{self.POLLEMOTES[option_id]}\t{new_name}", value=self.bar(0, 0), inline=False)
+      await message.add_reaction(self.POLLEMOTES[option_id])
     else:
       message.embeds[0]._fields[option_id]["name"] = f"{self.POLLEMOTES[option_id]}\t{new_name}"
 
@@ -474,6 +474,17 @@ class Fun(commands.Cog):
     await message.edit(embed=message.embeds[0])
     await message.remove_reaction(self.POLLEMOTES[option_id - 1], ctx.guild.me)
     await ctx.send(embed=embed(title="Poll Edited", description=f"The poll's option `{option_id}` has been removed."))
+
+  @norm_poll.command("conclude", aliases=["end", "finish"], hidden=True)
+  @commands.guild_only()
+  @commands.is_owner()
+  async def poll_edit_conclude(self, ctx: "MyContext", message: discord.Message):
+    if not self.is_poll(message):
+      return
+
+    message.embeds[0].set_author(name="Poll Ended")
+    await message.edit(embed=message.embeds[0])
+    await ctx.send(embed=embed(title="Poll Ended", description="The poll has been concluded."))
 
   # @norm_poll.command(name="conclude", help="Concludes the poll", hidden=True)
   # @commands.guild_only()
