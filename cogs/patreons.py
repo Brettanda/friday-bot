@@ -125,9 +125,9 @@ class Patreons(commands.Cog):
     await ctx.send(embed=embed(
         title="Become a Patron!",
         description="Become a Patron and get access to awesome features.\n\nYou can view all of the available features on Patreon.\n\nA few of the features that you will get access include:",
-        fieldstitle=["Better Ratelimiting", "Personas", "Cool role(s)", "Priority Support"],
+        fieldstitle=["Better Rate-limiting", "Personas", "Cool role(s)", "Priority Support"],
         fieldsval=["100 messages/12 hours instead of 30 messages/12 hours.", "Change the persona that Friday uses when chatting in your server", "You will be granted role(s) in the support server.", "Get priority support for your encounters with Friday"],
-        fieldsin=[False, False, False],
+        fieldsin=[False] * 4,
         footer="For the full list of patreon commands type `!help patreon`",
     ),
         view=PatreonButtons())
