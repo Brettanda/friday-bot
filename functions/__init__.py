@@ -2,12 +2,14 @@ import os
 
 from .messagecolors import MessageColors
 from . import exceptions, checks, config  # , queryIntents  # , queryGen
+from .config import plural
 from .myembed import embed
 from . import cache
 from . import db
 from .custom_contexts import MyContext  # , FakeInteractionMessage  # , MySlashContext
 from .reply import msg_reply
 from . import time
+from . import fuzzy
 from .relay import relay_info
 from .build_da_docs import build as build_docs
 from . import views
@@ -22,6 +24,7 @@ __all__ = (
     "views",
     "db",
     "cache",
+    "fuzzy",
     "FakeInteractionMessage",
     "build_docs",
     "config",
@@ -33,5 +36,6 @@ __all__ = (
     "get_reddit_post",
     "embed",
     "checks",
+    "plural",
     "time",
 )
