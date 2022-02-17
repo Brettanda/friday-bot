@@ -141,3 +141,4 @@ friday-trans-key.json
 
 blacklist.json
 crowdin.yml
+wandb/
