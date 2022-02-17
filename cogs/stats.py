@@ -29,7 +29,10 @@ class GatewayHandler(logging.Handler):
     super().__init__(logging.INFO)
 
   def filter(self, record):
-    return record.name == "discord.gateway" or "Shard ID" in record.msg or "Websocket closed" in record.msg
+    try:
+      return record.name == "discord.gateway" or "Shard ID" in record.msg or "Websocket closed" in record.msg
+    except TypeError:
+      return False
 
   def emit(self, record):
     self.cog.add_record(record)
