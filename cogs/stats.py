@@ -14,6 +14,7 @@ from typing import Optional
 import asyncpg
 import discord
 import psutil
+import pycord.wavelink as wavelink
 from discord.ext import commands, tasks
 from typing_extensions import TYPE_CHECKING
 
@@ -29,7 +30,10 @@ class GatewayHandler(logging.Handler):
     super().__init__(logging.INFO)
 
   def filter(self, record):
-    return record.name == "discord.gateway" or "Shard ID" in record.msg or "Websocket closed" in record.msg
+    try:
+      return record.name == "discord.gateway" or "Shard ID" in record.msg or "Websocket closed" in record.msg
+    except TypeError:
+      return False
 
   def emit(self, record):
     self.cog.add_record(record)
@@ -196,9 +200,9 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
           'failed': ctx.command_failed,
       })
 
-  async def register_chat(self, user_msg: discord.Message, bot_msg: discord.Message, failed: bool, filtered: Optional[int] = None):
+  async def register_chat(self, user_msg: discord.Message, bot_msg: Optional[discord.Message], failed: bool, filtered: Optional[int] = None, persona: Optional[str] = "friday"):
     user_message = user_msg.clean_content
-    bot_message = bot_msg.clean_content
+    bot_message = bot_msg and bot_msg.clean_content
 
     self.bot.chats_counter += 1
     if user_msg.guild is None:
@@ -216,6 +220,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
           'bot_msg': bot_message,
           'failed': failed,
           'filtered': filtered,
+          'persona': persona
       })
 
   @commands.Cog.listener()
@@ -249,7 +254,13 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
     delta = discord.utils.utcnow() - self.bot.uptime
     minutes = delta.total_seconds() / 60
     cpm = self.bot.chats_counter / minutes
-    await ctx.send(f"{self.bot.chats_counter} messages ({cpm:.2f}/min)")
+
+    chat_cog = self.bot.get_cog("Chat")
+    rate_control = chat_cog._spam_check
+    free_rate = [str(key) for key, value in rate_control._free._cache.items() if value._tokens == 0]
+    voted_rate = [str(key) for key, value in rate_control._voted._cache.items() if value._tokens == 0]
+    patron_rate = [str(key) for key, value in rate_control._patron._cache.items() if value._tokens == 0]
+    await ctx.send(f"{self.bot.chats_counter} messages ({cpm:.2f}/min)\n**Rate-limits**\nFree: {len(free_rate)} users\nVoted: {len(voted_rate)} users\nPatron: {len(patron_rate)} users")
 
   @commands.command("socketstats")
   async def socketstats(self, ctx: "MyContext"):
@@ -465,6 +476,9 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
     joined_value = '\n'.join(connection_value)
     embed_.add_field(name='Connections', value=f'```py\n{joined_value}\n```', inline=False)
 
+    node = wavelink.NodePool.get_node()
+    embed_.add_field(name="Wavelink", value=f"```py\n<Node i=\"{node.identifier}\" reg=\"{node.region}\" players={len(node.players)} pen={node.penalty} con={node.is_connected()}>\n```", inline=False)
+
     spam_control = self.bot.log.spam_control
     being_spammed = [
         str(key) for key, value in spam_control._cache.items()
@@ -508,9 +522,14 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
     is_locked = self._batch_commands_lock.locked()
     description.append(f'Commands Waiting: {command_waiters}, Batch Locked: {is_locked}')
 
+    chat_waiters = len(self._data_chats_batch)
+    is_locked = self._batch_chats_lock.locked()
+    description.append(f'Chats Waiting: {chat_waiters}, Batch Locked: {is_locked}')
+
     memory_usage = self.process.memory_full_info().uss / 1024**2
+    total_memory = psutil.virtual_memory().total / 1024**2
     cpu_usage = self.process.cpu_percent() / psutil.cpu_count()
-    embed_.add_field(name='Process', value=f'{memory_usage:.2f} MiB\n{cpu_usage:.2f}% CPU', inline=False)
+    embed_.add_field(name='Process', value=f'{memory_usage:.2f} MiB/{total_memory/1024:.2f} GB ({memory_usage/total_memory:.3f}%)\n{cpu_usage:.3f}% CPU', inline=False)
 
     global_rate_limit = not self.bot.http._global_over.is_set()
     description.append(f'Global Rate Limit: {global_rate_limit}')
@@ -519,8 +538,15 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
       total_warnings += 1
       embed_.colour = WARNING
 
+    if chat_waiters >= 8:
+      total_warnings += 1
+      embed_.colour = WARNING
+
     if global_rate_limit or total_warnings >= 9:
       embed_.colour = UNHEALTHY
+
+    if not node.is_connected():
+      embed_.colour = WARNING
 
     embed_.set_footer(text=f'{total_warnings} warning(s)')
     embed_.description = '\n'.join(description)
@@ -592,6 +618,14 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
     e = discord.Embed(colour=colour, title="Gateway (last 24 hours)")
     e.description = "\n".join(builder)
     e.set_footer(text=f"{issues} warning(s)")
+    await ctx.send(embed=e)
+
+  @commands.command("wavelink")
+  async def wavelink(self, ctx: "MyContext"):
+    node = wavelink.NodePool.get_node()
+    e = discord.Embed(title="Wavelink stats", colour=discord.Colour.blurple())
+    e.add_field(name=f"Node: {node.identifier}", value=f"```\nRegion: {node.region}\nPlayers: {len(node.players)}\nPenalty: {node.penalty}\nConnected: {node.is_connected()}\n```")
+
     await ctx.send(embed=e)
 
   async def tabulate_query(self, ctx: "MyContext", query: str, *args):

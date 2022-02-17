@@ -95,6 +95,10 @@ class Welcome(commands.Cog):
     message, channel = config.message, config.channel
     if message is None or channel is None:
       return
+    if not isinstance(config.channel, discord.TextChannel):
+      await self.bot.pool.execute("UPDATE welcome SET channel_id=NULL WHERE guild_id=$1", str(member.guild.id))
+      self.get_guild_config.invalidate(self, member.guild.id)
+      return
     message_variables = [r"{user}", r"{server}"]
     if any(var in message.lower() for var in message_variables):
       for var in message_variables:
