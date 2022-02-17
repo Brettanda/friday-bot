@@ -287,7 +287,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
     total = await ctx.pool.fetchrow(query)
 
     e = discord.Embed(title="Command Stats", colour=discord.Colour.blurple())
-    e.description = f"{total[0]} commands used."
+    e.description = f"{total[0]:,} commands used."
 
     lookup = (
         "\N{FIRST PLACE MEDAL}",
@@ -356,7 +356,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
         question += count
 
     e = discord.Embed(title="Last 24 Hour Command Stats", colour=discord.Colour.blurple())
-    e.description = f"{failed + success + question} commands used today." \
+    e.description = f"{failed + success + question:,} commands used today." \
                     f"({success} succeeded, {failed} failed, {question} unknown)"
 
     lookup = (
@@ -423,9 +423,8 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
     await ctx.trigger_typing()
 
   def add_record(self, record):
-    if not self.bot.prod:
-      return
-    self._gateway_queue.put_nowait(record)
+    if self.bot.prod:
+      self._gateway_queue.put_nowait(record)
 
   async def notify_gateway_status(self, record):
     attributes = {
