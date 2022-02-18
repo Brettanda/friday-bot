@@ -268,7 +268,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
     minutes = delta.total_seconds() / 60
     total = sum(self.bot.socket_stats.values())
     cpm = total / minutes
-    await ctx.send(f"{total} socket events observed ({cpm:.2f}/min):\n{self.bot.socket_stats}")
+    await ctx.send(f"{total:,} socket events observed ({cpm:.2f}/min):\n{self.bot.socket_stats}")
 
   def censor_object(self, obj):
     if not isinstance(obj, str) and obj.id in self.bot.blacklist:

@@ -144,16 +144,12 @@ class Log(commands.Cog):
   @commands.Cog.listener()
   async def on_ready(self):
     if not self.bot.views_loaded:
-      # for name, view in views.__dict__.items():
-      #   if isinstance(view, discord.):
-      #     self.bot.add_view(view)
       self.bot.add_view(views.Links())
       self.bot.add_view(views.StopButton())
-      # self.bot.add_view(views.PaginationButtons())
+    if not hasattr(self.bot, "uptime"):
+      self.bot.uptime = discord.utils.utcnow()
 
     await relay_info(f"Apart of {len(self.bot.guilds)} guilds", self.bot, logger=self.logger)
-    if not hasattr(self.bot, "uptime"):
-      self.bot.uptime = datetime.datetime.utcnow()
     self.bot.ready = True
 
   @commands.Cog.listener()
@@ -179,6 +175,7 @@ class Log(commands.Cog):
   @commands.Cog.listener()
   async def on_shard_resumed(self, shard_id):
     self.logger.info(f"Shard #{shard_id} has resumed")
+    self.bot.resumes[shard_id].append(discord.utils.utcnow())
 
   @commands.Cog.listener()
   async def on_guild_join(self, guild: discord.Guild):
