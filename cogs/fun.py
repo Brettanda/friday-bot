@@ -180,7 +180,10 @@ class Fun(commands.Cog):
 
   @commands.command(name="minesweeper", aliases=["ms"], help="Play minesweeper")
   async def norm_minesweeper(self, ctx, size: Optional[int] = 5, bomb_count: Optional[int] = 6):
-    await ctx.reply(**await self.mine_sweeper(size, bomb_count))
+    # FIXME: args "2 2" cpu 100% FUCK
+    async with timeout(5):
+      mines = await self.mine_sweeper(size, bomb_count)
+      await ctx.reply(**mines)
 
   # @cog_ext.cog_slash(
   #     name="minesweeper",
@@ -208,12 +211,7 @@ class Fun(commands.Cog):
 
     # async with ctx.channel.typing():
     async def get_xy() -> tuple:
-      async with timeout(1):
-        try:
-          return await self.bot.loop.run_in_executor(None, random.randint, 0, size - 1), await self.bot.loop.run_in_executor(None, random.randint, 0, size - 1)
-        except Exception as e:
-          self.bot.logger.critical("This is what caused the shutdown")
-          raise e
+      return await self.bot.loop.run_in_executor(None, random.randint, 0, size - 1), await self.bot.loop.run_in_executor(None, random.randint, 0, size - 1)
 
     for _ in range(bomb_count):
       x, y = await get_xy()
