@@ -63,7 +63,7 @@ class Fun(commands.Cog):
     if isinstance(error, just_send):
       await ctx.send(embed=embed(title=f"{error}", color=MessageColors.ERROR))
     elif isinstance(error, asyncio.TimeoutError):
-      await ctx.send(embed=embed(title="This command took too long to execute. Please try again.", color=MessageColors.ERROR))
+      await ctx.send(embed=embed(title="This command took too long to execute. Please try again with different arguments", color=MessageColors.ERROR))
 
   # @commands.Cog.listener()
   # async def on_ready(self):
