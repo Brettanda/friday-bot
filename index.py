@@ -142,16 +142,16 @@ class Friday(commands.AutoShardedBot):
           self.logger.error(f"Failed to load extenstion {cog} with \n {e}")
 
   def _clear_gateway_data(self):
-    one_week_ago = discord.utils.utcnow() - datetime.timedelta(weeks=1)
+    one_week_ago = discord.utils.utcnow() - datetime.timedelta(days=7)
     for shard_id, dates in self.identifies.items():
       to_remove = [index for index, dt in enumerate(dates) if dt < one_week_ago]
       for index in reversed(to_remove):
         del dates[index]
 
     for shard_id, dates in self.resumes.items():
-      to_remove = [i for i, dt in enumerate(dates) if dt < one_week_ago]
-      for i in reversed(to_remove):
-        del dates[i]
+      to_remove = [index for index, dt in enumerate(dates) if dt < one_week_ago]
+      for index in reversed(to_remove):
+        del dates[index]
 
   async def before_identify_hook(self, shard_id, *, initial):
     self._clear_gateway_data()

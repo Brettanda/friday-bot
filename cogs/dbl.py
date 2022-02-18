@@ -74,9 +74,7 @@ class TopGG(commands.Cog):
 
   @tasks.loop(minutes=10.0)
   async def _update_stats_loop(self):
-    if self.bot.prod:
-      if self._current_len_guilds == len(self.bot.guilds):
-        return
+    if self.bot.prod and self._current_len_guilds != len(self.bot.guilds):
       await self.update_stats()
 
   @commands.group(name="vote", help="Get the link to vote for me on Top.gg", invoke_without_command=True, case_insensitive=True)
@@ -109,6 +107,7 @@ class TopGG(commands.Cog):
 
   async def update_stats(self):
     await self.bot.wait_until_ready()
+    self._current_len_guilds = len(self.bot.guilds)
     self.bot.logger.info("Updating DBL stats")
     try:
       await self.topgg.post_guild_count(guild_count=len(self.bot.guilds), shard_count=self.bot.shard_count)
