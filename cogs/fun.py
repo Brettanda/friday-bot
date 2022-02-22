@@ -318,7 +318,7 @@ class Fun(commands.Cog):
 
   def is_poll(self, msg: discord.Message) -> bool:
     e = msg.embeds[0]
-    return e.title.startswith("Poll: ") and not (e.author and "Poll Ended" in e.author.name)
+    return (e.title.startswith("Poll: ") or e.title.startswith("Pole: ")) and not (e.author and "Poll Ended" in e.author.name)
 
   @commands.group(name="poll", extras={"examples": ["\"this is a title\" '1' '2' '3'"]}, help="Make a poll. Contain each option in qoutes `'option' 'option 2'`", invoke_without_command=True)
   # @commands.group(name="poll", extras={"examples": ["\"this is a title\" 1;;2;;3"]}, help="Make a poll. Seperate the options with `;;`")
