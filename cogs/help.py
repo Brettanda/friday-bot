@@ -20,7 +20,7 @@ def get_examples(command: commands.command, prefix: str = "!") -> list:
   if command.extras != {} and "examples" in command.extras:
     examples, x, ay, gy = [], 0, 0, 0
     alias, aliases, group_aliases = None, [command.name, *command.aliases], [command.parent.name, *command.parent.aliases] if command.parent is not None else []
-    if "NoneType" in str(list(command.clean_params.items())[0][1]):
+    if len(list(command.clean_params)) > 0 and "NoneType" in str(list(command.clean_params.items())[0][1]):
       ay = divmod(x, len(aliases))
       alias = aliases[x - (ay[0] * len(aliases))]
       gy = divmod(x, len(group_aliases)) if command.parent is not None else 0
