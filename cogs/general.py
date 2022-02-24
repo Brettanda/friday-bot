@@ -149,15 +149,7 @@ class General(commands.Cog):
   @commands.command(name="serverinfo", aliases=["guildinfo"], help="Shows information about the server")
   @commands.guild_only()
   async def norm_serverinfo(self, ctx):
-    await self.server_info(ctx)
-
-  # @cog_ext.cog_slash(name="serverinfo", description="Info about a server")
-  # @commands.guild_only()
-  # async def slash_serverinfo(self, ctx):
-  #   await self.server_info(ctx)
-
-  async def server_info(self, ctx: "MyContext"):
-    return await ctx.send(
+    await ctx.send(
         embed=embed(
             title=ctx.guild.name + " - Info",
             thumbnail=ctx.guild.icon.url if ctx.guild.icon is not None else None,
@@ -170,28 +162,31 @@ class General(commands.Cog):
   @commands.command(name="userinfo", extras={"examples": ["@Friday", "476303446547365891"]}, help="Some information on the mentioned user")
   @commands.guild_only()
   async def norm_userinfo(self, ctx, user: typing.Optional[typing.Union[discord.Member, discord.User]] = None):
-    await self.user_info(ctx, user if user is not None else ctx.author)
-
-  # @cog_ext.cog_slash(name="userinfo", description="Some information on the mentioned user", options=[create_option(name="user", description="The user to get info for", option_type=SlashCommandOptionType.USER, required=False)])
-  # @checks.slash(user=True, private=False)
-  # async def slash_userinfo(self, ctx, user: typing.Optional[discord.Member] = None):
-  #   await self.user_info(ctx, user if user is not None else ctx.author)
-
-  async def user_info(self, ctx: "MyContext", member: discord.Member):
-    return await ctx.send(embed=embed(
-        title=f"{member.name} - Info",
-        thumbnail=member.display_avatar.url,
+    await ctx.send(embed=embed(
+        title=f"{user.name} - Info",
+        thumbnail=user.display_avatar.url,
         fieldstitle=["Name", "Nickname", "Mention", "Role count", "Created", "Joined", "Top Role", "Pending Verification"],
         fieldsval=[
-            member.name,
-            member.display_name if member.display_name != member.name else None,
-            member.mention,
-            len(member.roles) if hasattr(member, "roles") else 0,
-            member.created_at.strftime("%b %d, %Y") if hasattr(member, "created_at") else None,
-            member.joined_at.strftime("%b %d, %Y") if hasattr(member, "joined_at") else None,
-            member.top_role.mention if hasattr(member, "top_role") else None,
-            member.pending if hasattr(member, "pending") else None],
-        color=member.color if member.color.value != 0 else MessageColors.DEFAULT
+            user.name,
+            user.display_name if user.display_name != user.name else None,
+            user.mention,
+            len(user.roles) if hasattr(user, "roles") else 0,
+            discord.utils.format_dt(user.created_at, style="D") if hasattr(user, "created_at") else None,
+            discord.utils.format_dt(user.joined_at, style="D") if hasattr(user, "joined_at") else None,
+            user.top_role.mention if hasattr(user, "top_role") else None,
+            user.pending if hasattr(user, "pending") else None],
+        color=user.color if user.color.value != 0 else MessageColors.DEFAULT
+    ))
+
+  @commands.command(name="roleinfo", help="Shows information about the role")
+  @commands.guild_only()
+  async def norm_roleinfo(self, ctx, *, role: discord.Role):
+    await ctx.send(embed=embed(
+        title=f"{role.name} - Info",
+        thumbnail=role.icon and role.icon.url,
+        fieldstitle=["Role Name", "Role ID", "Role Color", "Role Position", "Role Hoisted", "Role Mentionable", "Role Created"],
+        fieldsval=[role.name, role.id, role.color, role.position, role.hoist, role.mentionable, discord.utils.format_dt(role.created_at, style="D")],
+        color=role.colour if role.colour.value != 0 else MessageColors.DEFAULT
     ))
 
 

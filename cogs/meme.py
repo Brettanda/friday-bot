@@ -1,13 +1,17 @@
+import asyncio
 import os
-import asyncpraw
+import random
+from typing import Union
 
+import asyncpraw
 from discord.ext import commands
+from expiringdict import ExpiringDict
+from typing_extensions import TYPE_CHECKING
+
+from functions import MessageColors, MyContext, embed
+
 # from interactions import Context as SlashContext, cog_ext
 
-from functions import MessageColors, embed, MyContext
-from typing import Union
-import random
-from typing_extensions import TYPE_CHECKING
 
 if TYPE_CHECKING:
   from index import Friday as Bot
@@ -19,7 +23,8 @@ class Meme(commands.Cog):
   def __init__(self, bot: "Bot"):
     self.bot = bot
     self.subs = ("dankmemes", "memes", "wholesomememes")
-    self.posted = {}
+    self.posted = ExpiringDict(max_len=1000, max_age_seconds=18000.0)
+    self.reddit_lock = asyncio.Lock()
     self.reddit = asyncpraw.Reddit(
         client_id=os.environ.get('REDDITCLIENTID'),
         client_secret=os.environ.get('REDDITCLIENTSECRET'),
@@ -46,7 +51,8 @@ class Meme(commands.Cog):
     # async with ctx.channel.typing():
     # try:
     # body = await (await reddit.subreddit(sub)).top("week", params={"count": random.randrange(500)}, limit=10)
-    body = [i async for i in (await reddit.subreddit(sub)).top("week", params={"count": random.randrange(500)}, limit=10)]
+    async with self.reddit_lock:
+      body = [i async for i in (await reddit.subreddit(sub)).top("week", params={"count": 500}, limit=10)]
     # async for submission in body:
     #   print(submission.title)
     # post, = [submission async for submission in body.top("week")]  # , params={"count": random.randrange(1000), "limit": 1}):
@@ -58,20 +64,14 @@ class Meme(commands.Cog):
     #   else:
     #   return dict(embed=embed(title="Something went wrong, please try again.", color=MessageColors.ERROR))
 
-    if ctx.channel is not None and str(ctx.channel.type) == "private":
-      thisposted = ctx.channel.id
-    elif ctx.guild is not None:
-      thisposted = ctx.guild.id
-    elif ctx.channel is None and hasattr(ctx, "channel_id"):
-      thisposted = ctx.channel_id
+    thisposted = ctx.channel and ctx.channel.id
+    thisposted = hasattr(ctx, "channel_id") and ctx.channel_id or thisposted
+    thisposted = ctx.guild and ctx.guild.id or thisposted
 
     if ctx.channel is not None and str(ctx.channel.type) == "private" or ctx.channel is not None and ctx.channel.nsfw:
       allowed = body
     else:
-      allowed = []
-      for post in body:
-        if not post.over_18 and post.link_flair_text != "MODPOST" and post.link_flair_text != "Long":
-          allowed.append(post)
+      allowed = [post for post in body if not post.over_18 and post.link_flair_text != "MODPOST" and post.link_flair_text != "Long"]
 
     x = 0
     for post in allowed:
@@ -88,16 +88,12 @@ class Meme(commands.Cog):
       x += 1
 
     def pickPost():
-      randNum = random.randint(1, len(allowed)) - 1
-      postinquestion = allowed[randNum]
+      post, x = allowed[random.randint(1, len(allowed)) - 1], 0
+      while post.permalink in self.posted[thisposted] and x < 1000:
+        post = allowed[random.randint(1, len(allowed)) - 1]
+        x += 1
 
-      try:
-        if postinquestion.permalink in self.posted[thisposted]:
-          pickPost()
-      except KeyError:
-        pass
-
-      return postinquestion
+      return post
 
     topost = pickPost()
     try:
@@ -123,9 +119,9 @@ class Meme(commands.Cog):
         )
     )
 
-  # @commands.max_concurrency(1,commands.BucketType.channel,wait=False)
   @commands.command(name="meme", aliases=["shitpost"], help="Meme time")
-  @commands.cooldown(1, 1, commands.BucketType.user)
+  @commands.max_concurrency(1, commands.BucketType.guild, wait=True)
+  # @commands.cooldown(1, 1, commands.BucketType.user)
   async def norm_meme(self, ctx: "MyContext"):
     async with ctx.typing():
       return await ctx.reply(**await self.get_reddit_post(ctx, self.subs, self.reddit))

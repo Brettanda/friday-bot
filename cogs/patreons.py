@@ -206,10 +206,6 @@ class Patreons(commands.Cog):
     await ctx.pool.execute(query, str(ctx.guild.id), str(ctx.author.id))
     await ctx.send(embed=embed(title="You have successfully removed your server"))
 
-  async def cog_command_error(self, ctx: "MyContext", error: commands.CommandError):
-    if isinstance(error, commands.CheckFailure):
-      return await ctx.send(embed=embed(title="You are not allowed to use this command", color=MessageColors.ERROR))
-
 
 def setup(bot):
   bot.add_cog(Patreons(bot))
