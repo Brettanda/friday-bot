@@ -479,7 +479,7 @@ class AutoMod(commands.Cog):
   @commands.command(name="invitespam", aliases=["removeinvites"], extras={"examples": ["1", "0", "true", "false"]}, help="Automaticaly remove Discord invites (originating from external servers) from text channels. Not giving an argument will display the current setting.")
   @commands.guild_only()
   @commands.bot_has_guild_permissions(manage_messages=True)
-  @commands.bot_has_permissions(manage_messages=True)
+  @commands.has_guild_permissions(manage_messages=True)
   async def norm_remove_discord_invites(self, ctx: "MyContext", *, enable: Union[bool, None] = None):
     if enable is None:
       current = await self.bot.db.query("SELECT remove_invites FROM servers WHERE id=$1 LIMIT 1", str(ctx.guild.id))
