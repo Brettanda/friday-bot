@@ -57,6 +57,7 @@ class Friday(commands.AutoShardedBot):
             reactions=True,
             members=True,
             bans=True,
+            # TODO: message_content=True,
             # invites=True,
         ),
         status=discord.Status.idle,

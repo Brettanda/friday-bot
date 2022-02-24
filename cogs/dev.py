@@ -19,7 +19,7 @@ from typing_extensions import TYPE_CHECKING
 import cogs
 from cogs.help import syntax
 from functions import (MessageColors, MyContext,  # , query  # , MessageColors
-                       build_docs, embed, views)
+                       build_docs, embed, views, time)
 
 if TYPE_CHECKING:
   from index import Friday as Bot
@@ -86,7 +86,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     return True
 
   async def cog_command_error(self, ctx: "MyContext", error):
-    ignore = (commands.MissingRequiredArgument,)
+    ignore = (commands.MissingRequiredArgument, commands.BadArgument,)
     if isinstance(error, ignore):
       return
 
@@ -440,6 +440,10 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
   async def markdown(self, ctx):
     build_docs(self.bot)
     await ctx.reply(embed=embed(title="Commands loaded"))
+
+  @norm_dev.command("time")
+  async def time(self, ctx, *, time: time.TimeWithTimezone):
+    await ctx.send(f"{discord.utils.format_dt(time.dt)} ({discord.utils.format_dt(time.dt, style='R')})")
 
   @norm_dev.command(name="sudo")
   async def sudo(self, ctx: "MyContext", channel: Optional[GlobalChannel], user: Union[discord.Member, discord.User], *, command: str):

@@ -260,7 +260,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
     free_rate = [str(key) for key, value in rate_control._free._cache.items() if value._tokens == 0]
     voted_rate = [str(key) for key, value in rate_control._voted._cache.items() if value._tokens == 0]
     patron_rate = [str(key) for key, value in rate_control._patron._cache.items() if value._tokens == 0]
-    await ctx.send(f"{self.bot.chats_counter} messages ({cpm:.2f}/min)\n**Rate-limits**\nFree: {len(free_rate)} users\nVoted: {len(voted_rate)} users\nPatron: {len(patron_rate)} users")
+    await ctx.send(f"{self.bot.chats_counter:,} messages ({cpm:.2f}/min)\n**Rate-limits**\nFree: {len(free_rate)} users\nVoted: {len(voted_rate)} users\nPatron: {len(patron_rate)} users")
 
   @commands.command("socketstats")
   async def socketstats(self, ctx: "MyContext"):

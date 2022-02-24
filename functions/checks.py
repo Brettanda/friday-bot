@@ -146,6 +146,30 @@ def is_admin() -> "_CheckDecorator":
   return commands.check(predicate)
 
 
+def is_mod_or_guild_permissions(**perms) -> "_CheckDecorator":
+  """User has a mod role or has the following guild permissions"""
+  async def predicate(ctx: "MyContext") -> bool:
+    is_owner = await ctx.bot.is_owner(ctx.author)
+    if is_owner:
+      return True
+
+    if ctx.guild is None:
+      return False
+
+    config_cog = ctx.bot.get_cog("Config")
+    if config_cog is not None:
+      con = await config_cog.get_guild_config(ctx.guild.id)
+      if con and any(arole in con.mod_roles for arole in ctx.author.roles):
+        return True
+
+    resolved = ctx.author.guild_permissions
+    if all(getattr(resolved, name, None) == value for name, value in perms.items()):
+      return True
+    raise commands.MissingPermissions([name for name, value in perms.items() if getattr(resolved, name, None) != value])
+
+  return commands.check(predicate)
+
+
 def slash(user: bool = False, private: bool = True) -> "_CheckDecorator":
   # async def predicate(ctx: SlashContext) -> bool:
   #   if user is True and ctx.guild_id and ctx.guild is None and ctx.channel is None:

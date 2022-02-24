@@ -20,7 +20,7 @@ def get_examples(command: commands.command, prefix: str = "!") -> list:
   if command.extras != {} and "examples" in command.extras:
     examples, x, ay, gy = [], 0, 0, 0
     alias, aliases, group_aliases = None, [command.name, *command.aliases], [command.parent.name, *command.parent.aliases] if command.parent is not None else []
-    if "NoneType" in str(list(command.clean_params.items())[0][1]):
+    if len(list(command.clean_params)) > 0 and "NoneType" in str(list(command.clean_params.items())[0][1]):
       ay = divmod(x, len(aliases))
       alias = aliases[x - (ay[0] * len(aliases))]
       gy = divmod(x, len(group_aliases)) if command.parent is not None else 0
@@ -117,10 +117,11 @@ class MyMenuPages(ButtonMenuPages):
 
 
 class HelpMenu(ListPageSource):
-  def __init__(self, ctx, data, *, title="Commands", description=""):
+  def __init__(self, ctx, data, *, title="Commands", description="", missing_perms=False):
     self.ctx = ctx
     self.title = title
     self.description = description
+    self.missing_perms = missing_perms
 
     super().__init__(data, per_page=6)
 
@@ -162,13 +163,13 @@ class Help(commands.HelpCommand):
   def get_command_signature(self, command: commands.command) -> str:
     return '\n'.join(syntax(command, self.context.clean_prefix, quotes=False).split('\n'))
 
-  def make_page_embed(self, commands, title="Friday - Help", description="If you would like to make a suggestion for a command please join the [Friday's Development](https://discord.gg/NTRuFjU) and explain your suggestion.\n\nFor more info on how commands work and how to format them please check out [docs.friday-bot.com](https://docs.friday-bot.com/).\n\n**Some commands will only show if you have the correct permissions to use them.**"):
+  def make_page_embed(self, commands, title="Friday - Help", description="If you would like to make a suggestion for a command please join the [Friday's Development](https://discord.gg/NTRuFjU) and explain your suggestion.\n\nFor more info on how commands work and how to format them please check out [docs.friday-bot.com](https://docs.friday-bot.com/).\n\n**Some commands will only show if you have the correct permissions to use them.**", missing_perms=False):
     embed = Embed(color=MessageColors.DEFAULT)
     embed.title = title
     embed.description = description
     # embed.set_footer()
 
-    if len(commands) == 0:
+    if len(commands) == 0 and missing_perms:
       embed.add_field(
           name="Commands",
           value="No commands that you can use",
@@ -211,15 +212,17 @@ class Help(commands.HelpCommand):
     ctx.invoked_with = "help"
     bot: "Bot" = ctx.bot
 
-    commands = []
+    commands, missing_perms = [], False
     for com in bot.commands:
       try:
         if await com.can_run(ctx) and com.hidden is not True and com.enabled is not False:
           commands.append(com)
+        else:
+          missing_perms = True
       except Exception:
         pass
     menu = MyMenuPages(
-        source=HelpMenu(ctx, commands, title="Friday - Help", description="If you would like to make a suggestion for a command please join the [Friday's Development](https://discord.gg/NTRuFjU) and explain your suggestion.\n\nFor more info on how commands work and how to format them please check out [docs.friday-bot.com](https://docs.friday-bot.com/).\n\n**Some commands will only show if you have the correct permissions to use them.**",)
+        source=HelpMenu(ctx, commands, title="Friday - Help", description="If you would like to make a suggestion for a command please join the [Friday's Development](https://discord.gg/NTRuFjU) and explain your suggestion.\n\nFor more info on how commands work and how to format them please check out [docs.friday-bot.com](https://docs.friday-bot.com/).\n\n**Some commands will only show if you have the correct permissions to use them.**", missing_perms=missing_perms)
     )
     await menu.start(ctx)
 
@@ -233,7 +236,8 @@ class Help(commands.HelpCommand):
     embed = self.make_page_embed(
         filtered,
         title=(cog and cog.qualified_name or "Other") + " Commands",
-        description=discord.Embed.Empty if cog is None else cog.description
+        description=discord.Embed.Empty if cog is None else cog.description,
+        missing_perms=len(filtered) != len(cog.get_commands())
     )
 
     await ctx.reply(embed=embed)

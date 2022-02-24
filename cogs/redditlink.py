@@ -195,7 +195,13 @@ class redditlink(commands.Cog):
     guild = self.bot.get_guild(payload.guild_id)
     async with channel.typing():
       try:
-        await message.reply(**await self.extract(message.content, payload=payload, guild=guild, channel=channel, message=message))
+        thing = await self.extract(message.content, payload=payload, guild=guild, channel=channel, message=message)
+        await message.reply(**thing, mention_author=False)
+      except discord.HTTPException:
+        try:
+          await message.channel.send(**thing, mention_author=False)
+        except discord.HTTPException:
+          pass
       except Exception as e:
         await message.reply(embed=embed(title="Something went wrong", description="Please try again later. I have notified my boss of this error", color=MessageColors.ERROR), mention_author=False)
         raise e
