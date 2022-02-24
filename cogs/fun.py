@@ -320,10 +320,10 @@ class Fun(commands.Cog):
     e = msg.embeds[0]
     return (e.title.startswith("Poll: ") or e.title.startswith("Pole: ")) and not (e.author and "Poll Ended" in e.author.name)
 
-  @commands.group(name="poll", extras={"examples": ["\"this is a title\" '1' '2' '3'"]}, help="Make a poll. Contain each option in qoutes `'option' 'option 2'`", invoke_without_command=True)
+  @commands.group(name="poll", extras={"examples": ["\"this is a title\" '1' '2' '3'", "\"Do you like being pinged for random things\" Yes No \"I just mute everything\""]}, help="Make a poll. Contain each option in qoutes `'option' 'option 2'`", invoke_without_command=True)
   # @commands.group(name="poll", extras={"examples": ["\"this is a title\" 1;;2;;3"]}, help="Make a poll. Seperate the options with `;;`")
   @commands.guild_only()
-  @commands.bot_has_permissions(manage_messages=True)
+  @commands.bot_has_permissions(add_reactions=True)
   async def norm_poll(self, ctx: "MyContext", title: str, option1: str = None, option2: str = None, option3: str = None, option4: str = None, option5: str = None, option6: str = None, option7: str = None, option8: str = None, option9: str = None, option10: str = None):
     options = []
     for item in [option1, option2, option3, option4, option5, option6, option7, option8, option9, option10]:
@@ -444,6 +444,7 @@ class Fun(commands.Cog):
   @norm_poll.command("option", aliases=["addoption"], hidden=True)
   @commands.guild_only()
   @commands.is_owner()
+  @commands.bot_has_permissions(add_reactions=True)
   async def poll_edit_option(self, ctx: "MyContext", message: discord.Message, option_id: int, *, new_name: str):
     if not self.is_poll(message):
       return
@@ -464,6 +465,7 @@ class Fun(commands.Cog):
   @norm_poll.command("remove", hidden=True)
   @commands.guild_only()
   @commands.is_owner()
+  @commands.bot_has_permissions(add_reactions=True)
   async def poll_edit_remove(self, ctx: "MyContext", message: discord.Message, option_id: int):
     if not self.is_poll(message):
       return
@@ -586,6 +588,14 @@ class Fun(commands.Cog):
   @loop_countdown.before_loop
   async def before_loop_countdown(self):
     await self.bot.wait_until_ready()
+
+  # @commands.command("soup", help="Get a random soup picture")
+  # async def soup(self, ctx: "MyContext"):
+  #   redditlink = await self.bot.get_context(f"{ctx.clean_prefix}redditlink https://www.reddit.com/r/soup/random/.json")
+  #   if not redditlink:
+  #     return await ctx.send(embed=embed(title="This command not currently available. Please try again later."))
+
+  #   await self.bot.invoke(redditlink)
 
 
 def setup(bot):
