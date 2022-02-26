@@ -4,7 +4,6 @@ import logging
 import os
 import sys
 from collections import defaultdict
-from logging.handlers import RotatingFileHandler
 from typing import Dict, Optional
 
 import aiohttp
@@ -196,21 +195,9 @@ class Friday(commands.AutoShardedBot):
 
 
 if __name__ == "__main__":
+  from launcher import get_logger
   print(f"Python version: {sys.version}")
-  max_bytes = 8 * 1024 * 1024  # 8 MiB
-  logging.getLogger("discord").setLevel(logging.INFO)
-  logging.getLogger("discord.http").setLevel(logging.WARNING)
-
-  log = logging.getLogger("Friday")
-  log.setLevel(logging.INFO)
-  filehandler = RotatingFileHandler(filename="logging.log", encoding="utf-8", mode="w", maxBytes=max_bytes, backupCount=5)
-  formatter = logging.Formatter("%(levelname)s:%(name)s: %(message)s")
-  filehandler.setFormatter(logging.Formatter("%(asctime)s:%(name)s:%(levelname)-8s%(message)s"))
-  handler = logging.StreamHandler(sys.stdout)
-  handler.setFormatter(formatter)
-  log.addHandler(handler)
-  log.addHandler(filehandler)
-  handler.setFormatter(formatter)
+  log = get_logger("Friday")
 
   bot = Friday(logger=log)
   if len(sys.argv) > 1:
