@@ -1,28 +1,37 @@
 import asyncio
-import os
-import sys
-import signal
-import time
-import multiprocessing
 import logging
+import multiprocessing
+import os
+import signal
+import sys
+import time
+from logging.handlers import RotatingFileHandler
+
 import discord
 import requests
 
 from index import Friday
 
-logger = logging.getLogger("Cluster#Launcher")
-# logger.basicConfig(
-#     level=logging.INFO,
-#     format="%(asctime)s:%(name)s:%(levelname)-8s%(message)s",
-#     datefmt="%y-%m-%d %H:%M:%S",
-#     filename="logging.log"
-# )
-logger.setLevel(logging.INFO)
-hdlr = logging.StreamHandler()
-hdlr.setFormatter(logging.Formatter("%(levelname)s:%(name)s: %(message)s"))
-fhdlr = logging.FileHandler("logging.log", encoding="utf-8")
-fhdlr.setFormatter(logging.Formatter("%(asctime)s:%(levelname)s:%(name)s: %(message)s"))
-logger.handlers = [hdlr, fhdlr]
+
+def get_logger(title: str) -> logging.Logger:
+  max_bytes = 8 * 1024 * 1024  # 8 MiB
+  logging.getLogger("discord").setLevel(logging.INFO)
+  logging.getLogger("discord.http").setLevel(logging.WARNING)
+
+  log = logging.getLogger(title)
+  log.setLevel(logging.INFO)
+  filehandler = RotatingFileHandler(filename="logging.log", encoding="utf-8", mode="w", maxBytes=max_bytes, backupCount=5)
+  formatter = logging.Formatter("%(levelname)s:%(name)s: %(message)s")
+  filehandler.setFormatter(logging.Formatter("%(asctime)s:%(name)s:%(levelname)-8s%(message)s"))
+  handler = logging.StreamHandler(sys.stdout)
+  log.addHandler(handler)
+  log.addHandler(filehandler)
+  handler.setFormatter(formatter)
+  return log
+
+
+logger = get_logger("Cluster#Launcher")
+
 
 CLUSER_NAMES = (
     "Jarvis",
@@ -144,14 +153,10 @@ class Cluster:
     self.launcher: Launcher = launcher
     self.process = None
     self.name: str = name
-    self.logger = logging.getLogger(f"Cluster#{name}")
-    self.logger.setLevel(logging.INFO)
-    hdlr = logging.StreamHandler()
-    hdlr.setFormatter(logging.Formatter("%(levelname)s:%(name)s: %(message)s"))
-    fhdlr = logging.FileHandler("logging.log", encoding="utf-8")
-    fhdlr.setFormatter(logging.Formatter("%(asctime)s:%(levelname)s:%(name)s: %(message)s"))
-    self.logger.handlers = [hdlr, fhdlr]
+
+    self.logger = get_logger(f"Cluster#{name}")
     self.logger.info(f"Initialized with shard ids {shard_ids}, total shards {max_shards}")
+
     self.kwargs = dict(
         token=TOKEN,
         shard_ids=shard_ids,
