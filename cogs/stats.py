@@ -476,7 +476,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
     embed_.add_field(name='Connections', value=f'```py\n{joined_value}\n```', inline=False)
 
     node = wavelink.NodePool.get_node()
-    embed_.add_field(name="Wavelink", value=f"```py\n<Node i=\"{node.identifier}\" reg=\"{node.region}\" players={len(node.players)} pen={node.penalty} con={node.is_connected()}>\n```", inline=False)
+    embed_.add_field(name="Wavelink", value=f"```py\n<Node i=\"{node.identifier}\" reg=\"{node.region}\" players={len(node.players):,} pen={node.penalty:.3f} con={node.is_connected()}>\n```", inline=False)
 
     spam_control = self.bot.log.spam_control
     being_spammed = [
