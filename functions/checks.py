@@ -64,6 +64,7 @@ def user_is_min_tier(tier: int = config.PremiumTiers.tier_1) -> "_CheckDecorator
   return commands.check(predicate)
 
 
+# TODO: Remove this when moved to is_mod_and_min_tier
 def is_admin_and_min_tier(tier: int = config.PremiumTiers.tier_1) -> "_CheckDecorator":
   guild_is_min_tier_ = guild_is_min_tier(tier).predicate
   is_admin_ = is_admin().predicate
@@ -77,6 +78,23 @@ def is_admin_and_min_tier(tier: int = config.PremiumTiers.tier_1) -> "_CheckDeco
     if await guild_is_min_tier_(ctx) and (admin or await user_is_min_tier_(ctx)):
       return True
     err = exceptions.RequiredTier("This command requires a premium server and a patron or an admin.")
+    err.log = True
+    raise err
+  return commands.check(predicate)
+
+def is_mod_and_min_tier(*, tier: int = config.PremiumTiers.tier_1, **perms) -> "_CheckDecorator":
+  guild_is_min_tier_ = guild_is_min_tier(tier).predicate
+  is_mod_or_guild_permissions_ = is_mod_or_guild_permissions(**perms).predicate
+  user_is_min_tier_ = user_is_min_tier(tier).predicate
+
+  async def predicate(ctx: "MyContext") -> bool:
+    try:
+      mod = await is_mod_or_guild_permissions_(ctx)
+    except Exception:
+      mod = False
+    if await guild_is_min_tier_(ctx) and (mod or await user_is_min_tier_(ctx)):
+      return True
+    err = exceptions.RequiredTier("This command requires a premium server and a patron or a mod.")
     err.log = True
     raise err
   return commands.check(predicate)
