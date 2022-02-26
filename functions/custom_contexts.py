@@ -259,7 +259,8 @@ class MyContext(Context):
     try:
       if self.message.type == discord.MessageType.thread_starter_message:
         message = await self.message.channel.send(content, **kwargs)
-      message = await self.message.channel.send(content, reference=self.replied_reference or self.message, **kwargs)
+      reference = self.replied_reference if self.command and self.replied_reference else self.message if reply_to_replied else None
+      message = await self.message.channel.send(content, reference=reference, **kwargs)
     except (discord.Forbidden, discord.HTTPException):
       try:
         message = await self.message.channel.send(content, **kwargs)
