@@ -181,17 +181,12 @@ class Log(commands.Cog):
   async def on_guild_join(self, guild: discord.Guild):
     await self.bot.wait_until_ready()
     await self.bot.db.query(f"INSERT INTO servers (id,lang) VALUES ({str(guild.id)},'{guild.preferred_locale.split('-')[0]}') ON CONFLICT DO NOTHING")
-    await relay_info(f"I have joined a new guild, making the total **{len(self.bot.guilds)}**", self.bot, short=f"I have joined a new guild, making the total {len(self.bot.guilds)}", webhook=self.log_join, logger=self.logger)
+    await relay_info(f"I have joined a new guild, making the total **{len(self.bot.guilds)}**", self.bot, short=f"I have joined ({guild} [{guild.id}]), making the total {len(self.bot.guilds)}", webhook=self.log_join, logger=self.logger)
 
   @commands.Cog.listener()
   async def on_guild_remove(self, guild):
-    while self.bot.is_closed():
-      await asyncio.sleep(0.1)
-    await self.bot.db.query(
-          f"DELETE FROM servers WHERE id='{str(guild.id)}';"
-          f"DELETE FROM blacklist WHERE guild_id='{str(guild.id)}';"
-          f"DELETE FROM welcome WHERE guild_id='{str(guild.id)}';")
-    await relay_info(f"I have been removed from a guild, making the total **{len(self.bot.guilds)}**", self.bot, short=f"I have been removed from a guild, making the total {len(self.bot.guilds)}", webhook=self.log_join, logger=self.logger)
+    await self.bot.wait_until_ready()
+    await relay_info(f"I have been removed from a guild, making the total **{len(self.bot.guilds)}**", self.bot, short=f"I have been removed from ({guild} [{guild.id}]), making the total {len(self.bot.guilds)}", webhook=self.log_join, logger=self.logger)
 
   @commands.Cog.listener()
   async def on_message_edit(self, before, after):

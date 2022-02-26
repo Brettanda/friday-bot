@@ -188,7 +188,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
       destination = f"#{message.channel} ({message.guild})"
       guild_id = ctx.guild.id
 
-    self.bot.logger.info(f'{message.created_at}: {message.author} in {destination}: {message.content}')
+    self.bot.logger.info(f'{message.author} in {destination}: {message.content}')
     async with self._batch_commands_lock:
       self._data_commands_batch.append({
           'guild': str(guild_id),
@@ -204,7 +204,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
     user_message = user_msg.clean_content
     bot_message = bot_msg and bot_msg.clean_content
 
-    self.bot.chats_counter += 1
+    self.bot.chat_stats[user_msg.author.id] += 1
     if user_msg.guild is None:
       guild_id = None
     else:
@@ -228,14 +228,14 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
     await self.register_command(ctx)
 
   @commands.Cog.listener()
-  async def on_chat_completion(self, user_msg: discord.Message, bot_msg: discord.Message, failed: bool, filtered: Optional[int] = None):
-    await self.register_chat(user_msg, bot_msg, failed, filtered)
+  async def on_chat_completion(self, user_msg: discord.Message, bot_msg: discord.Message, failed: bool, filtered: Optional[int] = None, persona: Optional[str] = "friday"):
+    await self.register_chat(user_msg, bot_msg, failed, filtered, persona)
 
   @commands.Cog.listener()
   async def on_socket_event_type(self, event_type):
     self.bot.socket_stats[event_type] += 1
 
-  @commands.command("commandstats")
+  @commands.group("commandstats", invoke_without_command=True)
   async def commandstats(self, ctx, limit=20):
     counter = self.bot.command_stats
     width = len(max(counter, key=len))
@@ -249,18 +249,21 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
 
     await ctx.send(f"```\n{output}\n```")
 
-  @commands.command("chatstats")
+  @commands.group("chatstats", invoke_without_command=True)
   async def chatstats(self, ctx: "MyContext"):
     delta = discord.utils.utcnow() - self.bot.uptime
     minutes = delta.total_seconds() / 60
-    cpm = self.bot.chats_counter / minutes
+    total = sum(self.bot.chat_stats.values())
+    cpm = total / minutes
+
+    counter_message = textwrap.shorten(f"{self.bot.chat_stats}", width=1990)
 
     chat_cog = self.bot.get_cog("Chat")
     rate_control = chat_cog._spam_check
     free_rate = [str(key) for key, value in rate_control._free._cache.items() if value._tokens == 0]
     voted_rate = [str(key) for key, value in rate_control._voted._cache.items() if value._tokens == 0]
     patron_rate = [str(key) for key, value in rate_control._patron._cache.items() if value._tokens == 0]
-    await ctx.send(f"{self.bot.chats_counter:,} messages ({cpm:.2f}/min)\n**Rate-limits**\nFree: {len(free_rate)} users\nVoted: {len(voted_rate)} users\nPatron: {len(patron_rate)} users")
+    await ctx.send(f"{total:,} messages ({cpm:.2f}/min)\n**Rate-limits**\nFree: {len(free_rate)} users\nVoted: {len(voted_rate)} users\nPatron: {len(patron_rate)} users\n{counter_message}")
 
   @commands.command("socketstats")
   async def socketstats(self, ctx: "MyContext"):
@@ -275,14 +278,123 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
       return "[censored]"
     return censor_invite(obj)
 
-  @commands.group("stats", invoke_without_command=True)
-  @commands.guild_only()
-  @commands.cooldown(1, 30.0, type=commands.BucketType.member)
-  async def stats(self, ctx: "MyContext", *, member: discord.Member = None):
-    ...
+  @chatstats.command("global")
+  async def chatstats_global(self, ctx: "MyContext"):
+    query = """SELECT COUNT(*) FROM chats;"""
+    total = await ctx.pool.fetchrow(query)
 
-  @stats.command("global")
-  async def stats_global(self, ctx: "MyContext"):
+    e = discord.Embed(title="Chat Stats", colour=discord.Colour.blurple())
+    e.description = f"{total[0]:,} chats used."
+
+    lookup = (
+        "\N{FIRST PLACE MEDAL}",
+        "\N{SECOND PLACE MEDAL}",
+        "\N{THIRD PLACE MEDAL}",
+        "\N{SPORTS MEDAL}",
+        "\N{SPORTS MEDAL}"
+    )
+
+    # query = """SELECT command, COUNT(*) AS "uses"
+    #            FROM chats
+    #            GROUP BY command
+    #            ORDER BY uses DESC
+    #            LIMIT 5;"""
+
+    # records = await ctx.pool.fetch(query)
+    # value = "\n".join(f"{lookup[i]}: {command} ({uses} uses)" for (i, (command, uses)) in enumerate(records))
+    # e.add_field(name="Top Commands", value=value, inline=False)
+
+    query = """SELECT guild_id, COUNT(*) AS "uses"
+               FROM chats
+               GROUP BY guild_id
+               ORDER BY uses DESC
+               LIMIT 5;"""
+
+    records = await ctx.pool.fetch(query)
+    value = []
+    for (i, (guild_id, uses)) in enumerate(records):
+      if guild_id is None:
+        guild = "Private Message"
+      else:
+        guild = self.censor_object(self.bot.get_guild(guild_id.isdigit() and int(guild_id, base=10)) or f"<Unknown {guild_id}>")
+
+      emoji = lookup[i]
+      value.append(f"{emoji}: {guild} ({uses} uses)")
+
+    e.add_field(name="Top Guilds", value="\n".join(value), inline=False)
+
+    query = """SELECT author_id, COUNT(*) AS "uses"
+               FROM chats
+               GROUP BY author_id
+               ORDER BY "uses" DESC
+               LIMIT 5;"""
+
+    records = await ctx.pool.fetch(query)
+    value = []
+    for (i, (author_id, uses)) in enumerate(records):
+      user = self.censor_object(self.bot.get_user(author_id.isdigit() and int(author_id, base=10)) or f"<Unknown {author_id}>")
+      emoji = lookup[i]
+      value.append(f"{emoji}: {user} ({uses} uses)")
+
+    e.add_field(name="Top Users", value="\n".join(value), inline=False)
+    await ctx.send(embed=e)
+
+  @chatstats.command("today")
+  async def chatstats_today(self, ctx: "MyContext"):
+    query = """SELECT COUNT(*) FROM chats WHERE used > (CURRENT_TIMESTAMP - INTERVAL '1 day');"""
+    total = await ctx.pool.fetchval(query)
+
+    e = discord.Embed(title="Last 24 Hour Chat Stats", colour=discord.Colour.blurple())
+    e.description = f"{total:,} chats used today."
+
+    lookup = (
+            '\N{FIRST PLACE MEDAL}',
+            '\N{SECOND PLACE MEDAL}',
+            '\N{THIRD PLACE MEDAL}',
+            '\N{SPORTS MEDAL}',
+            '\N{SPORTS MEDAL}'
+    )
+
+    query = """SELECT guild_id, COUNT(*) AS "uses"
+                   FROM chats
+                   WHERE used > (CURRENT_TIMESTAMP - INTERVAL '1 day')
+                   GROUP BY guild_id
+                   ORDER BY "uses" DESC
+                   LIMIT 5;
+                """
+
+    records = await ctx.pool.fetch(query)
+    value = []
+    for (index, (guild_id, uses)) in enumerate(records):
+      if guild_id is None:
+        guild = 'Private Message'
+      else:
+        guild = self.censor_object(self.bot.get_guild(guild_id.isdigit() and int(guild_id, base=10)) or f'<Unknown {guild_id}>')
+      emoji = lookup[index]
+      value.append(f'{emoji}: {guild} ({uses} uses)')
+
+    e.add_field(name='Top Guilds', value='\n'.join(value), inline=False)
+
+    query = """SELECT author_id, COUNT(*) AS "uses"
+                  FROM chats
+                  WHERE used > (CURRENT_TIMESTAMP - INTERVAL '1 day')
+                  GROUP BY author_id
+                  ORDER BY "uses" DESC
+                  LIMIT 5;
+              """
+
+    records = await ctx.pool.fetch(query)
+    value = []
+    for (index, (author_id, uses)) in enumerate(records):
+      user = self.censor_object(self.bot.get_user(author_id.isdigit() and int(author_id, base=10)) or f'<Unknown {author_id}>')
+      emoji = lookup[index]
+      value.append(f'{emoji}: {user} ({uses} uses)')
+
+    e.add_field(name='Top Users', value='\n'.join(value), inline=False)
+    await ctx.send(embed=e)
+
+  @commandstats.command("global")
+  async def commandstats_global(self, ctx: "MyContext"):
     query = """SELECT COUNT(*) FROM commands;"""
     total = await ctx.pool.fetchrow(query)
 
@@ -319,7 +431,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
       if guild_id is None:
         guild = "Private Message"
       else:
-        guild = self.censor_object(self.bot.get_guild(guild_id) or f"<Unknown {guild_id}>")
+        guild = self.censor_object(self.bot.get_guild(guild_id.isdigit() and int(guild_id, base=10)) or f"<Unknown {guild_id}>")
 
       emoji = lookup[i]
       value.append(f"{emoji}: {guild} ({uses} uses)")
@@ -335,15 +447,15 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
     records = await ctx.pool.fetch(query)
     value = []
     for (i, (author_id, uses)) in enumerate(records):
-      user = self.censor_object(self.bot.get_user(author_id) or f"<Unknown {author_id}>")
+      user = self.censor_object(self.bot.get_user(author_id.isdigit() and int(author_id, base=10)) or f"<Unknown {author_id}>")
       emoji = lookup[i]
       value.append(f"{emoji}: {user} ({uses} uses)")
 
     e.add_field(name="Top Users", value="\n".join(value), inline=False)
     await ctx.send(embed=e)
 
-  @stats.command("today")
-  async def stats_today(self, ctx: "MyContext"):
+  @commandstats.command("today")
+  async def commandstats_today(self, ctx: "MyContext"):
     query = """SELECT failed, COUNT(*) FROM commands WHERE used > (CURRENT_TIMESTAMP - INTERVAL '1 day') GROUP BY failed;"""
     total = await ctx.pool.fetch(query)
     failed, success, question = 0, 0, 0
@@ -393,7 +505,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
       if guild_id is None:
         guild = 'Private Message'
       else:
-        guild = self.censor_object(self.bot.get_guild(guild_id) or f'<Unknown {guild_id}>')
+        guild = self.censor_object(self.bot.get_guild(guild_id.isdigit() and int(guild_id, base=10)) or f'<Unknown {guild_id}>')
       emoji = lookup[index]
       value.append(f'{emoji}: {guild} ({uses} uses)')
 
@@ -410,15 +522,17 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
     records = await ctx.pool.fetch(query)
     value = []
     for (index, (author_id, uses)) in enumerate(records):
-      user = self.censor_object(self.bot.get_user(author_id) or f'<Unknown {author_id}>')
+      user = self.censor_object(self.bot.get_user(author_id.isdigit() and int(author_id, base=10)) or f'<Unknown {author_id}>')
       emoji = lookup[index]
       value.append(f'{emoji}: {user} ({uses} uses)')
 
     e.add_field(name='Top Users', value='\n'.join(value), inline=False)
     await ctx.send(embed=e)
 
-  @stats_today.before_invoke
-  @stats_global.before_invoke
+  @commandstats_today.before_invoke
+  @chatstats_today.before_invoke
+  @commandstats_global.before_invoke
+  @chatstats_global.before_invoke
   async def before_stats_invoke(self, ctx):
     await ctx.trigger_typing()
 
@@ -476,7 +590,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
     embed_.add_field(name='Connections', value=f'```py\n{joined_value}\n```', inline=False)
 
     node = wavelink.NodePool.get_node()
-    embed_.add_field(name="Wavelink", value=f"```py\n<Node i=\"{node.identifier}\" reg=\"{node.region}\" players={len(node.players)} pen={node.penalty} con={node.is_connected()}>\n```", inline=False)
+    embed_.add_field(name="Wavelink", value=f"```py\n<Node i=\"{node.identifier}\" reg=\"{node.region}\" players={len(node.players):,} pen={node.penalty:.3f} con={node.is_connected()}>\n```", inline=False)
 
     spam_control = self.bot.log.spam_control
     being_spammed = [
@@ -759,8 +873,11 @@ def setup(bot):
   if not hasattr(bot, 'command_stats'):
     bot.command_stats = Counter()
 
-  if not hasattr(bot, "chats_counter"):
-    bot.chats_counter = 0
+  if not hasattr(bot, "chat_stats"):
+    bot.chat_stats = Counter()
+
+  if hasattr(bot, "chats_counter"):
+    bot.chat_stats[215227961048170496] += bot.chats_counter
 
   if not hasattr(bot, "socket_stats"):
     bot.socket_stats = Counter()

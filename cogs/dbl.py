@@ -152,7 +152,7 @@ class TopGG(commands.Cog):
   @commands.Cog.listener()
   async def on_dbl_vote(self, data: dict):
     fut = time.FutureTime("12h", now=discord.utils.utcnow())
-    _type, user, isWeekend = data.get("type", None), data.get("user", None), data.get("isWeekend", False)
+    _type, user, isWeekend = data.get("type", None), data.get("user", None), data.get("is_weekend", False)
     self.bot.logger.info(f'Received an upvote, {data}')
     if _type == "test":
       fut = time.FutureTime("2m", now=discord.utils.utcnow())
