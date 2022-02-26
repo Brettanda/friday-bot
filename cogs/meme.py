@@ -34,8 +34,8 @@ class Meme(commands.Cog):
     )
     self.reddit.read_only = True
 
-  def __repr__(self):
-    return "<cogs.Meme>"
+  def __repr__(self) -> str:
+    return f"<cogs.{self.__cog_name__}>"
 
   async def get_reddit_post(self, ctx: "MyContext", sub_reddits: Union[str, dict] = None, reddit=None):  # ,hidden:bool=False):
     if reddit is None:

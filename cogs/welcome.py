@@ -54,8 +54,8 @@ class Welcome(commands.Cog):
     # async def message_channel(self, ctx, channel: discord.TextChannel = None, message: str = None):
     #   ...
 
-  def __repr__(self):
-    return "<cogs.Welcome>"
+  def __repr__(self) -> str:
+    return f"<cogs.{self.__cog_name__}>"
 
   def cog_check(self, ctx: MyContext) -> bool:
     return ctx.guild is not None

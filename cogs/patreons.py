@@ -85,7 +85,7 @@ class Patreons(commands.Cog):
     self.patreon = patreon.API(CREATOR_TOKEN)
 
   def __repr__(self) -> str:
-    return "<cogs.Patreon>"
+    return f"<cogs.{self.__cog_name__}>"
 
   @cache.cache()
   async def get_patrons(self) -> list:

@@ -47,8 +47,8 @@ class Fun(commands.Cog):
     self.poll_edit_lock = asyncio.Lock()
     self.poll_loop.start()
 
-  def __repr__(self):
-    return "<cogs.Fun>"
+  def __repr__(self) -> str:
+    return f"<cogs.{self.__cog_name__}>"
 
   async def setup(self) -> None:
     self.countdowns = await self.bot.db.query("SELECT guild,channel,message,title,time FROM countdowns")

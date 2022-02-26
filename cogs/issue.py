@@ -97,8 +97,8 @@ class Issue(commands.Cog):
   def __init__(self, bot: "Bot"):
     self.bot = bot
 
-  def __repr__(self):
-    return "<cogs.Issue>"
+  def __repr__(self) -> str:
+    return f"<cogs.{self.__cog_name__}>"
 
   @discord.utils.cached_property
   def log_issues(self) -> CustomWebhook:

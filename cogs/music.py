@@ -373,6 +373,9 @@ class Music(commands.Cog):
 
     bot.loop.create_task(self.start_nodes())
 
+  def __repr__(self) -> str:
+    return f"<cogs.{self.__cog_name__}>"
+
   async def start_nodes(self):
     await self.bot.wait_until_ready()
     nodes = [

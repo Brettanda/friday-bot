@@ -16,8 +16,8 @@ class ChooseGame(commands.Cog):
     self.bot = bot
     self.choose_game.start()
 
-  def __repr__(self):
-    return "<cogs.ChooseGame>"
+  def __repr__(self) -> str:
+    return f"<cogs.{self.__cog_name__}>"
 
   @tasks.loop(minutes=10.0)
   async def choose_game(self):

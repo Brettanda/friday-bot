@@ -51,7 +51,7 @@ class General(commands.Cog):
     self.process = psutil.Process()
 
   def __repr__(self) -> str:
-    return "<cogs.General>"
+    return f"<cogs.{self.__cog_name__}>"
 
   def welcome_message(self, *, prefix: str = config.defaultPrefix) -> dict:
     friday_emoji = self.bot.get_emoji(833507598413201459) if self.bot.get_emoji(833507598413201459) is not None else ''

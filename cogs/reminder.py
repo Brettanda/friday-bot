@@ -69,7 +69,7 @@ class Reminder(commands.Cog):
     self._task = bot.loop.create_task(self.dispatch_timers())
 
   def __repr__(self) -> str:
-    return "<spice.cogs.Reminder>"
+    return f"<cogs.{self.__cog_name__}>"
 
   def cog_unload(self) -> None:
     self._task.cancel()
