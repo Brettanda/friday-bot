@@ -156,7 +156,7 @@ class Patreons(commands.Cog):
     statuses = {
         "connected_discord": ":white_check_mark:" if bool(ctx.author.id in [p.id for p in patrons]) else ":x:",
         "activated_server_ids": ', '.join(patron.guild_ids) if len(patron.guild_ids) > 0 else ":x:",
-        "current_server_activated": ":white_check_mark:" if bool(ctx.guild and ctx.guild.id in [item for sublist in patron.guild_ids for item in sublist]) else ":x:",
+        "current_server_activated": ":white_check_mark:" if bool(ctx.guild and ctx.guild.id in [int(item, base=10) for item in patron.guild_ids]) else ":x:",
         # Add guilds remaining
     }
 
@@ -174,7 +174,10 @@ class Patreons(commands.Cog):
   @commands.guild_only()
   async def norm_patreon_server_true(self, ctx: "MyContext"):
     async with ctx.typing():
-      con = [c for c in await self.get_patrons() if str(c) == str(ctx.author.id)][0]
+      con = next((c for c in await self.get_patrons() if str(c) == str(ctx.author.id)), None)
+
+    if not con or con.id != ctx.author.id:
+      return await ctx.send(embed=embed(title="Your Patronage was not found", color=MessageColors.ERROR))
 
     if con and con.tier <= config.PremiumTiers.tier_1 and con.guilds_remaining <= 0:
       guilds = [int(g, base=10) for g in con.guild_ids]
@@ -197,7 +200,7 @@ class Patreons(commands.Cog):
     query = "SELECT guild_ids FROM patrons WHERE user_id = $1;"
     record = await ctx.pool.fetchval(query, str(ctx.author.id))
     if not record:
-      return await ctx.send(embed=embed(title="You are not a patron", color=MessageColors.ERROR))
+      return await ctx.send(embed=embed(title="This is not a premium server", color=MessageColors.ERROR))
 
     if len(record) == 0:
       return await ctx.send(embed=embed(title="You don't have any premium server activated", color=MessageColors.ERROR))
