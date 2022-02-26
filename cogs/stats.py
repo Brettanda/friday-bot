@@ -188,7 +188,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
       destination = f"#{message.channel} ({message.guild})"
       guild_id = ctx.guild.id
 
-    self.bot.logger.info(f'{message.created_at}: {message.author} in {destination}: {message.content}')
+    self.bot.logger.info(f'{message.author} in {destination}: {message.content}')
     async with self._batch_commands_lock:
       self._data_commands_batch.append({
           'guild': str(guild_id),
@@ -204,7 +204,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
     user_message = user_msg.clean_content
     bot_message = bot_msg and bot_msg.clean_content
 
-    self.bot.chats_counter += 1
+    self.bot.chat_stats[user_msg.author.id] += 1
     if user_msg.guild is None:
       guild_id = None
     else:
@@ -228,8 +228,8 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
     await self.register_command(ctx)
 
   @commands.Cog.listener()
-  async def on_chat_completion(self, user_msg: discord.Message, bot_msg: discord.Message, failed: bool, filtered: Optional[int] = None):
-    await self.register_chat(user_msg, bot_msg, failed, filtered)
+  async def on_chat_completion(self, user_msg: discord.Message, bot_msg: discord.Message, failed: bool, filtered: Optional[int] = None, persona: Optional[str] = "friday"):
+    await self.register_chat(user_msg, bot_msg, failed, filtered, persona)
 
   @commands.Cog.listener()
   async def on_socket_event_type(self, event_type):
@@ -253,14 +253,17 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
   async def chatstats(self, ctx: "MyContext"):
     delta = discord.utils.utcnow() - self.bot.uptime
     minutes = delta.total_seconds() / 60
-    cpm = self.bot.chats_counter / minutes
+    total = sum(self.bot.chat_stats.values())
+    cpm = total / minutes
+
+    counter_message = textwrap.shorten(f"{self.bot.chat_stats}", width=1990)
 
     chat_cog = self.bot.get_cog("Chat")
     rate_control = chat_cog._spam_check
     free_rate = [str(key) for key, value in rate_control._free._cache.items() if value._tokens == 0]
     voted_rate = [str(key) for key, value in rate_control._voted._cache.items() if value._tokens == 0]
     patron_rate = [str(key) for key, value in rate_control._patron._cache.items() if value._tokens == 0]
-    await ctx.send(f"{self.bot.chats_counter:,} messages ({cpm:.2f}/min)\n**Rate-limits**\nFree: {len(free_rate)} users\nVoted: {len(voted_rate)} users\nPatron: {len(patron_rate)} users")
+    await ctx.send(f"{total:,} messages ({cpm:.2f}/min)\n**Rate-limits**\nFree: {len(free_rate)} users\nVoted: {len(voted_rate)} users\nPatron: {len(patron_rate)} users\n{counter_message}")
 
   @commands.command("socketstats")
   async def socketstats(self, ctx: "MyContext"):
@@ -759,8 +762,11 @@ def setup(bot):
   if not hasattr(bot, 'command_stats'):
     bot.command_stats = Counter()
 
-  if not hasattr(bot, "chats_counter"):
-    bot.chats_counter = 0
+  if not hasattr(bot, "chat_stats"):
+    bot.chat_stats = Counter()
+
+  if hasattr(bot, "chats_counter"):
+    bot.chat_stats[215227961048170496] += bot.chats_counter
 
   if not hasattr(bot, "socket_stats"):
     bot.socket_stats = Counter()
