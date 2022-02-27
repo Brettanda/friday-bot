@@ -1,7 +1,7 @@
 import asyncio
 import os
 import pytest
-import sys
+# import sys
 # import time
 
 import discord

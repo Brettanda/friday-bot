@@ -3,14 +3,12 @@ from __future__ import annotations
 from discord.ext.commands import Context
 import discord
 import io
-from typing import Optional, Union
+from typing import Optional
 from typing_extensions import TYPE_CHECKING
 
 from .myembed import embed
 
 if TYPE_CHECKING:
-  from index import Friday as Bot
-  from cogs.database import Database
   from aiohttp import ClientSession
   from asyncpg import Pool
 
