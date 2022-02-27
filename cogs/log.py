@@ -283,7 +283,7 @@ class Log(commands.Cog):
   #     raise ex
 
   async def process_commands(self, message):
-    ctx = await self.bot.get_context(message)
+    ctx = await self.bot.get_context(message, cls=MyContext)
 
     if ctx.command is None:
       return

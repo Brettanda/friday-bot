@@ -319,7 +319,7 @@ class Chat(commands.Cog):
     if msg.guild is not None and msg.guild.id in self.bot.blacklist:
       return
 
-    ctx = await self.bot.get_context(msg)
+    ctx = await self.bot.get_context(msg, cls=MyContext)
     if ctx.command is not None or msg.webhook_id is not None:
       return
 
