@@ -139,7 +139,7 @@ class redditlink(commands.Cog):
     if config is None or not config.enabled:
       return
 
-    ctx: "MyContext" = await self.bot.get_context(message)
+    ctx: "MyContext" = await self.bot.get_context(message, cls=MyContext)
     if ctx.command is not None:
       return
 
@@ -233,7 +233,7 @@ class redditlink(commands.Cog):
 
   async def extract(self, query, command: bool = False, payload: discord.RawReactionActionEvent = None, ctx: "MyContext" = None, guild=None, channel: discord.TextChannel = None, message: discord.Message = None):
     if ctx is None and message is not None:
-      ctx = await self.bot.get_context(message)
+      ctx = await self.bot.get_context(message, cls=MyContext)
     if guild is None and not ctx.guild_id:
       raise commands.ArgumentParsingError()
     if channel is None and not ctx.channel_id:
