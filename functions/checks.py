@@ -82,6 +82,7 @@ def is_admin_and_min_tier(tier: int = config.PremiumTiers.tier_1) -> "_CheckDeco
     raise err
   return commands.check(predicate)
 
+
 def is_mod_and_min_tier(*, tier: int = config.PremiumTiers.tier_1, **perms) -> "_CheckDecorator":
   guild_is_min_tier_ = guild_is_min_tier(tier).predicate
   is_mod_or_guild_permissions_ = is_mod_or_guild_permissions(**perms).predicate
