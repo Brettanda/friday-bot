@@ -22,8 +22,8 @@ class AutoRole(commands.Cog):
     self.messages = {}
     # self.cancel_button = create_actionrow(create_button(ButtonStyle.red, "Cancel", custom_id="automod_cancel"))
 
-  def __repr__(self):
-    return "<cogs.Autorole>"
+  def __repr__(self) -> str:
+    return f"<cogs.{self.__cog_name__}>"
 
   def cog_check(self, ctx):
     if ctx.guild is None:

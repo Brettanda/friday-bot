@@ -15,7 +15,7 @@ class NaCl(commands.Cog):
     self.bot = bot
 
   def __repr__(self) -> str:
-    return "<cogs.NaCl>"
+    return f"<cogs.{self.__cog_name__}>"
 
   async def sexed(self, member: discord.Member, before, after):
     # NaCl

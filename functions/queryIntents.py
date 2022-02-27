@@ -43,13 +43,8 @@ context = []
 model = load_model("ml/models/intent_model.h5")
 
 
-with open("ml/current_intents.json", encoding="utf8") as f:
+with open("spice/ml/intents-toyst.json", encoding="utf8") as f:
   intents = json.load(f)
-
-new = [intent for intent in intents if intent["priority"] > 0]
-
-
-intents = new
 
 for intent in intents:
   for pattern in intent['patterns']:

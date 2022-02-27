@@ -51,7 +51,7 @@ class General(commands.Cog):
     self.process = psutil.Process()
 
   def __repr__(self) -> str:
-    return "<cogs.General>"
+    return f"<cogs.{self.__cog_name__}>"
 
   def welcome_message(self, *, prefix: str = config.defaultPrefix) -> dict:
     friday_emoji = self.bot.get_emoji(833507598413201459) if self.bot.get_emoji(833507598413201459) is not None else ''
@@ -153,15 +153,16 @@ class General(commands.Cog):
         embed=embed(
             title=ctx.guild.name + " - Info",
             thumbnail=ctx.guild.icon.url if ctx.guild.icon is not None else None,
-            fieldstitle=["Server Name", "Members", "Server ID", "Region", "Created", "Verification level", "Roles"],
+            fieldstitle=["Server Name", "Members", "Server ID", "Created", "Verification level", "Roles"],
             # fieldsval=[f"```py\n{ctx.guild.name}```", f"```py\n{ctx.guild.member_count}```", f"```py\n{ctx.guild.id}```", f"```py\n{ctx.guild.region}```", f'```py\n{ctx.guild.created_at.strftime("%b %d, %Y")}```', f"```py\n{ctx.guild.verification_level}```", f"```py\n{len(ctx.guild.roles)}```"]
-            fieldsval=[ctx.guild.name, ctx.guild.member_count, ctx.guild.id, ctx.guild.region, ctx.guild.created_at.strftime("%b %d, %Y"), ctx.guild.verification_level, len(ctx.guild.roles)]
+            fieldsval=[ctx.guild.name, ctx.guild.member_count, ctx.guild.id, discord.utils.format_dt(ctx.guild.created_at, style="D"), ctx.guild.verification_level, len(ctx.guild.roles)]
         )
     )
 
   @commands.command(name="userinfo", extras={"examples": ["@Friday", "476303446547365891"]}, help="Some information on the mentioned user")
   @commands.guild_only()
   async def norm_userinfo(self, ctx, user: typing.Optional[typing.Union[discord.Member, discord.User]] = None):
+    user = user or ctx.author
     await ctx.send(embed=embed(
         title=f"{user.name} - Info",
         thumbnail=user.display_avatar.url,

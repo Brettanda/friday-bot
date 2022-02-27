@@ -113,7 +113,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
     self.gateway_worker.start()
 
   def __repr__(self) -> str:
-    return "<cogs.Stats>"
+    return f"<cogs.{self.__cog_name__}>"
 
   async def cog_check(self, ctx: "MyContext") -> bool:
     if ctx.author.id == 892865928520413245:
@@ -611,7 +611,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
     except AttributeError:
       # future proofing for 3.9 I guess
       task_retriever = asyncio.all_tasks
-    else:
+    finally:
       all_tasks = task_retriever(loop=self.bot.loop)
 
     event_tasks = [

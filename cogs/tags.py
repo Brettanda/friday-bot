@@ -46,7 +46,7 @@ class Tags(commands.Cog):
     #   ...
 
   def __repr__(self) -> str:
-    return "<cogs.Tags>"
+    return f"<cogs.{self.__cog_name__}>"
 
   @cache.cache()
   async def get_guild_config(self, guild_id: int) -> Optional[Config]:

@@ -142,8 +142,8 @@ class Chat(commands.Cog):
     # channel_id: list
     self.chat_history = defaultdict(lambda: [])
 
-  def __repr__(self):
-    return "<cogs.Chat>"
+  def __repr__(self) -> str:
+    return f"<cogs.{self.__cog_name__}>"
 
   @cache.cache()
   async def get_guild_config(self, guild_id: int) -> Optional[Config]:
@@ -319,7 +319,7 @@ class Chat(commands.Cog):
     if msg.guild is not None and msg.guild.id in self.bot.blacklist:
       return
 
-    ctx = await self.bot.get_context(msg)
+    ctx = await self.bot.get_context(msg, cls=MyContext)
     if ctx.command is not None or msg.webhook_id is not None:
       return
 

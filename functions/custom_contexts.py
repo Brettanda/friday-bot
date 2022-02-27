@@ -3,14 +3,12 @@ from __future__ import annotations
 from discord.ext.commands import Context
 import discord
 import io
-from typing import Optional, Union
+from typing import Optional
 from typing_extensions import TYPE_CHECKING
 
 from .myembed import embed
 
 if TYPE_CHECKING:
-  from index import Friday as Bot
-  from cogs.database import Database
   from aiohttp import ClientSession
   from asyncpg import Pool
 
@@ -39,62 +37,6 @@ if TYPE_CHECKING:
 #     #     return await self.message.channel.send(content,**kwargs)
 #     #   else:
 #     #     raise e
-
-
-class FakeInteractionMessage:
-  """Turns an `discord.Interaction` into sudo a `discord.Message`"""
-
-  def __init__(self, bot: "Bot", interaction: discord.Interaction):
-    self._bot = bot
-    self.interaction = interaction
-    super().__init__()
-
-  @property
-  def bot(self) -> Union["Bot", discord.Client, discord.AutoShardedClient]:
-    return self._bot
-
-  @property
-  def channel(self) -> Union[discord.TextChannel, discord.DMChannel]:
-    return self.interaction.channel
-
-  @property
-  def guild(self) -> discord.Guild:
-    return self.interaction.guild
-
-  @property
-  def author(self) -> Union[discord.User, discord.Member]:
-    return self.interaction.user
-
-  @property
-  def type(self) -> discord.MessageType:
-    return discord.MessageType.application_command
-
-  @property
-  def content(self) -> str:
-    options = [f"{i.get('name', 'no-name')} {i.get('value', 'no-value')}" for i in self.interaction.data.get("options", [])]
-    return f"/{self.interaction.data['name']} {', '.join(options)}"
-
-  async def add_reaction(self, *args, **kwargs) -> discord.Message.add_reaction:
-    if self.interaction.message is None:
-      self.interaction.message = await self.interaction.original_message()
-    return await self.interaction.message.add_reaction(*args, **kwargs)
-
-  @property
-  def clean_content(self) -> str:
-    options = [f"{i.get('name', 'no-name')} {i.get('value', 'no-value')}" for i in self.interaction.data.get("options", [])]
-    return f"/{self.interaction.data['name']} {', '.join(options)}"
-
-  async def delete(self, *args, **kwargs) -> None:
-    """There should be no message to delete so just like ignore this function"""
-    return None
-
-  async def reply(self, content, **kwargs) -> discord.Message:
-    kwargs.pop("delete_after", None)
-    return await self.interaction.response.send_message(content, **kwargs)
-
-  @property
-  def _state(self) -> discord.Interaction._state:
-    return self.interaction._state
 
 
 class ConfirmationView(discord.ui.View):
@@ -175,10 +117,77 @@ class MultiSelectView(discord.ui.View):
       pass
 
 
+# class Modal(discord.ui.Modal):
+#   def __init__(self, title: str, items: List[dict]):
+#     super().__init__(title)
+#     self.values: Optional[list] = None
+#     for item in items:
+#       self.add_item(discord.ui.InputText(**item))
+
+#   async def callback(self, interaction: discord.Interaction):
+#     await interaction.response.defer()
+#     return [c.value for c in self.children]
+#     # embed = discord.Embed(title="Your Modal Results", color=discord.Color.random())
+#     # embed.add_field(name="First Input", value=self.children[0].value, inline=False)
+#     # # embed.add_field(name="Second Input", value=self.children[1].value, inline=False)
+#     # await interaction.response.send_message(embeds=[embed])
+
+
+# class ModalView(discord.ui.View):
+#   def __init__(self, *, modal_button: Optional[str] = "Modal", modal_title: Optional[str] = "Modal", modal_items: List[dict] = [], author_id: int):
+#     super().__init__(timeout=60.0)
+#     self._modal_button: Optional[str] = modal_button
+#     self._modal_title: Optional[str] = modal_title
+#     self._modal_items: List[dict] = modal_items
+#     self.author_id: int = author_id
+
+#     self.button_modal.label = modal_button
+
+#   async def interaction_check(self, interaction: discord.Interaction) -> bool:
+#     if interaction.user and interaction.user.id == self.author_id:
+#       return True
+#     else:
+#       await interaction.response.send_message('This confirmation dialog is not for you.', ephemeral=True)
+#       return False
+
+#   @discord.ui.button(label="Modal", style=discord.ButtonStyle.primary)
+#   async def button_modal(self, button, interaction: discord.Interaction):
+#     await interaction.response.send_modal(Modal(
+#         title=self._modal_title,
+#         items=self._modal_items
+#     ))
+#     self.stop()
+
+#   async def on_timeout(self) -> None:
+#     try:
+#       await self.message.delete()
+#     except discord.NotFound:
+#       pass
+
+class _ContextDBAcquire:
+  __slots__ = ("ctx", "timeout")
+
+  def __init__(self, ctx, timeout):
+    self.ctx = ctx
+    self.timeout = timeout
+
+  def __await__(self):
+    return self.ctx._acquire(self.timeout).__await__()
+
+  async def __aenter__(self):
+    await self.ctx._acquire(self.timeout)
+    return self.ctx.db
+
+  async def __aexit__(self, *args):
+    await self.ctx.release()
+
+
 class MyContext(Context):
   def __init__(self, *args, **kwargs):
     self.to_bot_channel: int = None
     super().__init__(*args, **kwargs)
+    self.pool: Pool = self.bot.pool
+    self._db = None
 
   def __repr__(self) -> str:
     return "<Context>"
@@ -195,12 +204,39 @@ class MyContext(Context):
     return self.bot.session
 
   @property
-  def db(self) -> Database:
-    return self.bot.db
+  def db(self):
+    return self._db if self._db else self.pool
 
-  @property
-  def pool(self) -> Pool:
-    return self.bot.db.pool
+  async def _acquire(self, timeout):
+    if self._db is None:
+      self._db = await self.pool.acquire(timeout=timeout)
+    return self._db
+
+  def acquire(self, *, timeout=300.0):
+    """Acquires a database connection from the pool. e.g. ::
+          async with ctx.acquire():
+              await ctx.db.execute(...)
+      or: ::
+          await ctx.acquire()
+          try:
+              await ctx.db.execute(...)
+          finally:
+              await ctx.release()
+    """
+    return _ContextDBAcquire(self, timeout)
+
+  async def release(self):
+    """Releases the database connection from the pool.
+      Useful if needed for "long" interactive commands where
+      we want to release the connection and re-acquire later.
+      Otherwise, this is called automatically by the bot.
+      """
+    # from source digging asyncpg source, releasing an already
+    # released connection does nothing
+
+    if self._db is not None:
+      await self.bot.pool.release(self._db)
+      self._db = None
 
   async def prompt(self, message: str, *, timeout: float = 60.0, author_id: Optional[int] = None, **kwargs) -> Optional[bool]:
     author_id = author_id or self.author.id
@@ -234,6 +270,19 @@ class MyContext(Context):
     await view.wait()
     return view.values
 
+  # async def modal(self, message: str, *, modal_button: Optional[str] = "Modal", modal_title: Optional[str] = "Modal", modal_items: List[dict] = [], author_id: Optional[int] = None, **kwargs):
+  #   author_id = author_id or self.author.id
+  #   view = ModalView(
+  #       modal_button=modal_button,
+  #       modal_title=modal_title,
+  #       modal_items=modal_items,
+  #       author_id=author_id,
+  #   )
+  #   kwargs["embed"] = kwargs.pop("embed", embed(title=message))
+  #   view.message = await self.send(view=view, **kwargs)
+  #   await view.wait()
+  #   return view.value
+
   async def reply(self, content: str = None, *, delete_original: bool = False, reply_to_replied: bool = True, **kwargs) -> Optional[discord.Message]:
     message = None
     if not hasattr(kwargs, "mention_author") and self.message.type.name != "application_command":
@@ -254,7 +303,8 @@ class MyContext(Context):
     try:
       if self.message.type == discord.MessageType.thread_starter_message:
         message = await self.message.channel.send(content, **kwargs)
-      message = await self.message.channel.send(content, reference=self.replied_reference or self.message, **kwargs)
+      reference = self.replied_reference if self.command and self.replied_reference else self.message if reply_to_replied else None
+      message = await self.message.channel.send(content, reference=reference, **kwargs)
     except (discord.Forbidden, discord.HTTPException):
       try:
         message = await self.message.channel.send(content, **kwargs)
@@ -262,10 +312,10 @@ class MyContext(Context):
         return message
     return message
 
-  async def send(self, content: str = None, *, delete_original: bool = False, **kwargs) -> Optional[Union[discord.Message, FakeInteractionMessage]]:
+  async def send(self, content: str = None, *, delete_original: bool = False, **kwargs) -> Optional[discord.Message]:
     return await self.reply(content, delete_original=delete_original, **kwargs)
 
-  async def safe_send(self, content: str, *, escape_mentions=True, **kwargs) -> Optional[Union[discord.Message, FakeInteractionMessage]]:
+  async def safe_send(self, content: str, *, escape_mentions=True, **kwargs) -> Optional[discord.Message]:
     if escape_mentions:
       content = discord.utils.escape_mentions(content)
 

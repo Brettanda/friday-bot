@@ -36,7 +36,7 @@ class Config(commands.Cog, command_attrs=dict(extras={"permissions": ["manage_gu
     self.bot = bot
 
   def __repr__(self) -> str:
-    return "<cogs.Config>"
+    return f"<cogs.{self.__cog_name__}>"
 
   async def cog_check(self, ctx: "MyContext"):
     if ctx.guild is None:

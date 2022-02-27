@@ -1,7 +1,7 @@
 import asyncio
 import os
 import pytest
-import sys
+# import sys
 # import time
 
 import discord
@@ -68,8 +68,8 @@ def cleanup(request, bot, channel):
     if not bot.was_online:
       asyncio.get_event_loop().run_until_complete(channel.send("!complete"))
     asyncio.get_event_loop().run_until_complete(channel.send("!stop"))
-    if sys.gettrace() is None:
-      asyncio.get_event_loop().run_until_complete(channel.purge(limit=1000, oldest_first=True))
+    # if sys.gettrace() is None:
+    #   asyncio.get_event_loop().run_until_complete(channel.purge(limit=250, oldest_first=True))
     asyncio.get_event_loop().run_until_complete(bot.close())
   request.addfinalizer(close)
 
