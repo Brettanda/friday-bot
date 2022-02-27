@@ -40,3 +40,16 @@ def levenshtein_ratio_and_distance(first: str, second: str, ratio_calc=False) ->
     return Ratio
   else:
     return distance[row][col]
+
+
+def levenshtein_string_list(string: str, arr: list, *, min_: float = 0.7) -> list:
+  """ Return an ordered list in numeric order of the strings in arr that are
+  at least min_ percent similar to string."""
+  return sorted(
+      [
+          (levenshtein_ratio_and_distance(string, arr[x]), i)
+          for x, i in enumerate(arr)
+          if levenshtein_ratio_and_distance(string, arr[x]) >= min_
+      ],
+      key=lambda x: x[0],
+  )

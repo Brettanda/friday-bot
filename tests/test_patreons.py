@@ -11,13 +11,22 @@ async def test_patreon(bot: "bot", channel: "channel"):
   await channel.send(content)
 
   msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout / 2)
-  assert msg.embeds[0].title == "!patreon"
+  assert msg.embeds[0].title == "Become a Patron!"
 
 
 @pytest.mark.asyncio
-async def test_server(bot: "bot", channel: "channel"):
-  content = "!patreon server"
+async def test_server_activate(bot: "bot", channel: "channel"):
+  content = "!patreon server activate"
   await channel.send(content)
 
   msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout / 2)
-  assert msg.embeds[0].title == "You are not allowed to use this command"
+  assert msg.embeds[0].title == "Your Patronage was not found"
+
+
+@pytest.mark.asyncio
+async def test_server_deactivate(bot: "bot", channel: "channel"):
+  content = "!patreon server deactivate"
+  await channel.send(content)
+
+  msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout / 2)
+  assert msg.embeds[0].title == "This command requires a premium server and a patron or a mod."

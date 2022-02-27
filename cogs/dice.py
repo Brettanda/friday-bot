@@ -11,8 +11,8 @@ from functions import MyContext
 class Dice(commands.Cog):
   """Roll some dice with advantage or just do some basic math."""
 
-  def __repr__(self):
-    return "<cogs.Dice>"
+  def __repr__(self) -> str:
+    return f"<cogs.{self.__cog_name__}>"
 
   @commands.command(name="dice", extras={"slash": True, "examples": ["1d20", "5d10k3", "d6"]}, aliases=["d", "r", "roll"], help="D&D dice rolling")
   async def norm_dice(self, ctx: "MyContext", *, roll: str):

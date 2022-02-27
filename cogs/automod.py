@@ -184,7 +184,7 @@ class AutoMod(commands.Cog):
     self._spam_check = dict()
 
   def __repr__(self) -> str:
-    return "<cogs.AutoMod>"
+    return f"<cogs.{self.__cog_name__}>"
 
   async def cog_command_error(self, ctx: "MyContext", error: Exception):
     error = getattr(error, "original", error)

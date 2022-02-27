@@ -48,6 +48,9 @@ class API(commands.Cog):
 
     self.bot.loop.create_task(self.run(), name="Web")
 
+  def __repr__(self) -> str:
+    return f"<cogs.{self.__cog_name__}>"
+
   def cog_unload(self):
     self.bot.loop.create_task(self.runner.cleanup())
 

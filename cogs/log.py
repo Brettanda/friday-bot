@@ -91,8 +91,8 @@ class Log(commands.Cog):
 
     self.bot.add_check(self.check_perms)
 
-  def __repr__(self):
-    return "<cogs.Log>"
+  def __repr__(self) -> str:
+    return f"<cogs.{self.__cog_name__}>"
 
   async def setup(self) -> None:
     if not hasattr(self, "bot_managers"):

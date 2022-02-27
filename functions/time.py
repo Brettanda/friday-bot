@@ -3,6 +3,7 @@ import re
 
 import pytz
 import parsedatetime as pdt
+from . import fuzzy
 from dateutil.relativedelta import relativedelta
 from discord.ext import commands
 
@@ -167,30 +168,38 @@ class HumanTime:
 
 class TimeWithTimezone(HumanTime):
   def __init__(self, argument, *, now=None):
-    now = now or datetime.datetime.utcnow()
-    elements = HumanTime.calendar.nlp(argument, sourceTime=now)
-    if elements is None or len(elements) == 0:
+    now = now or datetime.datetime.now(datetime.timezone.utc)
+    el = self.calendar.nlp(argument, sourceTime=now)
+    _, _, _, _, dt_string = el[0]
+    tz_string = argument.replace(dt_string, '').strip() or "UTC"
+
+    now = now.astimezone(datetime.timezone.utc).replace(tzinfo=None)
+
+    try:
+      tz = pytz.timezone(tz_string)
+      now_tz = tz.normalize(tz.localize(now))
+      now_tz = tz.normalize(now_tz.astimezone(tz))
+      # tz = datetime.timezone(pytz.timezone(tz_string)._utcoffset)
+    except pytz.UnknownTimeZoneError:
+      similar = fuzzy.levenshtein_string_list(tz_string, pytz.all_timezones)
+      raise commands.BadArgument(f"Unknown timezone provided: `{tz_string}` did you mean any of these: `{', '.join(i[1] for i in similar[:4])}`?")
+
+    # now = now.astimezone(tz)
+    dt, status = self.calendar.parseDT(argument, sourceTime=now_tz, tzinfo=now_tz.tzinfo)
+    if not status.hasDateOrTime:
       raise commands.BadArgument('Invalid time provided, try e.g. "tomorrow", "3 days", "9pm EST" or "10am America/New_York.')
 
-    dt, status, _, _, dt_string = elements[0]
     if not status.hasTime:
       # replace it with the current time
       dt = dt.replace(hour=now.hour, minute=now.minute, second=now.second, microsecond=now.microsecond)
 
     # if midnight is provided, just default to next day
-    if status.accuracy == pdt.pdtContext.ACU_HALFDAY:
-      dt = dt.replace(day=now.day + 1)
+    if status.accuracy != pdt.pdtContext.ACU_HALFDAY:
+      dt = dt.replace(day=now.day - 1)
 
-    dt = dt.replace(tzinfo=datetime.timezone.utc)
+    # dt = dt.replace(tzinfo=datetime.timezone.utc)
 
-    tz_string = argument.replace(dt_string, '').strip() or "UTC"
-
-    try:
-      tz = datetime.timezone(pytz.timezone(tz_string)._utcoffset)
-    except pytz.UnknownTimeZoneError:
-      raise commands.BadArgument(f'Unknown timezone provided: `{tz_string}`')
-
-    self.dt = dt.replace(tzinfo=tz)
+    self.dt = dt
 
 
 class Time(HumanTime):

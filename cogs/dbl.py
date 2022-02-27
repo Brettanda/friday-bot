@@ -31,6 +31,8 @@ class Refresh(discord.ui.View):
     super().__init__()
     self.add_item(discord.ui.Button(label="Vote", style=discord.ButtonStyle.url, url=VOTE_URL))
 
+# TODO: Add support for voting on discords.com and discordbotlist.com https://cdn.discordapp.com/attachments/892840236781015120/947203621358010428/unknown.png
+
 
 class TopGG(commands.Cog):
   """Handles interactions with the top.gg API"""
@@ -46,8 +48,8 @@ class TopGG(commands.Cog):
         self.bot.topgg_webhook.run(5000)
       self._update_stats_loop.start()
 
-  def __repr__(self):
-    return "<cogs.TopGG>"
+  def __repr__(self) -> str:
+    return f"<cogs.{self.__cog_name__}>"
 
   @discord.utils.cached_property
   def log_bumps(self) -> CustomWebhook:

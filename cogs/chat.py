@@ -142,8 +142,8 @@ class Chat(commands.Cog):
     # channel_id: list
     self.chat_history = defaultdict(lambda: [])
 
-  def __repr__(self):
-    return "<cogs.Chat>"
+  def __repr__(self) -> str:
+    return f"<cogs.{self.__cog_name__}>"
 
   @cache.cache()
   async def get_guild_config(self, guild_id: int) -> Optional[Config]:

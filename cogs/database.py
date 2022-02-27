@@ -116,8 +116,8 @@ class Database(commands.Cog):
         bot.loop.run_until_complete(self.create_tables())
       # self.loop.create_task(self.sync_table_columns())
 
-  def __repr__(self):
-    return "<cogs.Database>"
+  def __repr__(self) -> str:
+    return f"<cogs.{self.__cog_name__}>"
 
   @property
   def pool(self) -> asyncpg.Pool:

@@ -33,7 +33,7 @@ class Shortcuts(commands.Cog):
     #   ...
 
   def __repr__(self) -> str:
-    return "<cogs.Shortcuts>"
+    return f"<cogs.{self.__cog_name__}>"
 
   def cog_check(self, ctx: MyContext):
     if not ctx.guild:
