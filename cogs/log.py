@@ -87,10 +87,6 @@ class Log(commands.Cog):
     self.bot.process_commands = self.process_commands
     # self.bot.on_error = self.on_error
 
-    # self.check_for_mydb.start()
-
-    self.bot.add_check(self.check_perms)
-
   def __repr__(self) -> str:
     return f"<cogs.{self.__cog_name__}>"
 
@@ -101,7 +97,7 @@ class Log(commands.Cog):
         if role_id is not None:
           self.bot_managers.update({str(guild_id): str(role_id)})
 
-  def check_perms(self, ctx):
+  async def bot_check(self, ctx):
     if hasattr(ctx.channel, "type") and ctx.channel.type == discord.ChannelType.private:
       return True
 
