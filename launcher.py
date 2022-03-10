@@ -21,7 +21,7 @@ def get_logger(name: Optional[str] = ...) -> logging.Logger:
   logging.getLogger("discord").setLevel(logging.INFO)
   logging.getLogger("discord.http").setLevel(logging.WARNING)
 
-  log = logging.getLogger(name or "Unknown")
+  log = logging.getLogger(name)
   log.setLevel(logging.INFO)
 
   filehandler = RotatingFileHandler(filename="logging.log", encoding="utf-8", mode="w", maxBytes=max_bytes, backupCount=5)
