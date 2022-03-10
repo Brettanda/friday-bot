@@ -105,6 +105,10 @@ class Log(commands.Cog):
     if hasattr(ctx.channel, "type") and ctx.channel.type == discord.ChannelType.private:
       return True
 
+    is_owner = await self.bot.is_owner(ctx.author)
+    if is_owner:
+      return True
+
     required_perms = [("send_messages", True), ("read_messages", True), ("embed_links", True), ("add_reactions", True)]
     guild = ctx.guild
     me = guild.me if guild is not None else ctx.bot.user
