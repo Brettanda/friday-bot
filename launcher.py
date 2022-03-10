@@ -5,6 +5,7 @@ import os
 import signal
 import sys
 import time
+from typing import Optional
 from logging.handlers import RotatingFileHandler
 
 import discord
@@ -13,20 +14,23 @@ import requests
 from index import Friday
 
 
-def get_logger(title: str) -> logging.Logger:
+def get_logger(name: Optional[str] = ...) -> logging.Logger:
+  """The default logger for the bot."""
+
   max_bytes = 8 * 1024 * 1024  # 8 MiB
   logging.getLogger("discord").setLevel(logging.INFO)
   logging.getLogger("discord.http").setLevel(logging.WARNING)
 
-  log = logging.getLogger(title)
+  log = logging.getLogger(name)
   log.setLevel(logging.INFO)
+
   filehandler = RotatingFileHandler(filename="logging.log", encoding="utf-8", mode="w", maxBytes=max_bytes, backupCount=5)
-  formatter = logging.Formatter("%(levelname)s:%(name)s: %(message)s")
   filehandler.setFormatter(logging.Formatter("%(asctime)s:%(name)s:%(levelname)-8s%(message)s"))
+
   handler = logging.StreamHandler(sys.stdout)
-  log.addHandler(handler)
-  log.addHandler(filehandler)
-  handler.setFormatter(formatter)
+  handler.setFormatter(logging.Formatter("%(levelname)s:%(name)s: %(message)s"))
+
+  log.handlers = [handler, filehandler]
   return log
 
 
