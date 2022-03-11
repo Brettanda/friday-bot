@@ -178,12 +178,11 @@ class Fun(commands.Cog):
       8: "8️⃣"
   }
 
-  @commands.command(name="minesweeper", aliases=["ms"], help="Play minesweeper")
+  @commands.command(name="minesweeper", aliases=["ms"], extras={"examples": ["9 10", "5 5"]}, help="Play minesweeper")
   async def norm_minesweeper(self, ctx, size: Optional[int] = 5, bomb_count: Optional[int] = 6):
-    # FIXME: args "2 2" cpu 100% FUCK
     async with timeout(5):
-      mines = await self.mine_sweeper(size, bomb_count)
-      await ctx.reply(**mines)
+      mines = await self.bot.loop.run_in_executor(None, self.mine_sweeper, size, bomb_count)
+    await ctx.reply(embed=embed(title=f"{size}x{size} with {bomb_count} bombs", author_name="Minesweeper", description=mines))
 
   # @cog_ext.cog_slash(
   #     name="minesweeper",
@@ -197,9 +196,7 @@ class Fun(commands.Cog):
   # async def slash_minesweeper(self, ctx, size: int = 5, bomb_count: int = 3):
   #   await ctx.send(**await self.mine_sweeper(size, bomb_count))
 
-  async def mine_sweeper(self, size: int = 5, bomb_count: int = 3):
-    """Source for this command: https://medium.com/swlh/this-is-how-to-create-a-simple-minesweeper-game-in-python-af02077a8de"""
-
+  def mine_sweeper(self, size: int = 5, bomb_count: int = 3):
     if size > 9:
       raise exceptions.ArgumentTooLarge("Size cannot be larger than 9 due to the message character limit of Discord")
     if bomb_count > size * size or bomb_count >= 81:
@@ -209,54 +206,33 @@ class Fun(commands.Cog):
 
     arr = [[0 for row in range(size)] for column in range(size)]
 
-    # async with ctx.channel.typing():
-    async def get_xy() -> tuple:
-      return await self.bot.loop.run_in_executor(None, random.randint, 0, size - 1), await self.bot.loop.run_in_executor(None, random.randint, 0, size - 1)
+    planted = 0
+    while planted < bomb_count:
+      loc = random.randint(0, size**2 - 1)
+      row = loc // size
+      col = loc % size
 
-    for _ in range(bomb_count):
-      x, y = await get_xy()
-      while arr[y][x] == 'X':
-        x, y = await get_xy()
-      arr[y][x] = 'X'
+      if arr[row][col] == "X":
+        continue
 
-      if (x >= 0 and x <= size - 2) and (y >= 0 and y <= size - 1):
-        if arr[y][x + 1] != 'X':
-          arr[y][x + 1] += 1  # center right
+      arr[row][col] = "X"
+      planted += 1
 
-      if (x >= 1 and x <= size - 1) and (y >= 0 and y <= size - 1):
-        if arr[y][x - 1] != 'X':
-          arr[y][x - 1] += 1  # center left
+    for r in range(size):
+      for c in range(size):
+        if arr[r][c] == "X":
+          continue
 
-      if (x >= 1 and x <= size - 1) and (y >= 1 and y <= size - 1):
-        if arr[y - 1][x - 1] != 'X':
-          arr[y - 1][x - 1] += 1  # top left
+        neighbors = 0
+        for row in range(max(0, r - 1), min(size - 1, r + 1) + 1):
+          for col in range(max(0, c - 1), min(size - 1, c + 1) + 1):
+            if r == row and c == col:
+              continue
+            if arr[row][col] == "X":
+              neighbors += 1
+        arr[r][c] = neighbors
 
-      if (x >= 0 and x <= size - 2) and (y >= 1 and y <= size - 1):
-        if arr[y - 1][x + 1] != 'X':
-          arr[y - 1][x + 1] += 1  # top right
-
-      if (x >= 0 and x <= size - 1) and (y >= 1 and y <= size - 1):
-        if arr[y - 1][x] != 'X':
-          arr[y - 1][x] += 1  # top center
-
-      if (x >= 0 and x <= size - 2) and (y >= 0 and y <= size - 2):
-        if arr[y + 1][x + 1] != 'X':
-          arr[y + 1][x + 1] += 1  # bottom right
-
-      if (x >= 1 and x <= size - 1) and (y >= 0 and y <= size - 2):
-        if arr[y + 1][x - 1] != 'X':
-          arr[y + 1][x - 1] += 1  # bottom left
-
-      if (x >= 0 and x <= size - 1) and (y >= 0 and y <= size - 2):
-        if arr[y + 1][x] != 'X':
-          arr[y + 1][x] += 1  # bottom center
-
-    return dict(
-        embed=embed(
-            title=f"{size}x{size} with {bomb_count} bombs",
-            author_name="Minesweeper",
-            description="||" + "||\n||".join("||||".join(self.MINEEMOTES[cell] for cell in row) for row in arr) + "||"),
-    )
+    return "||" + "||\n||".join("||||".join(self.MINEEMOTES[cell] for cell in row) for row in arr) + "||"
 
   @commands.command(name='souptime', help='Soup Time')
   @commands.cooldown(1, 7, commands.BucketType.user)
