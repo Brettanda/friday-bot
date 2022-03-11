@@ -124,7 +124,7 @@ class Friday(commands.AutoShardedBot):
     return self.langs.get((await self.log.get_guild_config(msg.guild.id)).lang)
 
   async def get_context(self, message, *, cls=None) -> functions.MyContext:
-    return await super().get_context(message, cls=functions.MyContext)
+    return await super().get_context(message, cls=cls or functions.MyContext)
 
   async def setup(self, load_extentions: bool = False):
     self.session: aiohttp.ClientSession() = aiohttp.ClientSession(loop=self.loop)
