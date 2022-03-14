@@ -41,7 +41,11 @@ CLUSER_NAMES = (
     "Jarvis",
     "Karen",
     "Ultron",
-    "EDITH",
+    "Edith",
+    "Virgil",
+    "Plato",
+    "Homer",
+    "Jocasta",
 )
 
 NAMES = iter(CLUSER_NAMES)

@@ -81,9 +81,6 @@ class Log(commands.Cog):
 
     self.logger = self.bot.logger
 
-    # if not hasattr(self.bot, "slash"):
-    #   self.bot.slash = SlashCommand(self.bot, sync_commands=True, sync_on_cog_reload=True)  # , debug_guild=243159711237537802)
-
     self.bot.process_commands = self.process_commands
     # self.bot.on_error = self.on_error
 
@@ -115,23 +112,6 @@ class Log(commands.Cog):
       return True
 
     raise commands.BotMissingPermissions(missing)
-
-  # @tasks.loop(seconds=10.0)
-  # async def check_for_mydb(self):
-  #   try:
-  #     self.mydb.ping(reconnect=True, attempts=10, delay=0.1)
-  #   except mysql.connector.InterfaceError as e:
-  #     await relay_info("Disconnected from MYDB", self.bot, logger=self.logger)
-  #     raise e
-
-  # @check_for_mydb.before_loop
-  # async def before_check_for_mydb(self):
-  #   await self.bot.wait_until_ready()
-  #   while self.bot.is_closed():
-  #     await asyncio.sleep(0.1)
-
-  # def cog_unload(self):
-    # self.check_for_mydb.stop()
 
   @commands.Cog.listener()
   async def on_shard_connect(self, shard_id):
