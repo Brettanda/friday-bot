@@ -677,4 +677,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
 
 
 def setup(bot):
+  if not hasattr(bot, "restartPending"):
+    bot.restartPending = False
+
   bot.add_cog(Dev(bot))
