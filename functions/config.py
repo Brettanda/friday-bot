@@ -234,36 +234,6 @@ premium_roles = {
 
 allowed_mentions = discord.AllowedMentions(roles=False, everyone=False, users=True)
 
-games = [
-    "Developing myself",
-    "Minecraft 1.19",
-    "Super Smash Bros. Ultimate",
-    "Cyberpunk 2078",
-    "Forza Horizon 6",
-    "Red Dead Redemption 3",
-    "Grand Theft Auto V",
-    "Grand Theft Auto VI",
-    "Grand Theft Auto IV",
-    "Grand Theft Auto III",
-    "Ori and the Will of the Wisps",
-    "With the internet",
-    "DOOM Eternal",
-    "D&D (solo)",
-    "Muck",
-    "Big brain time",
-    "Uploading your consciousness",
-    "Learning everything on the Internet",
-    "some games",
-    "with Machine Learning",
-    "Escape from Tarkov",
-    # "Giving out inspirational quotes",
-    {
-        "type": discord.ActivityType.listening, "content": "myself"
-    },
-    {
-        "type": discord.ActivityType.watching, "content": "", "stats": True
-    }
-]
 
 soups = [
     "https://cdn.discordapp.com/attachments/503687266594586634/504016368618700801/homemade-chicken-noodle-soup.png",
