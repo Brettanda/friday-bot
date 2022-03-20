@@ -173,6 +173,30 @@ support_server_invites = {
 patreon_supporting_role = 843941723041300480
 
 
+class PremiumTiersNew(enum.Enum):
+  free = 0
+  voted = 1
+  tier_1 = 2
+  tier_2 = 3
+  tier_3 = 4
+  tier_4 = 5
+
+  roles = [
+        844090257221222401,
+        851980183962910720,
+        858993523536429056,
+        858993776994418708
+  ]
+
+  def __str__(self):
+    return self.name.capitalize().replace("_", " ")
+
+  def get_role(self, tier: int = free) -> Optional[int]:
+    if tier == 0 or tier > len(self.roles):
+      return None
+    return self.roles[tier - 1]
+
+
 class PremiumTiers:
   free = 0
   voted = 1

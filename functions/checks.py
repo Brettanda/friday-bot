@@ -21,7 +21,7 @@ def user_is_tier(tier: str) -> "_CheckDecorator":
   return commands.check(predicate)
 
 
-def is_min_tier(tier: int = config.PremiumTiers.tier_1) -> "_CheckDecorator":
+def is_min_tier(tier: int = config.PremiumTiersNew.tier_1.value) -> "_CheckDecorator":
   async def predicate(ctx: "MyContext") -> bool:
     if ctx.author.id == ctx.bot.owner_id:
       return True
@@ -36,7 +36,7 @@ def is_min_tier(tier: int = config.PremiumTiers.tier_1) -> "_CheckDecorator":
   return commands.check(predicate)
 
 
-def guild_is_min_tier(tier: int = config.PremiumTiers.tier_1) -> "_CheckDecorator":
+def guild_is_min_tier(tier: int = config.PremiumTiersNew.tier_1.value) -> "_CheckDecorator":
   """ Checks if a guild has at least patreon 'tier' """
 
   async def predicate(ctx: "MyContext") -> bool:
@@ -49,7 +49,7 @@ def guild_is_min_tier(tier: int = config.PremiumTiers.tier_1) -> "_CheckDecorato
   return commands.check(predicate)
 
 
-def user_is_min_tier(tier: int = config.PremiumTiers.tier_1) -> "_CheckDecorator":
+def user_is_min_tier(tier: int = config.PremiumTiersNew.tier_1.value) -> "_CheckDecorator":
   """ Checks if a user has at least patreon 'tier' """
 
   async def predicate(ctx: "MyContext") -> bool:
@@ -65,7 +65,7 @@ def user_is_min_tier(tier: int = config.PremiumTiers.tier_1) -> "_CheckDecorator
 
 
 # TODO: Remove this when moved to is_mod_and_min_tier
-def is_admin_and_min_tier(tier: int = config.PremiumTiers.tier_1) -> "_CheckDecorator":
+def is_admin_and_min_tier(tier: int = config.PremiumTiersNew.tier_1.value) -> "_CheckDecorator":
   guild_is_min_tier_ = guild_is_min_tier(tier).predicate
   is_admin_ = is_admin().predicate
   user_is_min_tier_ = user_is_min_tier(tier).predicate
@@ -83,7 +83,7 @@ def is_admin_and_min_tier(tier: int = config.PremiumTiers.tier_1) -> "_CheckDeco
   return commands.check(predicate)
 
 
-def is_mod_and_min_tier(*, tier: int = config.PremiumTiers.tier_1, **perms) -> "_CheckDecorator":
+def is_mod_and_min_tier(*, tier: int = config.PremiumTiersNew.tier_1.value, **perms) -> "_CheckDecorator":
   guild_is_min_tier_ = guild_is_min_tier(tier).predicate
   is_mod_or_guild_permissions_ = is_mod_or_guild_permissions(**perms).predicate
   user_is_min_tier_ = user_is_min_tier(tier).predicate
