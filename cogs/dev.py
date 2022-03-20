@@ -488,7 +488,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
 
   @norm_dev.command("time")
   async def time(self, ctx, *, time: time.TimeWithTimezone):
-    await ctx.send(f"{discord.utils.format_dt(time.dt)} ({discord.utils.format_dt(time.dt, style='R')})")
+    await ctx.send(f"{discord.utils.format_dt(time.dt)} ({discord.utils.format_dt(time.dt, style='R')}) `{discord.utils.format_dt(time.dt)}`")
 
   @norm_dev.command(name="sudo")
   async def sudo(self, ctx: "MyContext", channel: Optional[GlobalChannel], user: Union[discord.Member, discord.User], *, command: str):

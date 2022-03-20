@@ -155,7 +155,8 @@ class General(commands.Cog):
             thumbnail=ctx.guild.icon.url if ctx.guild.icon is not None else None,
             fieldstitle=["Server Name", "Members", "Server ID", "Created", "Verification level", "Roles"],
             # fieldsval=[f"```py\n{ctx.guild.name}```", f"```py\n{ctx.guild.member_count}```", f"```py\n{ctx.guild.id}```", f"```py\n{ctx.guild.region}```", f'```py\n{ctx.guild.created_at.strftime("%b %d, %Y")}```', f"```py\n{ctx.guild.verification_level}```", f"```py\n{len(ctx.guild.roles)}```"]
-            fieldsval=[ctx.guild.name, ctx.guild.member_count, ctx.guild.id, discord.utils.format_dt(ctx.guild.created_at, style="D"), ctx.guild.verification_level, len(ctx.guild.roles)]
+            fieldsval=[ctx.guild.name, ctx.guild.member_count, ctx.guild.id, discord.utils.format_dt(ctx.guild.created_at, style="D"), ctx.guild.verification_level, len(ctx.guild.roles)],
+            footer=f"Shard: {ctx.guild.shard_id+1}/{self.bot.shard_count}",
         )
     )
 

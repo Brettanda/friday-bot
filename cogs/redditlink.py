@@ -206,6 +206,17 @@ class redditlink(commands.Cog):
         await message.reply(embed=embed(title="Something went wrong", description="Please try again later. I have notified my boss of this error", color=MessageColors.ERROR), mention_author=False)
         raise e
 
+  # @discord.slash_command(name="redditextract")
+  # async def slash_extract(self, ctx, link: str):
+  #   ...
+
+  # @discord.message_command(name="Reddit Extract")
+  # async def context_extract(self, ctx: discord.commands.ApplicationContext, msg: discord.Message):
+  #   if ctx.author.id != msg.author.id:
+  #     raise MustBeAuthor()
+  #   await ctx.defer()
+  #   await ctx.respond(**await self.extract(query=msg.content, message=msg, ctx=ctx, guild=ctx.guild, channel=ctx.channel))
+
   @commands.group(name="redditextract", help="Extracts the media from the reddit post", invoke_without_command=True, case_insensitive=True)
   async def norm_extract(self, ctx: "MyContext", link: str):
     try:

@@ -1,3 +1,4 @@
+import discord
 import asyncio
 import os
 import random
@@ -123,8 +124,11 @@ class Meme(commands.Cog):
   @commands.max_concurrency(1, commands.BucketType.guild, wait=True)
   # @commands.cooldown(1, 1, commands.BucketType.user)
   async def norm_meme(self, ctx: "MyContext"):
-    async with ctx.typing():
-      return await ctx.reply(**await self.get_reddit_post(ctx, self.subs, self.reddit))
+    try:
+      async with ctx.typing():
+        await ctx.reply(**await self.get_reddit_post(ctx, self.subs, self.reddit))
+    except discord.Forbidden:
+      pass
 
   # @cog_ext.cog_slash(name="meme", description="Get a meme hand delivered to you")
   # @checks.slash(user=True, private=True)

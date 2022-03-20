@@ -142,7 +142,7 @@ def is_supporter_or_voted() -> "_CheckDecorator":
   return commands.check(predicate)
 
 
-async def user_voted(bot: "Bot", user: discord.User) -> bool:
+async def user_voted(bot: "Bot", user: discord.User, *, connection=None) -> bool:
   dbl_cog = bot.get_cog("TopGG")
   if dbl_cog is None:
     query = """SELECT id
@@ -151,9 +151,10 @@ async def user_voted(bot: "Bot", user: discord.User) -> bool:
                 AND extra #>> '{args,0}' = $1
                 ORDER BY expires
                 LIMIT 1;"""
-    record = await bot.db.pool.fetchrow(query, str(user.id))
+    connection = connection or bot.pool
+    record = await connection.fetchrow(query, str(user.id))
     return True if record else False
-  return await dbl_cog.user_has_voted(user.id)
+  return await dbl_cog.user_has_voted(user.id, connection=connection)
 
 
 def is_admin() -> "_CheckDecorator":
