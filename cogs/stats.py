@@ -18,7 +18,7 @@ import pycord.wavelink as wavelink
 from discord.ext import commands, tasks
 from typing_extensions import TYPE_CHECKING
 
-from functions import MyContext
+from functions import MyContext, time
 
 if TYPE_CHECKING:
   from index import Friday as Bot
@@ -548,7 +548,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
 
     emoji = attributes.get(record.levelname, '\N{CROSS MARK}')
     dt = datetime.datetime.utcfromtimestamp(record.created)
-    msg = textwrap.shorten(f'{emoji} [{discord.utils.format_dt(dt)}] `{record.msg % record.args}`', width=1990)
+    msg = textwrap.shorten(f'{emoji} [{time.format_dt(dt)}] `{record.msg % record.args}`', width=1990)
     await self.webhook.send(msg, username='Gateway', avatar_url='https://i.imgur.com/4PnCKB3.png')
 
   @commands.command("bothealth")

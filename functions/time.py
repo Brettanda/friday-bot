@@ -23,6 +23,7 @@ __all__ = (
     "FutureTime",
     "TimeoutTime",
     "UserFriendlyTime",
+    "format_dt",
 )
 
 
@@ -340,3 +341,13 @@ class UserFriendlyTime(commands.Converter):
       import traceback
       traceback.print_exc()
       raise
+
+
+def format_dt(dt, style=None):
+  # The below if statement is the fix for my timezone
+  if dt.tzinfo is None:
+    dt = dt.replace(tzinfo=datetime.timezone.utc)
+
+  if style is None:
+    return f'<t:{int(dt.timestamp())}>'
+  return f'<t:{int(dt.timestamp())}:{style}>'

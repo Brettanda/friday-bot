@@ -70,7 +70,7 @@ class Timer:
 
   @property
   def human_delta(self):
-    return discord.utils.format_dt(self.created_at, style="R")
+    return time.format_dt(self.created_at, style="R")
 
   @property
   def author_id(self):
@@ -194,7 +194,7 @@ class Reminder(commands.Cog):
         created=ctx.message.created_at,
         message_id=ctx.message.id
     )
-    await ctx.send(embed=embed(title=f"Reminder set {discord.utils.format_dt(when.dt, style='R')}", description=f"{when.arg}"))
+    await ctx.send(embed=embed(title=f"Reminder set {time.format_dt(when.dt, style='R')}", description=f"{when.arg}"))
 
   @reminder.command("list", ignore_extra=False)
   async def reminder_list(self, ctx: MyContext):
@@ -218,7 +218,7 @@ class Reminder(commands.Cog):
     titles, fields = [], []
     for _id, expires, message in records:
       shorten = textwrap.shorten(message, width=512)
-      titles.append(f"{_id}: {discord.utils.format_dt(expires, style='R')}")
+      titles.append(f"{_id}: {time.format_dt(expires, style='R')}")
       fields.append(f"{shorten}")
 
     await ctx.send(embed=embed(title="Reminders", fieldstitle=titles, fieldsval=fields, fieldsin=[False for _ in range(len(records))], footer=footer))
