@@ -14,6 +14,24 @@ if TYPE_CHECKING:
   from index import Friday as Bot
 
 
+class MaybeAcquire:
+  def __init__(self, connection, *, pool):
+    self.connection = connection
+    self.pool = pool
+    self._cleanup = False
+
+  async def __aenter__(self):
+    if self.connection is None:
+      self._cleanup = True
+      self._connection = c = await self.pool.acquire()
+      return c
+    return self.connection
+
+  async def __aexit__(self, *args):
+    if self._cleanup:
+      await self.pool.release(self._connection)
+
+
 class Timer:
   __slots__ = ("args", "kwargs", "event", "id", "created_at", "expires",)
 
@@ -87,15 +105,16 @@ class Reminder(commands.Cog):
     return Timer(record=record) if record else None
 
   async def wait_for_active_timer(self, *, connection=None, days=7):
-    timer = await self.get_active_timer(connection=connection, days=days)
-    if timer is not None:
-      self._have_data.set()
-      return timer
+    async with MaybeAcquire(connection=connection, pool=self.bot.pool) as con:
+      timer = await self.get_active_timer(connection=con, days=days)
+      if timer is not None:
+        self._have_data.set()
+        return timer
 
-    self._have_data.clear()
-    self._current_timer = None
-    await self._have_data.wait()
-    return await self.get_active_timer(connection=connection, days=days)
+      self._have_data.clear()
+      self._current_timer = None
+      await self._have_data.wait()
+      return await self.get_active_timer(connection=con, days=days)
 
   async def call_timer(self, timer):
     await self.bot.db.pool.execute("DELETE FROM reminders WHERE id=$1;", timer.id)
