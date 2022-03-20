@@ -58,15 +58,16 @@ class TopGG(commands.Cog):
   def cog_unload(self):
     self._update_stats_loop.cancel()
 
-  @cache.cache()
-  async def user_has_voted(self, user_id: int) -> bool:
+  @cache.cache(ignore_kwargs=True)
+  async def user_has_voted(self, user_id: int, *, connection=None) -> bool:
     query = """SELECT id
               FROM reminders
               WHERE event = 'vote'
               AND extra #>> '{args,0}' = $1
               ORDER BY expires
               LIMIT 1;"""
-    record = await self.bot.pool.fetchrow(query, str(user_id))
+    connection = connection or self.bot.pool
+    record = await connection.fetchrow(query, str(user_id))
     return True if record else False
 
   @commands.Cog.listener()

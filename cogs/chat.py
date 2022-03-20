@@ -344,7 +344,7 @@ class Chat(commands.Cog):
       current_tier = config.tier
     lang = config.lang if msg.guild is not None else "en"
 
-    voted = await checks.user_voted(self.bot, msg.author)
+    voted = await checks.user_voted(self.bot, msg.author, connection=ctx.db)
 
     if voted and not current_tier > function_config.PremiumTiers.voted:
       current_tier = function_config.PremiumTiers.voted
