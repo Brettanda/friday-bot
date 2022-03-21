@@ -14,7 +14,7 @@ from typing_extensions import TYPE_CHECKING
 
 from functions import (MessageColors, MyContext, cache, checks, embed, config as function_config,
                        relay_info)
-from functions.config import PremiumTiers, PremiumTiersNew
+from functions.config import PremiumTiersNew
 
 if TYPE_CHECKING:
   from index import Friday as Bot
