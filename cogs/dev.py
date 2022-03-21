@@ -332,7 +332,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       self.bot.load_extension(module)
 
   @reload.command(name="all")
-  async def reload_all(self, ctx):
+  async def reload_all(self, ctx: "MyContext"):
     async with ctx.typing():
       if self.bot.canary:
         stdout, stderr = await self.run_process("git pull origin canary && git submodule update")
@@ -343,8 +343,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
 
     load_dotenv()
 
-    if stdout.startswith("Already up-to-date."):
-      return await ctx.send(stdout)
+    await ctx.send(stdout)
 
     confirm = await ctx.prompt("Would you like to run pip install upgrade?")
     if confirm:
@@ -487,8 +486,8 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     await ctx.reply(embed=embed(title="Commands loaded"))
 
   @norm_dev.command("time")
-  async def time(self, ctx, *, time: time.TimeWithTimezone):
-    await ctx.send(f"{time.format_dt(time.dt)} ({time.format_dt(time.dt, style='R')}) `{time.format_dt(time.dt)}`")
+  async def time(self, ctx, *, _time: time.TimeWithTimezone):
+    await ctx.send(f"{time.format_dt(_time.dt)} ({time.format_dt(_time.dt, style='R')}) `{time.format_dt(_time.dt)}`")
 
   @norm_dev.command(name="sudo")
   async def sudo(self, ctx: "MyContext", channel: Optional[GlobalChannel], user: Union[discord.Member, discord.User], *, command: str):
