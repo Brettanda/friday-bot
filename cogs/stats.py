@@ -256,7 +256,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
     total = sum(self.bot.chat_stats.values())
     cpm = total / minutes
 
-    counter_message = textwrap.shorten(f"{self.bot.chat_stats}", width=1990)
+    counter_message = textwrap.shorten(f"{self.bot.chat_stats}", width=1922)
 
     chat_cog = self.bot.get_cog("Chat")
     rate_control = chat_cog._spam_check
