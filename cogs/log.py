@@ -318,7 +318,7 @@ class Log(commands.Cog):
     return ["/", "!", "f!", "!f", "%", ">", "?", "-", "(", ")"]
 
   @cache.cache(ignore_kwargs=True)
-  async def get_guild_config(self, guild_id: int, *,connection=None) -> typing.Optional[Config]:
+  async def get_guild_config(self, guild_id: int, *, connection=None) -> typing.Optional[Config]:
     query = "SELECT * FROM servers WHERE id=$1 LIMIT 1;"
     connection = connection or self.bot.pool
     record = await connection.fetchrow(query, str(guild_id))
