@@ -14,6 +14,24 @@ if TYPE_CHECKING:
   from index import Friday as Bot
 
 
+class MaybeAcquire:
+  def __init__(self, connection, *, pool):
+    self.connection = connection
+    self.pool = pool
+    self._cleanup = False
+
+  async def __aenter__(self):
+    if self.connection is None:
+      self._cleanup = True
+      self._connection = c = await self.pool.acquire()
+      return c
+    return self.connection
+
+  async def __aexit__(self, *args):
+    if self._cleanup:
+      await self.pool.release(self._connection)
+
+
 class Timer:
   __slots__ = ("args", "kwargs", "event", "id", "created_at", "expires",)
 
@@ -52,7 +70,7 @@ class Timer:
 
   @property
   def human_delta(self):
-    return discord.utils.format_dt(self.created_at, style="R")
+    return time.format_dt(self.created_at, style="R")
 
   @property
   def author_id(self):
@@ -87,15 +105,16 @@ class Reminder(commands.Cog):
     return Timer(record=record) if record else None
 
   async def wait_for_active_timer(self, *, connection=None, days=7):
-    timer = await self.get_active_timer(connection=connection, days=days)
-    if timer is not None:
-      self._have_data.set()
-      return timer
+    async with MaybeAcquire(connection=connection, pool=self.bot.pool) as con:
+      timer = await self.get_active_timer(connection=con, days=days)
+      if timer is not None:
+        self._have_data.set()
+        return timer
 
-    self._have_data.clear()
-    self._current_timer = None
-    await self._have_data.wait()
-    return await self.get_active_timer(connection=connection, days=days)
+      self._have_data.clear()
+      self._current_timer = None
+      await self._have_data.wait()
+      return await self.get_active_timer(connection=con, days=days)
 
   async def call_timer(self, timer):
     await self.bot.db.pool.execute("DELETE FROM reminders WHERE id=$1;", timer.id)
@@ -175,7 +194,7 @@ class Reminder(commands.Cog):
         created=ctx.message.created_at,
         message_id=ctx.message.id
     )
-    await ctx.send(embed=embed(title=f"Reminder set {discord.utils.format_dt(when.dt, style='R')}", description=f"{when.arg}"))
+    await ctx.send(embed=embed(title=f"Reminder set {time.format_dt(when.dt, style='R')}", description=f"{when.arg}"))
 
   @reminder.command("list", ignore_extra=False)
   async def reminder_list(self, ctx: MyContext):
@@ -199,7 +218,7 @@ class Reminder(commands.Cog):
     titles, fields = [], []
     for _id, expires, message in records:
       shorten = textwrap.shorten(message, width=512)
-      titles.append(f"{_id}: {discord.utils.format_dt(expires, style='R')}")
+      titles.append(f"{_id}: {time.format_dt(expires, style='R')}")
       fields.append(f"{shorten}")
 
     await ctx.send(embed=embed(title="Reminders", fieldstitle=titles, fieldsval=fields, fieldsin=[False for _ in range(len(records))], footer=footer))

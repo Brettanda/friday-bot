@@ -573,6 +573,54 @@ class Fun(commands.Cog):
 
   #   await self.bot.invoke(redditlink)
 
+  @commands.command("8ball", help="Ask the magic 8ball a question")
+  async def eightball(self, ctx: "MyContext", *, question: str):
+    answers = [
+        "It is certain.",
+        "It is decidedly so.",
+        "Without a doubt.",
+        "Yes - definitely.",
+        "You may rely on it.",
+        "As I see it, yes.",
+        "Most likely.",
+        "Outlook good.",
+        "Yes.",
+        "Signs point to yes.",
+        "Reply hazy, try again.",
+        "Ask again later.",
+        "Better not tell you now.",
+        "Cannot predict now.",
+        "Concentrate and ask again.",
+        "Don't count on it.",
+        "My reply is no.",
+        "My sources say no.",
+        "Outlook not so good.",
+        "Very doubtful."
+    ]
+
+    await ctx.send(embed=embed(title=f"🎱 | {random.choice(answers)}"))
+
+  @commands.command("rng", help="Get a random number between the given range")
+  async def rng(self, ctx: "MyContext", start: int = 0, end: int = 100):
+    if start > end:
+      return await ctx.send(embed=embed(title="Start cannot be greater than end", color=MessageColors.ERROR))
+    try:
+      number = random.randint(start, end)
+    except ValueError as e:
+      if str(e) == "high is out of bounds for int64":
+        return await ctx.send(embed=embed(title="One or both of the numbers are too large", color=MessageColors.ERROR))
+      elif str(e) == "low is out of bounds for int64":
+        return await ctx.send(embed=embed(title="One or both of the numbers are too small", color=MessageColors.ERROR))
+      else:
+        return await ctx.send(embed=embed(title="(╯°□°）╯︵ ┻━┻", color=MessageColors.ERROR))
+    else:
+      await ctx.send(embed=embed(title=f"{number}"))
+
+  @commands.command("choice", aliases=["pick", "select"], help="Pick a random item from a list. For multiple items, separate them with a comma.")
+  async def choice(self, ctx: "MyContext", *, choices: str):
+    choices = choices.split(",")
+    await ctx.send(embed=embed(title=f"{random.choice(choices)}"))
+
 
 def setup(bot):
   bot.add_cog(Fun(bot))

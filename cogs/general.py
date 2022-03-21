@@ -155,7 +155,7 @@ class General(commands.Cog):
             thumbnail=ctx.guild.icon.url if ctx.guild.icon is not None else None,
             fieldstitle=["Server Name", "Members", "Server ID", "Created", "Verification level", "Roles"],
             # fieldsval=[f"```py\n{ctx.guild.name}```", f"```py\n{ctx.guild.member_count}```", f"```py\n{ctx.guild.id}```", f"```py\n{ctx.guild.region}```", f'```py\n{ctx.guild.created_at.strftime("%b %d, %Y")}```', f"```py\n{ctx.guild.verification_level}```", f"```py\n{len(ctx.guild.roles)}```"]
-            fieldsval=[ctx.guild.name, ctx.guild.member_count, ctx.guild.id, discord.utils.format_dt(ctx.guild.created_at, style="D"), ctx.guild.verification_level, len(ctx.guild.roles)],
+            fieldsval=[ctx.guild.name, ctx.guild.member_count, ctx.guild.id, time.format_dt(ctx.guild.created_at, style="D"), ctx.guild.verification_level, len(ctx.guild.roles)],
             footer=f"Shard: {ctx.guild.shard_id+1}/{self.bot.shard_count}",
         )
     )
@@ -173,8 +173,8 @@ class General(commands.Cog):
             user.display_name if user.display_name != user.name else None,
             user.mention,
             len(user.roles) if hasattr(user, "roles") else 0,
-            discord.utils.format_dt(user.created_at, style="D") if hasattr(user, "created_at") else None,
-            discord.utils.format_dt(user.joined_at, style="D") if hasattr(user, "joined_at") else None,
+            time.format_dt(user.created_at, style="D") if hasattr(user, "created_at") else None,
+            time.format_dt(user.joined_at, style="D") if hasattr(user, "joined_at") else None,
             user.top_role.mention if hasattr(user, "top_role") else None,
             user.pending if hasattr(user, "pending") else None],
         color=user.color if user.color.value != 0 else MessageColors.DEFAULT
@@ -187,7 +187,7 @@ class General(commands.Cog):
         title=f"{role.name} - Info",
         thumbnail=role.icon and role.icon.url,
         fieldstitle=["Role Name", "Role ID", "Role Color", "Role Position", "Role Hoisted", "Role Mentionable", "Role Created"],
-        fieldsval=[role.name, role.id, role.color, role.position, role.hoist, role.mentionable, discord.utils.format_dt(role.created_at, style="D")],
+        fieldsval=[role.name, role.id, role.color, role.position, role.hoist, role.mentionable, time.format_dt(role.created_at, style="D")],
         color=role.colour if role.colour.value != 0 else MessageColors.DEFAULT
     ))
 

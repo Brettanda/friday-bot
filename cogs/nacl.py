@@ -34,7 +34,7 @@ class NaCl(commands.Cog):
     if not random.random() < 0.069:
       return
 
-    sex = self.bot.get_channel(932111746620084224)
+    sex = member.guild.get_channel(932111746620084224)
     if sex is None:
       return
 

@@ -488,7 +488,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
 
   @norm_dev.command("time")
   async def time(self, ctx, *, time: time.TimeWithTimezone):
-    await ctx.send(f"{discord.utils.format_dt(time.dt)} ({discord.utils.format_dt(time.dt, style='R')}) `{discord.utils.format_dt(time.dt)}`")
+    await ctx.send(f"{time.format_dt(time.dt)} ({time.format_dt(time.dt, style='R')}) `{time.format_dt(time.dt)}`")
 
   @norm_dev.command(name="sudo")
   async def sudo(self, ctx: "MyContext", channel: Optional[GlobalChannel], user: Union[discord.Member, discord.User], *, command: str):
@@ -677,4 +677,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
 
 
 def setup(bot):
+  if not hasattr(bot, "restartPending"):
+    bot.restartPending = False
+
   bot.add_cog(Dev(bot))
