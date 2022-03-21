@@ -6,7 +6,7 @@ from discord.ext import commands
 import discord
 from typing_extensions import TYPE_CHECKING
 
-from functions import MessageColors, MyContext, config, embed, cache
+from functions import MessageColors, MyContext, config, embed, cache, checks
 
 if TYPE_CHECKING:
   from index import Friday as Bot

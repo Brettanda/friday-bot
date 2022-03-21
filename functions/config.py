@@ -2,6 +2,7 @@ import asyncio
 import json
 import os
 import uuid
+import enum
 from typing import Optional
 
 import discord
