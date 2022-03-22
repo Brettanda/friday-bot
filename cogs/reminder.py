@@ -205,7 +205,7 @@ class Reminder(commands.Cog):
               AND extra #>> '{args,0}' = $1
               ORDER BY expires
               LIMIT 10;"""
-    records = await ctx.pool.fetch(query, str(ctx.author.id))
+    records = await ctx.db.fetch(query, str(ctx.author.id))
 
     if len(records) == 0:
       return await ctx.send(embed=embed(title="You have no reminders.", color=MessageColors.ERROR))
@@ -231,7 +231,7 @@ class Reminder(commands.Cog):
               AND event='reminder'
               AND extra #>> '{args,0}' = $2;"""
 
-    status = await ctx.pool.execute(query, id, str(ctx.author.id))
+    status = await ctx.db.execute(query, id, str(ctx.author.id))
     if status == "DELETE 0":
       return await ctx.send(embed=embed(title="You have no reminder with that ID.", color=MessageColors.ERROR))
 
@@ -250,7 +250,7 @@ class Reminder(commands.Cog):
               AND extra #>> '{args,0}' = $1;"""
 
     author_id = str(ctx.author.id)
-    total = await ctx.pool.fetchrow(query, author_id)
+    total = await ctx.db.fetchrow(query, author_id)
     total = total[0]
     if total == 0:
       return await ctx.send(embed=embed(title="You have no reminders.", color=MessageColors.ERROR))
@@ -260,7 +260,7 @@ class Reminder(commands.Cog):
       return await ctx.send(embed=embed(title="Cancelled."))
 
     query = """DELETE FROM reminders WHERE event = 'reminder' AND extra #>> '{args,0}' = $1;"""
-    await ctx.pool.execute(query, author_id)
+    await ctx.db.execute(query, author_id)
 
     if self._current_timer and self._current_timer.author_id == ctx.author.id:
       self._task.cancel()

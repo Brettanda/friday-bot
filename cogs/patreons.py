@@ -191,7 +191,7 @@ class Patreons(commands.Cog):
       return await ctx.send(embed=embed(title=f"You can only activate {con.max_guilds} server{'s' if con.max_guilds > 1 else ''}", description=f"The server{'s' if con.max_guilds > 1 else ''} you already have activated {'are' if con.max_guilds > 1 else 'is'}:\n\n" + '\n'.join(guild_names), color=MessageColors.ERROR))
 
     query = f"INSERT INTO patrons (user_id,tier,guild_ids) VALUES ($1,{config.PremiumTiersNew.tier_1.value},array[$2]::text[]) ON CONFLICT (user_id) DO UPDATE SET guild_ids=array_append(patrons.guild_ids,$2) WHERE NOT ($2=any(patrons.guild_ids));"
-    await ctx.pool.execute(query, str(ctx.author.id), str(ctx.guild.id))
+    await ctx.db.execute(query, str(ctx.author.id), str(ctx.guild.id))
     await ctx.send(embed=embed(title="You have upgraded this server to premium"))
 
   @norm_patreon_server.command("deactivate", aliases=["de-activate"])
@@ -199,7 +199,7 @@ class Patreons(commands.Cog):
   @checks.is_mod_and_min_tier(tier=config.PremiumTiersNew.tier_1.value, manage_guild=True)
   async def norm_patreon_server_false(self, ctx: "MyContext"):
     query = "SELECT guild_ids FROM patrons WHERE user_id = $1;"
-    record = await ctx.pool.fetchval(query, str(ctx.author.id))
+    record = await ctx.db.fetchval(query, str(ctx.author.id))
     if not record:
       return await ctx.send(embed=embed(title="This is not a premium server", color=MessageColors.ERROR))
 
@@ -207,7 +207,7 @@ class Patreons(commands.Cog):
       return await ctx.send(embed=embed(title="You don't have any premium server activated", color=MessageColors.ERROR))
 
     query = "UPDATE patrons SET guild_ids=array_remove(patrons.guild_ids,$1) WHERE user_id=$2 AND ($1=ANY(patrons.guild_ids));"
-    await ctx.pool.execute(query, str(ctx.guild.id), str(ctx.author.id))
+    await ctx.db.execute(query, str(ctx.guild.id), str(ctx.author.id))
     await ctx.send(embed=embed(title="You have successfully removed your server"))
 
 
