@@ -160,9 +160,12 @@ async def user_voted(bot: "Bot", user: discord.User, *, connection=None) -> bool
 def is_admin() -> "_CheckDecorator":
   """Do you have permission to change the setting of the bot"""
   async def predicate(ctx: "MyContext") -> bool:
-    return await commands.is_owner().predicate(ctx) or \
-        await commands.has_guild_permissions(manage_guild=True).predicate(ctx) or \
-        await commands.has_guild_permissions(administrator=True).predicate(ctx)
+    is_owner = await ctx.bot.is_owner(ctx.author)
+    if is_owner:
+      return True
+
+    if ctx.author.guild_permissions.manage_guild or ctx.author.guild_permissions.administrator:
+      return True
   return commands.check(predicate)
 
 
