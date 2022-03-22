@@ -343,8 +343,6 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
 
     load_dotenv()
 
-    await ctx.send(stdout)
-
     confirm = await ctx.prompt("Would you like to run pip install upgrade?")
     if confirm:
       pstdout, pstderr = await self.run_process("python -m pip install --upgrade pip && python -m pip install -r requirements.txt --upgrade --no-cache-dir")
