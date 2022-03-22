@@ -42,7 +42,7 @@ def guild_is_min_tier(tier: int = config.PremiumTiersNew.tier_1.value) -> "_Chec
   async def predicate(ctx: "MyContext") -> bool:
     if ctx.guild is None:
       return commands.NoPrivateMessage()
-    guild_tier = await ctx.pool.fetchval("""SELECT tier FROM patrons WHERE $1 = ANY(patrons.guild_ids) LIMIT 1""", str(ctx.guild.id))
+    guild_tier = await ctx.db.fetchval("""SELECT tier FROM patrons WHERE $1 = ANY(patrons.guild_ids) LIMIT 1""", str(ctx.guild.id))
     if guild_tier is None:
       return False
     return guild_tier >= tier
@@ -160,9 +160,12 @@ async def user_voted(bot: "Bot", user: discord.User, *, connection=None) -> bool
 def is_admin() -> "_CheckDecorator":
   """Do you have permission to change the setting of the bot"""
   async def predicate(ctx: "MyContext") -> bool:
-    return await commands.is_owner().predicate(ctx) or \
-        await commands.has_guild_permissions(manage_guild=True).predicate(ctx) or \
-        await commands.has_guild_permissions(administrator=True).predicate(ctx)
+    is_owner = await ctx.bot.is_owner(ctx.author)
+    if is_owner:
+      return True
+
+    if ctx.author.guild_permissions.manage_guild or ctx.author.guild_permissions.administrator:
+      return True
   return commands.check(predicate)
 
 

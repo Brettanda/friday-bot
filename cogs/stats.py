@@ -281,7 +281,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
   @chatstats.command("global")
   async def chatstats_global(self, ctx: "MyContext"):
     query = """SELECT COUNT(*) FROM chats;"""
-    total = await ctx.pool.fetchrow(query)
+    total = await ctx.db.fetchrow(query)
 
     e = discord.Embed(title="Chat Stats", colour=discord.Colour.blurple())
     e.description = f"{total[0]:,} chats used."
@@ -300,7 +300,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
     #            ORDER BY uses DESC
     #            LIMIT 5;"""
 
-    # records = await ctx.pool.fetch(query)
+    # records = await ctx.db.fetch(query)
     # value = "\n".join(f"{lookup[i]}: {command} ({uses} uses)" for (i, (command, uses)) in enumerate(records))
     # e.add_field(name="Top Commands", value=value, inline=False)
 
@@ -310,7 +310,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
                ORDER BY uses DESC
                LIMIT 5;"""
 
-    records = await ctx.pool.fetch(query)
+    records = await ctx.db.fetch(query)
     value = []
     for (i, (guild_id, uses)) in enumerate(records):
       if guild_id is None:
@@ -329,7 +329,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
                ORDER BY "uses" DESC
                LIMIT 5;"""
 
-    records = await ctx.pool.fetch(query)
+    records = await ctx.db.fetch(query)
     value = []
     for (i, (author_id, uses)) in enumerate(records):
       user = self.censor_object(self.bot.get_user(author_id.isdigit() and int(author_id, base=10)) or f"<Unknown {author_id}>")
@@ -342,7 +342,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
   @chatstats.command("today")
   async def chatstats_today(self, ctx: "MyContext"):
     query = """SELECT COUNT(*) FROM chats WHERE used > (CURRENT_TIMESTAMP - INTERVAL '1 day');"""
-    total = await ctx.pool.fetchval(query)
+    total = await ctx.db.fetchval(query)
 
     e = discord.Embed(title="Last 24 Hour Chat Stats", colour=discord.Colour.blurple())
     e.description = f"{total:,} chats used today."
@@ -363,7 +363,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
                    LIMIT 5;
                 """
 
-    records = await ctx.pool.fetch(query)
+    records = await ctx.db.fetch(query)
     value = []
     for (index, (guild_id, uses)) in enumerate(records):
       if guild_id is None:
@@ -383,7 +383,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
                   LIMIT 5;
               """
 
-    records = await ctx.pool.fetch(query)
+    records = await ctx.db.fetch(query)
     value = []
     for (index, (author_id, uses)) in enumerate(records):
       user = self.censor_object(self.bot.get_user(author_id.isdigit() and int(author_id, base=10)) or f'<Unknown {author_id}>')
@@ -396,7 +396,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
   @commandstats.command("global")
   async def commandstats_global(self, ctx: "MyContext"):
     query = """SELECT COUNT(*) FROM commands;"""
-    total = await ctx.pool.fetchrow(query)
+    total = await ctx.db.fetchrow(query)
 
     e = discord.Embed(title="Command Stats", colour=discord.Colour.blurple())
     e.description = f"{total[0]:,} commands used."
@@ -415,7 +415,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
                ORDER BY uses DESC
                LIMIT 5;"""
 
-    records = await ctx.pool.fetch(query)
+    records = await ctx.db.fetch(query)
     value = "\n".join(f"{lookup[i]}: {command} ({uses} uses)" for (i, (command, uses)) in enumerate(records))
     e.add_field(name="Top Commands", value=value, inline=False)
 
@@ -425,7 +425,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
                ORDER BY uses DESC
                LIMIT 5;"""
 
-    records = await ctx.pool.fetch(query)
+    records = await ctx.db.fetch(query)
     value = []
     for (i, (guild_id, uses)) in enumerate(records):
       if guild_id is None:
@@ -444,7 +444,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
                ORDER BY "uses" DESC
                LIMIT 5;"""
 
-    records = await ctx.pool.fetch(query)
+    records = await ctx.db.fetch(query)
     value = []
     for (i, (author_id, uses)) in enumerate(records):
       user = self.censor_object(self.bot.get_user(author_id.isdigit() and int(author_id, base=10)) or f"<Unknown {author_id}>")
@@ -457,7 +457,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
   @commandstats.command("today")
   async def commandstats_today(self, ctx: "MyContext"):
     query = """SELECT failed, COUNT(*) FROM commands WHERE used > (CURRENT_TIMESTAMP - INTERVAL '1 day') GROUP BY failed;"""
-    total = await ctx.pool.fetch(query)
+    total = await ctx.db.fetch(query)
     failed, success, question = 0, 0, 0
     for state, count in total:
       if state is False:
@@ -487,7 +487,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
                    LIMIT 5;
                 """
 
-    records = await ctx.pool.fetch(query)
+    records = await ctx.db.fetch(query)
     value = '\n'.join(f'{lookup[index]}: {command} ({uses} uses)' for (index, (command, uses)) in enumerate(records))
     e.add_field(name='Top Commands', value=value, inline=False)
 
@@ -499,7 +499,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
                    LIMIT 5;
                 """
 
-    records = await ctx.pool.fetch(query)
+    records = await ctx.db.fetch(query)
     value = []
     for (index, (guild_id, uses)) in enumerate(records):
       if guild_id is None:
@@ -519,7 +519,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
                   LIMIT 5;
               """
 
-    records = await ctx.pool.fetch(query)
+    records = await ctx.db.fetch(query)
     value = []
     for (index, (author_id, uses)) in enumerate(records):
       user = self.censor_object(self.bot.get_user(author_id.isdigit() and int(author_id, base=10)) or f'<Unknown {author_id}>')
@@ -742,7 +742,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
     await ctx.send(embed=e)
 
   async def tabulate_query(self, ctx: "MyContext", query: str, *args):
-    records = await ctx.pool.fetch(query, *args)
+    records = await ctx.db.fetch(query, *args)
 
     if len(records) == 0:
       return await ctx.send('No results found.')

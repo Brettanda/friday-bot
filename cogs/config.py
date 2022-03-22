@@ -106,7 +106,7 @@ class Config(commands.Cog, command_attrs=dict(extras={"permissions": ["manage_gu
 
     query = "UPDATE servers SET botchannel=$2 WHERE id=$1;"
 
-    await ctx.pool.execute(query, str(ctx.guild.id), str(channel.id))
+    await ctx.db.execute(query, str(ctx.guild.id), str(channel.id))
     log_cog.get_guild_config.invalidate(log_cog, ctx.guild.id)
     await ctx.send(embed=embed(title="Bot Channel", description=f"Bot channel set to {channel.mention}."))
 
@@ -116,7 +116,7 @@ class Config(commands.Cog, command_attrs=dict(extras={"permissions": ["manage_gu
     if log_cog is None:
       return await ctx.send(embed=embed(title="This functionality is not currently available. Try again later?", color=MessageColors.ERROR))
 
-    await ctx.pool.execute("UPDATE servers SET botchannel=NULL WHERE id=$1;", str(ctx.guild.id))
+    await ctx.db.execute("UPDATE servers SET botchannel=NULL WHERE id=$1;", str(ctx.guild.id))
     log_cog.get_guild_config.invalidate(log_cog, ctx.guild.id)
     await ctx.send(embed=embed(title="Bot Channel", description="Bot channel cleared."))
 

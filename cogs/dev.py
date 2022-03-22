@@ -343,8 +343,6 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
 
     load_dotenv()
 
-    await ctx.send(stdout)
-
     confirm = await ctx.prompt("Would you like to run pip install upgrade?")
     if confirm:
       pstdout, pstderr = await self.run_process("python -m pip install --upgrade pip && python -m pip install -r requirements.txt --upgrade --no-cache-dir")
@@ -354,7 +352,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
 
     modules = self.modules_from_git(stdout)
     mods_text = "\n".join(f"{index}. `{module}`" for index, (_, module) in enumerate(modules, start=1))
-    confirm = await ctx.prompt(f"This will update the following modules, are you sure?\n{mods_text}")
+    confirm = await ctx.prompt("This will update the following modules, are you sure?", content=str(mods_text), embed=embed(title="This will update the following modules, are you sure?"))
     if not confirm:
       return await ctx.send("Aborting.")
 
