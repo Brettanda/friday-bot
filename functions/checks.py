@@ -42,7 +42,7 @@ def guild_is_min_tier(tier: int = config.PremiumTiersNew.tier_1.value) -> "_Chec
   async def predicate(ctx: "MyContext") -> bool:
     if ctx.guild is None:
       return commands.NoPrivateMessage()
-    guild_tier = await ctx.pool.fetchval("""SELECT tier FROM patrons WHERE $1 = ANY(patrons.guild_ids) LIMIT 1""", str(ctx.guild.id))
+    guild_tier = await ctx.db.fetchval("""SELECT tier FROM patrons WHERE $1 = ANY(patrons.guild_ids) LIMIT 1""", str(ctx.guild.id))
     if guild_tier is None:
       return False
     return guild_tier >= tier
