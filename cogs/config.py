@@ -4,7 +4,7 @@ import discord
 import pycountry
 from discord.ext import commands
 
-from functions import embed, MyContext, config, MessageColors
+from functions import embed, MyContext, cache, config, MessageColors
 
 
 from typing_extensions import TYPE_CHECKING
