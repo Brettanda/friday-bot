@@ -275,15 +275,14 @@ class Log(commands.Cog):
       if ctx.guild is not None and ctx.guild.id in self.bot.blacklist:
         return
 
-      if ctx.guild is not None:
-        config = await self.get_guild_config(ctx.guild.id)
-        if config is not None:
-          if ctx.command.name in config.disabled_commands:
-            return
+      config = ctx.guild and await self.get_guild_config(ctx.guild.id, connection=ctx.db)
+      if config is not None:
+        if ctx.command.name in config.disabled_commands:
+          return
 
-          if config.bot_channel is not None and ctx.channel.id != config.bot_channel:
-            if ctx.command.name in config.restricted_commands and not ctx.author.guild_permissions.manage_guild:
-              ctx.to_bot_channel = config.bot_channel
+        if config.bot_channel is not None and ctx.channel.id != config.bot_channel:
+          if ctx.command.name in config.restricted_commands and not ctx.author.guild_permissions.manage_guild:
+            ctx.to_bot_channel = config.bot_channel
 
     bucket = self.spam_control.get_bucket(message)
     current = message.created_at.replace(tzinfo=datetime.timezone.utc).timestamp()
@@ -309,20 +308,24 @@ class Log(commands.Cog):
     if super_retry_after:
       return
 
-    await self.bot.invoke(ctx)
+    try:
+      await self.bot.invoke(ctx)
+    finally:
+      # Just in case
+      await ctx.release()
 
   def get_prefixes(self) -> [str]:
     return ["/", "!", "f!", "!f", "%", ">", "?", "-", "(", ")"]
 
-  @cache.cache()
-  async def get_guild_config(self, guild_id: int) -> typing.Optional[Config]:
+  @cache.cache(ignore_kwargs=True)
+  async def get_guild_config(self, guild_id: int, *, connection=None) -> typing.Optional[Config]:
     query = "SELECT * FROM servers WHERE id=$1 LIMIT 1;"
-    async with self.bot.db.pool.acquire(timeout=300.0) as conn:
-      record = await conn.fetchrow(query, str(guild_id))
-      self.bot.logger.debug(f"PostgreSQL Query: \"{query}\" + {str(guild_id)}")
-      if record is not None:
-        return await Config.from_record(record, self.bot)
-      return None
+    connection = connection or self.bot.pool
+    record = await connection.fetchrow(query, str(guild_id))
+    self.bot.logger.debug(f"PostgreSQL Query: \"{query}\" + {str(guild_id)}")
+    if record is not None:
+      return await Config.from_record(record, self.bot)
+    return None
 
   async def fetch_user_tier(self, user: discord.User):
     if user.id == self.bot.owner_id:

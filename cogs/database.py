@@ -81,6 +81,25 @@ class Database(commands.Cog):
             "failed boolean",
             "filtered int NULL",
         ],
+        "starboard": [
+            "id bigserial PRIMARY KEY NOT NULL",
+            "channel_id bigint",
+            "threshold int NOT NULL DEFAULT 1",
+            "locked boolean NOT NULL DEFAULT false",
+        ],
+        "starboard_entries": [
+            "id bigserial PRIMARY KEY NOT NULL",
+            "bot_message_id bigint",
+            "message_id bigint UNIQUE NOT NULL",
+            "channel_id bigint",
+            "author_id bigint",
+            "guild_id bigint NOT NULL REFERENCES starboard (id) ON DELETE CASCADE ON UPDATE NO ACTION",
+        ],
+        "starrers": [
+            "id bigserial PRIMARY KEY NOT NULL",
+            "author_id bigint NOT NULL",
+            "entry_id bigint NOT NULL REFERENCES starboard_entries (id) ON DELETE CASCADE ON UPDATE NO ACTION",
+        ],
         "countdowns": [
             "guild text NULL",
             "channel text NOT NULL",

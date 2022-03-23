@@ -14,6 +14,7 @@ from typing_extensions import TYPE_CHECKING
 
 from functions import (MessageColors, MyContext, cache, checks, embed, config as function_config,
                        relay_info)
+from functions.config import PremiumTiersNew
 
 if TYPE_CHECKING:
   from index import Friday as Bot
@@ -91,13 +92,13 @@ class SpamChecker:
     if hour_rate:
       return True, hour_bucket, None
 
-    if free_rate and not voted and not tier >= function_config.PremiumTiers.tier_1:
+    if free_rate and not voted and not tier >= PremiumTiersNew.tier_1.value:
       return True, free_bucket, "free"
 
-    if voted_rate and voted and tier < function_config.PremiumTiers.tier_1:
+    if voted_rate and voted and tier < PremiumTiersNew.tier_1.value:
       return True, voted_bucket, "voted"
 
-    if patron_rate and tier >= function_config.PremiumTiers.tier_1:
+    if patron_rate and tier >= PremiumTiersNew.tier_1.value:
       return True, patron_bucket, "patron"
 
     return False, None, None
@@ -204,7 +205,7 @@ class Chat(commands.Cog):
 
   @commands.command(name="persona", help="Change Friday's persona")
   @commands.guild_only()
-  @checks.is_admin_and_min_tier(function_config.PremiumTiers.tier_1)
+  @checks.is_mod_and_min_tier(tier=PremiumTiersNew.tier_1.value, manage_channels=True)
   async def persona(self, ctx: "MyContext"):
     current = await ctx.pool.fetchval("SELECT persona FROM servers WHERE id=$1", str(ctx.guild.id))
     choice = await ctx.multi_select("Please select a new persona", [p.capitalize() for _, p, _ in PERSONAS], values=[p for _, p, _ in PERSONAS], emojis=[e for e, _, _ in PERSONAS], descriptions=[d for _, _, d in PERSONAS], default=current, placeholder=f"Current: {current.capitalize()}")
@@ -327,7 +328,7 @@ class Chat(commands.Cog):
     if valid or (hasattr(msg.channel, "type") and isinstance(msg.channel.type, (discord.TextChannel)) and msg.channel.type not in (discord.ChannelType.store, discord.ChannelType.voice, discord.ChannelType.category, discord.ChannelType.news)):
       return
 
-    current_tier = function_config.PremiumTiers.free
+    current_tier = PremiumTiersNew.free.value
     if msg.guild is not None:
       config = await self.get_guild_config(msg.guild.id)
       if config is None:
@@ -346,8 +347,8 @@ class Chat(commands.Cog):
 
     voted = await checks.user_voted(self.bot, msg.author, connection=ctx.db)
 
-    if voted and not current_tier > function_config.PremiumTiers.voted:
-      current_tier = function_config.PremiumTiers.voted
+    if voted and not current_tier > PremiumTiersNew.voted.value:
+      current_tier = PremiumTiersNew.voted.value
 
     patron_cog = self.bot.get_cog("Patreons")
     if patron_cog is None:
@@ -362,7 +363,7 @@ class Chat(commands.Cog):
         current_tier = patron.tier if patron.tier > current_tier else current_tier
 
     char_count = len(msg.clean_content)
-    if (char_count > 100 and current_tier == function_config.PremiumTiers.free) or char_count > 200:
+    if (char_count > 100 and current_tier == PremiumTiersNew.free.value) or char_count > 200:
       return
 
     # Anything to do with sending messages needs to be below the above check
@@ -371,7 +372,7 @@ class Chat(commands.Cog):
     resp = None
     if is_spamming:
       vote_advertise = bool(rate_name == "free" and not voted)
-      patreon_advertise = bool(rate_name == "voted" and not (current_tier >= function_config.PremiumTiers.tier_1))
+      patreon_advertise = bool(rate_name == "voted" and not (current_tier >= PremiumTiersNew.tier_1.value))
       retry_after = discord.utils.utcnow() + datetime.timedelta(seconds=rate_limiter.get_retry_after())
       self.bot.logger.warning(f"Someone is being ratelimited at over {rate_limiter.rate} messages and can retry after <t:{int(retry_after.timestamp())}:R>")
       ad_message = "If you would like to send me more messages you can get more by voting at https://top.gg/bot/476303446547365891/vote" if vote_advertise else "If you would like to send even more messages please support Friday on Patreon at https://patreon.com/join/fridaybot" if patreon_advertise else ""

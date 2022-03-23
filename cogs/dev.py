@@ -332,7 +332,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       self.bot.load_extension(module)
 
   @reload.command(name="all")
-  async def reload_all(self, ctx):
+  async def reload_all(self, ctx: "MyContext"):
     async with ctx.typing():
       if self.bot.canary:
         stdout, stderr = await self.run_process("git pull origin canary && git submodule update")
@@ -343,9 +343,6 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
 
     load_dotenv()
 
-    if stdout.startswith("Already up-to-date."):
-      return await ctx.send(stdout)
-
     confirm = await ctx.prompt("Would you like to run pip install upgrade?")
     if confirm:
       pstdout, pstderr = await self.run_process("python -m pip install --upgrade pip && python -m pip install -r requirements.txt --upgrade --no-cache-dir")
@@ -354,8 +351,8 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       await ctx.safe_send(pstdout)
 
     modules = self.modules_from_git(stdout)
-    mods_text = "\n".join(f"{index}. `{module}`" for index, (_, module) in enumerate(modules, start=1))
-    confirm = await ctx.prompt(f"This will update the following modules, are you sure?\n{mods_text}")
+    mods_text = "\n".join(f"{index}. {module}" for index, (_, module) in enumerate(modules, start=1))
+    confirm = await ctx.prompt("This will update the following modules, are you sure?", content=f"```\n{mods_text or 'NULL'}\n```", embed=embed(title="This will update the following modules, are you sure?"))
     if not confirm:
       return await ctx.send("Aborting.")
 
@@ -487,8 +484,8 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     await ctx.reply(embed=embed(title="Commands loaded"))
 
   @norm_dev.command("time")
-  async def time(self, ctx, *, time: time.TimeWithTimezone):
-    await ctx.send(f"{discord.utils.format_dt(time.dt)} ({discord.utils.format_dt(time.dt, style='R')}) `{discord.utils.format_dt(time.dt)}`")
+  async def time(self, ctx, *, _time: time.TimeWithTimezone):
+    await ctx.send(f"{time.format_dt(_time.dt)} ({time.format_dt(_time.dt, style='R')}) `{time.format_dt(_time.dt)}`")
 
   @norm_dev.command(name="sudo")
   async def sudo(self, ctx: "MyContext", channel: Optional[GlobalChannel], user: Union[discord.Member, discord.User], *, command: str):
@@ -677,4 +674,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
 
 
 def setup(bot):
+  if not hasattr(bot, "restartPending"):
+    bot.restartPending = False
+
   bot.add_cog(Dev(bot))

@@ -56,12 +56,12 @@ def get_params(com):
   return params
 
 
-def syntax(command, prefix: str = "!", quotes: bool = True):
+def syntax(command, prefix: str = "!", quotes: bool = True, *, subcommands: list = None):
   cmd_and_aliases = "|".join([str(command), *command.aliases])
 
   sub_commands = ""
   if hasattr(command, "commands"):
-    for com in sorted(command.commands, key=lambda x: x.qualified_name):
+    for com in sorted(subcommands or command.commands, key=lambda x: x.qualified_name):
       if not com.hidden and com.enabled is not False:
         sub_commands += f"\n{prefix}{cmd_and_aliases} {com.name} {get_params(com)}"
   # sub_commands = "".join(str(command.commands) if hasattr(command,"commands") else "")
@@ -160,8 +160,8 @@ class Help(commands.HelpCommand):
   async def send_error_message(self, error):
     return await self.context.reply(embed=embed(title=str(error), color=MessageColors.ERROR))
 
-  def get_command_signature(self, command: commands.command) -> str:
-    return '\n'.join(syntax(command, self.context.clean_prefix, quotes=False).split('\n'))
+  def get_command_signature(self, command: commands.command, *, subcommands: list = None) -> str:
+    return '\n'.join(syntax(command, self.context.clean_prefix, quotes=False, subcommands=subcommands).split('\n'))
 
   def make_page_embed(self, commands, title="Friday - Help", description="If you would like to make a suggestion for a command please join the [Friday's Development](https://discord.gg/NTRuFjU) and explain your suggestion.\n\nFor more info on how commands work and how to format them please check out [docs.friday-bot.com](https://docs.friday-bot.com/).\n\n**Some commands will only show if you have the correct permissions to use them.**", missing_perms=False):
     embed = Embed(color=MessageColors.DEFAULT)
@@ -183,7 +183,7 @@ class Help(commands.HelpCommand):
 
       embed.add_field(
           name=signature,
-          value=command.help or "No help found...",
+          value=command.short_doc or command.help or "No help found...",
           inline=False,
       )
 
@@ -267,7 +267,7 @@ class Help(commands.HelpCommand):
       if "params" in group.extras:
         embed.add_field(name="Available Parameters", value="```py\n" + ", ".join(group.extras['params']) + "```", inline=False)
 
-    embed.add_field(name="Signature", value="```py\n" + self.get_command_signature(group) + "```", inline=False)
+    embed.add_field(name="Signature", value="```py\n" + self.get_command_signature(group, subcommands=filtered) + "```", inline=False)
 
     await ctx.reply(embed=embed)
 

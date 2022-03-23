@@ -52,7 +52,7 @@ class Strategy(enum.Enum):
   timed = 3
 
 
-def cache(maxsize=128, strategy=Strategy.lru, ignore_kwargs=False):
+def cache(*, maxsize: int = 128, strategy: Strategy = Strategy.lru, ignore_kwargs: bool = False):
   def decorator(func):
     if strategy is Strategy.lru:
       _internal_cache = LRU(maxsize)

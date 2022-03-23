@@ -14,6 +14,24 @@ if TYPE_CHECKING:
   from index import Friday as Bot
 
 
+class MaybeAcquire:
+  def __init__(self, connection, *, pool):
+    self.connection = connection
+    self.pool = pool
+    self._cleanup = False
+
+  async def __aenter__(self):
+    if self.connection is None:
+      self._cleanup = True
+      self._connection = c = await self.pool.acquire()
+      return c
+    return self.connection
+
+  async def __aexit__(self, *args):
+    if self._cleanup:
+      await self.pool.release(self._connection)
+
+
 class Timer:
   __slots__ = ("args", "kwargs", "event", "id", "created_at", "expires",)
 
@@ -52,7 +70,7 @@ class Timer:
 
   @property
   def human_delta(self):
-    return discord.utils.format_dt(self.created_at, style="R")
+    return time.format_dt(self.created_at, style="R")
 
   @property
   def author_id(self):
@@ -87,15 +105,16 @@ class Reminder(commands.Cog):
     return Timer(record=record) if record else None
 
   async def wait_for_active_timer(self, *, connection=None, days=7):
-    timer = await self.get_active_timer(connection=connection, days=days)
-    if timer is not None:
-      self._have_data.set()
-      return timer
+    async with MaybeAcquire(connection=connection, pool=self.bot.pool) as con:
+      timer = await self.get_active_timer(connection=con, days=days)
+      if timer is not None:
+        self._have_data.set()
+        return timer
 
-    self._have_data.clear()
-    self._current_timer = None
-    await self._have_data.wait()
-    return await self.get_active_timer(connection=connection, days=days)
+      self._have_data.clear()
+      self._current_timer = None
+      await self._have_data.wait()
+      return await self.get_active_timer(connection=con, days=days)
 
   async def call_timer(self, timer):
     await self.bot.db.pool.execute("DELETE FROM reminders WHERE id=$1;", timer.id)
@@ -175,7 +194,7 @@ class Reminder(commands.Cog):
         created=ctx.message.created_at,
         message_id=ctx.message.id
     )
-    await ctx.send(embed=embed(title=f"Reminder set {discord.utils.format_dt(when.dt, style='R')}", description=f"{when.arg}"))
+    await ctx.send(embed=embed(title=f"Reminder set {time.format_dt(when.dt, style='R')}", description=f"{when.arg}"))
 
   @reminder.command("list", ignore_extra=False)
   async def reminder_list(self, ctx: MyContext):
@@ -186,7 +205,7 @@ class Reminder(commands.Cog):
               AND extra #>> '{args,0}' = $1
               ORDER BY expires
               LIMIT 10;"""
-    records = await ctx.pool.fetch(query, str(ctx.author.id))
+    records = await ctx.db.fetch(query, str(ctx.author.id))
 
     if len(records) == 0:
       return await ctx.send(embed=embed(title="You have no reminders.", color=MessageColors.ERROR))
@@ -199,7 +218,7 @@ class Reminder(commands.Cog):
     titles, fields = [], []
     for _id, expires, message in records:
       shorten = textwrap.shorten(message, width=512)
-      titles.append(f"{_id}: {discord.utils.format_dt(expires, style='R')}")
+      titles.append(f"{_id}: {time.format_dt(expires, style='R')}")
       fields.append(f"{shorten}")
 
     await ctx.send(embed=embed(title="Reminders", fieldstitle=titles, fieldsval=fields, fieldsin=[False for _ in range(len(records))], footer=footer))
@@ -212,7 +231,7 @@ class Reminder(commands.Cog):
               AND event='reminder'
               AND extra #>> '{args,0}' = $2;"""
 
-    status = await ctx.pool.execute(query, id, str(ctx.author.id))
+    status = await ctx.db.execute(query, id, str(ctx.author.id))
     if status == "DELETE 0":
       return await ctx.send(embed=embed(title="You have no reminder with that ID.", color=MessageColors.ERROR))
 
@@ -231,7 +250,7 @@ class Reminder(commands.Cog):
               AND extra #>> '{args,0}' = $1;"""
 
     author_id = str(ctx.author.id)
-    total = await ctx.pool.fetchrow(query, author_id)
+    total = await ctx.db.fetchrow(query, author_id)
     total = total[0]
     if total == 0:
       return await ctx.send(embed=embed(title="You have no reminders.", color=MessageColors.ERROR))
@@ -241,7 +260,7 @@ class Reminder(commands.Cog):
       return await ctx.send(embed=embed(title="Cancelled."))
 
     query = """DELETE FROM reminders WHERE event = 'reminder' AND extra #>> '{args,0}' = $1;"""
-    await ctx.pool.execute(query, author_id)
+    await ctx.db.execute(query, author_id)
 
     if self._current_timer and self._current_timer.author_id == ctx.author.id:
       self._task.cancel()

@@ -71,7 +71,6 @@ class Friday(commands.AutoShardedBot):
     )
 
     self.session = None
-    self.restartPending = False
     self.views_loaded = False
 
     # guild_id: str("!")

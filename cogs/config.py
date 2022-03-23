@@ -4,7 +4,7 @@ import discord
 import pycountry
 from discord.ext import commands
 
-from functions import embed, MyContext, config, MessageColors
+from functions import embed, MyContext, cache, config, MessageColors
 
 
 from typing_extensions import TYPE_CHECKING
@@ -15,8 +15,32 @@ if TYPE_CHECKING:
 UPDATES_CHANNEL = 744652167142441020
 
 
-class CommandName(commands.Converter):
+class ChannelOrMember(commands.Converter):
+  async def convert(self, ctx, argument):
+    try:
+      return await commands.TextChannelConverter().convert(ctx, argument)
+    except commands.BadArgument:
+      return await commands.MemberConverter().convert(ctx, argument)
+
+
+class CogName(commands.Converter):
   async def convert(self, ctx: "MyContext", argument: str):
+    lowered = argument.lower()
+
+    valid_cogs = {
+        c.name
+        for c in ctx.bot.cogs
+        if c.name not in ("Dev", "Config")
+    }
+
+    if lowered not in valid_cogs:
+      raise commands.BadArgument(f"Cog {lowered!r} does not exist.")
+
+    return lowered
+
+
+class Command(commands.Converter):
+  async def convert(self, ctx: "MyContext", argument: str) -> commands.Command:
     lowered = argument.lower()
 
     valid_commands = {
@@ -28,7 +52,23 @@ class CommandName(commands.Converter):
     if lowered not in valid_commands:
       raise commands.BadArgument(f"Command {lowered!r} does not exist. Make sure you're using the full name not an alias.")
 
-    return lowered
+    return ctx.bot.get_command(lowered)
+
+
+class ConfigConfig:
+  @classmethod
+  async def from_record(cls, record, bot):
+    self = cls()
+    self.bot: "Bot" = bot
+    self.id = int(record["id"], base=10)
+    self.mod_role_ids = record["mod_roles"]
+
+    return self
+
+  @property
+  def mod_roles(self) -> list:
+    guild = self.bot.get_guild(self.id)
+    return guild and self.mod_role_ids and [guild.get_role(int(id_, base=10)) for id_ in self.mod_role_ids]
 
 
 class Config(commands.Cog, command_attrs=dict(extras={"permissions": ["manage_guild"]})):
@@ -45,6 +85,16 @@ class Config(commands.Cog, command_attrs=dict(extras={"permissions": ["manage_gu
     if not ctx.author.guild_permissions.manage_guild:
       raise commands.MissingPermissions(["manage_guild"])
     return True
+
+  @cache.cache(ignore_kwargs=True)
+  async def get_guild_config(self, guild_id: int, *, connection=None) -> Optional[ConfigConfig]:
+    query = "SELECT * FROM servers WHERE id=$1 LIMIT 1;"
+    connection = connection or self.bot.pool
+    record = await connection.fetchrow(query, str(guild_id))
+    self.bot.logger.debug(f"PostgreSQL Query: \"{query}\" + {str(guild_id)}")
+    if record is not None:
+      return await ConfigConfig.from_record(record, self.bot)
+    return None
 
   @commands.command(name="prefix", extras={"examples": ["?", "f!"]}, help="Sets the prefix for Fridays commands")
   async def prefix(self, ctx: "MyContext", new_prefix: Optional[str] = config.defaultPrefix):
@@ -106,7 +156,7 @@ class Config(commands.Cog, command_attrs=dict(extras={"permissions": ["manage_gu
 
     query = "UPDATE servers SET botchannel=$2 WHERE id=$1;"
 
-    await ctx.pool.execute(query, str(ctx.guild.id), str(channel.id))
+    await ctx.db.execute(query, str(ctx.guild.id), str(channel.id))
     log_cog.get_guild_config.invalidate(log_cog, ctx.guild.id)
     await ctx.send(embed=embed(title="Bot Channel", description=f"Bot channel set to {channel.mention}."))
 
@@ -116,49 +166,49 @@ class Config(commands.Cog, command_attrs=dict(extras={"permissions": ["manage_gu
     if log_cog is None:
       return await ctx.send(embed=embed(title="This functionality is not currently available. Try again later?", color=MessageColors.ERROR))
 
-    await ctx.pool.execute("UPDATE servers SET botchannel=NULL WHERE id=$1;", str(ctx.guild.id))
+    await ctx.db.execute("UPDATE servers SET botchannel=NULL WHERE id=$1;", str(ctx.guild.id))
     log_cog.get_guild_config.invalidate(log_cog, ctx.guild.id)
     await ctx.send(embed=embed(title="Bot Channel", description="Bot channel cleared."))
 
   @commands.group("restrict", help="Restricts the selected command to the bot channel. Ignored with manage server permission.", invoke_without_command=True)
-  async def restrict(self, ctx: "MyContext", *, command: CommandName):
+  async def restrict(self, ctx: "MyContext", *, command: Command):
     query = "UPDATE servers SET restricted_commands=array_append(restricted_commands, $1) WHERE id=$2 AND NOT ($1=any(restricted_commands));"
     log_cog = self.bot.log
     if log_cog is None:
       return await ctx.send(embed=embed(title="This functionality is not currently available. Try again later?", color=MessageColors.ERROR))
-    await ctx.pool.execute(query, command, str(ctx.guild.id))
+    await ctx.db.execute(query, command.qualified_name, str(ctx.guild.id))
     log_cog.get_guild_config.invalidate(log_cog, ctx.guild.id)
-    await ctx.send(embed=embed(title=f"**{command}** has been restricted to the bot channel."))
+    await ctx.send(embed=embed(title=f"**{command.qualified_name}** has been restricted to the bot channel."))
 
   @restrict.command("list")
   async def restrict_list(self, ctx: "MyContext"):
     query = "SELECT restricted_commands FROM servers WHERE id=$1;"
-    restricted_commands = await ctx.pool.fetchval(query, str(ctx.guild.id))
+    restricted_commands = await ctx.db.fetchval(query, str(ctx.guild.id))
     if restricted_commands is None:
       restricted_commands = []
     await ctx.send(embed=embed(title="Restricted Commands", description="\n".join(restricted_commands)))
 
   @commands.command("unrestrict", help="Unrestricts the selected command.")
-  async def unrestrict(self, ctx: "MyContext", *, command: CommandName):
+  async def unrestrict(self, ctx: "MyContext", *, command: Command):
     query = "UPDATE servers SET restricted_commands=array_remove(restricted_commands, $1) WHERE id=$2;"
     log_cog = self.bot.log
     if log_cog is None:
       return await ctx.send(embed=embed(title="This functionality is not currently available. Try again later?", color=MessageColors.ERROR))
 
-    await ctx.pool.execute(query, command, str(ctx.guild.id))
+    await ctx.db.execute(query, command.qualified_name, str(ctx.guild.id))
     log_cog.get_guild_config.invalidate(log_cog, ctx.guild.id)
-    await ctx.send(embed=embed(title=f"**{command}** has been unrestricted."))
+    await ctx.send(embed=embed(title=f"**{command.qualified_name}** has been unrestricted."))
 
   @commands.group("enable", help="Enables the selected command(s).", invoke_without_command=True)
-  async def enable(self, ctx: "MyContext", *, command: CommandName):
+  async def enable(self, ctx: "MyContext", *, command: Command):
     query = "UPDATE servers SET disabled_commands=array_remove(disabled_commands, $1) WHERE id=$2;"
     log_cog = self.bot.log
     if log_cog is None:
       return await ctx.send(embed=embed(title="This functionality is not currently available. Try again later?", color=MessageColors.ERROR))
 
-    await ctx.pool.execute(query, command, str(ctx.guild.id))
+    await ctx.db.execute(query, command.qualified_name, str(ctx.guild.id))
     log_cog.get_guild_config.invalidate(log_cog, ctx.guild.id)
-    await ctx.send(embed=embed(title=f"**{command}** has been enabled."))
+    await ctx.send(embed=embed(title=f"**{command.qualified_name}** has been enabled."))
 
   @enable.command("all", help="Enables all commands.", hidden=True)
   @commands.is_owner()
@@ -166,20 +216,20 @@ class Config(commands.Cog, command_attrs=dict(extras={"permissions": ["manage_gu
     ...
 
   @commands.group(name="disable", extras={"examples": ["ping", "ping last", "\"blacklist add\" ping"]}, aliases=["disablecmd"], help="Disable a command", invoke_without_command=True)
-  async def disable(self, ctx: "MyContext", *, command: CommandName):
+  async def disable(self, ctx: "MyContext", *, command: Command):
     query = "UPDATE servers SET disabled_commands=array_append(disabled_commands, $1) WHERE id=$2 AND NOT ($1=any(disabled_commands));"
     log_cog = self.bot.log
     if log_cog is None:
       return await ctx.send(embed=embed(title="This functionality is not currently available. Try again later?", color=MessageColors.ERROR))
 
-    await ctx.pool.execute(query, command, str(ctx.guild.id))
+    await ctx.db.execute(query, command.qualified_name, str(ctx.guild.id))
     log_cog.get_guild_config.invalidate(log_cog, ctx.guild.id)
-    await ctx.send(embed=embed(title=f"**{command}** has been disabled."))
+    await ctx.send(embed=embed(title=f"**{command.qualified_name}** has been disabled."))
 
   @disable.command("list", help="Lists all disabled commands.")
   async def disable_list(self, ctx: "MyContext"):
     query = "SELECT disabled_commands FROM servers WHERE id=$1;"
-    disabled_commands = await ctx.pool.fetchval(query, str(ctx.guild.id))
+    disabled_commands = await ctx.db.fetchval(query, str(ctx.guild.id))
     if disabled_commands is None:
       return await ctx.send(embed=embed(title="There are no disabled commands."))
     await ctx.send(embed=embed(title="Disabled Commands", description="\n".join(disabled_commands) if len(disabled_commands) > 0 else "There are no disabled commands."))
