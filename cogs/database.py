@@ -86,7 +86,6 @@ class Database(commands.Cog):
             "channel_id bigint",
             "threshold int NOT NULL DEFAULT 1",
             "locked boolean NOT NULL DEFAULT false",
-            "max_age interval NOT NULL DEFAULT '7 days'::interval",
         ],
         "starboard_entries": [
             "id bigserial PRIMARY KEY NOT NULL",

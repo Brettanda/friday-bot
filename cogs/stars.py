@@ -38,7 +38,7 @@ def requires_starboard():
 
 
 class StarboardConfig:
-  __slots__ = ('bot', 'id', 'channel_id', 'threshold', 'locked', 'needs_migration', 'max_age')
+  __slots__ = ('bot', 'id', 'channel_id', 'threshold', 'locked', 'needs_migration')
 
   def __init__(self, *, guild_id, bot, record=None):
     self.id = guild_id
@@ -52,7 +52,6 @@ class StarboardConfig:
       if self.needs_migration:
         self.locked = True
 
-      self.max_age = record['max_age']
     else:
       self.channel_id = None
 
@@ -373,10 +372,6 @@ class Stars(commands.Cog):
     if empty_message or msg.type not in (discord.MessageType.default, discord.MessageType.reply):
       raise StarError('\N{NO ENTRY SIGN} This message cannot be starred.')
 
-    oldest_allowed = discord.utils.utcnow() - starboard.max_age
-    if msg.created_at < oldest_allowed:
-      raise StarError('\N{NO ENTRY SIGN} This message is too old.')
-
     # check if this is freshly starred
     # originally this was a single query but it seems
     # WHERE ... = (SELECT ... in some_cte) is bugged
@@ -616,7 +611,6 @@ class Stars(commands.Cog):
 
     data.append(f'Locked: {starboard.locked}')
     data.append(f'Limit: {plural(starboard.threshold):star}')
-    data.append(f'Max Age: {plural(starboard.max_age.days):day}')
     await ctx.send(embed=embed(title="Starboard Info", description='\n'.join(data)))
 
   @commands.group(invoke_without_command=True, ignore_extra=False)
@@ -1111,55 +1105,6 @@ class Stars(commands.Cog):
     self.get_starboard.invalidate(self, ctx.guild.id)
 
     await ctx.send(embed=embed(title=f'Messages now require {plural(stars):star} to show up in the starboard.'))
-
-  @star.command(name='age', extras={"examples": ["7 days", "2 weeks", "1 month", "1 year"]})
-  @checks.is_admin()
-  @requires_starboard()
-  async def star_age(self, ctx, number: int, units='days'):
-    """Sets the maximum age of a message valid for starring.
-
-    By default, the maximum age is 7 days. Any message older
-    than this specified age is invalid of being starred.
-
-    To set the limit you must specify a number followed by
-    a unit. The valid units are "days", "weeks", "months",
-    or "years". They do not have to be pluralized. The
-    default unit is "days".
-
-    The number cannot be negative, and it must be a maximum
-    of 35. If the unit is years then the cap is 10 years.
-
-    You cannot mix and match units.
-
-    You must have Manage Server permissions to use this.
-    """
-
-    valid_units = ('days', 'weeks', 'months', 'years')
-
-    if units[-1] != 's':
-      units = units + 's'
-
-    if units not in valid_units:
-      return await ctx.send(embed=embed(title=f'Not a valid unit! I expect only {human_join(valid_units)}.'))
-
-    number = min(max(number, 1), 35)
-
-    if units == 'years' and number > 10:
-      return await ctx.send('The maximum is 10 years!')
-
-    # the input is sanitised so this should be ok
-    # only doing this because asyncpg requires a timedelta object but
-    # generating that with these clamp units is overkill
-    query = f"UPDATE starboard SET max_age='{number} {units}'::interval WHERE id=$1;"
-    await ctx.db.execute(query, ctx.guild.id)
-    self.get_starboard.invalidate(self, ctx.guild.id)
-
-    if number == 1:
-      age = f'1 {units[:-1]}'
-    else:
-      age = f'{number} {units}'
-
-    await ctx.send(embed=embed(title=f'Messages must now be less than {age} old to be starred.'))
 
   @commands.command(hidden=True)
   @commands.is_owner()
