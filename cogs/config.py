@@ -15,8 +15,32 @@ if TYPE_CHECKING:
 UPDATES_CHANNEL = 744652167142441020
 
 
-class CommandName(commands.Converter):
+class ChannelOrMember(commands.Converter):
+  async def convert(self, ctx, argument):
+    try:
+      return await commands.TextChannelConverter().convert(ctx, argument)
+    except commands.BadArgument:
+      return await commands.MemberConverter().convert(ctx, argument)
+
+
+class CogName(commands.Converter):
   async def convert(self, ctx: "MyContext", argument: str):
+    lowered = argument.lower()
+
+    valid_cogs = {
+        c.name
+        for c in ctx.bot.cogs
+        if c.name not in ("Dev", "Config")
+    }
+
+    if lowered not in valid_cogs:
+      raise commands.BadArgument(f"Cog {lowered!r} does not exist.")
+
+    return lowered
+
+
+class Command(commands.Converter):
+  async def convert(self, ctx: "MyContext", argument: str) -> commands.Command:
     lowered = argument.lower()
 
     valid_commands = {
@@ -28,7 +52,23 @@ class CommandName(commands.Converter):
     if lowered not in valid_commands:
       raise commands.BadArgument(f"Command {lowered!r} does not exist. Make sure you're using the full name not an alias.")
 
-    return lowered
+    return ctx.bot.get_command(lowered)
+
+
+class ConfigConfig:
+  @classmethod
+  async def from_record(cls, record, bot):
+    self = cls()
+    self.bot: "Bot" = bot
+    self.id = int(record["id"], base=10)
+    self.mod_role_ids = record["mod_roles"]
+
+    return self
+
+  @property
+  def mod_roles(self) -> list:
+    guild = self.bot.get_guild(self.id)
+    return guild and self.mod_role_ids and [guild.get_role(int(id_, base=10)) for id_ in self.mod_role_ids]
 
 
 class Config(commands.Cog, command_attrs=dict(extras={"permissions": ["manage_guild"]})):
@@ -45,6 +85,16 @@ class Config(commands.Cog, command_attrs=dict(extras={"permissions": ["manage_gu
     if not ctx.author.guild_permissions.manage_guild:
       raise commands.MissingPermissions(["manage_guild"])
     return True
+
+  @cache.cache(ignore_kwargs=True)
+  async def get_guild_config(self, guild_id: int, *, connection=None) -> Optional[ConfigConfig]:
+    query = "SELECT * FROM servers WHERE id=$1 LIMIT 1;"
+    connection = connection or self.bot.pool
+    record = await connection.fetchrow(query, str(guild_id))
+    self.bot.logger.debug(f"PostgreSQL Query: \"{query}\" + {str(guild_id)}")
+    if record is not None:
+      return await ConfigConfig.from_record(record, self.bot)
+    return None
 
   @commands.command(name="prefix", extras={"examples": ["?", "f!"]}, help="Sets the prefix for Fridays commands")
   async def prefix(self, ctx: "MyContext", new_prefix: Optional[str] = config.defaultPrefix):
