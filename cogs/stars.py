@@ -10,7 +10,7 @@ import discord
 from discord.ext import commands, tasks
 
 from functions import MessageColors, cache, checks, embed, MyContext
-from functions.formats import human_join, plural
+from functions.formats import plural
 
 # from .utils.paginator import SimplePages
 
