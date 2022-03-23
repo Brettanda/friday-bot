@@ -351,8 +351,8 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       await ctx.safe_send(pstdout)
 
     modules = self.modules_from_git(stdout)
-    mods_text = "\n".join(f"{index}. `{module}`" for index, (_, module) in enumerate(modules, start=1))
-    confirm = await ctx.prompt("This will update the following modules, are you sure?", content=str(mods_text), embed=embed(title="This will update the following modules, are you sure?"))
+    mods_text = "\n".join(f"{index}. {module}" for index, (_, module) in enumerate(modules, start=1))
+    confirm = await ctx.prompt("This will update the following modules, are you sure?", content=f"```\n{mods_text or 'NULL'}\n```", embed=embed(title="This will update the following modules, are you sure?"))
     if not confirm:
       return await ctx.send("Aborting.")
 
