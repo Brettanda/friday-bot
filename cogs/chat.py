@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 import os
 import functools
@@ -138,6 +139,7 @@ class Chat(commands.Cog):
     self.translate_client = translate.Client()  # _http=self.bot.http)
     self.h = HTMLParser()
 
+    self.api_lock = bot.cluster and bot.cluster.launcher.api_lock or asyncio.Semaphore(3)
     self._spam_check = SpamChecker()
 
     # channel_id: list
@@ -234,17 +236,21 @@ class Chat(commands.Cog):
 
   async def content_filter_check(self, text: str, user_id: str):
     try:
-      response = openai.Completion.create(
-          engine="content-filter-alpha",
-          prompt=f"<|endoftext|>{text}\n--\nLabel:",
-          temperature=0,
-          max_tokens=1,
-          top_p=1,
-          frequency_penalty=0,
-          presence_penalty=0,
-          user=user_id,
-          logprobs=10
-      )
+      async with self.api_lock:
+        response = await self.bot.loop.run_in_executor(
+              None,
+              functools.partial(
+                  lambda: openai.Completion.create(
+                      engine="content-filter-alpha",
+                      prompt=f"<|endoftext|>{text}\n--\nLabel:",
+                      temperature=0,
+                      max_tokens=1,
+                      top_p=1,
+                      frequency_penalty=0,
+                      presence_penalty=0,
+                      user=user_id,
+                      logprobs=10
+                  )))
     except Exception as e:
       raise e
     # print(response)
@@ -279,20 +285,21 @@ class Chat(commands.Cog):
       if hasattr(con, "persona") and con.persona == "pirate":
         engine = os.environ["OPENAIMODELPIRATE"]
     try:
-      response = await self.bot.loop.run_in_executor(
-          None,
-          functools.partial(
-              lambda: openai.Completion.create(
-                  model=engine,
-                  prompt=prompt,
-                  temperature=0.8,
-                  max_tokens=25 if not current_tier >= function_config.PremiumTiers.tier_1 else 50,
-                  top_p=0.9,
-                  user=str(author.id),
-                  frequency_penalty=1.5,
-                  presence_penalty=1.5,
-                  stop=[f"\n{author_prompt_name}:", f"\n{my_prompt_name}:", "\n", "\n###\n"]
-              )))
+      async with self.api_lock:
+        response = await self.bot.loop.run_in_executor(
+            None,
+            functools.partial(
+                lambda: openai.Completion.create(
+                    model=engine,
+                    prompt=prompt,
+                    temperature=0.8,
+                    max_tokens=25 if not current_tier >= function_config.PremiumTiers.tier_1 else 50,
+                    top_p=0.9,
+                    user=str(author.id),
+                    frequency_penalty=1.5,
+                    presence_penalty=1.5,
+                    stop=[f"\n{author_prompt_name}:", f"\n{my_prompt_name}:", "\n", "\n###\n"]
+                )))
     except Exception as e:
       raise e
     else:
@@ -330,7 +337,7 @@ class Chat(commands.Cog):
 
     current_tier = PremiumTiersNew.free.value
     if msg.guild is not None:
-      config = await self.get_guild_config(msg.guild.id)
+      config = await self.get_guild_config(msg.guild.id, connection=ctx.db)
       if config is None:
         self.bot.logger.error(f"Config was not available in chat for (guild: {msg.guild.id if msg.guild else None}) (channel type: {msg.channel.type if msg.channel else 'uhm'}) (user: {msg.author.id})")
         return
@@ -342,7 +349,8 @@ class Chat(commands.Cog):
       elif chat_channel is None and msg.guild.me not in msg.mentions:
         return
 
-      current_tier = config.tier
+      if config.tier:
+        current_tier = config.tier
     lang = config.lang if msg.guild is not None else "en"
 
     voted = await checks.user_voted(self.bot, msg.author, connection=ctx.db)
@@ -447,4 +455,10 @@ class Chat(commands.Cog):
 
 
 def setup(bot):
+  if not hasattr(bot, "cluster"):
+    bot.cluster = None
+
+  if bot.cluster and not hasattr(bot.cluster.launcher, "api_lock"):
+    bot.cluster.launcher.api_lock = asyncio.Semaphore(3)
+
   bot.add_cog(Chat(bot))

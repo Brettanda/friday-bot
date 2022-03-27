@@ -48,6 +48,12 @@ class Database(commands.Cog):
             "has_reminded boolean NOT NULL DEFAULT false",
             "voted_time timestamp NULL DEFAULT NULL"
         ],
+        "joined": [
+            "time TIMESTAMP WITH TIME ZONE",
+            "guild_id text",
+            "joined boolean DEFAULT NULL",
+            "current_count bigint DEFAULT NULL",
+        ],
         "reminders": [
             "id bigserial PRIMARY KEY NOT NULL",
             "expires timestamp NOT NULL",
@@ -78,8 +84,10 @@ class Database(commands.Cog):
             "used TIMESTAMP WITH TIME ZONE",
             "user_msg text",
             "bot_msg text",
+            "prompt text",
             "failed boolean",
             "filtered int NULL",
+            "persona text DEFAULT 'friday'",
         ],
         "starboard": [
             "id bigserial PRIMARY KEY NOT NULL",
@@ -120,6 +128,9 @@ class Database(commands.Cog):
             "words text[]"
         ],
     }
+    self.indexes = [
+        "CREATE UNIQUE INDEX IF NOT EXISTS starrers_uniq_idx ON starrers (author_id, entry_id);",
+    ]
     hostname = 'localhost' if self.bot.prod or self.bot.canary else os.environ["DBHOSTNAME"]
     username = os.environ["DBUSERNAMECANARY"] if self.bot.canary else os.environ["DBUSERNAME"] if self.bot.prod else os.environ["DBUSERNAMELOCAL"]
     password = os.environ["DBPASSWORDCANARY"] if self.bot.canary else os.environ["DBPASSWORD"] if self.bot.prod else os.environ["DBPASSWORDLOCAL"]
@@ -152,11 +163,14 @@ class Database(commands.Cog):
       self.bot.logger.info("All guilds are in the Database")
 
   async def create_tables(self):
+    query = ""
     async with self.pool.acquire(timeout=300.0) as conn:
-      async with conn.transaction():
-        for table in self.columns:
-          await conn.execute(f"CREATE TABLE IF NOT EXISTS {table} ({','.join(self.columns[table])});")
-          self.bot.logger.debug(f"PostgreSQL Query: \"CREATE TABLE IF NOT EXISTS {table} ({','.join(self.columns[table])});\"")
+      for table in self.columns:
+        query = query + f"CREATE TABLE IF NOT EXISTS {table} ({','.join(self.columns[table])});"
+      for index in self.indexes:
+        query = query + index
+      await conn.execute(query)
+      self.bot.logger.debug(f"PostgreSQL Query: {query}")
 
   async def sync_table_columns(self):
     # https://stackoverflow.com/questions/9991043/how-can-i-test-if-a-column-exists-in-a-table-using-an-sql-statement
