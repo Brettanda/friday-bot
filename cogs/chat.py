@@ -32,14 +32,14 @@ class Config:
   __slots__ = ("bot", "id", "chat_channel_id", "persona", "lang", "tier", "puser",)
 
   @classmethod
-  async def from_record(cls, record, precord, bot):
+  async def from_record(cls, record, bot):
     self = cls()
 
     self.bot = bot
     self.id: int = int(record["id"], base=10)
-    self.chat_channel_id: Optional[int] = int(record["chatchannel"], base=10) if record["chatchannel"] else None
-    self.tier: int = precord["tier"] if precord else 0
-    self.puser: str = precord["user_id"] if precord else None
+    self.chat_channel_id: Optional[int] = record.get("chatchannel") and int(record["chatchannel"], base=10)
+    self.tier: int = record["tier"] if record else 0
+    self.puser: str = record["user_id"] if record else None
     self.persona: Optional[str] = record["persona"]
     self.lang: str = record["lang"] or "en"
     return self
