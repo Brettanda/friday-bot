@@ -102,12 +102,16 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
   def __init__(self, bot: "Bot"):
     self.bot = bot
     self.process = psutil.Process()
-    self._batch_commands_lock, self._batch_chats_lock = asyncio.Lock(), asyncio.Lock()
-    self._data_commands_batch, self._data_chats_batch = [], []
+    self._batch_commands_lock, self._batch_chats_lock, self._batch_joins_lock = asyncio.Lock(), asyncio.Lock(), asyncio.Lock()
+    self._data_commands_batch, self._data_chats_batch, self._data_joins_batch = [], [], []
     self.bulk_insert_commands_loop.add_exception_type(asyncpg.PostgresConnectionError)
     self.bulk_insert_commands_loop.start()
+
     self.bulk_insert_chats_loop.add_exception_type(asyncpg.PostgresConnectionError)
     self.bulk_insert_chats_loop.start()
+
+    self.bulk_insert_joins_loop.add_exception_type(asyncpg.PostgresConnectionError)
+    self.bulk_insert_joins_loop.start()
 
     self._gateway_queue = asyncio.Queue()
     self.gateway_worker.start()
@@ -135,6 +139,19 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
         self.bot.logger.info(f"Inserted {total} commands into the database")
       self._data_commands_batch.clear()
 
+  async def bulk_insert_joins(self):
+    query = """INSERT INTO joined (guild_id, joined, current_count, time)
+               SELECT x.guild, x.joined, x.current_count, x.time
+               FROM jsonb_to_recordset($1::jsonb) AS
+               x(guild TEXT, joined BOOLEAN, current_count BIGINT, time TIMESTAMP)"""
+
+    if self._data_joins_batch:
+      await self.bot.pool.execute(query, json.dumps(self._data_joins_batch))
+      total = len(self._data_joins_batch)
+      if total > 1:
+        self.bot.logger.info(f"Inserted {total} guild counts into the database")
+      self._data_joins_batch.clear()
+
   async def bulk_insert_chats(self):
     query = """INSERT INTO chats (guild_id, channel_id, author_id, used, user_msg, bot_msg, failed, filtered)
                SELECT x.guild, x.channel, x.author, x.used, x.user_msg, x.bot_msg, x.failed, x.filtered
@@ -151,12 +168,18 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
   def cog_unload(self):
     self.bulk_insert_commands_loop.stop()
     self.bulk_insert_chats_loop.stop()
+    self.bulk_insert_joins_loop.stop()
     self.gateway_worker.cancel()
 
   @tasks.loop(seconds=10.0)
   async def bulk_insert_commands_loop(self):
     async with self._batch_commands_lock:
       await self.bulk_insert_commands()
+
+  @tasks.loop(seconds=10.0)
+  async def bulk_insert_joins_loop(self):
+    async with self._batch_joins_lock:
+      await self.bulk_insert_joins()
 
   @tasks.loop(seconds=10.0)
   async def bulk_insert_chats_loop(self):
@@ -200,6 +223,15 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
           'failed': ctx.command_failed,
       })
 
+  async def register_joins(self, guild: discord.Guild, joined: Optional[bool] = None):
+    async with self._batch_joins_lock:
+      self._data_joins_batch.append({
+          'guild': str(guild.id),
+          'time': discord.utils.utcnow().isoformat(),
+          'joined': joined,
+          'current_count': len(self.bot.guilds),
+      })
+
   async def register_chat(self, user_msg: discord.Message, bot_msg: Optional[discord.Message], failed: bool, filtered: Optional[int] = None, persona: Optional[str] = "friday"):
     user_message = user_msg.clean_content
     bot_message = bot_msg and bot_msg.clean_content
@@ -226,6 +258,14 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
   @commands.Cog.listener()
   async def on_command_completion(self, ctx):
     await self.register_command(ctx)
+
+  @commands.Cog.listener()
+  async def on_guild_join(self, guild: discord.Guild):
+    await self.register_joins(guild, True)
+
+  @commands.Cog.listener()
+  async def on_guild_remove(self, guild: discord.Guild):
+    await self.register_joins(guild, False)
 
   @commands.Cog.listener()
   async def on_chat_completion(self, user_msg: discord.Message, bot_msg: discord.Message, failed: bool, filtered: Optional[int] = None, persona: Optional[str] = "friday"):

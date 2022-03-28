@@ -35,6 +35,7 @@ class Friday(commands.AutoShardedBot):
   """Friday is a discord bot that is designed to be a flexible and easy to use bot."""
 
   def __init__(self, loop=None, **kwargs):
+    self.cluster = kwargs.pop("cluster", None)
     self.cluster_name = kwargs.pop("cluster_name", None)
     self.cluster_idx = kwargs.pop("cluster_idx", 0)
     self.should_start = kwargs.pop("start", False)
