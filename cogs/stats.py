@@ -232,7 +232,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
           'current_count': len(self.bot.guilds),
       })
 
-  async def register_chat(self, user_msg: discord.Message, bot_msg: Optional[discord.Message], failed: bool, filtered: Optional[int] = None, persona: Optional[str] = "friday"):
+  async def register_chat(self, user_msg: discord.Message, bot_msg: Optional[discord.Message], failed: bool, *, prompt: str = None, filtered: Optional[int] = None, persona: Optional[str] = "friday"):
     user_message = user_msg.clean_content
     bot_message = bot_msg and bot_msg.clean_content
 
@@ -252,7 +252,8 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
           'bot_msg': bot_message,
           'failed': failed,
           'filtered': filtered,
-          'persona': persona
+          'persona': persona,
+          'prompt': prompt,
       })
 
   @commands.Cog.listener()
@@ -268,8 +269,8 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
     await self.register_joins(guild, False)
 
   @commands.Cog.listener()
-  async def on_chat_completion(self, user_msg: discord.Message, bot_msg: discord.Message, failed: bool, filtered: Optional[int] = None, persona: Optional[str] = "friday"):
-    await self.register_chat(user_msg, bot_msg, failed, filtered, persona)
+  async def on_chat_completion(self, user_msg: discord.Message, bot_msg: discord.Message, failed: bool, *, prompt: str = None, filtered: Optional[int] = None, persona: Optional[str] = "friday"):
+    await self.register_chat(user_msg, bot_msg, failed, filtered=filtered, persona=persona, prompt=prompt)
 
   @commands.Cog.listener()
   async def on_socket_event_type(self, event_type):

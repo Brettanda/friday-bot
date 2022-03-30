@@ -1,20 +1,21 @@
 import asyncio
 import datetime
-import os
 import functools
+import os
 from collections import defaultdict
-from typing import Optional, Union
+from typing import List, Optional, Union
 
 import discord
 import openai
 import validators
-from google.cloud import translate_v2 as translate
 from discord.ext import commands
+from google.cloud import translate_v2 as translate
 from six.moves.html_parser import HTMLParser
+from slugify import slugify
 from typing_extensions import TYPE_CHECKING
 
 from functions import (MessageColors, MyContext, cache, checks, embed, config as function_config,
-                       relay_info)
+                       relay_info, time)
 from functions.config import PremiumTiersNew
 
 if TYPE_CHECKING:
@@ -105,6 +106,73 @@ class SpamChecker:
     return False, None, None
 
 
+class ChatHistory:
+  _limit = 3
+  _messages_per_group = 2
+
+  def __init__(self):
+    self.lock = asyncio.Lock()
+    self._history: List[str] = []
+    self._bot_name: str = "Friday"
+    self._new_user_message: Optional[str] = None
+
+  def __repr__(self):
+    return f"<Chathistory len={len(self.history())}>"
+
+  def __str__(self):
+    return "\n".join(self.history())
+
+  def history(self, *, limit=_limit) -> list:
+    return self._history[::-1][:limit * self._messages_per_group][::-1]
+
+  def bot_repeating(self, *, limit=_limit) -> bool:
+    bot_messages = [item for item in self.history(limit=limit) if item.startswith(f"{self._bot_name}: ")][::-1] or []
+    repeats = [item for x, item in enumerate(bot_messages) if item == bot_messages[x - 1]]
+    repeats = [*repeats, repeats[0]] if len(repeats) > 0 else repeats
+    return bool(repeats and len(repeats) >= 3)
+
+  def banned_nickname(self, name: str) -> str:
+    banned = ["nigger", "nigg"]
+    string = slugify(name).replace("-", "")
+    for old, new in (("4", "a"), ("@", "a"), ("3", "e"), ("1", "i"), ("0", "o"), ("7", "t"), ("5", "s")):
+      string = string.replace(old, new)
+    return name if string.lower() not in banned else "Cat"
+
+  async def prompt(self, bot_name: str = "Friday", *, limit=_limit) -> str:
+    if not self.lock.locked():
+      raise ValueError("History must be locked")
+    while len(self._history) > limit * self._messages_per_group:
+      self._history.pop(0)
+    if self._new_user_message is None:
+      raise ValueError("Last message must be from the user")
+    return '\n'.join(self.history(limit=limit)) + ("\n" if len(self.history(limit=limit)) > 0 else "") + f"{self._new_user_message}\n{bot_name}:"
+
+  async def add_user(self, name: str, content: str):
+    name = name if name != self._bot_name else "Imposter"
+    if not self.lock.locked():
+      raise ValueError("History must be locked")
+    seperator = "" if content.startswith(" ") else " "
+    self._new_user_message = f"{self.banned_nickname(name)}:{seperator}{content}"
+
+  async def add_bot(self, name: str, content: str):
+    self._bot_name = name
+    if not self.lock.locked():
+      raise ValueError("History must be locked")
+    if self._new_user_message is None:
+      raise ValueError("Cannot add bot message without user message")
+    seperator = "" if content.startswith(" ") else " "
+    self._history.append(self._new_user_message)
+    self._new_user_message = None
+    if len(self._history) > 0 and self._history[-1].startswith(f"{self.banned_nickname(name)}: "):
+      raise ValueError("Cannot add the same author twice in a row")
+    self._history.append(f"{self.banned_nickname(name)}:{seperator}{content}")
+
+
+class CooldownByRepeating(commands.CooldownMapping):
+  def _bucket_key(self, msg):
+    return (msg.content)
+
+
 class Translation:
   @classmethod
   async def from_text(cls, text: str, from_lang: str = None, to_lang: str = "en", *, parent: "Chat"):
@@ -141,9 +209,10 @@ class Chat(commands.Cog):
 
     self.api_lock = bot.cluster and bot.cluster.launcher.api_lock or asyncio.Semaphore(3)
     self._spam_check = SpamChecker()
+    self._repeating_spam = CooldownByRepeating.from_cooldown(3, 60 * 3, commands.BucketType.channel)
 
     # channel_id: list
-    self.chat_history = defaultdict(lambda: [])
+    self.chat_history = defaultdict(lambda: ChatHistory())
 
   def __repr__(self) -> str:
     return f"<cogs.{self.__cog_name__}>"
@@ -265,10 +334,7 @@ class Chat(commands.Cog):
         logprob_0 = logprobs.get("0", None)
         logprob_1 = logprobs.get("1", None)
         if logprob_0 is not None and logprob_1 is not None:
-          if logprob_0 >= logprob_1:
-            output_label = "0"
-          else:
-            output_label = "1"
+          output_label = "0" if logprob_0 >= logprob_1 else "1"
         elif logprob_0 is not None:
           output_label = "0"
         elif logprob_1 is not None:
@@ -277,14 +343,13 @@ class Chat(commands.Cog):
       output_label = "2"
     return int(output_label)
 
-  async def openai_req(self, channel: discord.TextChannel, author: Union[discord.User, discord.Member], content: str, current_tier: int):
+  async def openai_req(self, channel: discord.TextChannel, author: Union[discord.User, discord.Member], content: str, current_tier: int, persona: str = None):
     author_prompt_name, prompt, my_prompt_name = author.display_name, "", "Friday"
-    prompt = await self.fetch_message_history(channel, current_tier=current_tier)
-    con = hasattr(channel, "guild") and await self.get_guild_config(channel.guild.id)
+    my_prompt_name = channel.guild.me.display_name if hasattr(channel, "guild") and channel.guild is not None else self.bot.user.name
+    prompt = await self.chat_history[channel.id].prompt(my_prompt_name, limit=5 if current_tier >= PremiumTiersNew.tier_1.value else 3)
     engine = os.environ["OPENAIMODEL"]
-    if con is not None:
-      if hasattr(con, "persona") and con.persona == "pirate":
-        engine = os.environ["OPENAIMODELPIRATE"]
+    if persona and persona == "pirate":
+      engine = os.environ["OPENAIMODELPIRATE"]
     try:
       async with self.api_lock:
         response = await self.bot.loop.run_in_executor(
@@ -383,50 +448,41 @@ class Chat(commands.Cog):
       vote_advertise = bool(rate_name == "free" and not voted)
       patreon_advertise = bool(rate_name == "voted" and not (current_tier >= PremiumTiersNew.tier_1.value))
       retry_after = discord.utils.utcnow() + datetime.timedelta(seconds=rate_limiter.get_retry_after())
-      self.bot.logger.warning(f"Someone is being ratelimited at over {rate_limiter.rate} messages and can retry after <t:{int(retry_after.timestamp())}:R>")
+      self.bot.logger.info(f"{msg.author} ({msg.author.id}) is being ratelimited at over {rate_limiter.rate} messages and can retry after {time.human_timedelta(retry_after, accuracy=2, brief=True)}")
       ad_message = "If you would like to send me more messages you can get more by voting at https://top.gg/bot/476303446547365891/vote" if vote_advertise else "If you would like to send even more messages please support Friday on Patreon at https://patreon.com/join/fridaybot" if patreon_advertise else ""
       resp = await ctx.reply(embed=embed(title=f"You have sent me over `{rate_limiter.rate}` messages in that last `{rate_limiter.per} seconds` and are being rate limited, try again <t:{int(retry_after.timestamp())}:R>", description=ad_message, color=MessageColors.ERROR), mention_author=False)
-      self.bot.dispatch("chat_completion", msg, resp, True, None)
       return
-    async with msg.channel.typing():
+    await ctx.trigger_typing()
+    async with self.chat_history[msg.channel.id].lock:
       translation = await Translation.from_text(msg.clean_content, from_lang=lang, parent=self)
-      self.chat_history[msg.channel.id].insert(0, f"{ctx.author.display_name}: " + str(translation).strip('\n'))
+      await self.chat_history[msg.channel.id].add_user(ctx.author.display_name, str(translation).strip('\n'))
       try:
-        response = await self.openai_req(msg.channel, msg.author, msg.clean_content, current_tier)
-      except openai.APIError:
-        resp = await ctx.send(embed=embed(title="There was a problem connecting to OpenAI API, please try again later", color=MessageColors.ERROR))
-        self.bot.dispatch("chat_completion", msg, resp, True, None)
+        response = await self.openai_req(msg.channel, msg.author, msg.clean_content, current_tier, config and config.persona)
+      except Exception as e:
+        resp = await ctx.send(embed=embed(title="Something went wrong, please try again later", color=MessageColors.ERROR))
+        self.bot.dispatch("chat_completion", msg, resp, True, filtered=None, prompt="\n".join(self.chat_history[msg.channel.id].history(limit=5 if current_tier >= PremiumTiersNew.tier_1.value else 3)))
+        self.bot.logger.exception(e)
         return
-      except openai.error.RateLimitError:
-        resp = await ctx.send(embed=embed(title="Looks like the chatbot model hasn't finished loading, please try again in a few minutes.", color=MessageColors.ERROR))
-        self.bot.dispatch("chat_completion", msg, resp, True, None)
+      if response is None or response == "":
         return
-      except openai.error.ServiceUnavailableError:
-        resp = await ctx.send(embed=embed(title="Chatbot service is currently unavailable, please try again later.", color=MessageColors.ERROR))
-        self.bot.dispatch("chat_completion", msg, resp, True, None)
-        return
-    if response is not None:
-      self.chat_history[msg.channel.id].insert(0, f"{msg.guild.me.display_name if msg.guild is not None and msg.guild.me is not None else self.bot.user.display_name}:" + response)
+      await self.chat_history[msg.channel.id].add_bot(msg.guild.me.display_name if msg.guild is not None and msg.guild.me is not None else self.bot.user.display_name, response)
       content_filter = await self.content_filter_check(response, str(msg.author.id))
     if translation is not None and translation.detectedSourceLanguage != "en" and response is not None and "dynamic" not in response:
       chars_to_strip = "?!,;'\":`"
       final_translation = await Translation.from_text(response.replace("dynamic", ""), from_lang="en", to_lang=translation.detectedSourceLanguage if translation.translatedText.strip(chars_to_strip).lower() != translation.input.strip(chars_to_strip).lower() else "en", parent=self)
       response = str(final_translation)
 
-    if response is None or response == "":
-      return
-
     if content_filter != 2:
       resp = await ctx.reply(content=response if content_filter == 0 else f"{POSSIBLE_SENSITIVE_MESSAGE}{response}||", allowed_mentions=discord.AllowedMentions.none(), mention_author=False)
-      await relay_info(f"{function_config.PremiumTiers.get_tier_name(current_tier)} - **{ctx.author.name}:** {ctx.message.clean_content}\n**Me:** {response}", self.bot, webhook=self.bot.log.log_chat)
+      await relay_info(f"{PremiumTiersNew(current_tier)} - **{ctx.author.name}:** {ctx.message.clean_content}\n**Me:** {response}", self.bot, webhook=self.bot.log.log_chat)
     elif content_filter == 2:
-      # if msg.type == discord.MessageType.thread_starter_message:
-      #   await ctx.channel.send(content=POSSIBLE_OFFENSIVE_MESSAGE, mention_author=False)
-      # else:
       resp = await ctx.reply(content=POSSIBLE_OFFENSIVE_MESSAGE, mention_author=False)
-      await relay_info(f"{function_config.PremiumTiers.get_tier_name(current_tier)} - **{ctx.author.name}:** {ctx.message.clean_content}\n**Me:** Possible offensive message: {response}", self.bot, webhook=self.bot.log.log_chat)
+      await relay_info(f"{PremiumTiersNew(current_tier)} - **{ctx.author.name}:** {ctx.message.clean_content}\n**Me:** Possible offensive message: {response}", self.bot, webhook=self.bot.log.log_chat)
+      self.bot.dispatch("chat_completion", msg, resp, False, filtered=content_filter, persona=msg.guild and config and config.persona, prompt="\n".join(self.chat_history[msg.channel.id].history(limit=5 if current_tier >= PremiumTiersNew.tier_1.value else 3)))
 
-    self.bot.dispatch("chat_completion", msg, resp, False, content_filter)
+    if self.chat_history[msg.channel.id].bot_repeating():
+      self.chat_history.pop(ctx.channel.id)
+      self.bot.logger.info("Popped chat history for channel #{}".format(ctx.channel))
 
   # async def check_for_answer_questions(self, msg: discord.Message, min_tiers: list) -> bool:
   #   if msg.author.bot:
