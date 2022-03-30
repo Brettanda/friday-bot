@@ -613,7 +613,7 @@ class Stars(commands.Cog):
     data.append(f'Limit: {plural(starboard.threshold):star}')
     await ctx.send(embed=embed(title="Starboard Info", description='\n'.join(data)))
 
-  @commands.group(invoke_without_command=True, ignore_extra=False)
+  @commands.group(invoke_without_command=True, ignore_extra=False, extras={"examples": ["707520808448294983", "https://discord.com/channels/707441352367013899/707458929696702525/707520808448294983"]})
   @commands.guild_only()
   async def star(self, ctx, message: discord.Message):
     """Stars a message via message ID.
@@ -634,7 +634,7 @@ class Stars(commands.Cog):
     else:
       await ctx.message.delete()
 
-  @commands.command()
+  @commands.command(extras={"examples": ["707520808448294983", "https://discord.com/channels/707441352367013899/707458929696702525/707520808448294983"]})
   @commands.guild_only()
   async def unstar(self, ctx, message: discord.Message):
     """Unstars a message via message ID.
@@ -650,10 +650,10 @@ class Stars(commands.Cog):
     else:
       await ctx.message.delete()
 
-  @star.command(name='clean')
+  @star.command(name='clean', extras={"examples": ["1", "3"]})
   @checks.is_admin()
   @requires_starboard()
-  async def star_clean(self, ctx, stars=1):
+  async def star_clean(self, ctx, stars: int = 1):
     """Cleans the starboard
 
     This removes messages in the starboard that only have less
@@ -698,7 +698,7 @@ class Stars(commands.Cog):
     else:
       await ctx.send(embed=embed(title=f'\N{PUT LITTER IN ITS PLACE SYMBOL} Deleted {plural(len(to_delete)):message}.'))
 
-  @star.command(name='show')
+  @star.command(name='show', extras={"examples": ["707520808448294983", "https://discord.com/channels/707441352367013899/707458929696702525/707520808448294983"]})
   @requires_starboard()
   async def star_show(self, ctx, message: discord.Message):
     """Shows a starred message via its ID.
@@ -989,9 +989,9 @@ class Stars(commands.Cog):
 
     await ctx.send(embed=e)
 
-  @star.command(name='stats')
+  @star.command(name='stats', extras={"examples": ["215227961048170496", "@Motostar"]})
   @requires_starboard()
-  async def star_stats(self, ctx, *, member: discord.Member = None):
+  async def star_stats(self, ctx, *, member: Optional[discord.Member] = None):
     """Shows statistics on the starboard usage of the server or a member."""
 
     if member is None:
@@ -1077,7 +1077,7 @@ class Stars(commands.Cog):
 
     await ctx.send(embed=embed(title='Starboard is now unlocked.'))
 
-  @star.command(name='limit', aliases=['threshold'])
+  @star.command(name='limit', aliases=['threshold'], extras={"examples": ["3", "5"]})
   @checks.is_admin()
   @requires_starboard()
   async def star_limit(self, ctx, stars: int):
