@@ -88,7 +88,8 @@ class Patreons(commands.Cog):
     return f"<cogs.{self.__cog_name__}>"
 
   @cache.cache()
-  async def get_patrons(self) -> list:
+  async def get_patrons(self, *, connection=None) -> list:
+    connection = connection or self.bot.pool
     campaign = await self.bot.loop.run_in_executor(None, self.patreon.fetch_campaign)
     campaign_id = campaign.data()[0].id()
 
@@ -104,7 +105,7 @@ class Patreons(commands.Cog):
         break
 
     query = "SELECT * FROM patrons"
-    records = await self.bot.pool.fetch(query)
+    records = await connection.fetch(query)
 
     configs = []
     for p in all_pledges:

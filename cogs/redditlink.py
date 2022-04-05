@@ -75,7 +75,13 @@ class Config:
 
 
 class redditlink(commands.Cog):
-  """Extract the media from Reddit posts with Friday's Reddit command and more"""
+  """Extract the media from Reddit posts with Friday's Reddit command and more.
+
+    Friday has a feature that will extract Reddit media. To use this feature
+    simply paste the link to a Reddit post in a text channel and Friday will
+    react with 🔗 if media is extractable. To extract the media just react
+    with 🔗 as well, and Friday will begin the process.
+  """
 
   def __init__(self, bot: "Bot"):
     self.bot = bot

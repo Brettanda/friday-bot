@@ -210,21 +210,32 @@ class Help(commands.HelpCommand):
   async def send_bot_help(self, mapping):
     ctx = self.context
     ctx.invoked_with = "help"
-    bot: "Bot" = ctx.bot
+    # bot: "Bot" = ctx.bot
 
-    commands, missing_perms = [], False
-    for com in bot.commands:
-      try:
-        if await com.can_run(ctx) and com.hidden is not True and com.enabled is not False:
-          commands.append(com)
-        else:
-          missing_perms = True
-      except Exception:
-        pass
-    menu = MyMenuPages(
-        source=HelpMenu(ctx, commands, title="Friday - Help", description="If you would like to make a suggestion for a command please join the [Friday's Development](https://discord.gg/NTRuFjU) and explain your suggestion.\n\nFor more info on how commands work and how to format them please check out [docs.friday-bot.com](https://docs.friday-bot.com/).\n\n**Some commands will only show if you have the correct permissions to use them.**", missing_perms=missing_perms)
-    )
-    await menu.start(ctx)
+    await ctx.author.send(embed=embed(
+        title="Friday - Help links",
+        description="[Commands](https://docs.friday-bot.com?utm_source=Discord)\n"
+        "[Patreon](https://www.patreon.com/join/fridaybot?utm_source=Discord)\n"
+        "[Dashboard](https://friday-bot.com?utm_source=Discord)\n"
+        "[Support Server](https://discord.gg/NTRuFjU)\n"
+        "[Trello](https://trello.com/b/SCI2mZzR/friday-bot)\n",
+        color=discord.Colour.random()
+    ))
+    await ctx.message.add_reaction("✅")
+
+    # commands, missing_perms = [], False
+    # for com in bot.commands:
+    #   try:
+    #     if await com.can_run(ctx) and com.hidden is not True and com.enabled is not False:
+    #       commands.append(com)
+    #     else:
+    #       missing_perms = True
+    #   except Exception:
+    #     pass
+    # menu = MyMenuPages(
+    #     source=HelpMenu(ctx, commands, title="Friday - Help", description="If you would like to make a suggestion for a command please join the [Friday's Development](https://discord.gg/NTRuFjU) and explain your suggestion.\n\nFor more info on how commands work and how to format them please check out [docs.friday-bot.com](https://docs.friday-bot.com/).\n\n**Some commands will only show if you have the correct permissions to use them.**", missing_perms=missing_perms)
+    # )
+    # await menu.start(ctx)
 
   async def send_cog_help(self, cog):
     ctx = self.context

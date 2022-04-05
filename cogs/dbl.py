@@ -35,7 +35,14 @@ class Refresh(discord.ui.View):
 
 
 class TopGG(commands.Cog):
-  """Handles interactions with the top.gg API"""
+  """Voting for Friday on Top.gg really helps with getting Friday to more people because the more votes a bot has the higher ranking it gets.
+
+    To get Friday higher in the rankings you can vote here
+    [top.gg/bot/476303446547365891/vote](https://top.gg/bot/476303446547365891/vote)
+
+    When voting you will receive some cool perks currently including:
+
+      - Better rate limits when chatting with Friday"""
 
   def __init__(self, bot: "Bot"):
     self.bot = bot
@@ -155,7 +162,7 @@ class TopGG(commands.Cog):
   @commands.Cog.listener()
   async def on_dbl_vote(self, data: dict):
     fut = time.FutureTime("12h", now=discord.utils.utcnow())
-    _type, user, isWeekend = data.get("type", None), data.get("user", None), data.get("is_weekend", False)
+    _type, user = data.get("type", None), data.get("user", None)
     self.bot.logger.info(f'Received an upvote, {data}')
     if _type == "test":
       fut = time.FutureTime("2m", now=discord.utils.utcnow())
@@ -181,10 +188,9 @@ class TopGG(commands.Cog):
           avatar_url=self.bot.user.display_avatar.url,
           embed=embed(
               title=f"Somebody Voted - {_type}",
-              fieldstitle=["Member", "Is week end"],
+              fieldstitle=["Member"],
               fieldsval=[
-                  f'{member and member.mention} (ID: {user})',
-                  f'{isWeekend}'],
+                  f'{member and member.mention} (ID: {user})'],
               fieldsin=[False, False]
           )
       )
