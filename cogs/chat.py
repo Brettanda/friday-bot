@@ -3,7 +3,7 @@ import datetime
 import functools
 import os
 from collections import defaultdict
-from typing import List, Optional, Union
+from typing import List, Optional
 
 import discord
 import openai
@@ -14,7 +14,7 @@ from six.moves.html_parser import HTMLParser
 from slugify import slugify
 from typing_extensions import TYPE_CHECKING
 
-from functions import (MessageColors, MyContext, cache, checks, embed, config as function_config,
+from functions import (MessageColors, MyContext, cache, checks, embed,
                        relay_info, time)
 from functions.config import PremiumTiersNew
 
