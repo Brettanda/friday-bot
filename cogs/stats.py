@@ -577,6 +577,10 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
   async def before_stats_invoke(self, ctx):
     await ctx.trigger_typing()
 
+  @commands.Cog.listener()
+  async def on_command_error(self, ctx, error):
+    await self.register_command(ctx)
+
   def add_record(self, record):
     if self.bot.prod:
       self._gateway_queue.put_nowait(record)
