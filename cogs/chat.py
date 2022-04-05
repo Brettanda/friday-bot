@@ -351,7 +351,7 @@ class Chat(commands.Cog):
                     temperature=0.8,
                     max_tokens=25 if not current_tier >= PremiumTiersNew.tier_1.value else 50,
                     top_p=0.9,
-                    user=str(msg.author.id),
+                    user=str(msg.channel.id),
                     frequency_penalty=1.5,
                     presence_penalty=1.5,
                     stop=[f"\n{author_prompt_name}:", f"\n{my_prompt_name}:", "\n", "\n###\n"]
@@ -455,7 +455,7 @@ class Chat(commands.Cog):
       if response is None or response == "":
         return
       await self.chat_history[msg.channel.id].add_message(msg, response)
-      content_filter = await self.content_filter_check(response, str(msg.author.id))
+      content_filter = await self.content_filter_check(response, str(msg.channel.id))
     if translation is not None and translation.detectedSourceLanguage != "en" and response is not None and "dynamic" not in response:
       chars_to_strip = "?!,;'\":`"
       final_translation = await Translation.from_text(response.replace("dynamic", ""), from_lang="en", to_lang=translation.detectedSourceLanguage if translation.translatedText.strip(chars_to_strip).lower() != translation.input.strip(chars_to_strip).lower() else "en", parent=self)
@@ -467,7 +467,7 @@ class Chat(commands.Cog):
     elif content_filter == 2:
       resp = await ctx.reply(content=POSSIBLE_OFFENSIVE_MESSAGE, mention_author=False)
       await relay_info(f"{PremiumTiersNew(current_tier)} - **{ctx.author.name}:** {ctx.message.clean_content}\n**Me:** Possible offensive message: {response}", self.bot, webhook=self.bot.log.log_chat)
-      self.bot.dispatch("chat_completion", msg, resp, False, filtered=content_filter, persona=msg.guild and config and config.persona, prompt="\n".join(self.chat_history[msg.channel.id].history(limit=5 if current_tier >= PremiumTiersNew.tier_1.value else 3)))
+    self.bot.dispatch("chat_completion", msg, resp, False, filtered=content_filter, persona=msg.guild and config and config.persona, prompt="\n".join(self.chat_history[msg.channel.id].history(limit=5 if current_tier >= PremiumTiersNew.tier_1.value else 3)))
 
     async with self.chat_history[msg.channel.id].lock:
       if self.chat_history[msg.channel.id].bot_repeating():
