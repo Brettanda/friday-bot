@@ -232,7 +232,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
           'current_count': len(self.bot.guilds),
       })
 
-  async def register_chat(self, user_msg: discord.Message, bot_msg: Optional[discord.Message], failed: bool, filtered: Optional[int] = None, persona: Optional[str] = "friday"):
+  async def register_chat(self, user_msg: discord.Message, bot_msg: Optional[discord.Message], failed: bool, *, prompt: str = None, filtered: Optional[int] = None, persona: Optional[str] = "friday"):
     user_message = user_msg.clean_content
     bot_message = bot_msg and bot_msg.clean_content
 
@@ -252,7 +252,8 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
           'bot_msg': bot_message,
           'failed': failed,
           'filtered': filtered,
-          'persona': persona
+          'persona': persona,
+          'prompt': prompt,
       })
 
   @commands.Cog.listener()
@@ -268,8 +269,8 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
     await self.register_joins(guild, False)
 
   @commands.Cog.listener()
-  async def on_chat_completion(self, user_msg: discord.Message, bot_msg: discord.Message, failed: bool, filtered: Optional[int] = None, persona: Optional[str] = "friday"):
-    await self.register_chat(user_msg, bot_msg, failed, filtered, persona)
+  async def on_chat_completion(self, user_msg: discord.Message, bot_msg: discord.Message, failed: bool, *, prompt: str = None, filtered: Optional[int] = None, persona: Optional[str] = "friday"):
+    await self.register_chat(user_msg, bot_msg, failed, filtered=filtered, persona=persona, prompt=prompt)
 
   @commands.Cog.listener()
   async def on_socket_event_type(self, event_type):
@@ -318,6 +319,14 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
       return "[censored]"
     return censor_invite(obj)
 
+  medal_lookup = (
+        "\N{FIRST PLACE MEDAL}",
+        "\N{SECOND PLACE MEDAL}",
+        "\N{THIRD PLACE MEDAL}",
+        "\N{SPORTS MEDAL}",
+        "\N{SPORTS MEDAL}"
+  )
+
   @chatstats.command("global")
   async def chatstats_global(self, ctx: "MyContext"):
     query = """SELECT COUNT(*) FROM chats;"""
@@ -326,14 +335,6 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
     e = discord.Embed(title="Chat Stats", colour=discord.Colour.blurple())
     e.description = f"{total[0]:,} chats used."
 
-    lookup = (
-        "\N{FIRST PLACE MEDAL}",
-        "\N{SECOND PLACE MEDAL}",
-        "\N{THIRD PLACE MEDAL}",
-        "\N{SPORTS MEDAL}",
-        "\N{SPORTS MEDAL}"
-    )
-
     # query = """SELECT command, COUNT(*) AS "uses"
     #            FROM chats
     #            GROUP BY command
@@ -341,7 +342,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
     #            LIMIT 5;"""
 
     # records = await ctx.db.fetch(query)
-    # value = "\n".join(f"{lookup[i]}: {command} ({uses} uses)" for (i, (command, uses)) in enumerate(records))
+    # value = "\n".join(f"{self.medal_lookup[i]}: {command} ({uses} uses)" for (i, (command, uses)) in enumerate(records))
     # e.add_field(name="Top Commands", value=value, inline=False)
 
     query = """SELECT guild_id, COUNT(*) AS "uses"
@@ -358,7 +359,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
       else:
         guild = self.censor_object(self.bot.get_guild(guild_id.isdigit() and int(guild_id, base=10)) or f"<Unknown {guild_id}>")
 
-      emoji = lookup[i]
+      emoji = self.medal_lookup[i]
       value.append(f"{emoji}: {guild} ({uses} uses)")
 
     e.add_field(name="Top Guilds", value="\n".join(value), inline=False)
@@ -373,7 +374,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
     value = []
     for (i, (author_id, uses)) in enumerate(records):
       user = self.censor_object(self.bot.get_user(author_id.isdigit() and int(author_id, base=10)) or f"<Unknown {author_id}>")
-      emoji = lookup[i]
+      emoji = self.medal_lookup[i]
       value.append(f"{emoji}: {user} ({uses} uses)")
 
     e.add_field(name="Top Users", value="\n".join(value), inline=False)
@@ -386,14 +387,6 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
 
     e = discord.Embed(title="Last 24 Hour Chat Stats", colour=discord.Colour.blurple())
     e.description = f"{total:,} chats used today."
-
-    lookup = (
-            '\N{FIRST PLACE MEDAL}',
-            '\N{SECOND PLACE MEDAL}',
-            '\N{THIRD PLACE MEDAL}',
-            '\N{SPORTS MEDAL}',
-            '\N{SPORTS MEDAL}'
-    )
 
     query = """SELECT guild_id, COUNT(*) AS "uses"
                    FROM chats
@@ -410,7 +403,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
         guild = 'Private Message'
       else:
         guild = self.censor_object(self.bot.get_guild(guild_id.isdigit() and int(guild_id, base=10)) or f'<Unknown {guild_id}>')
-      emoji = lookup[index]
+      emoji = self.medal_lookup[index]
       value.append(f'{emoji}: {guild} ({uses} uses)')
 
     e.add_field(name='Top Guilds', value='\n'.join(value), inline=False)
@@ -427,7 +420,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
     value = []
     for (index, (author_id, uses)) in enumerate(records):
       user = self.censor_object(self.bot.get_user(author_id.isdigit() and int(author_id, base=10)) or f'<Unknown {author_id}>')
-      emoji = lookup[index]
+      emoji = self.medal_lookup[index]
       value.append(f'{emoji}: {user} ({uses} uses)')
 
     e.add_field(name='Top Users', value='\n'.join(value), inline=False)
@@ -441,14 +434,6 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
     e = discord.Embed(title="Command Stats", colour=discord.Colour.blurple())
     e.description = f"{total[0]:,} commands used."
 
-    lookup = (
-        "\N{FIRST PLACE MEDAL}",
-        "\N{SECOND PLACE MEDAL}",
-        "\N{THIRD PLACE MEDAL}",
-        "\N{SPORTS MEDAL}",
-        "\N{SPORTS MEDAL}"
-    )
-
     query = """SELECT command, COUNT(*) AS "uses"
                FROM commands
                GROUP BY command
@@ -456,7 +441,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
                LIMIT 5;"""
 
     records = await ctx.db.fetch(query)
-    value = "\n".join(f"{lookup[i]}: {command} ({uses} uses)" for (i, (command, uses)) in enumerate(records))
+    value = "\n".join(f"{self.medal_lookup[i]}: {command} ({uses} uses)" for (i, (command, uses)) in enumerate(records))
     e.add_field(name="Top Commands", value=value, inline=False)
 
     query = """SELECT guild_id, COUNT(*) AS "uses"
@@ -473,7 +458,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
       else:
         guild = self.censor_object(self.bot.get_guild(guild_id.isdigit() and int(guild_id, base=10)) or f"<Unknown {guild_id}>")
 
-      emoji = lookup[i]
+      emoji = self.medal_lookup[i]
       value.append(f"{emoji}: {guild} ({uses} uses)")
 
     e.add_field(name="Top Guilds", value="\n".join(value), inline=False)
@@ -488,7 +473,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
     value = []
     for (i, (author_id, uses)) in enumerate(records):
       user = self.censor_object(self.bot.get_user(author_id.isdigit() and int(author_id, base=10)) or f"<Unknown {author_id}>")
-      emoji = lookup[i]
+      emoji = self.medal_lookup[i]
       value.append(f"{emoji}: {user} ({uses} uses)")
 
     e.add_field(name="Top Users", value="\n".join(value), inline=False)
@@ -511,14 +496,6 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
     e.description = f"{failed + success + question:,} commands used today." \
                     f"({success} succeeded, {failed} failed, {question} unknown)"
 
-    lookup = (
-            '\N{FIRST PLACE MEDAL}',
-            '\N{SECOND PLACE MEDAL}',
-            '\N{THIRD PLACE MEDAL}',
-            '\N{SPORTS MEDAL}',
-            '\N{SPORTS MEDAL}'
-    )
-
     query = """SELECT command, COUNT(*) AS "uses"
                    FROM commands
                    WHERE used > (CURRENT_TIMESTAMP - INTERVAL '1 day')
@@ -528,7 +505,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
                 """
 
     records = await ctx.db.fetch(query)
-    value = '\n'.join(f'{lookup[index]}: {command} ({uses} uses)' for (index, (command, uses)) in enumerate(records))
+    value = '\n'.join(f'{self.medal_lookup[index]}: {command} ({uses} uses)' for (index, (command, uses)) in enumerate(records))
     e.add_field(name='Top Commands', value=value, inline=False)
 
     query = """SELECT guild_id, COUNT(*) AS "uses"
@@ -546,7 +523,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
         guild = 'Private Message'
       else:
         guild = self.censor_object(self.bot.get_guild(guild_id.isdigit() and int(guild_id, base=10)) or f'<Unknown {guild_id}>')
-      emoji = lookup[index]
+      emoji = self.medal_lookup[index]
       value.append(f'{emoji}: {guild} ({uses} uses)')
 
     e.add_field(name='Top Guilds', value='\n'.join(value), inline=False)
@@ -563,7 +540,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
     value = []
     for (index, (author_id, uses)) in enumerate(records):
       user = self.censor_object(self.bot.get_user(author_id.isdigit() and int(author_id, base=10)) or f'<Unknown {author_id}>')
-      emoji = lookup[index]
+      emoji = self.medal_lookup[index]
       value.append(f'{emoji}: {user} ({uses} uses)')
 
     e.add_field(name='Top Users', value='\n'.join(value), inline=False)
@@ -575,6 +552,10 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
   @chatstats_global.before_invoke
   async def before_stats_invoke(self, ctx):
     await ctx.trigger_typing()
+
+  @commands.Cog.listener()
+  async def on_command_error(self, ctx, error):
+    await self.register_command(ctx)
 
   def add_record(self, record):
     if self.bot.prod:
