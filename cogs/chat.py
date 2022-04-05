@@ -430,7 +430,7 @@ class Chat(commands.Cog):
       self.bot.logger.error("Patrons cog is not loaded")
 
     if patron_cog is not None:
-      patrons = await patron_cog.get_patrons()
+      patrons = await patron_cog.get_patrons(connection=ctx.db)
 
       patron = next((p for p in patrons if p.id == msg.author.id), None)
 
