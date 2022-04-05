@@ -402,6 +402,7 @@ class Chat(commands.Cog):
       return
 
     current_tier = PremiumTiersNew.free.value
+    config = None
     if msg.guild is not None:
       config = await self.get_guild_config(msg.guild.id, connection=ctx.db)
       if config is None:
@@ -429,7 +430,7 @@ class Chat(commands.Cog):
       self.bot.logger.error("Patrons cog is not loaded")
 
     if patron_cog is not None:
-      patrons = await patron_cog.get_patrons()
+      patrons = await patron_cog.get_patrons(connection=ctx.db)
 
       patron = next((p for p in patrons if p.id == msg.author.id), None)
 
@@ -461,7 +462,7 @@ class Chat(commands.Cog):
       except Exception as e:
         resp = await ctx.send(embed=embed(title="Something went wrong, please try again later", color=MessageColors.ERROR))
         self.bot.dispatch("chat_completion", msg, resp, True, filtered=None, prompt="\n".join(self.chat_history[msg.channel.id].history(limit=5 if current_tier >= PremiumTiersNew.tier_1.value else 3)))
-        self.bot.logger.exception(e)
+        self.bot.logger.error(e)
         return
       if response is None or response == "":
         return
