@@ -153,10 +153,10 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
       self._data_joins_batch.clear()
 
   async def bulk_insert_chats(self):
-    query = """INSERT INTO chats (guild_id, channel_id, author_id, used, user_msg, bot_msg, failed, filtered)
-               SELECT x.guild, x.channel, x.author, x.used, x.user_msg, x.bot_msg, x.failed, x.filtered
+    query = """INSERT INTO chats (guild_id, channel_id, author_id, used, user_msg, bot_msg, failed, filtered, prompt)
+               SELECT x.guild, x.channel, x.author, x.used, x.user_msg, x.bot_msg, x.failed, x.filtered, x.prompt
                FROM jsonb_to_recordset($1::jsonb) AS
-               x(guild TEXT, channel TEXT, author TEXT, used TIMESTAMP, user_msg TEXT, bot_msg TEXT, failed BOOLEAN, filtered INT)"""
+               x(guild TEXT, channel TEXT, author TEXT, used TIMESTAMP, user_msg TEXT, bot_msg TEXT, failed BOOLEAN, filtered INT, prompt TEXT)"""
 
     if self._data_chats_batch:
       await self.bot.pool.execute(query, json.dumps(self._data_chats_batch))
