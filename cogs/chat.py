@@ -467,7 +467,7 @@ class Chat(commands.Cog):
     elif content_filter == 2:
       resp = await ctx.reply(content=POSSIBLE_OFFENSIVE_MESSAGE, mention_author=False)
       await relay_info(f"{PremiumTiersNew(current_tier)} - **{ctx.author.name}:** {ctx.message.clean_content}\n**Me:** Possible offensive message: {response}", self.bot, webhook=self.bot.log.log_chat)
-      self.bot.dispatch("chat_completion", msg, resp, False, filtered=content_filter, persona=msg.guild and config and config.persona, prompt="\n".join(self.chat_history[msg.channel.id].history(limit=5 if current_tier >= PremiumTiersNew.tier_1.value else 3)))
+    self.bot.dispatch("chat_completion", msg, resp, False, filtered=content_filter, persona=msg.guild and config and config.persona, prompt="\n".join(self.chat_history[msg.channel.id].history(limit=5 if current_tier >= PremiumTiersNew.tier_1.value else 3)))
 
     async with self.chat_history[msg.channel.id].lock:
       if self.chat_history[msg.channel.id].bot_repeating():
