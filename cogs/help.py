@@ -212,16 +212,22 @@ class Help(commands.HelpCommand):
     ctx.invoked_with = "help"
     # bot: "Bot" = ctx.bot
 
-    await ctx.author.send(embed=embed(
-        title="Friday - Help links",
-        description="[Commands](https://docs.friday-bot.com?utm_source=Discord)\n"
-        "[Patreon](https://www.patreon.com/join/fridaybot?utm_source=Discord)\n"
-        "[Dashboard](https://friday-bot.com?utm_source=Discord)\n"
-        "[Support Server](https://discord.gg/NTRuFjU)\n"
-        "[Trello](https://trello.com/b/SCI2mZzR/friday-bot)\n",
-        color=discord.Colour.random()
-    ))
-    await ctx.message.add_reaction("✅")
+    e = embed(
+          title="Friday - Help links",
+          description="[Commands](https://docs.friday-bot.com?utm_source=Discord)\n"
+          "[Patreon](https://www.patreon.com/join/fridaybot?utm_source=Discord)\n"
+          "[Dashboard](https://friday-bot.com?utm_source=Discord)\n"
+          "[Support Server](https://discord.gg/NTRuFjU)\n"
+          "[Trello](https://trello.com/b/SCI2mZzR/friday-bot)\n",
+          color=discord.Colour.random()
+    )
+
+    try:
+      await ctx.author.send(embed=e)
+    except discord.Forbidden:
+      await ctx.send(embed=e)
+    else:
+      await ctx.message.add_reaction("✅")
 
     # commands, missing_perms = [], False
     # for com in bot.commands:
