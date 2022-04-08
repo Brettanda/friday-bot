@@ -50,9 +50,12 @@ class TopGG(commands.Cog):
 
     if self.bot.prod:
       try:
-        self.poster = dbots.ClientPoster(
-            self.bot,
-            "py-cord",
+        self.poster = dbots.Poster(
+            self.bot.user.id,
+            lambda: len(self.bot.guilds),
+            lambda: len(self.bot.users),
+            lambda: len(self.bot.voice_clients),
+            shard_count=lambda: self.bot.shard_count,
             loop=self.bot.loop,
             sharding=True,
             api_keys={
