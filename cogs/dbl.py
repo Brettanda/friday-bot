@@ -2,7 +2,6 @@ import os
 
 import discord
 import topgg
-import dbots
 from discord.ext import commands, tasks
 from typing_extensions import TYPE_CHECKING
 
@@ -47,26 +46,6 @@ class TopGG(commands.Cog):
 
   def __init__(self, bot: "Bot"):
     self.bot = bot
-
-    if self.bot.prod:
-      try:
-        self.poster = dbots.Poster(
-            self.bot.user.id,
-            lambda: len(self.bot.guilds),
-            lambda: len(self.bot.users),
-            lambda: len(self.bot.voice_clients),
-            shard_count=lambda: self.bot.shard_count,
-            loop=self.bot.loop,
-            sharding=True,
-            api_keys={
-                "top.gg": os.getenv("TOKENTOP"),
-                "discord.bots.gg": os.getenv("TOKENDBOTSGG"),
-                "discordbotlist.com": os.getenv("TOKENDBL"),
-                "botlist.space": os.getenv("TOKENDLS"),
-            }
-        )
-      except Exception as e:
-        self.bot.logger.exception('Failed to initialize DBL poster\n?: ?', type(e).__name__, e)
 
     self._current_len_guilds = len(self.bot.guilds)
     if self.bot.cluster_idx == 0:
@@ -140,11 +119,46 @@ class TopGG(commands.Cog):
     self._current_len_guilds = len(self.bot.guilds)
     self.bot.logger.info("Updating DBL stats")
     try:
-      if hasattr(self, "poster"):
-        await self.poster.post()
-        self.bot.logger.info("Server count posted successfully")
+      top_payload = {
+          "server_count": len(self.bot.guilds),
+          "shard_count": self.bot.shard_count,
+      }
+      await self.bot.session.post(
+          f"https://top.gg/api/bots/{self.bot.user.id}/stats",
+          headers={"Authorization": os.environ["TOKENTOP"]},
+          json=top_payload
+      )
+      dbots_payload = {
+          "guildCount": len(self.bot.guilds),
+          "shardCount": self.bot.shard_count,
+      }
+      await self.bot.session.post(
+          f"https://discord.bots.gg/api/v1/bots/{self.bot.user.id}/stats",
+          headers={"Authorization": os.environ["TOKENDBOTSGG"]},
+          json=dbots_payload
+      )
+      dbl_payload = {
+          "guilds": len(self.bot.guilds),
+          "users": len(self.bot.users),
+          "voice_connections": len(self.bot.voice_clients),
+      }
+      await self.bot.session.post(
+          f"https://discordbotlist.com/api/v1/bots/{self.bot.user.id}/stats",
+          headers={"Authorization": f'Bot {os.environ["TOKENDBL"]}'},
+          json=dbl_payload
+      )
+      bls_payload = {
+          "serverCount": len(self.bot.guilds)
+      }
+      await self.bot.session.post(
+          f"https://api.discordlist.space/v2/bots/{self.bot.user.id}",
+          headers={"Authorization": os.environ["TOKENDLS"], 'Content-Type': 'application/json'},
+          json=bls_payload
+      )
     except Exception as e:
       self.bot.logger.exception('Failed to post server count\n?: ?', type(e).__name__, e)
+    else:
+      self.bot.logger.info("Server count posted successfully")
 
   @commands.Cog.listener()
   async def on_vote_timer_complete(self, timer):
