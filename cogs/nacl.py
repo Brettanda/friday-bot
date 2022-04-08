@@ -32,7 +32,9 @@ class NaCl(commands.Cog):
       return
 
     if not random.random() < 0.069:
+      self.bot.logger.info(f"Failed the sexed check for {member} ({member.id})")
       return
+    self.bot.logger.info(f"Sexed {member} ({member.id})")
 
     sex = member.guild.get_channel(932111746620084224)
     if sex is None:

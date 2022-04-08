@@ -2,7 +2,7 @@ import asyncio
 import datetime
 import functools
 import os
-from collections import defaultdict
+from collections import defaultdict, Counter
 from typing import List, Optional
 
 import discord
@@ -243,6 +243,7 @@ class Chat(commands.Cog):
     except Exception as e:
       raise e
     else:
+      self.bot.chat_repeat_counter[ctx.channel.id] += 1
       await ctx.send(embed=embed(title="My chat history has been reset", description="I have forgotten the last few messages"))
 
   @commands.group(name="chatchannel", help="Set the current channel so that I will always try to respond with something", invoke_without_command=True)
@@ -472,6 +473,7 @@ class Chat(commands.Cog):
     async with self.chat_history[msg.channel.id].lock:
       if self.chat_history[msg.channel.id].bot_repeating():
         self.chat_history.pop(ctx.channel.id)
+        self.bot.chat_repeat_counter[msg.channel.id] += 1
         self.bot.logger.info("Popped chat history for channel #{}".format(ctx.channel))
 
   # async def check_for_answer_questions(self, msg: discord.Message, min_tiers: list) -> bool:
@@ -507,5 +509,8 @@ def setup(bot):
 
   if bot.cluster and not hasattr(bot.cluster.launcher, "api_lock"):
     bot.cluster.launcher.api_lock = asyncio.Semaphore(3)
+
+  if not hasattr(bot, "chat_repeat_counter"):
+    bot.chat_repeat_counter = Counter()
 
   bot.add_cog(Chat(bot))

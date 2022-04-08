@@ -1,5 +1,4 @@
 import asyncio
-import logging
 import re
 import time
 import weakref
@@ -13,9 +12,6 @@ from functions import MessageColors, cache, checks, embed, MyContext
 from functions.formats import plural
 
 # from .utils.paginator import SimplePages
-
-
-log = logging.getLogger(__name__)
 
 
 class StarError(commands.CheckFailure):

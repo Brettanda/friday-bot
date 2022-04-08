@@ -662,8 +662,9 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
 
     memory_usage = self.process.memory_full_info().uss / 1024**2
     total_memory = psutil.virtual_memory().total / 1024**2
+    memory_percent = self.process.memory_percent()
     cpu_usage = self.process.cpu_percent() / psutil.cpu_count()
-    embed_.add_field(name='Process', value=f'{memory_usage:.2f} MiB/{total_memory/1024:.2f} GB ({memory_usage/total_memory:.3f}%)\n{cpu_usage:.3f}% CPU', inline=False)
+    embed_.add_field(name='Process', value=f'{memory_usage:,.2f} MiB/{total_memory/1024:,.2f} GB ({memory_percent:.3f}%)\n{cpu_usage:.3f}% CPU', inline=False)
 
     global_rate_limit = not self.bot.http._global_over.is_set()
     description.append(f'Global Rate Limit: {global_rate_limit}')
