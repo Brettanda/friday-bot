@@ -2,6 +2,7 @@ import os
 
 import discord
 import topgg
+import dbots
 from discord.ext import commands, tasks
 from typing_extensions import TYPE_CHECKING
 
@@ -46,8 +47,24 @@ class TopGG(commands.Cog):
 
   def __init__(self, bot: "Bot"):
     self.bot = bot
-    self.token = os.getenv("TOKENDBL")
-    self.topgg = topgg.DBLClient(self.bot, self.token, autopost=False)
+
+    if self.bot.prod:
+      try:
+        self.poster = dbots.ClientPoster(
+            self.bot,
+            "py-cord",
+            loop=self.bot.loop,
+            sharding=True,
+            api_keys={
+                "top.gg": os.getenv("TOKENTOP"),
+                "discord.bots.gg": os.getenv("TOKENDBOTSGG"),
+                "discordbotlist.com": os.getenv("TOKENDBL"),
+                "botlist.space": os.getenv("TOKENDLS"),
+            }
+        )
+      except Exception as e:
+        self.bot.logger.exception('Failed to initialize DBL poster\n?: ?', type(e).__name__, e)
+
     self._current_len_guilds = len(self.bot.guilds)
     if self.bot.cluster_idx == 0:
       if not hasattr(self.bot, "topgg_webhook"):
@@ -120,8 +137,9 @@ class TopGG(commands.Cog):
     self._current_len_guilds = len(self.bot.guilds)
     self.bot.logger.info("Updating DBL stats")
     try:
-      await self.topgg.post_guild_count(guild_count=len(self.bot.guilds), shard_count=self.bot.shard_count)
-      self.bot.logger.info("Server count posted successfully")
+      if hasattr(self, "poster"):
+        await self.poster.post()
+        self.bot.logger.info("Server count posted successfully")
     except Exception as e:
       self.bot.logger.exception('Failed to post server count\n?: ?', type(e).__name__, e)
 
