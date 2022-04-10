@@ -1,5 +1,6 @@
 import asyncio
 import datetime
+import gc
 import io
 import json
 import logging
@@ -96,6 +97,17 @@ _INVITE_REGEX = re.compile(r'(?:https?:\/\/)?discord(?:\.gg|\.com|app\.com\/invi
 
 def censor_invite(obj, *, _regex=_INVITE_REGEX):
   return _regex.sub('[censored-invite]', str(obj))
+
+
+def hex_value(arg):
+  return int(arg, base=16)
+
+
+def object_at(addr):
+  for o in gc.get_objects():
+    if id(o) == addr:
+      return o
+  return None
 
 
 class Stats(commands.Cog, command_attrs=dict(hidden=True)):
@@ -754,6 +766,30 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
     e.description = "\n".join(builder)
     e.set_footer(text=f"{issues} warning(s)")
     await ctx.send(embed=e)
+
+  @commands.command(hidden=True, aliases=['cancel_task'])
+  @commands.is_owner()
+  async def debug_task(self, ctx, memory_id: hex_value):
+    """Debug a task by a memory location."""
+    task = object_at(memory_id)
+    if task is None or not isinstance(task, asyncio.Task):
+      return await ctx.send(f'Could not find Task object at {hex(memory_id)}.')
+
+    if ctx.invoked_with == 'cancel_task':
+      task.cancel()
+      return await ctx.send(f'Cancelled task object {task!r}.')
+
+    paginator = commands.Paginator(prefix='```py')
+    fp = io.StringIO()
+    frames = len(task.get_stack())
+    paginator.add_line(f'# Total Frames: {frames}')
+    task.print_stack(file=fp)
+
+    for line in fp.getvalue().splitlines():
+      paginator.add_line(line)
+
+    for page in paginator.pages:
+      await ctx.send(page)
 
   @commands.command("wavelink")
   async def wavelink(self, ctx: "MyContext"):
