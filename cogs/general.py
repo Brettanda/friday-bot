@@ -162,7 +162,7 @@ class General(commands.Cog):
 
   @commands.command(name="userinfo", extras={"examples": ["@Friday", "476303446547365891"]}, help="Some information on the mentioned user")
   @commands.guild_only()
-  async def norm_userinfo(self, ctx, user: typing.Optional[typing.Union[discord.Member, discord.User]] = None):
+  async def norm_userinfo(self, ctx, *, user: typing.Optional[typing.Union[discord.Member, discord.User]] = None):
     user = user or ctx.author
     await ctx.send(embed=embed(
         title=f"{user.name} - Info",

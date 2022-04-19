@@ -137,7 +137,7 @@ class HelpMenu(ListPageSource):
         colour=MessageColors.DEFAULT
     )
     embed.set_thumbnail(url=self.ctx.bot.user.display_avatar.url)
-    embed.set_footer(text=f"{offset:,} - {min(len_data, offset+self.per_page-1):,} of {len_data:,} commands.")
+    embed.set_footer(text=f"{offset:,} - {min(len_data, offset+self.per_page-1):,} of {len_data:,} commands | Use `{self.ctx.clean_prefix}help command` to get more info on a command.")
 
     for name, value in fields:
       embed.add_field(name=name, value=value, inline=False)
@@ -189,7 +189,7 @@ class Help(commands.HelpCommand):
 
     return embed
 
-  def make_default_embed(self, cogs: [commands.Cog], title="Friday - Help", description=discord.Embed.Empty):
+  def make_default_embed(self, cogs: [commands.Cog], title="Friday - Help", description=None):
     embed = Embed(color=MessageColors.DEFAULT)
     embed.title = title
     embed.description = description

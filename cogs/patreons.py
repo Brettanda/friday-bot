@@ -78,7 +78,7 @@ class PatreonConfig:
 
 
 class Patreons(commands.Cog):
-  """Exlusive command for Friday's Patreon Patrons"""
+  """Exlusive commands for Friday's Patrons"""
 
   def __init__(self, bot: "Bot") -> None:
     self.bot = bot
@@ -99,7 +99,7 @@ class Patreons(commands.Cog):
     while True:
       fetch = functools.partial(self.patreon.fetch_page_of_pledges, cursor=cursor, fields={"pledge": ["total_historical_amount_cents", "declined_since"]})
       pledges_response = await self.bot.loop.run_in_executor(None, fetch, campaign_id, 25)
-      cursor = self.patreon.extract_cursor(pledges_response)
+      cursor = await self.bot.loop.run_in_executor(None, self.patreon.extract_cursor, pledges_response)
       all_pledges += pledges_response.data()
       if cursor is None:
         break
