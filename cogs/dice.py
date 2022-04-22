@@ -38,5 +38,5 @@ class Dice(commands.Cog):
       return await ctx.send(embed=embed(title=f"Your total: {str(result.total)}", description=f"Query: {str(result.ast)}\nResult: {str(result)}"))
 
 
-def setup(bot):
-  bot.add_cog(Dice(bot))
+async def setup(bot):
+  await bot.add_cog(Dice(bot))

@@ -622,5 +622,5 @@ class Fun(commands.Cog):
     await ctx.send(embed=embed(title=f"{random.choice(choices)}"))
 
 
-def setup(bot):
-  bot.add_cog(Fun(bot))
+async def setup(bot):
+  await bot.add_cog(Fun(bot))
