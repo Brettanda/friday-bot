@@ -1,4 +1,5 @@
 from typing import Optional
+import os
 
 import discord
 import pycountry
@@ -9,6 +10,7 @@ from functions import embed, MyContext, cache, config, MessageColors
 
 from typing_extensions import TYPE_CHECKING
 
+from functions.config import ReadOnly
 if TYPE_CHECKING:
   from index import Friday as Bot
 
