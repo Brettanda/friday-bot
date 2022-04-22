@@ -13,7 +13,7 @@ import async_timeout
 import discord
 import validators
 import wavelink
-import functools
+from wavelink.ext import spotify
 from discord.ext import commands, menus
 from numpy import random
 

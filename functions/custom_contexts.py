@@ -9,6 +9,7 @@ from typing_extensions import TYPE_CHECKING
 from .myembed import embed
 
 if TYPE_CHECKING:
+  from .config import ReadOnly
   from aiohttp import ClientSession
   from asyncpg import Pool, Connection
 

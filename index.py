@@ -4,7 +4,7 @@ import logging
 import os
 import sys
 from collections import defaultdict
-from typing import Optional, Iterable, AsyncIterator
+from typing import Dict, Optional, Iterable, AsyncIterator
 
 import aiohttp
 import discord
