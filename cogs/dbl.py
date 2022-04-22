@@ -88,7 +88,7 @@ class TopGG(commands.Cog):
     if self.bot.prod and self._current_len_guilds != len(self.bot.guilds):
       await self.update_stats()
 
-  @commands.group(name="vote", help="Get the link to vote for me on Top.gg", invoke_without_command=True, case_insensitive=True)
+  @commands.command(help="Get the link to vote for me on Top.gg", case_insensitive=True)
   async def vote(self, ctx: "MyContext"):
     query = """SELECT id,expires
               FROM reminders
@@ -101,7 +101,7 @@ class TopGG(commands.Cog):
     vote_message = f"Your next vote time is: {time.format_dt(expires, style='R')}" if expires is not None else "You can vote now"
     await ctx.reply(embed=embed(title="Voting", description=f"{vote_message}\n\nWhen you vote you get:", fieldstitle=["Better rate limiting"], fieldsval=["60 messages/12 hours instead of 30 messages/12 hours."]), view=VoteView(self))
 
-  @vote.command(name="fake", extras={"examples": ["test", "upvote"]}, hidden=True)
+  @commands.command(extras={"examples": ["test", "upvote"]}, hidden=True)
   @commands.is_owner()
   async def vote_fake(self, ctx: "MyContext", _type: str = "test", user: discord.User = None):
     if user is None:

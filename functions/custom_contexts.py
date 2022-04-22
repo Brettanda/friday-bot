@@ -199,6 +199,7 @@ class MyContext(Context):
     super().__init__(*args, **kwargs)
     self.pool: Pool = self.bot.pool
     self._db = None
+    self._lang = self._lang_default = "en", self.bot.languages["en"]
 
   def __repr__(self) -> str:
     return "<Context>"
