@@ -292,5 +292,5 @@ class Reminder(commands.Cog):
       return
 
 
-def setup(bot):
-  bot.add_cog(Reminder(bot))
+async def setup(bot):
+  await bot.add_cog(Reminder(bot))

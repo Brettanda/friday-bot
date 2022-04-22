@@ -71,6 +71,6 @@ class Shortcuts(commands.Cog):
     ...
 
 
-def setup(bot):
+async def setup(bot):
   ...
-  # bot.add_cog(Shortcuts(bot))
+  # await bot.add_cog(Shortcuts(bot))

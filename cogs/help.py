@@ -3,14 +3,14 @@
 import discord
 from discord import Embed
 from discord.ext import commands
-from discord.ext.menus import ListPageSource, ButtonMenuPages
+# from discord.ext.menus import ListPageSource
 # from discord.utils import get
 
 # from interactions import Context as SlashContext
 # import typing
 from typing_extensions import TYPE_CHECKING
 # from cogs.cleanup import get_delete_time
-from functions import MessageColors, views, MyContext, embed
+from functions import MessageColors, MyContext, embed  # , views
 
 if TYPE_CHECKING:
   from index import Friday as Bot
@@ -72,85 +72,85 @@ def syntax(command, prefix: str = "!", quotes: bool = True, *, subcommands: list
     return f"{prefix}{cmd_and_aliases} {get_params(command)}{sub_commands}"
 
 
-class MyMenuPages(ButtonMenuPages):
-  def __init__(self, source, **kwargs):
-    super().__init__(source=source, timeout=60.0, **kwargs)
-    self._source = source
-    self.current_page = 0
-    self.ctx = None
-    self.message = None
-    for item in views.Links().links:
-      self.add_item(item)
+# class MyMenuPages(ButtonMenuPages):
+#   def __init__(self, source, **kwargs):
+#     super().__init__(source=source, timeout=60.0, **kwargs)
+#     self._source = source
+#     self.current_page = 0
+#     self.ctx = None
+#     self.message = None
+#     for item in views.Links().links:
+#       self.add_item(item)
 
-  async def start(self, ctx, *, channel: discord.TextChannel = None, wait=False) -> None:
-    await self._source._prepare_once()
-    self.ctx = ctx
-    self.message = await self.send_initial_message(ctx, ctx.channel)
+#   async def start(self, ctx, *, channel: discord.TextChannel = None, wait=False) -> None:
+#     await self._source._prepare_once()
+#     self.ctx = ctx
+#     self.message = await self.send_initial_message(ctx, ctx.channel)
 
-  async def send_initial_message(self, ctx: "MyContext", channel: discord.TextChannel):
-    page = await self._source.get_page(0)
-    kwargs = await self._get_kwargs_from_page(page)
-    return await ctx.send(**kwargs)
+#   async def send_initial_message(self, ctx: "MyContext", channel: discord.TextChannel):
+#     page = await self._source.get_page(0)
+#     kwargs = await self._get_kwargs_from_page(page)
+#     return await ctx.send(**kwargs)
 
-  async def _get_kwargs_from_page(self, page):
-    value = await super()._get_kwargs_from_page(page)
-    if "view" not in value:
-      value.update({"view": self})
-    return value
+#   async def _get_kwargs_from_page(self, page):
+#     value = await super()._get_kwargs_from_page(page)
+#     if "view" not in value:
+#       value.update({"view": self})
+#     return value
 
-  async def interaction_check(self, interaction: discord.Interaction) -> bool:
-    if interaction.user and interaction.user == self.ctx.author:
-      return True
-    else:
-      await interaction.response.send_message('This help menu is not for you.', ephemeral=True)
-      return False
+#   async def interaction_check(self, interaction: discord.Interaction) -> bool:
+#     if interaction.user and interaction.user == self.ctx.author:
+#       return True
+#     else:
+#       await interaction.response.send_message('This help menu is not for you.', ephemeral=True)
+#       return False
 
-  def stop(self):
-    try:
-      self.ctx.bot.loop.create_task(self.message.delete())
-    except discord.NotFound:
-      pass
-    super().stop()
+#   def stop(self):
+#     try:
+#       self.ctx.bot.loop.create_task(self.message.delete())
+#     except discord.NotFound:
+#       pass
+#     super().stop()
 
-  async def on_timeout(self) -> None:
-    self.stop()
+#   async def on_timeout(self) -> None:
+#     self.stop()
 
 
-class HelpMenu(ListPageSource):
-  def __init__(self, ctx, data, *, title="Commands", description="", missing_perms=False):
-    self.ctx = ctx
-    self.title = title
-    self.description = description
-    self.missing_perms = missing_perms
+# class HelpMenu(ListPageSource):
+#   def __init__(self, ctx, data, *, title="Commands", description="", missing_perms=False):
+#     self.ctx = ctx
+#     self.title = title
+#     self.description = description
+#     self.missing_perms = missing_perms
 
-    super().__init__(data, per_page=6)
+#     super().__init__(data, per_page=6)
 
-  async def write_page(self, menu: MyMenuPages, fields: list = None):
-    if fields is None:
-      fields = []
-    offset = (menu.current_page * self.per_page) + 1
-    len_data = len(self.entries)
+#   async def write_page(self, menu: MyMenuPages, fields: list = None):
+#     if fields is None:
+#       fields = []
+#     offset = (menu.current_page * self.per_page) + 1
+#     len_data = len(self.entries)
 
-    embed = Embed(
-        title=self.title,
-        description=self.description,
-        colour=MessageColors.DEFAULT
-    )
-    embed.set_thumbnail(url=self.ctx.bot.user.display_avatar.url)
-    embed.set_footer(text=f"{offset:,} - {min(len_data, offset+self.per_page-1):,} of {len_data:,} commands.")
+#     embed = Embed(
+#         title=self.title,
+#         description=self.description,
+#         colour=MessageColors.DEFAULT
+#     )
+#     embed.set_thumbnail(url=self.ctx.bot.user.display_avatar.url)
+#     embed.set_footer(text=f"{offset:,} - {min(len_data, offset+self.per_page-1):,} of {len_data:,} commands | Use `{self.ctx.clean_prefix}help command` to get more info on a command.")
 
-    for name, value in fields:
-      embed.add_field(name=name, value=value, inline=False)
+#     for name, value in fields:
+#       embed.add_field(name=name, value=value, inline=False)
 
-    return embed
+#     return embed
 
-  async def format_page(self, menu: MyMenuPages, entries: [commands.Command]):
-    fields = []
+#   async def format_page(self, menu: MyMenuPages, entries: [commands.Command]):
+#     fields = []
 
-    for entry in entries:
-      fields.append((entry.cog_name or "No description", syntax(entry, self.ctx.clean_prefix)))
+#     for entry in entries:
+#       fields.append((entry.cog_name or "No description", syntax(entry, self.ctx.clean_prefix)))
 
-    return await self.write_page(menu, fields)
+#     return await self.write_page(menu, fields)
 
 
 class Help(commands.HelpCommand):
@@ -189,7 +189,7 @@ class Help(commands.HelpCommand):
 
     return embed
 
-  def make_default_embed(self, cogs: [commands.Cog], title="Friday - Help", description=discord.Embed.Empty):
+  def make_default_embed(self, cogs: [commands.Cog], title="Friday - Help", description=None):
     embed = Embed(color=MessageColors.DEFAULT)
     embed.title = title
     embed.description = description
@@ -308,7 +308,7 @@ class Help(commands.HelpCommand):
     await self.context.reply(embed=embed)
 
 
-def setup(bot: "Bot"):
+async def setup(bot: "Bot"):
   bot.old_help_command = bot.help_command
   bot.help_command = Help()
 

@@ -1,6 +1,4 @@
 import asyncpg
-import os
-
 from discord.ext import commands
 from typing_extensions import TYPE_CHECKING
 from typing import Optional, Union
@@ -30,6 +28,7 @@ class Database(commands.Cog):
             "persona text DEFAULT 'friday'",
             "customjoinleave text NULL",
             "chatchannel text NULL DEFAULT NULL",
+            "chatstoprepeating boolean DEFAULT true",
             "botchannel text NULL DEFAULT NULL",
             "musicchannel text NULL DEFAULT NULL",
             "disabled_commands text[] DEFAULT array[]::text[]",
@@ -131,36 +130,18 @@ class Database(commands.Cog):
     self.indexes = [
         "CREATE UNIQUE INDEX IF NOT EXISTS starrers_uniq_idx ON starrers (author_id, entry_id);",
     ]
-    hostname = 'localhost' if self.bot.prod or self.bot.canary else os.environ["DBHOSTNAME"]
-    username = os.environ["DBUSERNAMECANARY"] if self.bot.canary else os.environ["DBUSERNAME"] if self.bot.prod else os.environ["DBUSERNAMELOCAL"]
-    password = os.environ["DBPASSWORDCANARY"] if self.bot.canary else os.environ["DBPASSWORD"] if self.bot.prod else os.environ["DBPASSWORDLOCAL"]
-    database = os.environ["DBDATABASECANARY"] if self.bot.canary else os.environ["DBDATABASE"] if self.bot.prod else os.environ["DBDATABASELOCAL"]
-    kwargs = {
-        'command_timeout': 60,
-        'max_size': 20,
-        'min_size': 20,
-    }
-    if not hasattr(bot, "pool") or bot.pool is None:
-      bot.pool = bot.loop.run_until_complete(asyncpg.create_pool(host=hostname, user=username, password=password, database=database, loop=bot.loop, **kwargs))
-      if bot.cluster_idx == 0:
-        bot.loop.run_until_complete(self.create_tables())
-      # self.loop.create_task(self.sync_table_columns())
 
   def __repr__(self) -> str:
     return f"<cogs.{self.__cog_name__}>"
 
+  async def cog_load(self):
+    if self.bot.cluster_idx == 0:
+      self.loop.create_task(self.create_tables())
+      self.loop.create_task(self.sync_table_columns())
+
   @property
   def pool(self) -> asyncpg.Pool:
     return self.bot.pool
-
-  @commands.Cog.listener()
-  async def on_ready(self):
-    actual_guilds, checked_guilds = [str(guild.id) for guild in self.bot.guilds], []
-    for guild_id in await self.query("SELECT id FROM servers"):
-      if str(guild_id[0]) in actual_guilds:
-        checked_guilds.append(guild_id)
-    if len(checked_guilds) == len(self.bot.guilds):
-      self.bot.logger.info("All guilds are in the Database")
 
   async def create_tables(self):
     query = ""
@@ -203,5 +184,5 @@ class Database(commands.Cog):
       return result
 
 
-def setup(bot):
-  bot.add_cog(Database(bot))
+async def setup(bot):
+  await bot.add_cog(Database(bot))

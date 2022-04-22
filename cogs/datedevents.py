@@ -66,5 +66,5 @@ class DatedEvents(commands.Cog):
     self.dated_events.cancel()
 
 
-def setup(bot):
-  bot.add_cog(DatedEvents(bot))
+async def setup(bot):
+  await bot.add_cog(DatedEvents(bot))

@@ -1,4 +1,5 @@
 from typing import Optional
+import os
 
 import discord
 import pycountry
@@ -9,6 +10,7 @@ from functions import embed, MyContext, cache, config, MessageColors
 
 from typing_extensions import TYPE_CHECKING
 
+from functions.config import ReadOnly
 if TYPE_CHECKING:
   from index import Friday as Bot
 
@@ -81,6 +83,9 @@ class Config(commands.Cog, command_attrs=dict(extras={"permissions": ["manage_gu
   async def cog_check(self, ctx: "MyContext"):
     if ctx.guild is None:
       raise commands.NoPrivateMessage("This command can only be used within a guild")
+
+    if await ctx.bot.is_owner(ctx.author):
+      return True
 
     if not ctx.author.guild_permissions.manage_guild:
       raise commands.MissingPermissions(["manage_guild"])
@@ -240,5 +245,13 @@ class Config(commands.Cog, command_attrs=dict(extras={"permissions": ["manage_gu
     ...
 
 
-def setup(bot):
-  bot.add_cog(Config(bot))
+async def setup(bot):
+  if not hasattr(bot, "languages") or len(bot.languages) == 0:
+    bot.languages["en"] = ReadOnly("i18n/source/commands.json")
+    for lang in os.listdir("./i18n/translations"):
+      bot.languages[lang] = ReadOnly(f"i18n/translations/{lang}/commands.json")
+
+  # if not hasattr(bot, "language_config"):
+  #   bot.language_config = ConfigFile("languages.json")
+
+  await bot.add_cog(Config(bot))

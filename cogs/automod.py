@@ -644,5 +644,5 @@ class AutoMod(commands.Cog):
     await ctx.reply(embed=embed(title="Disabled max content messages"))
 
 
-def setup(bot):
-  bot.add_cog(AutoMod(bot))
+async def setup(bot):
+  await bot.add_cog(AutoMod(bot))

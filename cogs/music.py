@@ -1,5 +1,8 @@
 import asyncio
+import collections
 import datetime
+import functools
+import itertools
 import json
 import math
 import os
@@ -9,14 +12,19 @@ from typing import List, Literal, Optional, Union
 import async_timeout
 import discord
 import validators
-import functools
-import pycord.wavelink as wavelink
+import wavelink
+from wavelink.ext import spotify
 from discord.ext import commands, menus
 from numpy import random
-import collections
-from functions import MessageColors, MyContext, checks, config, embed, exceptions
 
+from functions import (MessageColors, MyContext, checks, config, embed, time,
+                       exceptions, paginator)
+
+MISSING = discord.utils.MISSING
 URL_REG = re.compile(r'https?://(?:www\.)?.+')
+VoiceChannel = Union[
+    discord.VoiceChannel, discord.StageChannel
+]
 
 
 def can_play():
@@ -145,13 +153,12 @@ class Track(wavelink.YouTubeTrack):
 
   def __init__(self, *args, **kwargs):
     super().__init__(*args)
-    self.requester = kwargs.get("requester")
+    self.requester = kwargs.get("requester", None)
 
 
 class Player(wavelink.Player):
-  def __call__(self, client: discord.utils.MISSING, channel: discord.utils.MISSING, *, ctx: MyContext = discord.utils.MISSING):
-    self.client: discord.Client = self.client if hasattr(self, "client") else client
-    self.channel: discord.VoiceChannel = self.channel if hasattr(self, "channel") else channel
+  def __call__(self, client: MISSING, channel: VoiceChannel = MISSING, *, ctx: MyContext = MISSING):
+    self = super().__call__(client, channel)
     self.ctx: MyContext = self.ctx if hasattr(self, "ctx") else ctx
     self.text_channel: discord.TextChannel = self.text_channel if hasattr(self, "text_channel") else self.ctx.channel if self.ctx else None
     self.dj = self.dj if hasattr(self, "dj") else self.ctx.author if self.ctx else None
@@ -160,7 +167,7 @@ class Player(wavelink.Player):
 
     self._equalizer = Equalizer.flat()
     self.waiting = self.waiting if hasattr(self, "waiting") else False
-    self.queue = self.queue if hasattr(self, "queue") else wavelink.WaitQueue()
+    self.queue = self.queue if hasattr(self, "queue") else wavelink.WaitQueue(max_size=500, history_max_size=500)
 
     self.pause_votes = self.pause_votes if hasattr(self, "pause_votes") else set()
     self.resume_votes = self.resume_votes if hasattr(self, "resume_votes") else set()
@@ -171,13 +178,13 @@ class Player(wavelink.Player):
     self.stop_votes = self.stop_votes if hasattr(self, "stop_votes") else set()
     return self
 
-  def __init__(self, *args, **kwargs):
-    if len(args) > 2 and isinstance(args[1], tuple) and isinstance(args[1][0], self.__class__):
-      client = args[1][0].client
-      channel = args[1][0].channel
-    else:
-      client = kwargs.get("client", discord.utils.MISSING)
-      channel = kwargs.get("channel", discord.utils.MISSING)
+  def __init__(self, client=MISSING, channel: VoiceChannel = MISSING, *args, **kwargs):
+    # if len(args) > 2 and isinstance(args[1], tuple) and isinstance(args[1][0], self.__class__):
+    #   client = args[1][0].client
+    #   channel = args[1][0].channel
+    # else:
+    #   client = kwargs.get("client", discord.utils.MISSING)
+    #   channel = kwargs.get("channel", discord.utils.MISSING)
     super().__init__(client, channel)
     if len(args) > 2 and isinstance(args[1], tuple) and isinstance(args[1][0], self.__class__):
       self = args[1][0]
@@ -206,6 +213,15 @@ class Player(wavelink.Player):
 
   eq = equalizer
 
+  @property
+  def queue_duration(self) -> float:
+    return sum(track.length for track in [self.track, *self.queue._queue])
+
+  def duration_to_track(self, track: Track) -> str:
+    total = sum(t.length for t in [self.track, *list(itertools.islice(self.queue._queue, 0, self.queue._queue.index(track)))])
+    retry_after = discord.utils.utcnow() + datetime.timedelta(seconds=total)
+    return time.human_timedelta(retry_after)
+
   async def set_equalizer(self, eq: Equalizer):
     await self.node._websocket.send(op='equalizer', guildId=str(self.guild.id), bands=eq.eq)
     self._equalizer = eq
@@ -217,10 +233,10 @@ class Player(wavelink.Player):
       return self._connected
     return False
 
-  async def connect(self, *, self_deaf: bool = True, ctx: MyContext = None, timeout: float = 60.0, reconnect: bool = True) -> Union[discord.VoiceChannel, discord.StageChannel]:
+  async def connect(self, *, ctx: MyContext = None, timeout: float = 60.0, reconnect: bool = True, self_deaf: bool = True, self_mute: bool = False) -> Union[discord.VoiceChannel, discord.StageChannel]:
     if not self.guild:
       raise wavelink.errors.InvalidIDProvided(f'No guild found for id <{self.guild.id}>')
-    await self.guild.change_voice_state(channel=self.channel, self_deaf=self_deaf)
+    await self.guild.change_voice_state(channel=self.channel, self_deaf=self_deaf, self_mute=self_mute)
     self._connected = True
 
     return self.channel
@@ -245,13 +261,18 @@ class Player(wavelink.Player):
       # No music has been played for 1 minute, cleanup and disconnect...
       return await self.teardown()
 
+    # if isinstance(track, wavelink.PartialTrack):
+    #   track = await self.node.build_track(cls=Track, identifier=track.id)
+
+    track = await self.play(track)
+    track.requester = self.ctx.author
+
     channel = self.channel
     if channel and channel.type == discord.ChannelType.stage_voice and not channel.instance:
       await channel.create_instance(topic=track.title, reason="Music time!")
     elif channel and channel.type == discord.ChannelType.stage_voice and channel.instance is not None and self.current_title and channel.instance.topic == self.current_title:
       await channel.instance.edit(topic=track.title, reason="Next track!")
 
-    await self.play(track)
     self._source = track
     self.waiting = False
 
@@ -265,12 +286,12 @@ class Player(wavelink.Player):
 
     try:
       duration = str(datetime.timedelta(seconds=int(self.source.length)))
-    except OverflowError:
+    except (OverflowError, AttributeError):
       duration = "??:??:??"
 
     return embed(
         title=f"Now playing: **{self.track.title}**",
-        thumbnail=self.source.thumbnail,
+        thumbnail=getattr(self.source, "thumbnail", MISSING),
         url=self.source.uri,
         fieldstitle=["Duration", "Queue Length", "Volume", "Requested By", "DJ", "Channel"],
         fieldsval=[duration, str(qsize), f"**`{self.volume}%`**", f"{self.source.requester.mention}", f"{self.dj.mention if self.dj else None}", f"{self.channel.mention if self.channel else None}"],
@@ -323,61 +344,17 @@ class PaginatorSource(menus.ListPageSource):
     return True
 
 
-class QueueMenu(menus.ButtonMenuPages):
-  def __init__(self, source, *, title="Commands", description=""):
-    super().__init__(source=source, timeout=30.0)
-    self._source = source
-    self.current_page = 0
-    self.ctx = None
-    self.message = None
-
-  async def start(self, ctx, *, channel: discord.TextChannel = None, wait=False) -> None:
-    await self._source._prepare_once()
-    self.ctx = ctx
-    self.message = await self.send_initial_message(ctx, ctx.channel)
-
-  async def send_initial_message(self, ctx: "MyContext", channel: discord.TextChannel):
-    page = await self._source.get_page(0)
-    kwargs = await self._get_kwargs_from_page(page)
-    return await ctx.send(**kwargs)
-
-  async def _get_kwargs_from_page(self, page):
-    value = await super()._get_kwargs_from_page(page)
-    if "view" not in value:
-      value.update({"view": self})
-    return value
-
-  async def interaction_check(self, interaction: discord.Interaction) -> bool:
-    if interaction.user and interaction.user == self.ctx.author:
-      return True
-    else:
-      await interaction.response.send_message('This help menu is not for you.', ephemeral=True)
-      return False
-
-  def stop(self):
-    try:
-      self.ctx.bot.loop.create_task(self.message.edit(view=None))
-      super().stop()
-    except discord.NotFound:
-      pass
-
-  async def on_timeout(self) -> None:
-    self.stop()
-
-
 class Music(commands.Cog):
   """Listen to your favourite music and audio clips with Friday's music commands"""
 
   def __init__(self, bot):
     self.bot = bot
 
-    bot.loop.create_task(self.start_nodes())
-
   def __repr__(self) -> str:
     return f"<cogs.{self.__cog_name__}>"
 
-  async def start_nodes(self):
-    await self.bot.wait_until_ready()
+  @commands.Cog.listener()
+  async def on_ready(self):
     nodes = [
         {
             "bot": self.bot,
@@ -385,7 +362,6 @@ class Music(commands.Cog):
             "port": os.environ.get("LAVALINKUSPORT"),
             "password": os.environ.get("LAVALINKUSPASS"),
             "identifier": "MAIN",
-            "region": discord.VoiceRegion.us_central,
         }
     ]
 
@@ -487,25 +463,21 @@ class Music(commands.Cog):
 
     return player.dj == ctx.author or ctx.author.guild_permissions.kick_members
 
-  async def join(self, ctx: MyContext, channel: Union[discord.VoiceChannel, discord.StageChannel] = None) -> Player:
+  async def join(self, ctx: MyContext, channel: Union[VoiceChannel] = None) -> Player:
     player = self.get_player(ctx.guild, ctx=ctx)
 
     channel = getattr(ctx.author.voice, 'channel', channel) if channel is None else channel
     if channel is None:
       raise NoChannelProvided
 
-    if not ctx.voice_client:
-      player = Player(client=self.bot, channel=channel, ctx=ctx)
-      vc: Player = await ctx.author.voice.channel.connect(cls=player)
-    else:
-      vc: Player = ctx.voice_client
-    return vc
+    player = Player(client=self.bot, channel=channel, ctx=ctx)
+    return ctx.voice_client or await ctx.author.voice.channel.connect(cls=player, self_deaf=True)
 
   @commands.command(name="connect", aliases=["join"], help="Join a voice channel")
   @commands.guild_only()
   @commands.max_concurrency(1, commands.BucketType.guild, wait=True)
   @can_play()
-  async def connect(self, ctx: MyContext, *, channel: Optional[Union[discord.VoiceChannel, discord.StageChannel]] = None):
+  async def connect(self, ctx: MyContext, *, channel: Optional[VoiceChannel] = None):
     """Connect to a voice channel."""
     ch = await self.join(ctx, channel)
     if ch.channel:
@@ -525,21 +497,35 @@ class Music(commands.Cog):
       player = await self.join(ctx)
 
     query = query.strip('<>')
-    PartTrack = functools.partial(Track, requester=ctx.author)
-    try:
-      tracks = await player.node.get_tracks(cls=PartTrack, query=query)
-    except wavelink.errors.LavalinkException:
-      tracks = await player.node.get_playlist(cls=wavelink.abc.Playlist, identifier=query)
-    if not tracks:
-      tracks = await wavelink.YouTubeTrack.search(query)
+    PartTrack = functools.partial(Track)
+    spot_link = spotify.decode_url(query)
+    tracks = []
+    if spot_link:
+      if spot_link["type"].name == "playlist":
+        async for t in spotify.SpotifyTrack.iterator(query=spot_link["id"], type=spot_link["type"], partial_tracks=True):
+          tracks.append(t)
+        # self.bot.loop.create_task(self.build_spotify_tracks(spot_link["id"], player=player, _type=spot_link["type"]))
+      else:
+        tracks = await spotify.SpotifyTrack.search(spot_link["id"], type=spot_link["type"])
+        tracks = tracks[:1]
       if not tracks:
-        return await ctx.send(embed=embed(title='No songs were found with that query. Please try again.', color=MessageColors.ERROR))
-      tracks = await player.node.build_track(cls=PartTrack, identifier=tracks[0].id)
-      tracks = [tracks]
+        spot_link = None
+    if not spot_link:
+      try:
+        tracks = await player.node.get_tracks(cls=PartTrack, query=query)
+      except wavelink.errors.LavalinkException:
+        tracks = await player.node.get_playlist(cls=wavelink.abc.Playlist, identifier=query)
+      if not tracks:
+        tracks = await wavelink.YouTubeTrack.search(query)
+        if not tracks:
+          return await ctx.send(embed=embed(title='No songs were found with that query. Please try again.', color=MessageColors.ERROR))
+        tracks = await player.node.build_track(cls=PartTrack, identifier=tracks[0].id)
+        tracks = [tracks]
 
     if not tracks:
       return await ctx.send(embed=embed(title='No songs were found with that query. Please try again.', color=MessageColors.ERROR))
 
+    tracks[0].requester = ctx.author
     if isinstance(tracks, wavelink.abc.Playlist):
       for track in tracks.data["tracks"]:
         await player.queue.put_wait(Track(track["track"], track["info"], requester=ctx.author))
@@ -548,10 +534,17 @@ class Music(commands.Cog):
             title=f"Added the playlist {tracks.data['playlistInfo']['name']}",
             description=f" with {len(tracks.data['tracks'])} songs to the queue.",
             color=MessageColors.MUSIC))
+    elif isinstance(tracks, list):
+      for track in tracks:
+        await player.queue.put_wait(track)
+      if player.is_playing() or player.is_paused():
+        await ctx.send(embed=embed(
+            title=f"Added {tracks[0].title} by {tracks[0].author} to the queue.",
+            color=MessageColors.MUSIC))
     else:
       await player.queue.put_wait(tracks[0])
       if (player.is_playing() or player.is_paused()) and player.source is not None and not player.queue.is_empty:
-        await ctx.send(embed=embed(title=f"Added **{tracks[0].title}** to the Queue", color=MessageColors.MUSIC))
+        await ctx.send(embed=embed(title=f"Added **{tracks[0].title}** to the Queue", description=f"About {player.duration_to_track(tracks[0])} until played", color=MessageColors.MUSIC))
 
     if not player.is_playing():
       await player.do_next()
@@ -760,10 +753,10 @@ class Music(commands.Cog):
       return await ctx.send(embed=embed(title='There are no more songs in the queue.', color=MessageColors.ERROR))
 
     entries = [track.title for track in player.queue._queue]
-    pages = PaginatorSource(entries=entries)
-    paginator = QueueMenu(source=pages)
+    source = PaginatorSource(entries=entries)
+    pages = paginator.RoboPages(source=source, ctx=ctx, compact=True)
 
-    await paginator.start(ctx)
+    await pages.start()
 
   @queue.command(name="remove", aliases=['rm'], help="Remove an item from the queue")
   @commands.guild_only()
@@ -952,5 +945,5 @@ class Music(commands.Cog):
     await ctx.send(embed=embed(title="Cleared this servers custom commands"))
 
 
-def setup(bot):
-  bot.add_cog(Music(bot))
+async def setup(bot):
+  await bot.add_cog(Music(bot))

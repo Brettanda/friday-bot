@@ -47,7 +47,7 @@ class Logging(commands.Cog):
     self.bot = bot
 
   def __repr__(self) -> str:
-    return "<cogs.Logging>"
+    return f"<cogs.{self.__cog_name__}>"
 
   @cache.cache()
   async def get_guild_config(self, guild_id: int) -> Optional[Config]:
@@ -79,7 +79,7 @@ class Logging(commands.Cog):
 
   @commands.Cog.listener()
   async def on_member_update(self, before: discord.Member, after: discord.Member):
-    if before.roles == after.roles:
+    if before.roles == after.roles and before.timed_out_until == after.timed_out_until:
       return
 
     guild_id = after.guild.id
@@ -196,7 +196,7 @@ class Logging(commands.Cog):
       if not perms.send_messages or not perms.embed_links:
         return await ctx.send(embed=embed(title=f"I need the `Send Messages` and `Embed Links` permissions in `{channel}` to send logs in that channel.", color=MessageColors.ERROR))
     channel_id = str(channel.id) if channel else None
-    await self.bot.db.query("UPDATE servers SET mod_log_channel=$1 WHERE id=$2", channel_id, str(ctx.guild.id))
+    await ctx.db.execute("UPDATE servers SET mod_log_channel=$1 WHERE id=$2", channel_id, str(ctx.guild.id))
     self.get_guild_config.invalidate(self, ctx.guild.id)
     await ctx.send(embed=embed(title=f"Mod log channel has been set to `{channel}`"))
 
@@ -218,5 +218,5 @@ class Logging(commands.Cog):
       return await ctx.send(embed=embed(title="Invalid event(s)", description=f"You must specify one of the following events: {', '.join(EVENT_TYPES)}.", color=MessageColors.ERROR))
 
 
-def setup(bot):
-  bot.add_cog(Logging(bot))
+async def setup(bot):
+  await bot.add_cog(Logging(bot))

@@ -43,13 +43,17 @@ GAMES = [
 class ChooseGame(commands.Cog):
   def __init__(self, bot: "Bot"):
     self.bot = bot
-    self.choose_game.start()
+    self.status_update_shards = []
 
   def __repr__(self) -> str:
     return f"<cogs.{self.__cog_name__}>"
 
   @tasks.loop(minutes=10.0)
   async def choose_game(self):
+    self.status_update_shards.clear()
+    if self.status_updates.is_running():
+      self.status_updates.cancel()
+
     for shard_id in self.bot.shards:
       if random.random() < 0.6:
         gm = random.choice(GAMES)
@@ -63,8 +67,9 @@ class ChooseGame(commands.Cog):
               shard_id=shard_id,
           )
         elif gm.get("stats", None) is True:
-          if self.bot.canary or self.bot.prod:
-            self.status_updates.start(shard_id)
+          self.status_update_shards.append(shard_id)
+          if not self.status_updates.is_running():
+            self.status_updates.start()
         else:
           await self.bot.change_presence(
               activity=discord.Activity(
@@ -77,40 +82,33 @@ class ChooseGame(commands.Cog):
         await self.bot.change_presence(activity=None, shard_id=shard_id)
 
     self.choose_game.change_interval(minutes=float(random.randint(5, 45)))
-    if self.status_updates.is_running():
-      self.status_updates.cancel()
-
-  @commands.Cog.listener()
-  async def on_ready(self):
-    if self.choose_game.is_running():
-      self.choose_game.restart()
-    if self.status_updates.is_running():
-      self.status_updates.cancel()
-
-  @choose_game.before_loop
-  async def before_choose_game(self):
-    await self.bot.wait_until_ready()
 
   @tasks.loop(minutes=1)
-  async def status_updates(self, shard_id: int):
+  async def status_updates(self):
     member_count = sum(guild.member_count for guild in self.bot.guilds)
-    await self.bot.change_presence(
-        activity=discord.Activity(
-            type=discord.ActivityType.watching,
-            name=f"{len(self.bot.guilds)} servers with {member_count} members"
-        ),
-        shard_id=shard_id
-    )
+    for shard in self.status_update_shards:
+      await self.bot.change_presence(
+          activity=discord.Activity(
+              type=discord.ActivityType.watching,
+              name=f"{len(self.bot.guilds)} servers with {member_count} members"
+          ),
+          shard_id=shard
+      )
 
   @status_updates.before_loop
   @choose_game.before_loop
   async def before_status_updates(self):
     await self.bot.wait_until_ready()
 
-  def cog_unload(self):
+  async def cog_load(self):
+    self.choose_game.start()
+    if self.status_updates.is_running():
+      self.status_updates.cancel()
+
+  async def cog_unload(self):
     self.choose_game.cancel()
     self.status_updates.cancel()
 
 
-def setup(bot):
-  bot.add_cog(ChooseGame(bot))
+async def setup(bot):
+  await bot.add_cog(ChooseGame(bot))

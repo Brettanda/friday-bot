@@ -262,6 +262,6 @@ class AutoRole(commands.Cog):
   # Vote message
 
 
-def setup(bot):
+async def setup(bot):
   ...
   # bot.add_cog(AutoRole(bot))

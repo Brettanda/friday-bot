@@ -15,7 +15,7 @@ from typing import Optional
 import asyncpg
 import discord
 import psutil
-import pycord.wavelink as wavelink
+import wavelink
 from discord.ext import commands, tasks
 from typing_extensions import TYPE_CHECKING
 
@@ -80,6 +80,7 @@ class TabularData:
 
     def get_entry(d):
       elem = '|'.join(f'{e:^{self._widths[i]}}' for i, e in enumerate(d))
+      elem = "\\n".join(elem.splitlines())
       return f'|{elem}|'
 
     to_draw.append(get_entry(self._columns))
@@ -132,10 +133,11 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
     return f"<cogs.{self.__cog_name__}>"
 
   async def cog_check(self, ctx: "MyContext") -> bool:
-    if ctx.author.id == 892865928520413245:
-      return True
-    if not await self.bot.is_owner(ctx.author):
+    is_owner = await self.bot.is_owner(ctx.author)
+    if ctx.author.id != 892865928520413245 and not is_owner:
       raise commands.NotOwner()
+    if ctx.guild and not ctx.channel.permissions_for(ctx.guild.me).attach_files:
+      raise commands.BotMissingPermissions(["attach_files"])
     return True
 
   async def bulk_insert_commands(self):
@@ -309,7 +311,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
     total = sum(self.bot.chat_stats.values())
     cpm = total / minutes
 
-    counter_message = textwrap.shorten(f"{self.bot.chat_stats}", width=1922)
+    counter_message = textwrap.shorten(f"{self.bot.chat_stats}", width=1910)
 
     chat_cog = self.bot.get_cog("Chat")
     rate_control = chat_cog._spam_check
@@ -865,7 +867,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
                WHERE guild_id=$1
                ORDER BY used DESC
                LIMIT 15;"""
-    await self.tabulate_query(ctx, query, guild_id)
+    await self.tabulate_query(ctx, query, str(guild_id))
 
   @command_history.command(name='user', aliases=['member'])
   async def command_history_user(self, ctx, user_id: int):
@@ -883,7 +885,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
                   ORDER BY used DESC
                   LIMIT 20;
               """
-    await self.tabulate_query(ctx, query, user_id)
+    await self.tabulate_query(ctx, query, str(user_id))
 
   @commands.group("chathistory", invoke_without_command=True)
   async def chat_histroy(self, ctx: "MyContext"):
@@ -891,13 +893,76 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
                  guild_id,
                  author_id,
                  to_char(used, 'Mon DD HH12:MI:SS AM') AS "invoked",
-                 user_msg,
-                 bot_msg
+                 prompt
                FROM chats
                ORDER BY used DESC
                LIMIT 15;"""
 
     await self.tabulate_query(ctx, query)
+
+  @commands.group("commandactivity", invoke_without_command=True)
+  async def command_activity(self, ctx: "MyContext"):
+      # WHERE used > (CURRENT_TIMESTAMP - '1 day'::interval)
+    query = """SELECT
+                  extract(hour from used) AS "hour",
+                  SUM(CASE WHEN failed THEN 0 ELSE 1 END) AS "success"
+              FROM commands
+              GROUP BY extract(hour from used)
+              ORDER BY extract(hour from used);"""
+    record = await ctx.db.fetch(query)
+    hours = [0] * 24
+    for r in record:
+      hours[int(r["hour"])] = r["success"]
+
+    graph = ""
+    space = 30
+    for i, v in enumerate(hours):
+      scaled = int(v / max(hours) * space)
+      spacer = " " * (space - scaled)
+      graph += f"{i+1:02d} | {'#' * min(space,scaled)}{spacer} | {v or ''}\n"
+    mid = int(max(hours) / 2)
+    graph += f"   0 {'-':->{space/2-len(str(mid))}} {mid} {'-':->{space/2-len(str(mid))}} {max(hours):,}\n"
+    graph = graph.strip()
+
+    await ctx.send(f"```\n{graph}\n```")
+
+  @commands.group("chatactivity", invoke_without_command=True)
+  async def chat_activity(self, ctx: "MyContext"):
+      # WHERE used > (CURRENT_TIMESTAMP - '1 day'::interval)
+    query = """SELECT
+                  extract(hour from used) AS "hour",
+                  SUM(CASE WHEN failed THEN 0 ELSE 1 END) AS "success"
+              FROM chats
+              GROUP BY extract(hour from used)
+              ORDER BY extract(hour from used);"""
+    record = await ctx.db.fetch(query)
+    hours = [0] * 24
+    for r in record:
+      hours[int(r["hour"])] = r["success"]
+
+    graph = ""
+    space = 30
+    for i, v in enumerate(hours):
+      scaled = int(v / max(hours) * space)
+      spacer = " " * (space - scaled)
+      graph += f"{i+1:02d} | {'#' * min(space,scaled)}{spacer} | {v or ''}\n"
+    mid = int(max(hours) / 2)
+    graph += f"   0 {'-':->{space/2-len(str(mid))}} {mid} {'-':->{space/2-len(str(mid))}} {max(hours):,}\n"
+    graph = graph.strip()
+
+    await ctx.send(f"```\n{graph}\n```")
+
+  # @commands.command("beforeleave")
+  # async def beforeleave(self, ctx: "MyContext"):
+  #   # from the database get the servers that friday joined then left
+  #   # get the commands that executed in those servers before friday left
+  #   # return the common commands that executed before friday left
+
+  #   query = """SELECT DISTINCT guild_id
+  #             FROM joined
+  #             WHERE joined IS false;"""
+  #   guilds = await ctx.db.fetch(query)
+  #   guild_ids = [g["guild_id"] for g in guilds]
 
 
 old_on_error = commands.AutoShardedBot.on_error
@@ -927,7 +992,7 @@ async def on_error(self, event, *args, **kwargs):
     pass
 
 
-def setup(bot):
+async def setup(bot):
   if not hasattr(bot, 'command_stats'):
     bot.command_stats = Counter()
 
@@ -941,7 +1006,7 @@ def setup(bot):
     bot.socket_stats = Counter()
 
   cog = Stats(bot)
-  bot.add_cog(cog)
+  await bot.add_cog(cog)
   bot._stats_cog_gateway_handler = handler = GatewayHandler(cog)
   logging.getLogger().addHandler(handler)
   commands.AutoShardedBot.on_error = on_error
