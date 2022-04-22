@@ -365,9 +365,14 @@ class Music(commands.Cog):
         }
     ]
 
+    spotify_client = spotify.SpotifyClient(
+        client_id=os.environ.get("SPOTIFYID"),
+        client_secret=os.environ.get("SPOTIFYSECRET"),
+    )
+
     for n in nodes:
       try:
-        await wavelink.NodePool.create_node(**n)
+        await wavelink.NodePool.create_node(**n, spotify_client=spotify_client)
       except wavelink.NodeOccupied:
         pass
 
