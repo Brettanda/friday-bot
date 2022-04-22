@@ -673,8 +673,8 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     await ctx.send(f"Status: {lookup.get(success, ':x:')} Time: {(end - start) * 1000:.2f}ms")
 
 
-def setup(bot):
+async def setup(bot):
   if not hasattr(bot, "restartPending"):
     bot.restartPending = False
 
-  bot.add_cog(Dev(bot))
+  await bot.add_cog(Dev(bot))
