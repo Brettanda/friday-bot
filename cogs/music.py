@@ -207,6 +207,8 @@ class Player(wavelink.Player):
     self.remove_votes = self.remove_votes if hasattr(self, "remove_votes") else collections.defaultdict(lambda: set())
     self.stop_votes = self.stop_votes if hasattr(self, "stop_votes") else set()
 
+    self.current_title = None
+
   @property
   def equalizer(self):
     return self._equalizer
@@ -274,6 +276,7 @@ class Player(wavelink.Player):
       await channel.instance.edit(topic=track.title, reason="Next track!")
 
     self._source = track
+    self.current_title = track.title
     self.waiting = False
 
     await self.ctx.reply(embed=self.build_embed())
