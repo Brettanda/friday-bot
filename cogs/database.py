@@ -1,6 +1,4 @@
 import asyncpg
-import os
-
 from discord.ext import commands
 from typing_extensions import TYPE_CHECKING
 from typing import Optional, Union
