@@ -925,5 +925,5 @@ class Moderation(commands.Cog):
     self.bot.dispatch("invalidate_mod", ctx.guild.id)
 
 
-def setup(bot):
-  bot.add_cog(Moderation(bot))
+async def setup(bot):
+  await bot.add_cog(Moderation(bot))

@@ -7,10 +7,10 @@ import io
 
 import typing
 from typing import TYPE_CHECKING
-from pycord.wavelink import errors as wavelink_errors
+from wavelink import errors as wavelink_errors
 from discord.ext import commands  # , tasks
 # from discord_slash.http import SlashCommandRequest
-from functions import MessageColors, embed, relay_info, exceptions, config, views, MyContext, cache  # , FakeInteractionMessage
+from functions import MessageColors, embed, relay_info, exceptions, views, MyContext, cache, time  # , FakeInteractionMessage
 import traceback
 
 from collections import Counter
@@ -69,8 +69,6 @@ class Log(commands.Cog):
 
   def __init__(self, bot: "Bot"):
     self.bot = bot
-    self.loop = bot.loop
-    self.loop.create_task(self.setup())
 
     self.spam_control = commands.CooldownMapping.from_cooldown(5, 15.0, commands.BucketType.user)
     self.super_spam_control = commands.CooldownMapping.from_cooldown(5, 60, commands.BucketType.user)
@@ -86,13 +84,6 @@ class Log(commands.Cog):
 
   def __repr__(self) -> str:
     return f"<cogs.{self.__cog_name__}>"
-
-  async def setup(self) -> None:
-    if not hasattr(self, "bot_managers"):
-      self.bot_managers = {}
-      for guild_id, role_id in await self.bot.db.query("SELECT id,bot_manager FROM servers"):
-        if role_id is not None:
-          self.bot_managers.update({str(guild_id): str(role_id)})
 
   async def bot_check(self, ctx):
     if hasattr(ctx.channel, "type") and ctx.channel.type == discord.ChannelType.private:
@@ -262,27 +253,30 @@ class Log(commands.Cog):
   #           commands.MaxConcurrencyReached)) and (not hasattr(ex, "log") or (hasattr(ex, "log") and ex.log is True)):
   #     raise ex
 
+  async def bot_check_once(self, ctx: "MyContext"):
+    if ctx.command.cog_name not in ("Dev", "Config"):
+      if ctx.author.id in self.bot.blacklist:
+        return False
+
+      if ctx.guild is not None and ctx.guild.id in self.bot.blacklist:
+        return False
+
+      config = ctx.guild and await self.get_guild_config(ctx.guild.id, connection=ctx.db)
+      if config is not None:
+        if ctx.command.name in config.disabled_commands:
+          return False
+
+        if config.bot_channel is not None and ctx.channel.id != config.bot_channel:
+          if ctx.command.name in config.restricted_commands and not ctx.author.guild_permissions.manage_guild:
+            await ctx.send(f"<#{config.bot_channel}>", embed=embed(title="This command is restricted to the bot channel.", color=MessageColors.ERROR), delete_after=15, ephemeral=True)
+            return False
+    return True
+
   async def process_commands(self, message):
     ctx = await self.bot.get_context(message, cls=MyContext)
 
     if ctx.command is None:
       return
-
-    if ctx.command.cog_name not in ("Dev", "Config"):
-      if ctx.author.id in self.bot.blacklist:
-        return
-
-      if ctx.guild is not None and ctx.guild.id in self.bot.blacklist:
-        return
-
-      config = ctx.guild and await self.get_guild_config(ctx.guild.id, connection=ctx.db)
-      if config is not None:
-        if ctx.command.name in config.disabled_commands:
-          return
-
-        if config.bot_channel is not None and ctx.channel.id != config.bot_channel:
-          if ctx.command.name in config.restricted_commands and not ctx.author.guild_permissions.manage_guild:
-            ctx.to_bot_channel = config.bot_channel
 
     bucket = self.spam_control.get_bucket(message)
     current = message.created_at.replace(tzinfo=datetime.timezone.utc).timestamp()
@@ -327,28 +321,6 @@ class Log(commands.Cog):
       return await Config.from_record(record, self.bot)
     return None
 
-  async def fetch_user_tier(self, user: discord.User):
-    if user.id == self.bot.owner_id:
-      return config.PremiumTiers.tier_4
-    if user is not None:
-      member = await self.bot.get_or_fetch_member(self.bot.get_guild(config.support_server_id), user.id)
-      if member is None:
-        raise exceptions.NotInSupportServer()
-      roles = [role.id for role in member.roles]
-      if config.patreon_supporting_role not in roles:
-        raise exceptions.NotSupporter()
-      # role = [role for role in roles if role in config.premium_roles.values()]
-      # something = list(config.premium_roles.values())[::2]
-      available_tiers_roles = [tier for tier in config.PremiumTiers.roles if tier != 843941723041300480]
-      available_tiers_roles = available_tiers_roles[::2]
-      x, final_tier = 0, None
-      for tier in available_tiers_roles:
-        if tier in [role.id for role in member.roles]:
-          final_tier = available_tiers_roles.index(tier)
-          final_tier = list(config.premium_tiers)[final_tier + 1]
-        x += 1
-      return final_tier if final_tier is not None else None
-
   @discord.utils.cached_property
   def log_chat(self) -> CustomWebhook:
     return CustomWebhook.partial(os.environ.get("WEBHOOKCHATID"), os.environ.get("WEBHOOKCHATTOKEN"), session=self.bot.session)
@@ -371,28 +343,37 @@ class Log(commands.Cog):
 
   @commands.Cog.listener()
   async def on_command_error(self, ctx: "MyContext", error):
-    if hasattr(ctx.command, 'on_error'):
-      return
+    # if hasattr(ctx.command, 'on_error'):
+    #   return
+
+    # if ctx.cog:
+    #   if ctx.cog._get_overridden_method(ctx.cog.cog_command_error) is not None:
+    #     return
 
     ignored = (commands.CommandNotFound, commands.NotOwner, )
     wave_errors = (wavelink_errors.LoadTrackError, wavelink_errors.WavelinkError,)
-    just_send = (commands.DisabledCommand, commands.BotMissingPermissions, commands.MissingPermissions, commands.RoleNotFound, asyncio.TimeoutError, commands.BadArgument)
+    just_send = (commands.DisabledCommand, commands.BotMissingPermissions, commands.MissingPermissions, commands.RoleNotFound, commands.MaxConcurrencyReached, asyncio.TimeoutError, commands.BadArgument, exceptions.RequiredTier)
     error = getattr(error, 'original', error)
 
     if isinstance(error, (*ignored, *wave_errors)) or (hasattr(error, "log") and error.log is False):
+      self.logger.warning("Ignored error called: {}".format(error))
       return
 
     if isinstance(error, just_send):
-      await ctx.send(embed=embed(title=error, color=MessageColors.ERROR))
+      await ctx.send(embed=embed(title=error, color=MessageColors.ERROR), ephemeral=True)
     elif isinstance(error, (commands.MissingRequiredArgument, commands.TooManyArguments)):
       await ctx.send_help(ctx.command)
     elif isinstance(error, commands.CommandOnCooldown):
       retry_after = discord.utils.utcnow() + datetime.timedelta(seconds=error.retry_after)
-      await ctx.send(embed=embed(title=f"This command is on a cooldown, and will be available <t:{int(retry_after.timestamp())}:R>", color=MessageColors.ERROR))
+      await ctx.send(embed=embed(title=f"This command is on a cooldown, and will be available in `{time.human_timedelta(retry_after)}` or <t:{int(retry_after.timestamp())}:R>", color=MessageColors.ERROR), ephemeral=True)
     elif isinstance(error, (exceptions.RequiredTier, exceptions.NotInSupportServer)):
-      await ctx.send(embed=embed(title=error, color=MessageColors.ERROR))
+      await ctx.send(embed=embed(title=error, color=MessageColors.ERROR), ephemeral=True)
+    elif isinstance(error, commands.CheckFailure):
+      self.logger.warn(f"{ctx.guild and ctx.guild.id or 'Private Message'} {ctx.channel} {ctx.author} {error}")
     elif isinstance(error, commands.NoPrivateMessage):
-      await ctx.send(embed=embed(title="This command does not work in non-server text channels", color=MessageColors.ERROR))
+      await ctx.send(embed=embed(title="This command does not work in non-server text channels", color=MessageColors.ERROR), ephemeral=True)
+    elif isinstance(error, OverflowError):
+      await ctx.send(embed=embed(title="An arguments number is too large.", color=MessageColors.ERROR), ephemeral=True)
     elif isinstance(error, commands.CommandInvokeError):
       original = error.original
       if not isinstance(original, discord.HTTPException):
@@ -423,5 +404,5 @@ class Log(commands.Cog):
       self.logger.info("ERROR sent")
 
 
-def setup(bot):
-  bot.add_cog(Log(bot))
+async def setup(bot):
+  await bot.add_cog(Log(bot))

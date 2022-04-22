@@ -38,6 +38,15 @@ class UnitTester(commands.Bot):
             type=discord.ActivityType.playing,
             name="Unit Testing"
         ))
+    guild = self.get_guild(243159711237537802)
+    await guild.chunk(cache=True)
+    main = guild.get_member(751680714948214855)
+    if main.status not in (discord.Status.online, discord.Status.idle):
+      def check_online(m):
+        return m.author.id == 751680714948214855 and m.channel.id == 892840236781015120
+      await self.wait_for("message", check=check_online, timeout=30.0)
+    else:
+      self.was_online = True
 
 
 @pytest.fixture(scope="session")
@@ -49,16 +58,6 @@ def event_loop():
 async def bot(event_loop) -> commands.Bot:
   bot = UnitTester(loop=event_loop)
   event_loop.create_task(bot.start(TOKEN))
-  await bot.wait_until_ready()
-  guild = bot.get_guild(243159711237537802)
-  await guild.chunk(cache=True)
-  main = guild.get_member(751680714948214855)
-  if main.status not in (discord.Status.online, discord.Status.idle):
-    def check_online(m):
-      return m.author.id == 751680714948214855 and m.channel.id == 892840236781015120
-    await bot.wait_for("message", check=check_online, timeout=30.0)
-  else:
-    bot.was_online = True
   return bot
 
 

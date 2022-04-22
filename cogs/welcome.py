@@ -177,5 +177,5 @@ class Welcome(commands.Cog):
         description="" if channel_id is not None else "Don't forget to set a welcome channel"))
 
 
-def setup(bot):
-  bot.add_cog(Welcome(bot))
+async def setup(bot):
+  await bot.add_cog(Welcome(bot))

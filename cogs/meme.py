@@ -136,5 +136,5 @@ class Meme(commands.Cog):
   #   await ctx.send(**await get_reddit_post(ctx, self.subs, self.reddit))
 
 
-def setup(bot):
-  bot.add_cog(Meme(bot))
+async def setup(bot):
+  await bot.add_cog(Meme(bot))

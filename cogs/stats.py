@@ -15,7 +15,7 @@ from typing import Optional
 import asyncpg
 import discord
 import psutil
-import pycord.wavelink as wavelink
+import wavelink
 from discord.ext import commands, tasks
 from typing_extensions import TYPE_CHECKING
 
@@ -992,7 +992,7 @@ async def on_error(self, event, *args, **kwargs):
     pass
 
 
-def setup(bot):
+async def setup(bot):
   if not hasattr(bot, 'command_stats'):
     bot.command_stats = Counter()
 
@@ -1006,7 +1006,7 @@ def setup(bot):
     bot.socket_stats = Counter()
 
   cog = Stats(bot)
-  bot.add_cog(cog)
+  await bot.add_cog(cog)
   bot._stats_cog_gateway_handler = handler = GatewayHandler(cog)
   logging.getLogger().addHandler(handler)
   commands.AutoShardedBot.on_error = on_error

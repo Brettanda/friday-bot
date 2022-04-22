@@ -50,11 +50,14 @@ CLUSER_NAMES = (
 
 NAMES = iter(CLUSER_NAMES)
 
+prod = len(sys.argv) > 1 and (sys.argv[1] == "--prod" or sys.argv[1] == "--production")
+canary = len(sys.argv) > 1 and (sys.argv[1] == "--canary")
+
 TOKEN = os.environ.get('TOKENTEST')
 if len(sys.argv) > 1:
-  if sys.argv[1] == "--prod" or sys.argv[1] == "--production":
+  if prod:
     TOKEN = os.environ.get("TOKEN")
-  elif sys.argv[1] == "--canary":
+  elif canary:
     TOKEN = os.environ.get("TOKENCANARY")
 
 
@@ -70,11 +73,14 @@ class Launcher:
     self.keep_alive = None
     self.init = time.perf_counter()
 
+    self.prod = prod
+    self.canary = canary
+
   def get_shard_count(self) -> int:
     data = requests.get(
-        "https://discord.com/api/v9/gateway/bot",
+        "https://discord.com/api/v10/gateway/bot",
         headers={
-            "Authorization": f"Bot {os.environ.get('TOKEN')}",
+            "Authorization": f"Bot {TOKEN}",
             "User-Agent": f'DiscordBot ({discord.__author__} {discord.__version__}) Python/{sys.version_info.major}.{sys.version_info.minor}'
         }
     )
@@ -169,6 +175,7 @@ class Cluster:
         token=TOKEN,
         shard_ids=shard_ids,
         shard_count=max_shards,
+        cluster=self,
         cluster_name=name,
         cluster_idx=CLUSER_NAMES.index(name),
         logger=self.logger,

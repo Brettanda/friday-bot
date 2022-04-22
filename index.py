@@ -4,7 +4,7 @@ import logging
 import os
 import sys
 from collections import defaultdict
-from typing import Dict, Optional
+from typing import Optional, Iterable, AsyncIterator
 
 import aiohttp
 import discord
@@ -34,18 +34,13 @@ async def get_prefix(bot: "Friday", message: discord.Message):
 class Friday(commands.AutoShardedBot):
   """Friday is a discord bot that is designed to be a flexible and easy to use bot."""
 
-  def __init__(self, loop=None, **kwargs):
+  def __init__(self, **kwargs):
     self.cluster = kwargs.pop("cluster", None)
     self.cluster_name = kwargs.pop("cluster_name", None)
     self.cluster_idx = kwargs.pop("cluster_idx", 0)
     self.should_start = kwargs.pop("start", False)
     self._logger = kwargs.pop("logger")
 
-    if loop is None:
-      self.loop = asyncio.new_event_loop()
-      asyncio.set_event_loop(self.loop)
-    else:
-      self.loop = loop
     super().__init__(
         command_prefix=get_prefix,
         strip_after_prefix=True,
@@ -57,18 +52,18 @@ class Friday(commands.AutoShardedBot):
             reactions=True,
             members=True,
             bans=True,
-            # TODO: message_content=True,
+            guild_scheduled_events=True,
+            message_content=True,
             # invites=True,
         ),
         status=discord.Status.idle,
         owner_id=215227961048170496,
-        debug_guilds=[243159711237537802],
         description=functions.config.description,
         member_cache_flags=discord.MemberCacheFlags.all(),
         chunk_guilds_at_startup=False,
         allowed_mentions=discord.AllowedMentions(roles=False, everyone=False, users=True),
         enable_debug_events=True,
-        loop=self.loop, **kwargs
+        **kwargs
     )
 
     self.session = None
@@ -76,8 +71,9 @@ class Friday(commands.AutoShardedBot):
 
     # guild_id: str("!")
     self.prefixes = defaultdict(lambda: str("!"))
-    self.prod = True if len(sys.argv) > 1 and (sys.argv[1] == "--prod" or sys.argv[1] == "--production") else False
-    self.canary = True if len(sys.argv) > 1 and (sys.argv[1] == "--canary") else False
+    self.languages = {}
+    self.prod = kwargs.pop("prod", None) or True if len(sys.argv) > 1 and (sys.argv[1] == "--prod" or sys.argv[1] == "--production") else False
+    self.canary = kwargs.pop("canary", None) or True if len(sys.argv) > 1 and (sys.argv[1] == "--canary") else False
     self.ready = False
 
     # shard_id: List[datetime.datetime]
@@ -87,12 +83,9 @@ class Friday(commands.AutoShardedBot):
 
     self.blacklist = Config("blacklist.json")
 
-    self.load_extension("cogs.database")
-    self.load_extension("cogs.log")
-    self.loop.run_until_complete(self.setup(True))
     self.logger.info(f"Cluster Starting {kwargs.get('shard_ids', None)}, {kwargs.get('shard_count', 1)}")
     if self.should_start:
-      self.run(kwargs["token"])
+      self.run(kwargs["token"], reconnect=True)
 
   def __repr__(self) -> str:
     return f"<Friday username=\"{self.user.display_name if self.user else None}\" id={self.user.id if self.user else None}>"
@@ -104,6 +97,10 @@ class Friday(commands.AutoShardedBot):
   @property
   def logger(self) -> logging.Logger:
     return self._logger
+
+  @property
+  def pool(self):
+    return self._pool
 
   @property
   def db(self) -> Optional["Database"]:
@@ -126,20 +123,25 @@ class Friday(commands.AutoShardedBot):
   async def get_context(self, message, *, cls=None) -> functions.MyContext:
     return await super().get_context(message, cls=cls or functions.MyContext)
 
-  async def setup(self, load_extentions: bool = False):
+  async def setup_hook(self):
     self.session: aiohttp.ClientSession() = aiohttp.ClientSession(loop=self.loop)
+    self._pool = await functions.db.Table.create_pool(prod=self.prod, canary=self.canary)
+    await self.load_extension("cogs.database")
+    await self.load_extension("cogs.log")
 
     # Should replace with a json file at some point
-    for guild_id, prefix in await self.db.pool.fetch("SELECT id,prefix FROM servers WHERE prefix!=$1::text", "!"):
+    for guild_id, prefix in await self.pool.fetch("SELECT id,prefix FROM servers WHERE prefix!=$1::text", "!"):
       self.prefixes[int(guild_id, base=10)] = prefix
 
-    if load_extentions:
-      for cog in [*cogs.default, *cogs.spice]:
-        path = "spice.cogs." if cog.lower() in cogs.spice else "cogs."
-        try:
-          self.load_extension(f"{path}{cog}")
-        except Exception as e:
-          self.logger.error(f"Failed to load extenstion {cog} with \n {e}")
+    for cog in [*cogs.default, *cogs.spice]:
+      path = "spice.cogs." if cog.lower() in cogs.spice else "cogs."
+      try:
+        await self.load_extension(f"{path}{cog}")
+      except Exception as e:
+        self.logger.error(f"Failed to load extenstion {cog} with \n {e}")
+
+  async def on_ready(self):
+    await self.tree.sync()
 
   def _clear_gateway_data(self):
     one_week_ago = discord.utils.utcnow() - datetime.timedelta(days=7)
@@ -186,6 +188,58 @@ class Friday(commands.AutoShardedBot):
       return None
     return members[0]
 
+  async def resolve_member_ids(self, guild: discord.Guild, member_ids: Iterable[int]) -> AsyncIterator[discord.Member]:
+    """Bulk resolves member IDs to member instances, if possible.
+    Members that can't be resolved are discarded from the list.
+    This is done lazily using an asynchronous iterator.
+    Note that the order of the resolved members is not the same as the input.
+    Parameters
+    -----------
+    guild: Guild
+        The guild to resolve from.
+    member_ids: Iterable[int]
+        An iterable of member IDs.
+    Yields
+    --------
+    Member
+        The resolved members.
+    """
+
+    needs_resolution = []
+    for member_id in member_ids:
+      member = guild.get_member(member_id)
+      if member is not None:
+        yield member
+      else:
+        needs_resolution.append(member_id)
+
+    total_need_resolution = len(needs_resolution)
+    if total_need_resolution == 1:
+      shard = self.get_shard(guild.shard_id)
+      if shard.is_ws_ratelimited():
+        try:
+          member = await guild.fetch_member(needs_resolution[0])
+        except discord.HTTPException:
+          pass
+        else:
+          yield member
+      else:
+        members = await guild.query_members(limit=1, user_ids=needs_resolution, cache=True)
+        if members:
+          yield members[0]
+    elif 0 < total_need_resolution <= 100:
+      # Only a single resolution call needed here
+      resolved = await guild.query_members(limit=100, user_ids=needs_resolution, cache=True)
+      for member in resolved:
+        yield member
+    elif total_need_resolution > 0:
+      # We need to chunk these in bits of 100...
+      for index in range(0, total_need_resolution, 100):
+        to_resolve = needs_resolution[index: index + 100]
+        members = await guild.query_members(limit=100, user_ids=to_resolve, cache=True)
+        for member in members:
+          yield member
+
   async def on_error(self, event_method, *args, **kwargs):
     return await self.log.on_error(event_method, *args, **kwargs)
 
@@ -193,6 +247,10 @@ class Friday(commands.AutoShardedBot):
     await super().close()
     await self.session.close()
 
+
+async def main(bot):
+  async with bot:
+    await bot.start(TOKEN, reconnect=True)
 
 if __name__ == "__main__":
   from launcher import get_logger
@@ -205,11 +263,8 @@ if __name__ == "__main__":
       TOKEN = os.environ.get("TOKEN")
     elif sys.argv[1] == "--canary":
       TOKEN = os.environ.get("TOKENCANARY")
-  loop = asyncio.get_event_loop()
   try:
-    loop.run_until_complete(bot.start(TOKEN, reconnect=True))
+    asyncio.run(main(bot))
   except KeyboardInterrupt:
     logging.info("STOPED")
-    loop.run_until_complete(bot.close())
-  finally:
-    loop.close()
+    asyncio.run(bot.close())

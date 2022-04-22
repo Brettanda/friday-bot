@@ -1141,5 +1141,5 @@ class Stars(commands.Cog):
     await ctx.send(embed=embed(title=f'Successfully sent to {success} channels (out of {len(to_send)}) in {delta:.2f}s.'))
 
 
-def setup(bot):
-  bot.add_cog(Stars(bot))
+async def setup(bot):
+  await bot.add_cog(Stars(bot))

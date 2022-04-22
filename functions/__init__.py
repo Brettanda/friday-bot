@@ -14,6 +14,7 @@ from .relay import relay_info
 from .build_da_docs import build as build_docs
 from . import views
 from . import formats
+from . import paginator
 from . import cooldown
 
 dev_guilds = [243159711237537802, 707441352367013899, 215346091321720832]
@@ -42,4 +43,5 @@ __all__ = (
     "time",
     "formats",
     "cooldown",
+    "paginator",
 )

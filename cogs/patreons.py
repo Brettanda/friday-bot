@@ -128,7 +128,7 @@ class Patreons(commands.Cog):
         description="Become a Patron and get access to awesome features.\n\nYou can view all of the available features on Patreon.\n\nA few of the features that you will get access include:",
         fieldstitle=["Better Rate-limiting", "Personas", "Cool role(s)", "Priority Support", "And more"],
         fieldsval=["100 messages/12 hours instead of 30 messages/12 hours.", "Change the persona that Friday uses when chatting in your server", "You will be granted role(s) in the support server.", "Get priority support for your encounters with Friday", "Get the full list of benefits on Patreon."],
-        fieldsin=[False] * 4,
+        fieldsin=[False] * 5,
         footer="For the full list of patreon commands type `!help patreon`",
     ),
         view=PatreonButtons())
@@ -212,5 +212,5 @@ class Patreons(commands.Cog):
     await ctx.send(embed=embed(title="You have successfully removed your server"))
 
 
-def setup(bot):
-  bot.add_cog(Patreons(bot))
+async def setup(bot):
+  await bot.add_cog(Patreons(bot))

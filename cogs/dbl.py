@@ -48,11 +48,6 @@ class TopGG(commands.Cog):
     self.bot = bot
 
     self._current_len_guilds = len(self.bot.guilds)
-    if self.bot.cluster_idx == 0:
-      if not hasattr(self.bot, "topgg_webhook"):
-        self.bot.topgg_webhook = topgg.WebhookManager(self.bot).dbl_webhook("/dblwebhook", os.environ["DBLWEBHOOKPASS"])
-        self.bot.topgg_webhook.run(5000)
-      self._update_stats_loop.start()
 
   def __repr__(self) -> str:
     return f"<cogs.{self.__cog_name__}>"
@@ -61,7 +56,14 @@ class TopGG(commands.Cog):
   def log_bumps(self) -> CustomWebhook:
     return CustomWebhook.partial(os.environ.get("WEBHOOKBUMPSID"), os.environ.get("WEBHOOKBUMPSTOKEN"), session=self.bot.session)
 
-  def cog_unload(self):
+  async def cog_load(self):
+    if self.bot.cluster_idx == 0:
+      if not hasattr(self.bot, "topgg_webhook"):
+        self.bot.topgg_webhook = topgg.WebhookManager(self.bot).dbl_webhook("/dblwebhook", os.environ["DBLWEBHOOKPASS"])
+        self.bot.topgg_webhook.run(5000)
+      self._update_stats_loop.start()
+
+  async def cog_unload(self):
     self._update_stats_loop.cancel()
 
   @cache.cache(ignore_kwargs=True)

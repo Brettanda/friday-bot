@@ -197,6 +197,7 @@ class Chat(commands.Cog):
     self.h = HTMLParser()
 
     self.api_lock = bot.cluster and bot.cluster.launcher.api_lock or asyncio.Semaphore(3)
+
     self._spam_check = SpamChecker()
     self._repeating_spam = CooldownByRepeating.from_cooldown(3, 60 * 3, commands.BucketType.channel)
 
@@ -503,7 +504,7 @@ class Chat(commands.Cog):
   #   return ""
 
 
-def setup(bot):
+async def setup(bot):
   if not hasattr(bot, "cluster"):
     bot.cluster = None
 
@@ -513,4 +514,4 @@ def setup(bot):
   if not hasattr(bot, "chat_repeat_counter"):
     bot.chat_repeat_counter = Counter()
 
-  bot.add_cog(Chat(bot))
+  await bot.add_cog(Chat(bot))

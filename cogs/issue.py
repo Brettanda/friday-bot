@@ -23,15 +23,15 @@ class SupportServer(discord.ui.View):
 
 
 class Modal(discord.ui.Modal):
-  def __init__(self, title: str, items: List[dict], bot, author):
-    super().__init__(title)
+  def __init__(self, *, title: str, items: List[dict], bot, author):
+    super().__init__(title=title)
     self.bot = bot
     self.author = author
     self.values: Optional[list] = None
     for item in items:
-      self.add_item(discord.ui.InputText(**item))
+      self.add_item(discord.ui.TextInput(**item))
 
-  async def callback(self, interaction: discord.Interaction):
+  async def on_submit(self, interaction: discord.Interaction):
     items = [c.value for c in self.children]
     hook = self.bot.get_cog("Issue").log_issues
     await interaction.response.send_message(embed=embed(title="Your issue has been submitted", description="Please join the support server for followup on your issue."), view=SupportServer(), ephemeral=True)
@@ -71,7 +71,7 @@ class ModalView(discord.ui.View):
 
   @discord.ui.button(emoji="\N{WRITING HAND}", label="Modal", custom_id="issue_modal", style=discord.ButtonStyle.primary)
   async def button_modal(self, button, interaction: discord.Interaction):
-    await interaction.response.send_modal(Modal(
+    await button.response.send_modal(Modal(
         title=self._modal_title,
         items=self._modal_items,
         author=self.author,
@@ -80,8 +80,7 @@ class ModalView(discord.ui.View):
 
   @discord.ui.button(emoji="\N{HEAVY MULTIPLICATION X}", label='Cancel', custom_id="issue_cancel", style=discord.ButtonStyle.red)
   async def cancel(self, button: discord.ui.Button, interaction: discord.Interaction):
-    await interaction.response.defer()
-    await interaction.delete_original_message()
+    await button.delete_original_message()
     self.stop()
 
   async def on_timeout(self) -> None:
@@ -114,16 +113,16 @@ class Issue(commands.Cog):
             modal_button="Form",
             modal_title="Issue Form",
             modal_items=[
-                dict(label="Subject", style=discord.InputTextStyle.singleline, required=False, max_length=150),
-                dict(label="Description", placeholder="Avoid using non-descriptive words like \"it glitches\" or \"its broken\"", style=discord.InputTextStyle.paragraph, required=True, max_length=1000),
-                dict(label="Steps to reproduce", placeholder="Describe how to reproduce your issue\nThis can be the command you used, button you clicked, etc...", style=discord.InputTextStyle.paragraph, required=True, max_length=1000),
-                dict(label="Expected result", placeholder="What should have happened?", style=discord.InputTextStyle.paragraph, required=True, max_length=1000),
-                dict(label="Actual result", placeholder="What actually happened?", style=discord.InputTextStyle.paragraph, required=True, max_length=1000)
+                dict(label="Subject", required=False, max_length=150),
+                dict(label="Description", placeholder="Avoid using non-descriptive words like \"it glitches\" or \"its broken\"", style=discord.TextStyle.paragraph, required=True, max_length=1000),
+                dict(label="Steps to reproduce", placeholder="Describe how to reproduce your issue\nThis can be the command you used, button you clicked, etc...", style=discord.TextStyle.paragraph, required=True, max_length=1000),
+                dict(label="Expected result", placeholder="What should have happened?", style=discord.TextStyle.paragraph, required=True, max_length=1000),
+                dict(label="Actual result", placeholder="What actually happened?", style=discord.TextStyle.paragraph, required=True, max_length=1000)
             ],
             author=ctx.author,
             bot=self.bot
         ))
 
 
-def setup(bot):
-  bot.add_cog(Issue(bot))
+async def setup(bot):
+  await bot.add_cog(Issue(bot))
