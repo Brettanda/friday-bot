@@ -99,7 +99,7 @@ class Logging(commands.Cog):
     if before_has == after_has:
       return
 
-    audit = await after.guild.audit_logs(limit=5, action=discord.AuditLogAction.member_role_update, user=before.guild.me, oldest_first=False).flatten()
+    audit = [a async for a in after.guild.audit_logs(limit=5, action=discord.AuditLogAction.member_role_update, user=before.guild.me, oldest_first=False)]
     if len(audit) == 0 or len([i for i in audit if i.target.id == before.id]) == 0:
       return
 
@@ -124,7 +124,7 @@ class Logging(commands.Cog):
     if "bans" not in config.mod_log_events:
       return
 
-    audit = await guild.audit_logs(limit=5, action=discord.AuditLogAction.ban, user=guild.me, oldest_first=False).flatten()
+    audit = [a async for a in guild.audit_logs(limit=5, action=discord.AuditLogAction.ban, user=guild.me, oldest_first=False)]
     if len(audit) == 0 or len([i for i in audit if i.target.id == member.id]) == 0:
       return
 
@@ -148,7 +148,7 @@ class Logging(commands.Cog):
     if "unbans" not in config.mod_log_events:
       return
 
-    audit = await guild.audit_logs(limit=5, action=discord.AuditLogAction.unban, user=guild.me, oldest_first=False).flatten()
+    audit = [a async for a in guild.audit_logs(limit=5, action=discord.AuditLogAction.unban, user=guild.me, oldest_first=False)]
     if len(audit) == 0 or len([i for i in audit if i.target.id == member.id]) == 0:
       return
 
@@ -174,7 +174,7 @@ class Logging(commands.Cog):
 
     after = discord.utils.utcnow() - datetime.timedelta(seconds=5)
 
-    audit = await member.guild.audit_logs(limit=5, action=discord.AuditLogAction.kick, after=after, oldest_first=False).flatten()
+    audit = [a async for a in member.guild.audit_logs(limit=5, action=discord.AuditLogAction.kick, after=after, oldest_first=False)]
     if len(audit) == 0 or len([i for i in audit if i.target.id == member.id and i.created_at > after]) == 0:
       return
 

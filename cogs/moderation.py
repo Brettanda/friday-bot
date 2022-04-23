@@ -671,7 +671,7 @@ class Moderation(commands.Cog):
     async with ctx.typing():
       for member in members:
         try:
-          await member.remove_timeout(reason=reason)
+          await member.timeout(None, reason=reason)
         except discord.HTTPException:
           failed += 1
     if len(members) == 1:
