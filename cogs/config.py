@@ -131,8 +131,8 @@ class Config(commands.Cog, command_attrs=dict(extras={"permissions": ["manage_gu
   @commands.command(name="language", extras={"examples": ["en", "es", "english", "spanish"]}, aliases=["lang"], help="Change the language that I will speak. This currently only applies to the chatbot messages not the commands.")
   # @commands.cooldown(1, 3600, commands.BucketType.guild)
   @commands.has_guild_permissions(administrator=True)
-  async def language(self, ctx, language: Optional[str] = None):
-    lang = ctx.guild.preferred_locale.split("-")[0]
+  async def language(self, ctx: "MyContext", language: Optional[str] = None):
+    lang = ctx.guild.preferred_locale.name.split("-")[0]
     if language is None and ctx.guild is not None:
       language = lang
 
