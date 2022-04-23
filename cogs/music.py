@@ -167,7 +167,7 @@ class Player(wavelink.Player):
 
     self._equalizer = Equalizer.flat()
     self.waiting = self.waiting if hasattr(self, "waiting") else False
-    self.queue = self.queue if hasattr(self, "queue") else wavelink.WaitQueue(max_size=500, history_max_size=500)
+    self.queue = self.queue if hasattr(self, "queue") else wavelink.WaitQueue(max_size=5000, history_max_size=5000)
 
     self.pause_votes = self.pause_votes if hasattr(self, "pause_votes") else set()
     self.resume_votes = self.resume_votes if hasattr(self, "resume_votes") else set()
@@ -206,6 +206,8 @@ class Player(wavelink.Player):
     # queue position: votes
     self.remove_votes = self.remove_votes if hasattr(self, "remove_votes") else collections.defaultdict(lambda: set())
     self.stop_votes = self.stop_votes if hasattr(self, "stop_votes") else set()
+
+    self.current_title = None
 
   @property
   def equalizer(self):
@@ -274,6 +276,7 @@ class Player(wavelink.Player):
       await channel.instance.edit(topic=track.title, reason="Next track!")
 
     self._source = track
+    self.current_title = track.title
     self.waiting = False
 
     await self.ctx.reply(embed=self.build_embed())
