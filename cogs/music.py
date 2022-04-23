@@ -167,7 +167,7 @@ class Player(wavelink.Player):
 
     self._equalizer = Equalizer.flat()
     self.waiting = self.waiting if hasattr(self, "waiting") else False
-    self.queue = self.queue if hasattr(self, "queue") else wavelink.WaitQueue(max_size=500, history_max_size=500)
+    self.queue = self.queue if hasattr(self, "queue") else wavelink.WaitQueue(max_size=5000, history_max_size=5000)
 
     self.pause_votes = self.pause_votes if hasattr(self, "pause_votes") else set()
     self.resume_votes = self.resume_votes if hasattr(self, "resume_votes") else set()
