@@ -2,7 +2,7 @@ import asyncio
 import os
 import pytest
 # import sys
-# import time
+import time
 
 import discord
 from discord.ext import commands
@@ -14,16 +14,16 @@ TOKEN = os.environ.get('TOKENUNITTEST')
 
 
 class UnitTester(commands.Bot):
-  def __init__(self, loop=None, **kwargs):
-    self.loop = loop
+  def __init__(self, **kwargs):
     self.was_online = False
     super().__init__(
         command_prefix="?",
         intents=discord.Intents.all(),
         status=discord.Status.do_not_disturb,
         allowed_mentions=discord.AllowedMentions.all(),
-        loop=self.loop, **kwargs
+        **kwargs
     )
+    self.x = 0
 
   async def on_message(self, msg: discord.Message):
     if msg.author.id != 751680714948214855:
@@ -56,42 +56,51 @@ def event_loop():
 
 @pytest.fixture(scope="session")
 async def bot(event_loop) -> commands.Bot:
-  bot = UnitTester(loop=event_loop)
+  bot = UnitTester()
   event_loop.create_task(bot.start(TOKEN))
-  return bot
+  yield bot
+  await bot.close()
 
 
 @pytest.fixture(scope="session", autouse=True)
-def cleanup(request, bot, channel):
+async def cleanup(request, bot, channel):
   def close():
     if not bot.was_online:
       asyncio.get_event_loop().run_until_complete(channel.send("!complete"))
-    asyncio.get_event_loop().run_until_complete(channel.send("!stop"))
-    # if sys.gettrace() is None:
-    #   asyncio.get_event_loop().run_until_complete(channel.purge(limit=250, oldest_first=True))
-    asyncio.get_event_loop().run_until_complete(bot.close())
   request.addfinalizer(close)
 
 
-# @pytest.fixture(autouse=True)
-# def slow_down_tests():
-#   yield
-#   time.sleep(0.5)
+@pytest.fixture(autouse=True)
+async def slow_down_tests(bot):
+  await bot.wait_until_ready()
+  yield
+  bot.x += 1
+  if bot.x % 3 == 0:
+    time.sleep(1)
 
 
 @pytest.fixture(scope="session")
-async def channel(bot: commands.Bot) -> discord.TextChannel:
-  return await bot.fetch_channel(892840236781015120)
+async def guild(bot: UnitTester) -> discord.Guild:
+  await bot.wait_until_ready()
+  yield bot.get_guild(243159711237537802)
 
 
 @pytest.fixture(scope="session")
-async def voice_channel(bot: commands.Bot) -> discord.VoiceChannel:
-  return await bot.fetch_channel(895486009465266176)
+async def channel(bot, guild: guild) -> discord.TextChannel:
+  await bot.wait_until_ready()
+  yield guild.get_channel(892840236781015120) or await guild.fetch_channel(892840236781015120)
 
 
 @pytest.fixture(scope="session")
-async def user(bot: commands.Bot) -> discord.User:
-  return await bot.fetch_user(813618591878086707)
+async def voice_channel(bot, guild: guild) -> discord.VoiceChannel:
+  await bot.wait_until_ready()
+  yield guild.get_channel(895486009465266176) or await guild.fetch_channel(895486009465266176)
+
+
+@pytest.fixture(scope="session")
+async def user(bot, guild: guild) -> discord.User:
+  await bot.wait_until_ready()
+  yield await guild.fetch_user(813618591878086707)
 
 
 def msg_check(msg: discord.Message, content: str = None) -> bool:

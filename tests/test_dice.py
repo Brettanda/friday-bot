@@ -5,12 +5,13 @@ from typing_extensions import TYPE_CHECKING
 if TYPE_CHECKING:
   from .conftest import bot, channel
 
+pytestmark = pytest.mark.asyncio
 
-@pytest.mark.asyncio
+
 @pytest.mark.parametrize("roll", ["1d20", "2d8", "1d20k7", "1*3", ""])
 async def test_dice(bot: "bot", channel: "channel", roll: str):
   content = f"!dice {roll}"
-  await channel.send(content)
+  assert await channel.send(content)
 
   msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
   if roll == "":
