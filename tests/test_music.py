@@ -18,7 +18,7 @@ async def voice(bot: discord.Client, voice_channel: "voice_channel", channel: "c
 
 
 # @pytest.mark.parametrize("bot,voice_channel,channel", [bot, voice_channel, channel])
-@pytest.mark.parametrize("url", ["https://www.youtube.com/watch?v=dQw4w9WgXcQ", "https://www.youtube.com/watch?v=jCQd6YqTnOk&list=PLQSoWXSpjA3_FFnFo4yWTtVbZrMkbm-h7", "https://www.youtube.com/watch?v=2ZIpFytCSVc", "some kind of magic"])
+@pytest.mark.parametrize("url", ["https://www.youtube.com/watch?v=dQw4w9WgXcQ", "https://www.youtube.com/watch?v=jCQd6YqTnOk&list=PLQSoWXSpjA3_FFnFo4yWTtVbZrMkbm-h7", "https://www.youtube.com/watch?v=2ZIpFytCSVc", "some kind of magic", "https://open.spotify.com/track/0tyR7Bu9P086aWBFZ4QJoo?si=0f0ce5c3b5ee4b6b", "https://open.spotify.com/playlist/2Z7q0uwOuJlpZ4CBeHXyeT?si=e400ddae1880457a"])
 @pytest.mark.dependency(name="test_play")
 async def test_play(bot: "bot", channel: "channel", url: str):
   content = f"!p {url}"

@@ -164,7 +164,7 @@ class Friday(commands.AutoShardedBot):
     if not self.ready:
       return
 
-    if ctx.author.bot and not ctx.author.id == 892865928520413245:
+    if ctx.author.bot and not ctx.author.id == 892865928520413245 and not ctx.author.id == 968261189828231308:
       return
 
     await self.process_commands(ctx)
