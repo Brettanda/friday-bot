@@ -1,6 +1,5 @@
 import asyncio
 import datetime
-import json
 import textwrap
 
 import asyncpg
@@ -170,8 +169,8 @@ class Reminder(commands.Cog):
                   RETURNING id;
               """
 
-    row = await connection.fetchrow(query, event, json.dumps({"args": args, "kwargs": kwargs}), when, now)
-    self.bot.logger.debug(f"PostgreSQL Query: \"{query}\" + {event, json.dumps({'args': args, 'kwargs': kwargs}), when, now}")
+    row = await connection.fetchrow(query, event, {"args": args, "kwargs": kwargs}, when, now)
+    self.bot.logger.debug(f"PostgreSQL Query: \"{query}\" + {event, {'args': args, 'kwargs': kwargs}, when, now}")
     timer.id = row[0]
 
     if delta <= (86400 * 40):  # 40 days
