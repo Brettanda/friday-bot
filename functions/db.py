@@ -542,10 +542,12 @@ class Table(metaclass=TableMeta):
         return value
 
     def _decode_jsonb(value):
-      j = json.loads(value)
-      if value == j:
+      try:
+        json.dumps(value)
+      except TypeError:
+        return json.loads(value)
+      else:
         return value
-      return j
 
     old_init = kwargs.pop('init', None)
 
