@@ -533,7 +533,10 @@ class Music(commands.Cog):
     if not tracks:
       return await ctx.send(embed=embed(title='No songs were found with that query. Please try again.', color=MessageColors.ERROR))
 
-    tracks[0].requester = ctx.author
+    try:
+      tracks[0].requester = ctx.author
+    except TypeError:
+      tracks.requester = ctx.author
     if isinstance(tracks, wavelink.abc.Playlist):
       for track in tracks.data["tracks"]:
         await player.queue.put_wait(Track(track["track"], track["info"], requester=ctx.author))
@@ -547,7 +550,7 @@ class Music(commands.Cog):
         await player.queue.put_wait(track)
       if player.is_playing() or player.is_paused():
         await ctx.send(embed=embed(
-            title=f"Added {tracks[0].title} by {tracks[0].author} to the queue.",
+            title=f"Added {tracks[0].title} {hasattr(tracks[0], 'author') and f'by {tracks[0].author}'} to the queue.",
             color=MessageColors.MUSIC))
     else:
       await player.queue.put_wait(tracks[0])
