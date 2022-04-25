@@ -84,12 +84,14 @@ class Reminder(commands.Cog):
     self.bot = bot
     self._have_data = asyncio.Event()
     self._current_timer = None
-    self._task = bot.loop.create_task(self.dispatch_timers())
 
   def __repr__(self) -> str:
     return f"<cogs.{self.__cog_name__}>"
 
-  def cog_unload(self) -> None:
+  async def cog_load(self):
+    self._task = self.bot.loop.create_task(self.dispatch_timers())
+
+  async def cog_unload(self) -> None:
     self._task.cancel()
 
   async def cog_command_error(self, ctx, error):
