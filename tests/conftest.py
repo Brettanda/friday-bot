@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 TOKEN = os.environ.get('TOKENUNITTEST')
+TOKENUSER = os.environ.get('TOKENUNITTESTUSER')
 
 
 class UnitTester(commands.Bot):
@@ -49,9 +50,22 @@ class UnitTester(commands.Bot):
       self.was_online = True
 
 
+class UnitTesterUser(UnitTester):
+  pass
+
+
 @pytest.fixture(scope="session")
 def event_loop():
-  return asyncio.get_event_loop()
+  loop = asyncio.new_event_loop()
+  yield loop
+  loop.close()
+
+
+@pytest.fixture(scope="session")
+def event_loop_user():
+  loop = asyncio.new_event_loop()
+  yield loop
+  loop.close()
 
 
 @pytest.fixture(scope="session")
@@ -62,10 +76,20 @@ async def bot(event_loop) -> commands.Bot:
   await bot.close()
 
 
+@pytest.fixture(scope="session")
+async def bot_user(event_loop) -> commands.Bot:
+  bot_user = UnitTesterUser()
+  event_loop.create_task(bot_user.start(TOKENUSER))
+  yield bot_user
+  await bot_user.close()
+
+
 @pytest.fixture(scope="session", autouse=True)
-async def cleanup(request, bot, channel):
+async def cleanup(request, bot, bot_user, channel):
   def close():
-    if not bot.was_online:
+    if bot and not bot.was_online:
+      asyncio.get_event_loop().run_until_complete(channel.send("!complete"))
+    if bot_user and not bot_user.was_online:
       asyncio.get_event_loop().run_until_complete(channel.send("!complete"))
   request.addfinalizer(close)
 
@@ -76,6 +100,15 @@ async def slow_down_tests(bot):
   yield
   bot.x += 1
   if bot.x % 3 == 0:
+    time.sleep(1)
+
+
+@pytest.fixture(autouse=True)
+async def slow_down_tests_user(bot_user):
+  await bot_user.wait_until_ready()
+  yield
+  bot_user.x += 1
+  if bot_user.x % 3 == 0:
     time.sleep(1)
 
 
@@ -103,8 +136,32 @@ async def user(bot, guild: guild) -> discord.User:
   yield await guild.fetch_user(813618591878086707)
 
 
+@pytest.fixture(scope="session")
+async def guild_user(bot_user) -> discord.Guild:
+  await bot_user.wait_until_ready()
+  yield bot_user.get_guild(243159711237537802)
+
+
+@pytest.fixture(scope="session")
+async def channel_user(bot_user, guild_user: guild_user) -> discord.TextChannel:
+  await bot_user.wait_until_ready()
+  yield guild_user.get_channel(892840236781015120) or await guild_user.fetch_channel(892840236781015120)
+
+
+@pytest.fixture(scope="session")
+async def voice_channel_user(bot_user, guild_user: guild) -> discord.VoiceChannel:
+  await bot_user.wait_until_ready()
+  yield guild_user.get_channel(895486009465266176) or await guild_user.fetch_channel(895486009465266176)
+
+
+@pytest.fixture(scope="session")
+async def user_user(bot_user, guild_user: guild) -> discord.User:
+  await bot_user.wait_until_ready()
+  yield await guild_user.fetch_user(813618591878086707)
+
+
 def msg_check(msg: discord.Message, content: str = None) -> bool:
-  is_reference = (msg.reference is not None and msg.reference.cached_message is not None and msg.reference.cached_message.author.id == 892865928520413245)
+  is_reference = (msg.reference is not None and msg.reference.cached_message is not None and (msg.reference.cached_message.author.id == 892865928520413245 or msg.reference.cached_message.author.id == 968261189828231308))
   if content is not None and is_reference:
     return msg.channel.id == 892840236781015120 and msg.author.id == 751680714948214855 and is_reference and content.strip() == msg.reference.cached_message.content
   return msg.channel.id == 892840236781015120 and msg.author.id == 751680714948214855 and is_reference
