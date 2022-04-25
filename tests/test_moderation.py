@@ -39,10 +39,10 @@ class TestRemoveInvites:
 
   @pytest.mark.parametrize("content", ["https://discord.com/invite/NTRuFjU", "http://discord.com/invite/NTRuFjU", "https://discord.gg/NTRuFjU", "discord.com/invite/NTRuFjU", "discord.gg/NTRuFjU", "discord.gg/discord-developers"])
   @pytest.mark.dependency(depends=["test_enable"], scope='class')
-  async def test_external_guild(self, bot: "bot", channel: "channel", content: str):
-    msg = await channel.send(content)
+  async def test_external_guild(self, bot_user, channel_user, content: str):
+    msg = await channel_user.send(content)
     assert msg
-    msg = await bot.wait_for("raw_message_delete", check=lambda payload: pytest.raw_message_delete_check(payload, msg), timeout=pytest.timeout)
+    msg = await bot_user.wait_for("raw_message_delete", check=lambda payload: pytest.raw_message_delete_check(payload, msg), timeout=pytest.timeout)
     assert msg.cached_message.content == content if msg.cached_message is not None else 1
 
   @pytest.mark.dependency(depends=["test_enable"], scope='class')
@@ -62,21 +62,24 @@ class TestBlacklist:
     msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
     assert msg.embeds[0].title == "Blocked words" or msg.embeds[0].title == "No blacklisted words yet, use `!blacklist add <word>` to get started"
 
-  @pytest.mark.dependency()
-  async def test_add(self, bot, channel):
-    content = "!blacklist add word"
+  @pytest.mark.dependency(name="test_add", scope="class")
+  @pytest.mark.parametrize("word", ["bad_word", "cum", "shit"])
+  async def test_add(self, bot, channel, word: str):
+    content = f"!blacklist add {word}"
     assert await channel.send(content)
 
     msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
-    assert msg.embeds[0].title == "Added `word` to the blacklist" or msg.embeds[0].title == "Can't add duplicate word"
+    assert msg.embeds[0].title == f"Added `{word}` to the blacklist" or msg.embeds[0].title == "Can't add duplicate word"
 
   @pytest.mark.dependency(depends=["test_add"], scope='class')
-  async def test_add_another(self, bot, channel):
-    content = "!blacklist add bad_word"
-    assert await channel.send(content)
+  @pytest.mark.parametrize("phrase", ["this message contains a bad_word", "cum", "shit", "s h i t", "thiscumasd", "c-u-m", "s-h-i-t"])
+  async def test_words_get_removed(self, bot_user, channel_user, phrase: str):
+    msg = await channel_user.send(phrase)
+    assert msg
 
-    msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
-    assert msg.embeds[0].title == "Added `bad_word` to the blacklist" or msg.embeds[0].title == "Can't add duplicate word"
+    # msg = await bot_user.wait_for("message_delete", check=lambda m: m.author.id == bot_user.user.id, timeout=pytest.timeout)
+    msg = await bot_user.wait_for("raw_message_delete", check=lambda payload: pytest.raw_message_delete_check(payload, msg), timeout=pytest.timeout)
+    assert msg.clean_content == phrase
 
   @pytest.mark.dependency(depends=["test_add"], scope='class')
   async def test_remove(self, bot, channel):
@@ -96,7 +99,7 @@ class TestBlacklist:
     msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
     assert msg.embeds[0].title == "Blocked words" or msg.embeds[0].title == "No blacklisted words yet, use `!blacklist add <word>` to get started"
 
-  @pytest.mark.dependency(depends=["test_add_another"], scope='class')
+  @pytest.mark.dependency(depends=["test_add"], scope='class')
   async def test_clear(self, bot, channel):
     content = "!blacklist clear"
     assert await channel.send(content)

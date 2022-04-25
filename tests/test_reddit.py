@@ -31,7 +31,9 @@ async def test_image(bot: "bot", channel: "channel"):
   assert await channel.send(content)
 
   msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout * 2.0)
-  assert msg.embeds[0].type == "image" or (hasattr(msg.embeds[0].color, "value") and msg.embeds[0].color.value != MessageColors.ERROR)
+  assert msg.embeds[0].type == "image"
+  if msg.embeds[0].color is not None:
+    assert hasattr(msg.embeds[0].color, "value") and msg.embeds[0].color.value != MessageColors.ERROR
 
 
 async def test_gif(bot: "bot", channel: "channel"):
@@ -39,4 +41,6 @@ async def test_gif(bot: "bot", channel: "channel"):
   assert await channel.send(content)
 
   msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout * 2.0)
-  assert msg.embeds[0].type == "image" or (hasattr(msg.embeds[0].color, "value") and msg.embeds[0].color.value != MessageColors.ERROR)
+  assert msg.embeds[0].type == "image"
+  if msg.embeds[0].color is not None:
+    assert hasattr(msg.embeds[0].color, "value") and msg.embeds[0].color.value != MessageColors.ERROR

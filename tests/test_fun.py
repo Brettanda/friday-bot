@@ -58,3 +58,4 @@ async def test_minesweeper(bot: "bot", channel: "channel", size: int, bombs: int
     assert msg.embeds[0].title == "Bomb count cannot be larger than the game board"
   else:
     assert msg.embeds[0].author.name == "Minesweeper"
+    assert msg.embeds[0].title == f"{size or 5}x{size or 5} with {bombs or 6} bombs"
