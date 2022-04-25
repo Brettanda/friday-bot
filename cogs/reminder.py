@@ -38,7 +38,7 @@ class Timer:
   def __init__(self, *, record):
     self.id = record["id"]
 
-    extra = json.loads(record["extra"])
+    extra = record["extra"]
     self.args = extra.get("args", [])
     self.kwargs = extra.get("kwargs", {})
     self.event = record["event"]
@@ -49,7 +49,7 @@ class Timer:
   def temporary(cls, *, expires, created, event, args, kwargs):
     pseudo = {
         "id": None,
-        "extra": json.dumps({"args": args, "kwargs": kwargs}),
+        "extra": {"args": args, "kwargs": kwargs},
         "event": event,
         "created": created,
         "expires": expires,
