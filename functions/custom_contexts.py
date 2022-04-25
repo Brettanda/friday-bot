@@ -380,6 +380,7 @@ class MyContext(Context):
       )
       # message = await self.message.channel.send(content, reference=reference, **kwargs)
     except (discord.Forbidden, discord.HTTPException):
+      kwargs.pop("ephemeral", None)
       try:
         message = await self.message.channel.send(content, **kwargs)
       except (discord.Forbidden, discord.HTTPException):
