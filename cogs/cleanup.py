@@ -105,5 +105,5 @@ class CleanUp(commands.Cog):
   #         pass
 
 
-def setup(bot):
-  bot.add_cog(CleanUp(bot))
+async def setup(bot):
+  await bot.add_cog(CleanUp(bot))

@@ -3,14 +3,15 @@ from __future__ import annotations
 from discord.ext.commands import Context
 import discord
 import io
-from typing import Optional
+from typing import Optional, Tuple, Union, List
 from typing_extensions import TYPE_CHECKING
 
 from .myembed import embed
 
 if TYPE_CHECKING:
+  from .config import ReadOnly
   from aiohttp import ClientSession
-  from asyncpg import Pool
+  from asyncpg import Pool, Connection
 
 
 # class MySlashContext(SlashContext):
@@ -40,11 +41,13 @@ if TYPE_CHECKING:
 
 
 class ConfirmationView(discord.ui.View):
-  def __init__(self, *, timeout: float, author_id: int, ctx: Context) -> None:
+  def __init__(self, *, timeout: float, author_id: int, reacquire: bool, ctx: Context, delete_after: bool) -> None:
     super().__init__(timeout=timeout)
     self.value: Optional[bool] = None
+    self.delete_after: bool = delete_after
     self.author_id: int = author_id
     self.ctx: Context = ctx
+    self.reacquire: bool = reacquire
     self.message: Optional[discord.Message] = None
 
   async def interaction_check(self, interaction: discord.Interaction) -> bool:
@@ -55,38 +58,46 @@ class ConfirmationView(discord.ui.View):
       return False
 
   async def on_timeout(self) -> None:
-    try:
+    if self.reacquire:
+      await self.ctx.acquire()
+    if self.delete_after and self.message:
       await self.message.delete()
-    except discord.NotFound:
-      pass
 
   @discord.ui.button(emoji="\N{HEAVY CHECK MARK}", label='Confirm', custom_id="confirmation_true", style=discord.ButtonStyle.green)
   async def confirm(self, button: discord.ui.Button, interaction: discord.Interaction):
     self.value = True
-    await interaction.response.defer()
-    await interaction.delete_original_message()
+    if self.delete_after and self.message:
+      await self.message.delete()
     self.stop()
 
   @discord.ui.button(emoji="\N{HEAVY MULTIPLICATION X}", label='Cancel', custom_id="confirmation_false", style=discord.ButtonStyle.red)
   async def cancel(self, button: discord.ui.Button, interaction: discord.Interaction):
     self.value = False
-    await interaction.response.defer()
-    await interaction.delete_original_message()
+    if self.delete_after and self.message:
+      await self.message.delete()
     self.stop()
 
 
 class MultiSelectView(discord.ui.View):
-  def __init__(self, options: list, *, values: list = [], emojis: list = [], descriptions: list = [], placeholder: str = None, min_values: int = 1, max_values: int = 1, default: str = None, timeout: float, author_id: int, ctx: Context) -> None:
+  def __init__(self, options: list, *, values: list = [], emojis: list = [], descriptions: list = [], placeholder: str = None, min_values: int = 1, max_values: int = 1, default: str = None, timeout: float, delete_after: bool, reacquire: bool, author_id: int, ctx: Context) -> None:
     super().__init__(timeout=timeout)
+    new = False
+    if not values and not emojis and not descriptions:
+      new = True
     values = values if len(values) > 0 else [None] * len(options)
     emojis = emojis if len(emojis) > 0 else [None] * len(options)
     descriptions = descriptions if len(descriptions) > 0 else [None] * len(options)
-    self.options: list = [discord.SelectOption(label=p, value=v, emoji=e, description=d, default=True if default == v else False) for p, v, e, d in zip(options, values, emojis, descriptions)]
+    if not new:
+      self.options: list = [discord.SelectOption(label=p, value=v, emoji=e, description=d, default=True if default == v else False) for p, v, e, d in zip(options, values, emojis, descriptions)]
+    else:
+      self.options = [discord.SelectOption(**ks) for ks in options]
     self.placeholder: Optional[str] = placeholder
     self.author_id: int = author_id
     self.ctx: Context = ctx
     self.min_values: int = min_values
     self.max_values: int = max_values
+    self.reacquire: bool = reacquire
+    self.delete_after: bool = delete_after
     self.message: Optional[discord.Message] = None
 
     self.values: Optional[list] = None
@@ -98,9 +109,9 @@ class MultiSelectView(discord.ui.View):
 
   @discord.ui.select(custom_id="prompt_select", options=["Loading..."], min_values=0, max_values=0)
   async def select(self, select: discord.ui.Select, interaction: discord.Interaction):
-    self.values = select.values
-    await interaction.response.defer()
-    await interaction.delete_original_message()
+    self.values = select.data["values"]
+    if self.delete_after and self.message:
+      await self.message.delete()
     self.stop()
 
   async def interaction_check(self, interaction: discord.Interaction) -> bool:
@@ -111,10 +122,10 @@ class MultiSelectView(discord.ui.View):
       return False
 
   async def on_timeout(self) -> None:
-    try:
+    if self.reacquire:
+      await self.ctx.acquire()
+    if self.delete_after and self.message:
       await self.message.delete()
-    except discord.NotFound:
-      pass
 
 
 # class Modal(discord.ui.Modal):
@@ -188,6 +199,7 @@ class MyContext(Context):
     super().__init__(*args, **kwargs)
     self.pool: Pool = self.bot.pool
     self._db = None
+    self._lang = self._lang_default = "en", self.bot.languages["en"]
 
   def __repr__(self) -> str:
     return "<Context>"
@@ -204,10 +216,10 @@ class MyContext(Context):
     return self.bot.session
 
   @property
-  def db(self):
+  def db(self) -> Union[Pool, Connection]:
     return self._db if self._db else self.pool
 
-  async def _acquire(self, timeout):
+  async def _acquire(self, timeout) -> Connection:
     if self._db is None:
       self._db = await self.pool.acquire(timeout=timeout)
     return self._db
@@ -238,10 +250,62 @@ class MyContext(Context):
       await self.bot.pool.release(self._db)
       self._db = None
 
-  async def prompt(self, message: str, *, timeout: float = 60.0, author_id: Optional[int] = None, **kwargs) -> Optional[bool]:
+  @property
+  def lang(self) -> Tuple[str, ReadOnly]:
+    return self._lang
+
+  async def get_lang(self) -> Tuple[str, ReadOnly]:
+    if not self.guild:
+      return "en", self.bot.languages["en"]
+    conf = await self.bot.log.get_guild_config(self.guild.id, connection=self.db)
+    lang = conf and conf.lang
+    self._lang = lang, self.bot.languages.get(lang, "en")
+    return self._lang
+
+    # if msg.guild is None:
+    #   return self.langs["en"]
+    # if not self.log:
+    #   return self.langs.get(msg.guild.preferred_locale[:2], "en")
+    # return self.langs.get((await self.log.get_guild_config(msg.guild.id)).lang)
+
+  async def prompt(
+          self,
+          message: str,
+          *,
+          timeout: float = 60.0,
+          delete_after: bool = True,
+          reacquire: bool = True,
+          author_id: Optional[int] = None,
+          **kwargs
+  ) -> Optional[bool]:
+    """An interactive reaction confirmation dialog.
+
+    Parameters
+    -----------
+    message: str
+        The message to show along with the prompt.
+    timeout: float
+        How long to wait before returning.
+    delete_after: bool
+        Whether to delete the confirmation message after we're done.
+    reacquire: bool
+        Whether to release the database connection and then acquire it
+        again when we're done.
+    author_id: Optional[int]
+        The member who should respond to the prompt. Defaults to the author of the
+        Context's message.
+    Returns
+    --------
+    Optional[bool]
+        ``True`` if explicit confirm,
+        ``False`` if explicit deny,
+        ``None`` if deny due to timeout
+    """
     author_id = author_id or self.author.id
     view = ConfirmationView(
         timeout=timeout,
+        delete_after=delete_after,
+        reacquire=reacquire,
         ctx=self,
         author_id=author_id
     )
@@ -250,7 +314,7 @@ class MyContext(Context):
     await view.wait()
     return view.value
 
-  async def multi_select(self, message: str = "Please select one or more of the options.", options: list = [], *, values: list = [], emojis: list = [], descriptions: list = [], default: str = None, placeholder: str = None, min_values: int = 1, max_values: int = 1, timeout: float = 60.0, author_id: Optional[int] = None, **kwargs) -> Optional[list]:
+  async def multi_select(self, message: str = "Please select one or more of the options.", options: List[dict] = [], *, values: list = [], emojis: list = [], descriptions: list = [], default: str = None, placeholder: str = None, min_values: int = 1, max_values: int = 1, timeout: float = 60.0, delete_after: bool = True, reacquire: bool = True, author_id: Optional[int] = None, **kwargs) -> Optional[list]:
     author_id = author_id or self.author.id
     view = MultiSelectView(
         options=options,
@@ -263,6 +327,8 @@ class MyContext(Context):
         min_values=min_values,
         max_values=max_values,
         ctx=self,
+        delete_after=delete_after,
+        reacquire=reacquire,
         author_id=author_id,
     )
     kwargs["embed"] = kwargs.pop("embed", embed(title=message))
@@ -284,6 +350,9 @@ class MyContext(Context):
   #   return view.value
 
   async def reply(self, content: str = None, *, delete_original: bool = False, reply_to_replied: bool = True, **kwargs) -> Optional[discord.Message]:
+    return await self.send(content, delete_original=delete_original, reply_to_replied=reply_to_replied, **kwargs)
+
+  async def send(self, content: str = None, *, delete_original: bool = False, reply_to_replied: bool = True, **kwargs) -> Optional[discord.Message]:
     message = None
     if not hasattr(kwargs, "mention_author") and self.message.type.name != "application_command":
       kwargs.update({"mention_author": False})
@@ -301,19 +370,21 @@ class MyContext(Context):
         return message
       return message
     try:
-      if self.message.type == discord.MessageType.thread_starter_message:
-        message = await self.message.channel.send(content, **kwargs)
+      # if self.message.type == discord.MessageType.thread_starter_message:
+      #   message = await self.message.channel.send(content, **kwargs)
       reference = self.replied_reference if self.command and self.replied_reference else self.message if reply_to_replied else None
-      message = await self.message.channel.send(content, reference=reference, **kwargs)
+      return await super().send(
+          content=content,
+          reference=reference,
+          **kwargs
+      )
+      # message = await self.message.channel.send(content, reference=reference, **kwargs)
     except (discord.Forbidden, discord.HTTPException):
       try:
         message = await self.message.channel.send(content, **kwargs)
       except (discord.Forbidden, discord.HTTPException):
         return message
     return message
-
-  async def send(self, content: str = None, *, delete_original: bool = False, **kwargs) -> Optional[discord.Message]:
-    return await self.reply(content, delete_original=delete_original, **kwargs)
 
   async def safe_send(self, content: str, *, escape_mentions=True, **kwargs) -> Optional[discord.Message]:
     if escape_mentions:

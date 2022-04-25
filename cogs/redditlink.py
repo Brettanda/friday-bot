@@ -101,14 +101,14 @@ class redditlink(commands.Cog):
     self.reddit.read_only = True
 
   @cache.cache()
-  async def get_guild_config(self, guild_id: int) -> Optional[Config]:
+  async def get_guild_config(self, guild_id: int, *, connection=None) -> Optional[Config]:
     query = "SELECT * FROM servers WHERE id=$1 LIMIT 1;"
-    async with self.bot.db.pool.acquire(timeout=300.0) as conn:
-      record = await conn.fetchrow(query, str(guild_id))
-      self.bot.logger.debug(f"PostgreSQL Query: \"{query}\" + {str(guild_id)}")
-      if record is not None:
-        return await Config.from_record(record, self.bot)
-      return None
+    connection = connection or self.bot.pool
+    record = await connection.fetchrow(query, str(guild_id))
+    self.bot.logger.debug(f"PostgreSQL Query: \"{query}\" + {str(guild_id)}")
+    if record is not None:
+      return await Config.from_record(record, self.bot)
+    return None
 
   async def cog_command_error(self, ctx: "MyContext", error: Exception):
     just_send = (MustBeAuthor, NotRedditLink,)
@@ -141,12 +141,12 @@ class redditlink(commands.Cog):
     if len(reg) != 1:
       return
 
-    config = await self.get_guild_config(message.guild.id)
-    if config is None or not config.enabled:
-      return
-
     ctx: "MyContext" = await self.bot.get_context(message, cls=MyContext)
     if ctx.command is not None:
+      return
+
+    config = await self.get_guild_config(message.guild.id, connection=ctx.db)
+    if config is None or not config.enabled:
       return
 
     body = await self.reddit.submission(url=reg[0])
@@ -339,5 +339,5 @@ class redditlink(commands.Cog):
     # if self.bot.user == reaction.message.reactions
 
 
-def setup(bot):
-  bot.add_cog(redditlink(bot))
+async def setup(bot):
+  await bot.add_cog(redditlink(bot))

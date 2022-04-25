@@ -48,11 +48,6 @@ class TopGG(commands.Cog):
     self.bot = bot
 
     self._current_len_guilds = len(self.bot.guilds)
-    if self.bot.cluster_idx == 0:
-      if not hasattr(self.bot, "topgg_webhook"):
-        self.bot.topgg_webhook = topgg.WebhookManager(self.bot).dbl_webhook("/dblwebhook", os.environ["DBLWEBHOOKPASS"])
-        self.bot.topgg_webhook.run(5000)
-      self._update_stats_loop.start()
 
   def __repr__(self) -> str:
     return f"<cogs.{self.__cog_name__}>"
@@ -61,7 +56,14 @@ class TopGG(commands.Cog):
   def log_bumps(self) -> CustomWebhook:
     return CustomWebhook.partial(os.environ.get("WEBHOOKBUMPSID"), os.environ.get("WEBHOOKBUMPSTOKEN"), session=self.bot.session)
 
-  def cog_unload(self):
+  async def cog_load(self):
+    if self.bot.cluster_idx == 0:
+      if not hasattr(self.bot, "topgg_webhook"):
+        self.bot.topgg_webhook = topgg.WebhookManager(self.bot).dbl_webhook("/dblwebhook", os.environ["DBLWEBHOOKPASS"])
+        self.bot.topgg_webhook.run(5000)
+      self._update_stats_loop.start()
+
+  async def cog_unload(self):
     self._update_stats_loop.cancel()
 
   @cache.cache(ignore_kwargs=True)
@@ -86,7 +88,7 @@ class TopGG(commands.Cog):
     if self.bot.prod and self._current_len_guilds != len(self.bot.guilds):
       await self.update_stats()
 
-  @commands.group(name="vote", help="Get the link to vote for me on Top.gg", invoke_without_command=True, case_insensitive=True)
+  @commands.command(help="Get the link to vote for me on Top.gg", case_insensitive=True)
   async def vote(self, ctx: "MyContext"):
     query = """SELECT id,expires
               FROM reminders
@@ -99,7 +101,7 @@ class TopGG(commands.Cog):
     vote_message = f"Your next vote time is: {time.format_dt(expires, style='R')}" if expires is not None else "You can vote now"
     await ctx.reply(embed=embed(title="Voting", description=f"{vote_message}\n\nWhen you vote you get:", fieldstitle=["Better rate limiting"], fieldsval=["60 messages/12 hours instead of 30 messages/12 hours."]), view=VoteView(self))
 
-  @vote.command(name="fake", extras={"examples": ["test", "upvote"]}, hidden=True)
+  @commands.command(extras={"examples": ["test", "upvote"]}, hidden=True)
   @commands.is_owner()
   async def vote_fake(self, ctx: "MyContext", _type: str = "test", user: discord.User = None):
     if user is None:
@@ -231,5 +233,5 @@ class TopGG(commands.Cog):
       )
 
 
-def setup(bot):
-  bot.add_cog(TopGG(bot))
+async def setup(bot):
+  await bot.add_cog(TopGG(bot))

@@ -172,12 +172,12 @@ def is_admin() -> "_CheckDecorator":
 def is_mod_or_guild_permissions(**perms) -> "_CheckDecorator":
   """User has a mod role or has the following guild permissions"""
   async def predicate(ctx: "MyContext") -> bool:
+    if ctx.guild is None:
+      raise commands.NoPrivateMessage()
+
     is_owner = await ctx.bot.is_owner(ctx.author)
     if is_owner:
       return True
-
-    if ctx.guild is None:
-      return False
 
     config_cog = ctx.bot.get_cog("Config")
     if config_cog is not None:

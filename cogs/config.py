@@ -1,4 +1,5 @@
 from typing import Optional
+import os
 
 import discord
 import pycountry
@@ -9,6 +10,7 @@ from functions import embed, MyContext, cache, config, MessageColors
 
 from typing_extensions import TYPE_CHECKING
 
+from functions.config import ReadOnly
 if TYPE_CHECKING:
   from index import Friday as Bot
 
@@ -82,6 +84,9 @@ class Config(commands.Cog, command_attrs=dict(extras={"permissions": ["manage_gu
     if ctx.guild is None:
       raise commands.NoPrivateMessage("This command can only be used within a guild")
 
+    if await ctx.bot.is_owner(ctx.author):
+      return True
+
     if not ctx.author.guild_permissions.manage_guild:
       raise commands.MissingPermissions(["manage_guild"])
     return True
@@ -126,8 +131,8 @@ class Config(commands.Cog, command_attrs=dict(extras={"permissions": ["manage_gu
   @commands.command(name="language", extras={"examples": ["en", "es", "english", "spanish"]}, aliases=["lang"], help="Change the language that I will speak. This currently only applies to the chatbot messages not the commands.")
   # @commands.cooldown(1, 3600, commands.BucketType.guild)
   @commands.has_guild_permissions(administrator=True)
-  async def language(self, ctx, language: Optional[str] = None):
-    lang = ctx.guild.preferred_locale.split("-")[0]
+  async def language(self, ctx: "MyContext", language: Optional[str] = None):
+    lang = ctx.guild.preferred_locale.name.split("-")[0]
     if language is None and ctx.guild is not None:
       language = lang
 
@@ -240,5 +245,13 @@ class Config(commands.Cog, command_attrs=dict(extras={"permissions": ["manage_gu
     ...
 
 
-def setup(bot):
-  bot.add_cog(Config(bot))
+async def setup(bot):
+  if not hasattr(bot, "languages") or len(bot.languages) == 0:
+    bot.languages["en"] = ReadOnly("i18n/source/commands.json")
+    for lang in os.listdir("./i18n/translations"):
+      bot.languages[lang] = ReadOnly(f"i18n/translations/{lang}/commands.json")
+
+  # if not hasattr(bot, "language_config"):
+  #   bot.language_config = ConfigFile("languages.json")
+
+  await bot.add_cog(Config(bot))

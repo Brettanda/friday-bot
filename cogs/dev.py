@@ -295,7 +295,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
             statuses.append((":white_check_mark:", module))
       else:
         try:
-          self.reload_or_load_extention(module)
+          await self.reload_or_load_extention(module)
         except discord.ExtensionError:
           statuses.append((":x:", module))
         else:
@@ -325,11 +325,11 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     ret.sort(reverse=True)
     return ret
 
-  def reload_or_load_extention(self, module):
+  async def reload_or_load_extention(self, module):
     try:
-      self.bot.reload_extension(module)
+      await self.bot.reload_extension(module)
     except discord.ExtensionNotLoaded:
-      self.bot.load_extension(module)
+      await self.bot.load_extension(module)
 
   @reload.command(name="all")
   async def reload_all(self, ctx: "MyContext"):
@@ -372,7 +372,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
             statuses.append((":white_check_mark:", module))
       else:
         try:
-          self.reload_or_load_extention(module)
+          await self.reload_or_load_extention(module)
         except discord.ExtensionError:
           statuses.append((":x:", module))
         else:
@@ -673,8 +673,8 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     await ctx.send(f"Status: {lookup.get(success, ':x:')} Time: {(end - start) * 1000:.2f}ms")
 
 
-def setup(bot):
+async def setup(bot):
   if not hasattr(bot, "restartPending"):
     bot.restartPending = False
 
-  bot.add_cog(Dev(bot))
+  await bot.add_cog(Dev(bot))

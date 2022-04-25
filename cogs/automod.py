@@ -63,7 +63,7 @@ class Config:
     return member.id in [int(i, base=10) for i in self.muted_members]
 
   def is_timedout(self, member: discord.Member) -> bool:
-    return member.communication_disabled_until is not None
+    return member.timed_out_until is not None
 
   def is_whitelisted(self, msg: discord.Message, *, channel: discord.TextChannel = None, member: discord.Member = None) -> bool:
     channel = channel or msg.channel
@@ -88,7 +88,7 @@ class Config:
     if not duration:
       duration = time.TimeoutTime("20m")
     try:
-      await member.edit(communication_disabled_until=duration.dt, reason=reason)
+      await member.edit(timed_out_until=duration.dt, reason=reason)
     except (discord.Forbidden, discord.HTTPException):
       pass
 
@@ -644,5 +644,5 @@ class AutoMod(commands.Cog):
     await ctx.reply(embed=embed(title="Disabled max content messages"))
 
 
-def setup(bot):
-  bot.add_cog(AutoMod(bot))
+async def setup(bot):
+  await bot.add_cog(AutoMod(bot))

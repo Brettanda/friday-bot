@@ -94,5 +94,5 @@ class NaCl(commands.Cog):
     await self.ghost_fapper(member, before, after)
 
 
-def setup(bot):
-  bot.add_cog(NaCl(bot))
+async def setup(bot):
+  await bot.add_cog(NaCl(bot))

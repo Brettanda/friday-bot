@@ -160,5 +160,5 @@ class Support(commands.Cog, name="Support"):
     await member.add_roles(role, reason="Friend from NaCl")
 
 
-def setup(bot):
-  bot.add_cog(Support(bot))
+async def setup(bot):
+  await bot.add_cog(Support(bot))

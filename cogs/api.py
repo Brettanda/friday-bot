@@ -382,5 +382,5 @@ class API(commands.Cog):
       self.log.info(f"aiohttp.web started on port {self.port}")
 
 
-def setup(bot):
-  bot.add_cog(API(bot))
+async def setup(bot):
+  await bot.add_cog(API(bot))

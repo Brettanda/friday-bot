@@ -671,7 +671,7 @@ class Moderation(commands.Cog):
     async with ctx.typing():
       for member in members:
         try:
-          await member.remove_timeout(reason=reason)
+          await member.timeout(None, reason=reason)
         except discord.HTTPException:
           failed += 1
     if len(members) == 1:
@@ -925,5 +925,5 @@ class Moderation(commands.Cog):
     self.bot.dispatch("invalidate_mod", ctx.guild.id)
 
 
-def setup(bot):
-  bot.add_cog(Moderation(bot))
+async def setup(bot):
+  await bot.add_cog(Moderation(bot))

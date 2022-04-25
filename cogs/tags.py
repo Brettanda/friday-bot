@@ -80,6 +80,6 @@ class Tags(commands.Cog):
   #   ...
 
 
-def setup(bot):
+async def setup(bot):
   ...
   # bot.add_cog(Tags(bot))
