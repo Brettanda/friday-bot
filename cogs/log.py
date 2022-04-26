@@ -151,7 +151,7 @@ class Log(commands.Cog):
   @commands.Cog.listener()
   async def on_guild_join(self, guild: discord.Guild):
     await self.bot.wait_until_ready()
-    await self.bot.db.query(f"INSERT INTO servers (id,lang) VALUES ({str(guild.id)},'{guild.preferred_locale.split('-')[0]}') ON CONFLICT DO NOTHING")
+    await self.bot.db.query(f"INSERT INTO servers (id,lang) VALUES ({str(guild.id)},'{guild.preferred_locale.name.split('-')[0]}') ON CONFLICT DO NOTHING")
     await relay_info(f"I have joined a new guild, making the total **{len(self.bot.guilds)}**", self.bot, short=f"I have joined ({guild} [{guild.id}]), making the total {len(self.bot.guilds)}", webhook=self.log_join, logger=self.logger)
 
   @commands.Cog.listener()
