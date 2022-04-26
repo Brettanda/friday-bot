@@ -43,9 +43,9 @@ class Config:
 
     self.bot: "Bot" = bot
     self.id: int = int(record["id"], base=10)
-    self.max_mentions = json.loads(record["max_mentions"]) if record["max_mentions"] else None
-    self.max_messages = json.loads(record["max_messages"]) if record["max_messages"] else None
-    self.max_content = json.loads(record["max_content"]) if record["max_content"] else None
+    self.max_mentions = record["max_mentions"] if record["max_mentions"] else None
+    self.max_messages = record["max_messages"] if record["max_messages"] else None
+    self.max_content = record["max_content"] if record["max_content"] else None
     self.remove_invites: bool = record["remove_invites"]
     self.automod_whitelist = set(record["automod_whitelist"] or [])
     self.blacklisted_words: List[str] = blacklist["words"] if blacklist else []
@@ -501,8 +501,6 @@ class AutoMod(commands.Cog):
     current = await self.bot.db.query("SELECT max_mentions FROM servers WHERE id=$1 LIMIT 1", str(ctx.guild.id))
     if current is None or current == "null":
       current = {"punishments": ["mute"]}
-    else:
-      current = json.loads(current)
     punishments = current["punishments"]
     await self.bot.db.query("UPDATE servers SET max_mentions=$1 WHERE id=$2", json.dumps({"mentions": mention_count, "seconds": seconds, "punishments": punishments}), str(ctx.guild.id))
     await ctx.reply(embed=embed(title=f"I will now apply the punishments `{', '.join(punishments)}` to members that mention `>={mention_count}` within `{seconds}` seconds."))
@@ -526,8 +524,6 @@ class AutoMod(commands.Cog):
     current = await self.bot.db.query("SELECT max_mentions FROM servers WHERE id=$1 LIMIT 1", str(ctx.guild.id))
     if current is None or current == "null":
       current = {}
-    else:
-      current = json.loads(current)
     current.update({"punishments": action})
     await self.bot.db.query("UPDATE servers SET max_mentions=$1 WHERE id=$2", json.dumps(current), str(ctx.guild.id))
     await ctx.reply(embed=embed(title=f"New punishment for max amount of mentions in a single message is `{', '.join(action)}`"))
@@ -550,8 +546,6 @@ class AutoMod(commands.Cog):
     current = await self.bot.db.query("SELECT max_messages FROM servers WHERE id=$1 LIMIT 1", str(ctx.guild.id))
     if current is None or current == "null":
       current = {"punishments": ["mute"]}
-    else:
-      current = json.loads(current)
     punishments = current.get("punishments", ["mute"])
     value = json.dumps({"rate": message_rate, "seconds": seconds, "punishments": punishments})
     await self.bot.db.query("UPDATE servers SET max_messages=$1::json WHERE id=$2", value, str(ctx.guild.id))
@@ -578,8 +572,6 @@ class AutoMod(commands.Cog):
     current = await self.bot.db.query("SELECT max_messages FROM servers WHERE id=$1 LIMIT 1", str(ctx.guild.id))
     if current is None or current == "null":
       current = {}
-    else:
-      current = json.loads(current)
     current.update({"punishments": action})
     await self.bot.db.query("UPDATE servers SET max_messages=$1 WHERE id=$2", json.dumps(current), str(ctx.guild.id))
     self.get_guild_config.invalidate(self, ctx.guild.id)
@@ -603,8 +595,6 @@ class AutoMod(commands.Cog):
     current = await self.bot.db.query("SELECT max_content FROM servers WHERE id=$1 LIMIT 1", str(ctx.guild.id))
     if current is None or current == "null":
       current = {"punishments": ["mute"]}
-    else:
-      current = json.loads(current)
     punishments = current["punishments"] if "punishments" in current else ["mute"]
     value = json.dumps({"rate": message_rate, "seconds": seconds, "punishments": punishments})
     await self.bot.db.query("UPDATE servers SET max_content=$1 WHERE id=$2", value, str(ctx.guild.id))
@@ -629,8 +619,6 @@ class AutoMod(commands.Cog):
     current = await self.bot.db.query("SELECT max_content FROM servers WHERE id=$1 LIMIT 1", str(ctx.guild.id))
     if current is None or current == "null":
       current = {}
-    else:
-      current = json.loads(current)
     current.update({"punishments": action})
     await self.bot.db.query("UPDATE servers SET max_content=$1 WHERE id=$2", json.dumps(current), str(ctx.guild.id))
     await ctx.reply(embed=embed(title=f"New punishment(s) for content spam is `{', '.join(action)}`"))
