@@ -542,6 +542,8 @@ class Table(metaclass=TableMeta):
         return value
 
     def _decode_jsonb(value):
+      j = json.loads(value)
+      return j
       try:
         json.dumps(value)
       except TypeError:
