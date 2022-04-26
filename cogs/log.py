@@ -267,7 +267,7 @@ class Log(commands.Cog):
           await ctx.db.execute(f"INSERT INTO servers (id,lang) VALUES ({str(ctx.guild.id)},'{ctx.guild.preferred_locale.value.split('-')[0]}') ON CONFLICT DO NOTHING")
           self.get_guild_config.invalidate(self, ctx.guild.id)
           config = await self.get_guild_config(ctx.guild.id, connection=ctx.db)
-          await ctx.get_lang()
+          # await ctx.get_lang()
         if config is not None:
           if ctx.command.name in config.disabled_commands:
             return False
