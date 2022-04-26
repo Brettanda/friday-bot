@@ -29,6 +29,10 @@ POSSIBLE_OFFENSIVE_MESSAGE = "**I failed to respond because my message might hav
 PERSONAS = [("🥰", "default", "Fridays default persona"), ("🏴‍☠️", "pirate", "Friday becomes one with the sea")]
 
 
+class ChatError(commands.CheckFailure):
+  pass
+
+
 class Config:
   __slots__ = ("bot", "id", "chat_channel_id", "persona", "lang", "tier", "puser",)
 
@@ -396,6 +400,14 @@ class Chat(commands.Cog):
     current_tier = PremiumTiersNew.free.value
     config = None
     if msg.guild is not None:
+      log = self.bot.get_cog("Log")
+      if log:
+        conf = await log.get_guild_config(msg.guild.id, connection=ctx.db)
+        if not conf:
+          await ctx.db.execute(f"INSERT INTO servers (id,lang) VALUES ({str(ctx.guild.id)},'{ctx.guild.preferred_locale.value.split('-')[0]}') ON CONFLICT DO NOTHING")
+          log.get_guild_config.invalidate(log, ctx.guild.id)
+          self.get_guild_config.invalidate(self, ctx.guild.id)
+          conf = await log.get_guild_config(msg.guild.id, connection=ctx.db)
       config = await self.get_guild_config(msg.guild.id, connection=ctx.db)
       if config is None:
         self.bot.logger.error(f"Config was not available in chat for (guild: {msg.guild.id if msg.guild else None}) (channel type: {msg.channel.type if msg.channel else 'uhm'}) (user: {msg.author.id})")
