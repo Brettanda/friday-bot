@@ -132,7 +132,7 @@ class Config(commands.Cog, command_attrs=dict(extras={"permissions": ["manage_gu
   # @commands.cooldown(1, 3600, commands.BucketType.guild)
   @commands.has_guild_permissions(administrator=True)
   async def language(self, ctx: "MyContext", language: Optional[str] = None):
-    lang = ctx.guild.preferred_locale.name.split("-")[0]
+    lang = ctx.guild.preferred_locale.value.split("-")[0]
     if language is None and ctx.guild is not None:
       language = lang
 
