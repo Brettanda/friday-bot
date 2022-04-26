@@ -863,7 +863,6 @@ class Music(commands.Cog):
     try:
       async with ctx.typing():
         sounds = await self.bot.db.query("SELECT customSounds FROM servers WHERE id=$1 LIMIT 1", str(ctx.guild.id))
-        sounds = [json.loads(x) for x in sounds]
     except Exception:
       await ctx.reply(embed=embed(title=f"The custom sound `{name}` has not been set, please add it with `{ctx.prefix}custom|c add <name> <url>`", color=MessageColors.ERROR))
     else:
@@ -893,7 +892,7 @@ class Music(commands.Cog):
       sounds: list = (await self.bot.db.query("SELECT customSounds FROM servers WHERE id=$1 LIMIT 1", str(ctx.guild.id)))
       if sounds == "" or sounds is None:
         sounds = []
-      if name in [json.loads(x)["name"] for x in sounds]:
+      if name in [x["name"] for x in sounds]:
         return await ctx.reply(embed=embed(title=f"`{name}` was already added, please choose another", color=MessageColors.ERROR))
       sounds.append(json.dumps({"name": name, "url": url}))
       await self.bot.db.query("UPDATE servers SET customSounds=$1::json[] WHERE id=$2::text", sounds, str(ctx.guild.id))
@@ -906,7 +905,6 @@ class Music(commands.Cog):
       sounds = await self.bot.db.query("SELECT customSounds FROM servers WHERE id=$1 LIMIT 1", str(ctx.guild.id))
       if sounds is None:
         raise NoCustomSoundsFound("There are no custom sounds for this server (yet)")
-      sounds = [json.loads(x) for x in sounds]
       result = ""
       for sound in sounds:
         result += f"```{sound['name']} -> {sound['url']}```"
@@ -922,7 +920,6 @@ class Music(commands.Cog):
       async with ctx.typing():
         name = "".join(name.split(" ")).lower()
         sounds = await self.bot.db.query("SELECT customSounds FROM servers WHERE id=$1 LIMIT 1", str(ctx.guild.id))
-        sounds = json.loads(sounds)
         old = sounds[name]
         sounds[name] = url
         await self.bot.db.query("UPDATE servers SET customSounds=$1 WHERE id=$2", json.dumps(sounds), str(ctx.guild.id))
@@ -939,7 +936,6 @@ class Music(commands.Cog):
       async with ctx.typing():
         name = "".join(name.split(" ")).lower()
         sounds = await self.bot.db.query("SELECT customSounds FROM servers WHERE id=$1 LIMIT 1", str(ctx.guild.id))
-        sounds = [json.loads(x) for x in sounds]
         sounds.pop(next((index for (index, d) in enumerate(sounds) if d["name"] == name), None))
         await self.bot.db.query("UPDATE servers SET customSounds=$1::json[] WHERE id=$2", [json.dumps(x) for x in sounds], str(ctx.guild.id))
     except KeyError:
