@@ -88,6 +88,13 @@ class Database(commands.Cog):
             "filtered int NULL",
             "persona text DEFAULT 'friday'",
         ],
+        "scheduledevents": [
+            "id bigserial PRIMARY KEY NOT NULL",
+            "guild_id bigint NOT NULL",
+            "event_id bigint UNIQUE NOT NULL",
+            "role_id bigint UNIQUE NOT NULL",
+            "subscribers bigint[] NOT NULL DEFAULT array[]::bigint[]",
+        ],
         "starboard": [
             "id bigserial PRIMARY KEY NOT NULL",
             "channel_id bigint",
