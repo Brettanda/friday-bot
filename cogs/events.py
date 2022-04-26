@@ -222,7 +222,7 @@ class ScheduledEvents(commands.Cog):
   @commands.Cog.listener()
   async def on_scheduled_event_user_add(self, event: discord.ScheduledEvent, user: discord.User):
     if self.bot.prod and event.guild.id != 215346091321720832:
-      raise commands.NotOwner()
+      return
     config = await self.get_guild_config(event.guild.id)
     if not config:
       return
@@ -243,7 +243,7 @@ class ScheduledEvents(commands.Cog):
   @commands.Cog.listener()
   async def on_scheduled_event_user_remove(self, event: discord.ScheduledEvent, user: discord.User):
     if self.bot.prod and event.guild.id != 215346091321720832:
-      raise commands.NotOwner()
+      return
     config = await self.get_guild_config(event.guild.id)
     if not config:
       return
@@ -263,8 +263,8 @@ class ScheduledEvents(commands.Cog):
 
   @commands.Cog.listener()
   async def on_scheduled_event_update(self, before: discord.ScheduledEvent, after: discord.ScheduledEvent):
-    if self.bot.prod and event.guild.id != 215346091321720832:
-      raise commands.NotOwner()
+    if self.bot.prod and before.guild.id != 215346091321720832:
+      return
     if before.status == after.status:
       return
 
@@ -297,7 +297,7 @@ class ScheduledEvents(commands.Cog):
   @commands.Cog.listener()
   async def on_scheduled_event_delete(self, event: discord.ScheduledEvent):
     if self.bot.prod and event.guild.id != 215346091321720832:
-      raise commands.NotOwner()
+      return
     config = await self.get_guild_config(event.guild.id)
     if not config:
       return
@@ -331,7 +331,7 @@ class ScheduledEvents(commands.Cog):
   @commands.Cog.listener()
   async def on_guild_role_delete(self, role: discord.Role):
     if self.bot.prod and role.guild.id != 215346091321720832:
-      raise commands.NotOwner()
+      return
     config = await self.get_guild_config(role.guild.id)
     if not config:
       return
