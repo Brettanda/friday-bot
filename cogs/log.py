@@ -261,15 +261,21 @@ class Log(commands.Cog):
       if ctx.guild is not None and ctx.guild.id in self.bot.blacklist:
         return False
 
-      config = ctx.guild and await self.get_guild_config(ctx.guild.id, connection=ctx.db)
-      if config is not None:
-        if ctx.command.name in config.disabled_commands:
-          return False
-
-        if config.bot_channel is not None and ctx.channel.id != config.bot_channel:
-          if ctx.command.name in config.restricted_commands and not ctx.author.guild_permissions.manage_guild:
-            await ctx.send(f"<#{config.bot_channel}>", embed=embed(title="This command is restricted to the bot channel.", color=MessageColors.ERROR), delete_after=15, ephemeral=True)
+      if ctx.guild:
+        config = await self.get_guild_config(ctx.guild.id, connection=ctx.db)
+        if not config:
+          await ctx.db.execute(f"INSERT INTO servers (id,lang) VALUES ({str(ctx.guild.id)},'{ctx.guild.preferred_locale.value.split('-')[0]}') ON CONFLICT DO NOTHING")
+          self.get_guild_config.invalidate(self, ctx.guild.id)
+          config = await self.get_guild_config(ctx.guild.id, connection=ctx.db)
+          await ctx.get_lang()
+        if config is not None:
+          if ctx.command.name in config.disabled_commands:
             return False
+
+          if config.bot_channel is not None and ctx.channel.id != config.bot_channel:
+            if ctx.command.name in config.restricted_commands and not ctx.author.guild_permissions.manage_guild:
+              await ctx.send(f"<#{config.bot_channel}>", embed=embed(title="This command is restricted to the bot channel.", color=MessageColors.ERROR), delete_after=15, ephemeral=True)
+              return False
     return True
 
   async def process_commands(self, message):
