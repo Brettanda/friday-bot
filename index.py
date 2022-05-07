@@ -1,12 +1,15 @@
+from __future__ import annotations
+
 import asyncio
 import datetime
 import logging
 import os
 import sys
-from collections import defaultdict
-from typing import Dict, Optional, Iterable, AsyncIterator
+from collections import Counter, defaultdict
+from typing import Any, AsyncIterator, Dict, Iterable, Optional
 
 import aiohttp
+import asyncpg
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
@@ -33,6 +36,13 @@ async def get_prefix(bot: "Friday", message: discord.Message):
 
 class Friday(commands.AutoShardedBot):
   """Friday is a discord bot that is designed to be a flexible and easy to use bot."""
+
+  user: discord.ClientUser
+  pool: asyncpg.Pool
+  command_stats: Counter[str]
+  socket_stats: Counter[str]
+  chat_stats: Counter[str]
+  gateway_handler: Any
 
   def __init__(self, **kwargs):
     self.cluster = kwargs.pop("cluster", None)
@@ -123,7 +133,7 @@ class Friday(commands.AutoShardedBot):
   async def get_context(self, message, *, cls=None) -> functions.MyContext:
     return await super().get_context(message, cls=cls or functions.MyContext)
 
-  async def setup_hook(self):
+  async def setup_hook(self) -> None:
     self.session: aiohttp.ClientSession() = aiohttp.ClientSession(loop=self.loop)
     self._pool = await functions.db.Table.create_pool(prod=self.prod, canary=self.canary)
     await self.load_extension("cogs.database")
@@ -143,7 +153,7 @@ class Friday(commands.AutoShardedBot):
   async def on_ready(self):
     await self.tree.sync()
 
-  def _clear_gateway_data(self):
+  def _clear_gateway_data(self) -> None:
     one_week_ago = discord.utils.utcnow() - datetime.timedelta(days=7)
     for shard_id, dates in self.identifies.items():
       to_remove = [index for index, dt in enumerate(dates) if dt < one_week_ago]
@@ -155,7 +165,7 @@ class Friday(commands.AutoShardedBot):
       for index in reversed(to_remove):
         del dates[index]
 
-  async def before_identify_hook(self, shard_id, *, initial):
+  async def before_identify_hook(self, shard_id: int, *, initial: bool):
     self._clear_gateway_data()
     self.identifies[shard_id].append(discord.utils.utcnow())
     await super().before_identify_hook(shard_id, initial=initial)
@@ -243,7 +253,7 @@ class Friday(commands.AutoShardedBot):
   async def on_error(self, event_method, *args, **kwargs):
     return await self.log.on_error(event_method, *args, **kwargs)
 
-  async def close(self):
+  async def close(self) -> None:
     await super().close()
     await self.session.close()
 

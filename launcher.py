@@ -5,7 +5,7 @@ import os
 import signal
 import sys
 import time
-from typing import Optional
+from typing import Optional, List
 from logging.handlers import RotatingFileHandler
 
 import discord
@@ -63,8 +63,8 @@ if len(sys.argv) > 1:
 
 class Launcher:
   def __init__(self, loop: asyncio.AbstractEventLoop):
-    self.cluster_queue = []
-    self.clusters = []
+    self.cluster_queue: List[Cluster] = []
+    self.clusters: List[Cluster] = []
 
     self.fut = None
     self.loop = loop
@@ -185,7 +185,7 @@ class Cluster:
   # def wait_close(self):
   #   return self.process.join()
 
-  async def start(self, *, force=False):
+  async def start(self, *, force: bool = False) -> bool:
     if self.process and self.process.is_alive():
       if not force:
         return self.logger.warning("Start called with already running cluster, pass `force=True` to override")
@@ -199,7 +199,7 @@ class Cluster:
 
     return True
 
-  def stop(self, sign=signal.SIGINT):
+  def stop(self, sign=signal.SIGINT) -> None:
     self.logger.info(f"Shutting down with signal {sign!r}")
     try:
       os.kill(self.process.pid, sign)
