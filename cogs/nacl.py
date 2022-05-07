@@ -1,10 +1,9 @@
 import discord
 from discord.ext import commands
 from numpy import random
-
-from functions import time, embed, MessageColors
-
 from typing_extensions import TYPE_CHECKING
+
+from functions import MessageColors, embed, time
 
 if TYPE_CHECKING:
   from index import Friday as Bot
@@ -88,10 +87,54 @@ class NaCl(commands.Cog):
     except Exception:
       pass
 
+  async def cam_only(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
+    # THE CROC
+    if member.guild.id != 582046945674002442:
+      return
+
+    if after.channel.id != 582046945674002450:
+      return
+
+    if member.bot:
+      return
+
+    if after.self_stream or after.self_video:
+      return
+
+    reminder = self.bot.get_cog("Reminder")
+    if reminder is None:
+      return
+
+    two_min = time.FutureTime("2m")
+    await reminder.create_timer(two_min.dt, "camonly", member.guild.id, member.voice.channel.id, member.id)
+
+  @commands.Cog.listener()
+  async def on_camonly_timer_complete(self, timer):
+    guild_id, vc_id, member_id = timer.args
+
+    guild = self.bot.get_guild(guild_id)
+    member = await self.bot.get_or_fetch_member(guild, member_id)
+
+    if member.voice is None:
+      return
+
+    if member.voice.channel is None or member.voice.channel.id != vc_id:
+      return
+
+    if member.voice.self_stream or member.voice.self_video:
+      return
+
+    try:
+      await member.edit(voice_channel=None, reason="Cam Only")
+      await member.send(embed=embed(title="Your vibes seems kinda off 😦 <:grunch:785387930445152256>", color=MessageColors.ERROR))
+    except Exception:
+      pass
+
   @commands.Cog.listener()
   async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
     await self.sexed(member, before, after)
     await self.ghost_fapper(member, before, after)
+    await self.cam_only(member, before, after)
 
 
 async def setup(bot):
