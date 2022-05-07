@@ -92,6 +92,9 @@ class NaCl(commands.Cog):
     if member.guild.id != 582046945674002442:
       return
 
+    if after.channel is None:
+      return
+
     if after.channel.id != 582046945674002450:
       return
 
