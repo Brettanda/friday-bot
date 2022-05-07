@@ -1,10 +1,13 @@
+from __future__ import annotations
+
 import asyncio
 import datetime
 import functools
 import os
-from collections import defaultdict, Counter
-from typing import List, Optional
+from collections import Counter, defaultdict
+from typing import TYPE_CHECKING, Any, List, Optional
 
+import asyncpg
 import discord
 import openai
 import validators
@@ -12,13 +15,14 @@ from discord.ext import commands
 from google.cloud import translate_v2 as translate
 from six.moves.html_parser import HTMLParser
 from slugify import slugify
-from typing_extensions import TYPE_CHECKING
 
 from functions import (MessageColors, MyContext, cache, checks, embed,
                        relay_info, time)
 from functions.config import PremiumTiersNew
 
 if TYPE_CHECKING:
+  from typing_extensions import Self
+
   from index import Friday as Bot
 
 openai.api_key = os.environ.get("OPENAI")
@@ -37,7 +41,7 @@ class Config:
   __slots__ = ("bot", "id", "chat_channel_id", "persona", "lang", "tier", "puser",)
 
   @classmethod
-  async def from_record(cls, record, bot):
+  async def from_record(cls, record: Any, bot: Bot) -> Self:
     self = cls()
 
     self.bot = bot
@@ -59,7 +63,7 @@ class UserConfig:
   __slots__ = ("bot", "user_id", "tier", "guild_ids",)
 
   @classmethod
-  async def from_record(cls, record, bot):
+  async def from_record(cls, record: asyncpg.Record, bot: Bot) -> Self:
     self = cls()
 
     self.bot = bot
@@ -119,10 +123,10 @@ class ChatHistory:
     self._history: List[str] = []
     self._bot_name: str = "Friday"
 
-  def __repr__(self):
+  def __repr__(self) -> str:
     return f"<Chathistory len={len(self.history())}>"
 
-  def __str__(self):
+  def __str__(self) -> str:
     return "\n".join(self.history())
 
   def history(self, *, limit=_limit) -> list:
@@ -168,7 +172,7 @@ class CooldownByRepeating(commands.CooldownMapping):
 
 class Translation:
   @classmethod
-  async def from_text(cls, text: str, from_lang: str = None, to_lang: str = "en", *, parent: "Chat"):
+  async def from_text(cls, text: str, from_lang: str = None, to_lang: str = "en", *, parent: "Chat") -> Self:
     self = cls()
 
     self.text: str = text
@@ -212,7 +216,7 @@ class Chat(commands.Cog):
     return f"<cogs.{self.__cog_name__}>"
 
   @cache.cache()
-  async def get_guild_config(self, guild_id: int, *, connection=None) -> Optional[Config]:
+  async def get_guild_config(self, guild_id: int, *, connection: Optional[asyncpg.Connection] = None) -> Optional[Config]:
     query = """SELECT *
     FROM servers s
     LEFT OUTER JOIN patrons p
@@ -251,7 +255,7 @@ class Chat(commands.Cog):
       self.bot.chat_repeat_counter[ctx.channel.id] += 1
       await ctx.send(embed=embed(title="My chat history has been reset", description="I have forgotten the last few messages"))
 
-  @commands.group(name="chatchannel", help="Set the current channel so that I will always try to respond with something", invoke_without_command=True)
+  @commands.group(name="chatchannel", extras={"examples": ["#channel"]}, invoke_without_command=True, case_insensitive=True)
   @commands.guild_only()
   @commands.has_guild_permissions(manage_channels=True)
   async def chatchannel(self, ctx: "MyContext", channel: discord.TextChannel = None):
