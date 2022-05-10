@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import pytest
-from functions.messagecolors import MessageColors
 from typing_extensions import TYPE_CHECKING
+
+from functions.messagecolors import MessageColors
 
 if TYPE_CHECKING:
   from .conftest import bot, channel
@@ -8,7 +11,7 @@ if TYPE_CHECKING:
 pytestmark = pytest.mark.asyncio
 
 
-async def test_bot(bot: "bot", channel: "channel"):
+async def test_bot(bot: bot, channel: channel):
   content = "!info"
   assert await channel.send(content)
 
@@ -17,7 +20,7 @@ async def test_bot(bot: "bot", channel: "channel"):
 
 
 @pytest.mark.parametrize("user", ["", "751680714948214855"])
-async def test_user(bot: "bot", channel: "channel", user: str):
+async def test_user(bot: bot, channel: channel, user: str):
   content = f"!userinfo {user}"
   assert await channel.send(content)
 
@@ -26,7 +29,7 @@ async def test_user(bot: "bot", channel: "channel", user: str):
   assert len(msg.embeds[0].fields) == 8
 
 
-async def test_guild(bot: "bot", channel: "channel"):
+async def test_guild(bot: bot, channel: channel):
   content = "!serverinfo"
   assert await channel.send(content)
 

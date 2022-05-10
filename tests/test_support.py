@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pytest
 from typing_extensions import TYPE_CHECKING
 
@@ -7,7 +9,7 @@ if TYPE_CHECKING:
 pytestmark = pytest.mark.asyncio
 
 
-async def test_support(bot: "bot", channel: "channel"):
+async def test_support(bot: bot, channel: channel):
   content = "!support"
   assert await channel.send(content)
 
@@ -15,7 +17,7 @@ async def test_support(bot: "bot", channel: "channel"):
   assert msg.content == "https://discord.gg/NTRuFjU"
 
 
-async def test_donate(bot: "bot", channel: "channel"):
+async def test_donate(bot: bot, channel: channel):
   content = "!donate"
   assert await channel.send(content)
 

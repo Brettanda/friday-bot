@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pytest
 from typing_extensions import TYPE_CHECKING
 
@@ -7,7 +9,7 @@ if TYPE_CHECKING:
 pytestmark = pytest.mark.asyncio
 
 
-async def test_coinflip(bot: "bot", channel: "channel"):
+async def test_coinflip(bot: bot, channel: channel):
   content = "!coinflip"
   assert await channel.send(content)
 
@@ -15,7 +17,7 @@ async def test_coinflip(bot: "bot", channel: "channel"):
   assert "The coin landed on: " in msg.embeds[0].title
 
 
-async def test_souptime(bot: "bot", channel: "channel"):
+async def test_souptime(bot: bot, channel: channel):
   content = "!souptime"
   assert await channel.send(content)
 
@@ -24,7 +26,7 @@ async def test_souptime(bot: "bot", channel: "channel"):
 
 
 @pytest.mark.parametrize("choice", ["rock", "paper", "scissors", "", "asd"])
-async def test_rockpaperscissors(bot: "bot", channel: "channel", choice):
+async def test_rockpaperscissors(bot: bot, channel: channel, choice):
   content = f"!rps {choice}"
   assert await channel.send(content)
 
@@ -37,7 +39,7 @@ async def test_rockpaperscissors(bot: "bot", channel: "channel", choice):
     assert "The winner of this round is:" in msg.embeds[0].description
 
 
-async def test_poll(bot: "bot", channel: "channel"):
+async def test_poll(bot: bot, channel: channel):
   content = '!poll "this is a title" "yes" "no"'
   assert await channel.send(content)
 
@@ -49,7 +51,7 @@ async def test_poll(bot: "bot", channel: "channel"):
 
 @pytest.mark.parametrize("size", range(2, 10))
 @pytest.mark.parametrize("bombs", range(2, 15, 2))
-async def test_minesweeper(bot: "bot", channel: "channel", size: int, bombs: int):
+async def test_minesweeper(bot: bot, channel: channel, size: int, bombs: int):
   content = f"!ms {size} {bombs}"
   assert await channel.send(content)
 

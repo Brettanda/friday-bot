@@ -1,9 +1,12 @@
+from __future__ import annotations
+
 import asyncio
+
 import pytest
 from typing_extensions import TYPE_CHECKING
 
 if TYPE_CHECKING:
-  from .conftest import bot, bot_user, channel_user, channel
+  from .conftest import bot, bot_user, channel, channel_user
 
 pytestmark = pytest.mark.asyncio
 
@@ -18,7 +21,7 @@ async def test_dev(bot_user: "bot_user", channel_user: "channel_user", command: 
 
 
 @pytest.mark.parametrize("command", ["sudo 813618591878086707 dev", ])
-async def test_dev_with_sudo(bot: "bot", channel: "channel", command: str):
+async def test_dev_with_sudo(bot: bot, channel: channel, command: str):
   content = f"!dev {command}"
   assert await channel.send(content)
 

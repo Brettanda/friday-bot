@@ -1,16 +1,22 @@
+from __future__ import annotations
+
 import asyncio
 import os
-import pytest
 # import sys
 import time
 
 import discord
+import pytest
 from discord.ext import commands
 from dotenv import load_dotenv
+
+import index
+from launcher import get_logger
 
 load_dotenv()
 
 TOKEN = os.environ.get('TOKENUNITTEST')
+FRIDAYTOKEN = os.environ.get('TOKENTEST')
 TOKENUSER = os.environ.get('TOKENUNITTESTUSER')
 
 
@@ -50,12 +56,25 @@ class UnitTester(commands.Bot):
       self.was_online = True
 
 
+class Friday(index.Friday):
+  def __init__(self, **kwargs):
+    super().__init__(**kwargs)
+    self.x = 0
+
+
 class UnitTesterUser(UnitTester):
   pass
 
 
 @pytest.fixture(scope="session")
 def event_loop():
+  loop = asyncio.new_event_loop()
+  yield loop
+  loop.close()
+
+
+@pytest.fixture(scope="session")
+def event_loop_friday():
   loop = asyncio.new_event_loop()
   yield loop
   loop.close()
@@ -69,7 +88,7 @@ def event_loop_user():
 
 
 @pytest.fixture(scope="session")
-async def bot(event_loop) -> commands.Bot:
+async def bot(event_loop: event_loop) -> commands.Bot:
   bot = UnitTester()
   event_loop.create_task(bot.start(TOKEN))
   yield bot
@@ -77,21 +96,34 @@ async def bot(event_loop) -> commands.Bot:
 
 
 @pytest.fixture(scope="session")
-async def bot_user(event_loop) -> commands.Bot:
+async def friday(event_loop_friday: event_loop_friday) -> Friday:
+  async def main(bot):
+    async with bot:
+      await bot.start(FRIDAYTOKEN, reconnect=True)
+  log = get_logger("Friday")
+  bot = Friday(logger=log)
+  asyncio.create_task(main(bot))
+  yield bot
+  await bot.close()
+
+
+@pytest.fixture(scope="session")
+async def bot_user(event_loop: event_loop_user) -> commands.Bot:
   bot_user = UnitTesterUser()
   event_loop.create_task(bot_user.start(TOKENUSER))
   yield bot_user
   await bot_user.close()
 
 
-@pytest.fixture(scope="session", autouse=True)
-async def cleanup(request, bot, bot_user, channel):
-  def close():
-    if bot and not bot.was_online:
-      asyncio.get_event_loop().run_until_complete(channel.send("!complete"))
-    if bot_user and not bot_user.was_online:
-      asyncio.get_event_loop().run_until_complete(channel.send("!complete"))
-  request.addfinalizer(close)
+# @pytest.fixture(scope="session", autouse=True)
+# async def cleanup(request, bot, bot_user, channel):
+#   def close():
+#     ...
+#     # if bot and not bot.was_online:
+#     # asyncio.get_event_loop().run_until_complete(channel.send("!complete"))
+#     # if bot_user and not bot_user.was_online:
+#     #   asyncio.get_event_loop().run_until_complete(channel.send("!complete"))
+#   request.addfinalizer(close)
 
 
 @pytest.fixture(autouse=True)
@@ -100,6 +132,15 @@ async def slow_down_tests(bot):
   yield
   bot.x += 1
   if bot.x % 3 == 0:
+    time.sleep(1)
+
+
+@pytest.fixture(autouse=True)
+async def slow_down_friday(friday: friday):
+  await friday.wait_until_ready()
+  yield
+  friday.x += 1
+  if friday.x % 3 == 0:
     time.sleep(1)
 
 

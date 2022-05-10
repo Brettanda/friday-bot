@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import pytest
-from functions.messagecolors import MessageColors
 from typing_extensions import TYPE_CHECKING
+
+from functions.messagecolors import MessageColors
 
 if TYPE_CHECKING:
   from .conftest import bot, channel
@@ -8,7 +11,7 @@ if TYPE_CHECKING:
 pytestmark = pytest.mark.asyncio
 
 
-async def test_meme(bot: "bot", channel: "channel"):
+async def test_meme(bot: bot, channel: channel):
   content = "!meme"
   assert await channel.send(content)
 

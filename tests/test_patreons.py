@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pytest
 from typing_extensions import TYPE_CHECKING
 
@@ -7,7 +9,7 @@ if TYPE_CHECKING:
 pytestmark = pytest.mark.asyncio
 
 
-async def test_patreon(bot: "bot", channel: "channel"):
+async def test_patreon(bot: bot, channel: channel):
   content = "!patreon"
   assert await channel.send(content)
 
@@ -15,7 +17,7 @@ async def test_patreon(bot: "bot", channel: "channel"):
   assert msg.embeds[0].title == "Become a Patron!"
 
 
-async def test_server_activate(bot: "bot", channel: "channel"):
+async def test_server_activate(bot: bot, channel: channel):
   content = "!patreon server activate"
   assert await channel.send(content)
 
@@ -23,7 +25,7 @@ async def test_server_activate(bot: "bot", channel: "channel"):
   assert msg.embeds[0].title == "Your Patronage was not found"
 
 
-async def test_server_deactivate(bot: "bot", channel: "channel"):
+async def test_server_deactivate(bot: bot, channel: channel):
   content = "!patreon server deactivate"
   assert await channel.send(content)
 

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pytest
 from typing_extensions import TYPE_CHECKING
 
@@ -7,7 +9,7 @@ if TYPE_CHECKING:
 pytestmark = pytest.mark.asyncio
 
 
-async def test_help(bot: "bot", channel: "channel"):
+async def test_help(bot: bot, channel: channel):
   content = "!help"
   assert await channel.send(content)
 
@@ -44,7 +46,7 @@ async def test_cog(bot, channel, cog: str):
 
 
 @pytest.mark.parametrize("group", ["blacklist", "custom", "welcome"])
-async def test_group(bot: "bot", channel: "channel", group: str):
+async def test_group(bot: bot, channel: channel, group: str):
   content = f"!help {group}"
   assert await channel.send(content)
 
@@ -54,7 +56,7 @@ async def test_group(bot: "bot", channel: "channel", group: str):
 
 
 @pytest.mark.parametrize("subcommand", ["blacklist add", "welcome role", "custom add"])
-async def test_subcommand(bot: "bot", channel: "channel", subcommand: str):
+async def test_subcommand(bot: bot, channel: channel, subcommand: str):
   content = f"!help {subcommand}"
   assert await channel.send(content)
 

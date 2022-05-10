@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pytest
 from typing_extensions import TYPE_CHECKING
 
@@ -7,7 +9,7 @@ if TYPE_CHECKING:
 pytestmark = pytest.mark.asyncio
 
 
-async def test_invite(bot: "bot", channel: "channel"):
+async def test_invite(bot: bot, channel: channel):
   content = "!invite"
   assert await channel.send(content)
 

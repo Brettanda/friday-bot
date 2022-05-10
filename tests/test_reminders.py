@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pytest
 from typing_extensions import TYPE_CHECKING
 
@@ -7,7 +9,7 @@ if TYPE_CHECKING:
 pytestmark = pytest.mark.asyncio
 
 
-async def test_reminders(bot: "bot", channel: "channel"):
+async def test_reminders(bot: bot, channel: channel):
   content = "!remind me in 5 minutes to do this"
   assert await channel.send(content)
 
@@ -15,7 +17,7 @@ async def test_reminders(bot: "bot", channel: "channel"):
   assert "Reminder set" in msg.embeds[0].title
 
 
-async def test_reminders_list(bot: "bot", channel: "channel"):
+async def test_reminders_list(bot: bot, channel: channel):
   content = "!remind list"
   assert await channel.send(content)
 
