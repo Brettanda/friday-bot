@@ -32,7 +32,7 @@ def embed(
         url: str = MISSING, **kwargs) -> discord.Embed:
   """My Custom embed function"""
   if color is MISSING or color is None:
-    color = MessageColors.DEFAULT
+    color = MessageColors.default()
   r = discord.Embed(title=title, description=description, color=color, **kwargs)
 
   if image is not MISSING and image is not None:
