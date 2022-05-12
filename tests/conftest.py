@@ -4,6 +4,7 @@ import asyncio
 import os
 # import sys
 import time
+from typing import Callable
 
 import discord
 import pytest
@@ -15,9 +16,9 @@ from launcher import get_logger
 
 load_dotenv()
 
-TOKEN = os.environ.get('TOKENUNITTEST')
-FRIDAYTOKEN = os.environ.get('TOKENTEST')
-TOKENUSER = os.environ.get('TOKENUNITTESTUSER')
+TOKEN = os.environ['TOKENUNITTEST']
+FRIDAYTOKEN = os.environ['TOKENTEST']
+TOKENUSER = os.environ['TOKENUNITTESTUSER']
 
 
 class UnitTester(commands.Bot):
@@ -45,15 +46,6 @@ class UnitTester(commands.Bot):
             type=discord.ActivityType.playing,
             name="Unit Testing"
         ))
-    guild = self.get_guild(243159711237537802)
-    await guild.chunk(cache=True)
-    main = guild.get_member(751680714948214855)
-    if main.status not in (discord.Status.online, discord.Status.idle):
-      def check_online(m):
-        return m.author.id == 751680714948214855 and m.channel.id == 892840236781015120
-      await self.wait_for("message", check=check_online, timeout=30.0)
-    else:
-      self.was_online = True
 
 
 class Friday(index.Friday):
@@ -67,67 +59,59 @@ class UnitTesterUser(UnitTester):
 
 
 @pytest.fixture(scope="session")
-def event_loop():
-  loop = asyncio.new_event_loop()
-  yield loop
-  loop.close()
+def event_loop() -> asyncio.AbstractEventLoop:
+  return asyncio.new_event_loop()
 
 
 @pytest.fixture(scope="session")
-def event_loop_friday():
-  loop = asyncio.new_event_loop()
-  yield loop
-  loop.close()
+def event_loop_friday() -> asyncio.AbstractEventLoop:
+  return asyncio.new_event_loop()
 
 
 @pytest.fixture(scope="session")
-def event_loop_user():
-  loop = asyncio.new_event_loop()
-  yield loop
-  loop.close()
+def event_loop_user() -> asyncio.AbstractEventLoop:
+  return asyncio.new_event_loop()
 
 
 @pytest.fixture(scope="session")
-async def bot(event_loop: event_loop) -> commands.Bot:
+async def bot(event_loop: asyncio.AbstractEventLoop) -> UnitTester:
   bot = UnitTester()
   event_loop.create_task(bot.start(TOKEN))
-  yield bot
-  await bot.close()
+  return bot
 
 
 @pytest.fixture(scope="session")
-async def friday(event_loop_friday: event_loop_friday) -> Friday:
+async def friday(event_loop_friday: asyncio.AbstractEventLoop) -> Friday:
   async def main(bot):
     async with bot:
       await bot.start(FRIDAYTOKEN, reconnect=True)
   log = get_logger("Friday")
   bot = Friday(logger=log)
   asyncio.create_task(main(bot))
-  yield bot
-  await bot.close()
+  return bot
 
 
 @pytest.fixture(scope="session")
-async def bot_user(event_loop: event_loop_user) -> commands.Bot:
+async def bot_user(event_loop: asyncio.AbstractEventLoop) -> UnitTesterUser:
   bot_user = UnitTesterUser()
   event_loop.create_task(bot_user.start(TOKENUSER))
-  yield bot_user
-  await bot_user.close()
+  return bot_user
 
 
-# @pytest.fixture(scope="session", autouse=True)
-# async def cleanup(request, bot, bot_user, channel):
-#   def close():
-#     ...
-#     # if bot and not bot.was_online:
-#     # asyncio.get_event_loop().run_until_complete(channel.send("!complete"))
-#     # if bot_user and not bot_user.was_online:
-#     #   asyncio.get_event_loop().run_until_complete(channel.send("!complete"))
-#   request.addfinalizer(close)
+@pytest.fixture(scope="session", autouse=True)
+async def cleanup(request, bot: UnitTester, friday: Friday, bot_user: UnitTesterUser, event_loop: asyncio.AbstractEventLoop, event_loop_friday: asyncio.AbstractEventLoop, event_loop_user: asyncio.AbstractEventLoop):  # bot, bot_user, channel):
+  def close():
+    asyncio.get_event_loop().run_until_complete(bot.close())
+    asyncio.get_event_loop().run_until_complete(friday.close())
+    asyncio.get_event_loop().run_until_complete(bot_user.close())
+    event_loop.close()
+    event_loop_friday.close()
+    event_loop_user.close()
+  request.addfinalizer(close)
 
 
 @pytest.fixture(autouse=True)
-async def slow_down_tests(bot):
+async def slow_down_tests(bot: UnitTester):
   await bot.wait_until_ready()
   yield
   bot.x += 1
@@ -136,7 +120,7 @@ async def slow_down_tests(bot):
 
 
 @pytest.fixture(autouse=True)
-async def slow_down_friday(friday: friday):
+async def slow_down_friday(friday: Friday):
   await friday.wait_until_ready()
   yield
   friday.x += 1
@@ -145,7 +129,7 @@ async def slow_down_friday(friday: friday):
 
 
 @pytest.fixture(autouse=True)
-async def slow_down_tests_user(bot_user):
+async def slow_down_tests_user(bot_user: UnitTesterUser):
   await bot_user.wait_until_ready()
   yield
   bot_user.x += 1
@@ -156,55 +140,88 @@ async def slow_down_tests_user(bot_user):
 @pytest.fixture(scope="session")
 async def guild(bot: UnitTester) -> discord.Guild:
   await bot.wait_until_ready()
-  yield bot.get_guild(243159711237537802)
+  guild = bot.get_guild(243159711237537802)
+  if not guild:
+    raise RuntimeError("Guild not found")
+  return guild
 
 
 @pytest.fixture(scope="session")
-async def channel(bot, guild: guild) -> discord.TextChannel:
+async def channel(bot: UnitTester, guild) -> discord.TextChannel:
   await bot.wait_until_ready()
-  yield guild.get_channel(892840236781015120) or await guild.fetch_channel(892840236781015120)
+  return guild.get_channel(892840236781015120) or await guild.fetch_channel(892840236781015120)
 
 
 @pytest.fixture(scope="session")
-async def voice_channel(bot, guild: guild) -> discord.VoiceChannel:
+async def voice_channel(bot: UnitTester, guild) -> discord.VoiceChannel:
   await bot.wait_until_ready()
-  yield guild.get_channel(895486009465266176) or await guild.fetch_channel(895486009465266176)
+  return guild.get_channel(895486009465266176) or await guild.fetch_channel(895486009465266176)
 
 
 @pytest.fixture(scope="session")
-async def user(bot, guild: guild) -> discord.User:
+async def user(bot: UnitTester, guild) -> discord.User:
   await bot.wait_until_ready()
-  yield await guild.fetch_user(813618591878086707)
+  return await guild.fetch_user(813618591878086707)
 
 
 @pytest.fixture(scope="session")
-async def guild_user(bot_user) -> discord.Guild:
+async def guild_user(bot_user: UnitTesterUser) -> discord.Guild:
   await bot_user.wait_until_ready()
-  yield bot_user.get_guild(243159711237537802)
+  guild = bot_user.get_guild(243159711237537802)
+  if not guild:
+    raise RuntimeError("Guild not found")
+  return guild
 
 
 @pytest.fixture(scope="session")
-async def channel_user(bot_user, guild_user: guild_user) -> discord.TextChannel:
+async def channel_user(bot_user: UnitTesterUser, guild_user) -> discord.TextChannel:
   await bot_user.wait_until_ready()
-  yield guild_user.get_channel(892840236781015120) or await guild_user.fetch_channel(892840236781015120)
+  return guild_user.get_channel(892840236781015120) or await guild_user.fetch_channel(892840236781015120)
 
 
 @pytest.fixture(scope="session")
-async def voice_channel_user(bot_user, guild_user: guild) -> discord.VoiceChannel:
+async def voice_channel_user(bot_user: UnitTesterUser, guild_user) -> discord.VoiceChannel:
   await bot_user.wait_until_ready()
-  yield guild_user.get_channel(895486009465266176) or await guild_user.fetch_channel(895486009465266176)
+  return guild_user.get_channel(895486009465266176) or await guild_user.fetch_channel(895486009465266176)
 
 
 @pytest.fixture(scope="session")
-async def user_user(bot_user, guild_user: guild) -> discord.User:
+async def user_user(bot_user: UnitTesterUser, guild_user) -> discord.User:
   await bot_user.wait_until_ready()
-  yield await guild_user.fetch_user(813618591878086707)
+  return await guild_user.fetch_user(813618591878086707)
+
+
+@pytest.fixture(scope="session")
+async def guild_friday(friday: Friday) -> discord.Guild:
+  await friday.wait_until_ready()
+  guild = friday.get_guild(243159711237537802)
+  if not guild:
+    raise RuntimeError("Guild not found")
+  return guild
+
+
+@pytest.fixture(scope="session")
+async def channel_friday(friday: Friday, guild_user) -> discord.TextChannel:
+  await friday.wait_until_ready()
+  return guild_user.get_channel(892840236781015120) or await guild_user.fetch_channel(892840236781015120)
+
+
+@pytest.fixture(scope="session")
+async def voice_channel_friday(friday: Friday, guild_user) -> discord.VoiceChannel:
+  await friday.wait_until_ready()
+  return guild_user.get_channel(895486009465266176) or await guild_user.fetch_channel(895486009465266176)
+
+
+@pytest.fixture(scope="session")
+async def user_friday(friday: Friday, guild_user) -> discord.User:
+  await friday.wait_until_ready()
+  return await guild_user.fetch_user(813618591878086707)
 
 
 def msg_check(msg: discord.Message, content: str = None) -> bool:
   is_reference = (msg.reference is not None and msg.reference.cached_message is not None and (msg.reference.cached_message.author.id == 892865928520413245 or msg.reference.cached_message.author.id == 968261189828231308))
   if content is not None and is_reference:
-    return msg.channel.id == 892840236781015120 and msg.author.id == 751680714948214855 and is_reference and content.strip() == msg.reference.cached_message.content
+    return msg.channel.id == 892840236781015120 and msg.author.id == 751680714948214855 and is_reference and content.strip() == msg.reference.cached_message.content  # type: ignore
   return msg.channel.id == 892840236781015120 and msg.author.id == 751680714948214855 and is_reference
 
 
@@ -212,7 +229,11 @@ def raw_message_delete_check(payload: discord.RawMessageDeleteEvent, msg: discor
   return payload.message_id == msg.id
 
 
-def pytest_configure():
-  pytest.timeout = 8.0
-  pytest.msg_check = msg_check
-  pytest.raw_message_delete_check = raw_message_delete_check
+def pytest_configure() -> None:
+  # setattr(pytest, "timeout", 8.0)
+  # setattr(pytest, "msg_check", msg_check)
+  # setattr(pytest, "raw_message_delete_check", raw_message_delete_check)
+
+  pytest.timeout: float = 8.0  # type: ignore
+  pytest.msg_check: Callable = msg_check  # type: ignore
+  pytest.raw_message_delete_check: Callable = raw_message_delete_check  # type: ignore

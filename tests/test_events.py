@@ -8,13 +8,14 @@ import discord
 import pytest
 
 if TYPE_CHECKING:
-  from .conftest import bot, guild
+  from .conftest import UnitTester
+  from discord import Guild
 
 pytestmark = pytest.mark.asyncio
 
 
 @pytest.fixture(scope="session")
-async def event(bot: bot, guild: guild) -> discord.ScheduledEvent:
+async def event(bot: UnitTester, guild: Guild) -> discord.ScheduledEvent:  # type: ignore
   await bot.wait_until_ready()
   event = await guild.create_scheduled_event(
       name="Test event",
@@ -30,7 +31,7 @@ async def event(bot: bot, guild: guild) -> discord.ScheduledEvent:
 
 
 @pytest.fixture(scope="session")
-async def role(bot: bot, guild: guild) -> discord.Role:
+async def role(bot: UnitTester, guild: Guild) -> discord.Role:  # type: ignore
   await bot.wait_until_ready()
   role = await guild.create_role(
       name="Test event role",
@@ -40,6 +41,6 @@ async def role(bot: bot, guild: guild) -> discord.Role:
   await role.delete()
 
 
-# async def test_add_event_role(bot: bot, channel: channel, event: event, role: role):
+# async def test_add_event_role(bot: UnitTester, channel: channel, event: event, role: role):
 #   content = f"!eventrole set {event.url} {role.id}"
 #   assert await channel.send(content)
