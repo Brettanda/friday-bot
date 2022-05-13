@@ -97,9 +97,9 @@ jobs:
         if [ -f friday-trans-key.json ]; then printf "File created"; fi
     - name: Checkout all the submodules
       uses: actions/checkout@v2
+      ssh-key: ${{ secrets.I18N_SUBMODULE_GH_ACTIONS_PULL }}
       with:
         submodules: recursive
-        token: ${{ secrets.PRIVATE_TOKEN_GITHUB }}
     - name: Test with pytest
       env:
         DBHOSTNAME: ${{ secrets.DBHOSTNAME }}
