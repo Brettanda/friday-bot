@@ -22,6 +22,8 @@ TOKENUSER = os.environ['TOKENUNITTESTUSER']
 
 
 class UnitTester(commands.Bot):
+  user: discord.ClientUser
+
   def __init__(self, **kwargs):
     self.was_online = False
     super().__init__(
@@ -218,11 +220,10 @@ async def user_friday(friday: Friday, guild_user) -> discord.User:
   return await guild_user.fetch_user(813618591878086707)
 
 
-def msg_check(msg: discord.Message, content: str = None) -> bool:
-  is_reference = (msg.reference is not None and msg.reference.cached_message is not None and (msg.reference.cached_message.author.id == 892865928520413245 or msg.reference.cached_message.author.id == 968261189828231308))
-  if content is not None and is_reference:
-    return msg.channel.id == 892840236781015120 and msg.author.id == 751680714948214855 and is_reference and content.strip() == msg.reference.cached_message.content  # type: ignore
-  return msg.channel.id == 892840236781015120 and msg.author.id == 751680714948214855 and is_reference
+def msg_check(new_msg: discord.Message, command_message: discord.Message) -> bool:
+  assert new_msg.author != command_message.author
+  assert new_msg.reference is not None
+  return new_msg.reference.message_id == command_message.id
 
 
 def raw_message_delete_check(payload: discord.RawMessageDeleteEvent, msg: discord.Message) -> bool:

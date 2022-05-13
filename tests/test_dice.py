@@ -15,9 +15,10 @@ pytestmark = pytest.mark.asyncio
 @pytest.mark.parametrize("roll", ["1d20", "2d8", "1d20k7", "1*3", ""])
 async def test_dice(bot: UnitTester, channel: TextChannel, roll: str):
   content = f"!dice {roll}"
-  assert await channel.send(content)
+  com = await channel.send(content)
+  assert com
 
-  msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)  # type: ignore
+  msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, com), timeout=pytest.timeout)  # type: ignore
   if roll == "":
     assert msg.embeds[0].title == "!dice"
   else:
