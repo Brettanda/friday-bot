@@ -218,6 +218,7 @@ class ScheduledEvents(commands.Cog):
 
   @commands.Cog.listener()
   async def on_scheduled_event_user_add(self, event: discord.ScheduledEvent, user: discord.User):
+    if not event.guild:
       return
     if self.bot.prod and event.guild.id != 215346091321720832:
       return
@@ -240,6 +241,8 @@ class ScheduledEvents(commands.Cog):
 
   @commands.Cog.listener()
   async def on_scheduled_event_user_remove(self, event: discord.ScheduledEvent, user: discord.User):
+    if not event.guild:
+      return
     if self.bot.prod and event.guild.id != 215346091321720832:
       return
     config = await self.get_guild_config(event.guild.id)
@@ -261,6 +264,8 @@ class ScheduledEvents(commands.Cog):
 
   @commands.Cog.listener()
   async def on_scheduled_event_update(self, before: discord.ScheduledEvent, after: discord.ScheduledEvent):
+    if not before.guild or not after.guild:
+      return
     if self.bot.prod and before.guild.id != 215346091321720832:
       return
     if before.status == after.status:
@@ -294,6 +299,8 @@ class ScheduledEvents(commands.Cog):
 
   @commands.Cog.listener()
   async def on_scheduled_event_delete(self, event: discord.ScheduledEvent):
+    if not event.guild:
+      return
     if self.bot.prod and event.guild.id != 215346091321720832:
       return
     config = await self.get_guild_config(event.guild.id)
