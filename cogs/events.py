@@ -218,6 +218,7 @@ class ScheduledEvents(commands.Cog):
 
   @commands.Cog.listener()
   async def on_scheduled_event_user_add(self, event: discord.ScheduledEvent, user: discord.User):
+      return
     if self.bot.prod and event.guild.id != 215346091321720832:
       return
     config = await self.get_guild_config(event.guild.id)
