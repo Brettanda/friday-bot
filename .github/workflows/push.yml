@@ -99,7 +99,7 @@ jobs:
       uses: actions/checkout@v2
       with:
         ssh-key: ${{ secrets.I18N_SUBMODULE_GH_ACTIONS_PULL }}
-        submodules: i18n
+        submodules: recursive
     - name: Test with pytest
       env:
         DBHOSTNAME: ${{ secrets.DBHOSTNAME }}
