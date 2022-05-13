@@ -1,11 +1,12 @@
+from __future__ import annotations
+
 import os
+from typing import TYPE_CHECKING, List, Optional
 
 import discord
 from discord.ext import commands
-from typing import Optional, List
-from typing_extensions import TYPE_CHECKING
 
-from functions import embed, MyContext  # ,checks
+from functions import embed  # ,checks
 
 from .log import CustomWebhook
 
@@ -13,7 +14,8 @@ from .log import CustomWebhook
 
 
 if TYPE_CHECKING:
-  from index import Friday as Bot
+  from functions.custom_contexts import MyContext
+  from index import Friday
 
 
 class SupportServer(discord.ui.View):
@@ -23,19 +25,21 @@ class SupportServer(discord.ui.View):
 
 
 class Modal(discord.ui.Modal):
-  def __init__(self, *, title: str, items: List[dict], bot, author):
+  def __init__(self, *, title: str, items: List[dict], bot: Friday, author):
     super().__init__(title=title)
-    self.bot = bot
+    self.bot: Friday = bot
     self.author = author
     self.values: Optional[list] = None
     for item in items:
       self.add_item(discord.ui.TextInput(**item))
 
   async def on_submit(self, interaction: discord.Interaction):
-    items = [c.value for c in self.children]
-    hook = self.bot.get_cog("Issue").log_issues
+    items = [c.value for c in self.children]  # type: ignore
+    issue: Issue = self.bot.get_cog("Issue")  # type: ignore
+    hook = issue.log_issues
     await interaction.response.send_message(embed=embed(title="Your issue has been submitted", description="Please join the support server for followup on your issue."), view=SupportServer(), ephemeral=True)
-    await interaction.message.delete()
+    if interaction.message:
+      await interaction.message.delete()
     try:
       await hook.send(
           embed=embed(
@@ -52,15 +56,16 @@ class Modal(discord.ui.Modal):
 
 
 class ModalView(discord.ui.View):
-  def __init__(self, *, modal_button: Optional[str] = "Modal", modal_title: Optional[str] = "Modal", modal_items: List[dict] = [], author, bot):
+  def __init__(self, *, modal_button: str = "Modal", modal_title: str = "Modal", modal_items: List[dict] = [], author, bot: Friday):
     super().__init__(timeout=60.0)
-    self._modal_button: Optional[str] = modal_button
-    self._modal_title: Optional[str] = modal_title
+    self._modal_button: str = modal_button
+    self._modal_title: str = modal_title
     self._modal_items: List[dict] = modal_items
     self.author = author
-    self.bot = bot
+    self.bot: Friday = bot
 
     self.button_modal.label = modal_button
+    self.message: Optional[discord.Message] = None
 
   async def interaction_check(self, interaction: discord.Interaction) -> bool:
     if interaction.user and interaction.user.id == self.author.id:
@@ -70,8 +75,8 @@ class ModalView(discord.ui.View):
       return False
 
   @discord.ui.button(emoji="\N{WRITING HAND}", label="Modal", custom_id="issue_modal", style=discord.ButtonStyle.primary)
-  async def button_modal(self, button, interaction: discord.Interaction):
-    await button.response.send_modal(Modal(
+  async def button_modal(self, interaction: discord.Interaction, button: discord.ui.Button):
+    await interaction.response.send_modal(Modal(
         title=self._modal_title,
         items=self._modal_items,
         author=self.author,
@@ -79,29 +84,27 @@ class ModalView(discord.ui.View):
     ))
 
   @discord.ui.button(emoji="\N{HEAVY MULTIPLICATION X}", label='Cancel', custom_id="issue_cancel", style=discord.ButtonStyle.red)
-  async def cancel(self, button: discord.ui.Button, interaction: discord.Interaction):
-    await button.delete_original_message()
+  async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
+    await interaction.delete_original_message()
     self.stop()
 
   async def on_timeout(self) -> None:
-    try:
+    if self.message:
       await self.message.delete()
-    except discord.NotFound:
-      pass
 
 
 class Issue(commands.Cog):
   """Report your issues you have with Friday"""
 
-  def __init__(self, bot: "Bot"):
-    self.bot = bot
+  def __init__(self, bot: Friday):
+    self.bot: Friday = bot
 
   def __repr__(self) -> str:
     return f"<cogs.{self.__cog_name__}>"
 
   @discord.utils.cached_property
   def log_issues(self) -> CustomWebhook:
-    return CustomWebhook.partial(os.environ.get("WEBHOOKISSUESID"), os.environ.get("WEBHOOKISSUESTOKEN"), session=self.bot.session)
+    return CustomWebhook.partial(os.environ.get("WEBHOOKISSUESID"), os.environ.get("WEBHOOKISSUESTOKEN"), session=self.bot.session)  # type: ignore
 
   @commands.command(name="issue", aliases=["problem"], help="If you have an issue or noticed a bug with Friday, this will send a message to the developer.")
   @commands.cooldown(1, 60, commands.BucketType.guild)
