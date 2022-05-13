@@ -13,6 +13,7 @@ import asyncpg
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
+from topgg.webhook import WebhookManager
 from typing_extensions import TYPE_CHECKING
 
 import cogs
@@ -21,6 +22,7 @@ from functions.config import Config, ReadOnly
 
 if TYPE_CHECKING:
   from .cogs.database import Database
+  from .cogs.reminder import Reminder
   from .cogs.log import Log
 
 load_dotenv()
@@ -28,7 +30,7 @@ load_dotenv()
 TOKEN = os.environ.get('TOKENTEST')
 
 
-async def get_prefix(bot: "Friday", message: discord.Message):
+async def get_prefix(bot: Friday, message: discord.Message):
   if message.guild is not None:
     return commands.when_mentioned_or(bot.prefixes[message.guild.id])(bot, message)
   return commands.when_mentioned_or(functions.config.defaultPrefix)(bot, message)
@@ -39,10 +41,13 @@ class Friday(commands.AutoShardedBot):
 
   user: discord.ClientUser
   pool: asyncpg.Pool
+  topgg_webhook: WebhookManager
   command_stats: Counter[str]
   socket_stats: Counter[str]
   chat_stats: Counter[str]
   gateway_handler: Any
+  bot_app_info: discord.AppInfo
+  uptime: datetime.datetime
 
   def __init__(self, **kwargs):
     self.cluster = kwargs.pop("cluster", None)
@@ -76,12 +81,10 @@ class Friday(commands.AutoShardedBot):
         **kwargs
     )
 
-    self.session = None
     self.views_loaded = False
 
     # guild_id: str("!")
     self.prefixes = defaultdict(lambda: str("!"))
-    self.languages = {}
     self.prod = kwargs.pop("prod", None) or True if len(sys.argv) > 1 and (sys.argv[1] == "--prod" or sys.argv[1] == "--production") else False
     self.canary = kwargs.pop("canary", None) or True if len(sys.argv) > 1 and (sys.argv[1] == "--canary") else False
     self.ready = False
@@ -91,8 +94,6 @@ class Friday(commands.AutoShardedBot):
     self.resumes = defaultdict(list)
     self.identifies = defaultdict(list)
 
-    self.blacklist = Config("blacklist.json")
-
     self.logger.info(f"Cluster Starting {kwargs.get('shard_ids', None)}, {kwargs.get('shard_count', 1)}")
     if self.should_start:
       self.run(kwargs["token"], reconnect=True)
@@ -101,43 +102,37 @@ class Friday(commands.AutoShardedBot):
     return f"<Friday username=\"{self.user.display_name if self.user else None}\" id={self.user.id if self.user else None}>"
 
   @property
-  def log(self) -> "Log":
-    return self.get_cog("Log")
-
-  @property
   def logger(self) -> logging.Logger:
     return self._logger
 
-  @property
-  def pool(self):
-    return self._pool
-
-  @property
-  def db(self) -> Optional["Database"]:
-    return self.get_cog("Database")
-
-  @property
-  def langs(self) -> Dict[str, ReadOnly]:
-    return {
-        "en": ReadOnly("i18n/source/commands.json"),
-        **{name: ReadOnly(f"i18n/translations/{name}/commands.json") for name in os.listdir("./i18n/translations")}
-    }
-
-  async def get_lang(self, msg: discord.Message) -> ReadOnly:
+  async def get_lang(self, msg: discord.Message):
     if msg.guild is None:
       return self.langs["en"]
     if not self.log:
-      return self.langs.get(msg.guild.preferred_locale[:2], "en")
+      return self.langs.get(msg.guild.preferred_locale.value[:2], "en")
     return self.langs.get((await self.log.get_guild_config(msg.guild.id)).lang)
 
   async def get_context(self, message, *, cls=None) -> functions.MyContext:
     return await super().get_context(message, cls=cls or functions.MyContext)
 
   async def setup_hook(self) -> None:
-    self.session: aiohttp.ClientSession() = aiohttp.ClientSession(loop=self.loop)
-    self._pool = await functions.db.Table.create_pool(prod=self.prod, canary=self.canary)
+    self.session = aiohttp.ClientSession()
+
+    self.blacklist: Config[bool] = Config("blacklist.json", loop=self.loop)
+
+    self.langs: Dict[str, ReadOnly[dict[dict, str | dict]]] = {
+        "en": ReadOnly("i18n/source/commands.json", loop=self.loop),
+        **{name: ReadOnly(f"i18n/translations/{name}/commands.json", loop=self.loop) for name in os.listdir("./i18n/translations")}
+    }
+    self.languages = self.langs
+
+    self.pool = await functions.db.Table.create_pool(prod=self.prod, canary=self.canary)
     await self.load_extension("cogs.database")
     await self.load_extension("cogs.log")
+
+    self.bot_app_info = await self.application_info()
+    self.owner_id = self.bot_app_info.team and self.bot_app_info.team.owner_id or self.bot_app_info.owner.id
+    self.owner = self.get_user(self.owner_id) or await self.fetch_user(self.owner_id)
 
     # Should replace with a json file at some point
     for guild_id, prefix in await self.pool.fetch("SELECT id,prefix FROM servers WHERE prefix!=$1::text", "!"):
@@ -151,6 +146,8 @@ class Friday(commands.AutoShardedBot):
         self.logger.error(f"Failed to load extenstion {cog} with \n {e}")
 
   async def on_ready(self):
+    DIARY = discord.Object(id=243159711237537802)
+    await self.tree.sync(guild=DIARY)
     await self.tree.sync()
 
   def _clear_gateway_data(self) -> None:
@@ -184,7 +181,7 @@ class Friday(commands.AutoShardedBot):
     if member is not None:
       return member
 
-    shard = self.get_shard(guild.shard_id)
+    shard: discord.ShardInfo = self.get_shard(guild.shard_id)   # type: ignore  # will never be None
     if shard.is_ws_ratelimited():
       try:
         member = await guild.fetch_member(member_id)
@@ -225,7 +222,7 @@ class Friday(commands.AutoShardedBot):
 
     total_need_resolution = len(needs_resolution)
     if total_need_resolution == 1:
-      shard = self.get_shard(guild.shard_id)
+      shard: discord.ShardInfo = self.get_shard(guild.shard_id)   # type: ignore  # will never be None
       if shard.is_ws_ratelimited():
         try:
           member = await guild.fetch_member(needs_resolution[0])
@@ -256,6 +253,18 @@ class Friday(commands.AutoShardedBot):
   async def close(self) -> None:
     await super().close()
     await self.session.close()
+
+  @property
+  def log(self) -> Log:
+    return self.get_cog("Log")  # type: ignore
+
+  @property
+  def db(self) -> Optional[Database]:
+    return self.get_cog("Database")  # type: ignore
+
+  @property
+  def reminder(self) -> Optional[Reminder]:
+    return self.get_cog("Reminder")  # type: ignore
 
 
 async def main(bot):

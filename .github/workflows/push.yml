@@ -9,7 +9,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        python-version: [3.8]
+        python-version: [3.8, 3.9, '3.10']
 
     steps:
     - uses: actions/checkout@v2
@@ -52,7 +52,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        python-version: [3.8]
+        python-version: [3.8, 3.9, '3.10']
 
     steps:
     - uses: actions/checkout@v2
@@ -95,6 +95,11 @@ jobs:
         . ~/venv/bin/activate
         if ! [ -f friday-trans-key.json ]; then python create_trans_key.py; fi
         if [ -f friday-trans-key.json ]; then printf "File created"; fi
+    - name: Checkout all the submodules
+      uses: actions/checkout@v2
+      with:
+        ssh-key: ${{ secrets.I18N_SUBMODULE_GH_ACTIONS_PULL }}
+        submodules: i18n
     - name: Test with pytest
       env:
         DBHOSTNAME: ${{ secrets.DBHOSTNAME }}

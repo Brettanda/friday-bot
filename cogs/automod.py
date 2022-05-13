@@ -191,7 +191,7 @@ class AutoMod(commands.Cog):
     if isinstance(error, (commands.MissingRequiredArgument)):
       return
     if isinstance(error, commands.BadArgument):
-      return await ctx.send(embed=embed(title=str(error), color=MessageColors.ERROR))
+      return await ctx.send(embed=embed(title=str(error), color=MessageColors.error()))
     self.bot.logger.error(f"Error in {ctx.command.qualified_name}: {type(error).__name__}: {error}")
 
   async def cog_after_invoke(self, ctx: "MyContext"):
