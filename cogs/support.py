@@ -22,7 +22,7 @@ class SupportIntroRoles(discord.ui.View):
     super().__init__(timeout=None)
 
   @discord.ui.button(emoji="📌", label="Get Updates", style=discord.ButtonStyle.blurple, custom_id="support_updates")
-  async def support_updates(self, button: discord.ui.Button, interaction: discord.Interaction):
+  async def support_updates(self, interaction: discord.Interaction, button: discord.ui.Button):
     if interaction.guild_id != 707441352367013899 or interaction.channel_id != 707458929696702525 or interaction.message.id != 707520808448294983:
       return
 

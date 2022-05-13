@@ -1,52 +1,28 @@
 from __future__ import annotations
-# from interactions import Context as SlashContext
-from discord.ext.commands import Context
-import discord
+
 import io
-from typing import Optional, Tuple, Union, List
-from typing_extensions import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Generator, List, Optional, Union, Tuple
+
+import discord
+from discord.ext import commands
 
 from .myembed import embed
 
 if TYPE_CHECKING:
-  from .config import ReadOnly
   from aiohttp import ClientSession
-  from asyncpg import Pool, Connection
+  from asyncpg import Connection, Pool
 
-
-# class MySlashContext(SlashContext):
-#   def __init__(self):
-#     self.reply = self.reply
-
-#   async def reply(self, content=None, **kwargs):
-#     await self.send(content, **kwargs)
-#     # if not hasattr(kwargs,"delete_after") and self.command.name not in ["meme","issue","reactionrole","minesweeper"]:
-#     #   delete = await get_delete_time(self)
-#     #   delete = delete if delete is not None and delete != 0 else None
-#     #   if delete != None:
-#     #     kwargs.update({"delete_after":delete})
-#     #     await self.message.delete(delay=delete)
-#     # try:
-#     #   return await self.message.reply(content,**kwargs)
-#     # except discord.Forbidden as e:
-#     #   if "Cannot reply without permission" in str(e):
-#     #     return await self.message.channel.send(content,**kwargs)
-#     #   else:
-#     #     raise e
-#     # except discord.HTTPException as e:
-#     #   if "Unknown message" in str(e):
-#     #     return await self.message.channel.send(content,**kwargs)
-#     #   else:
-#     #     raise e
+  from functions.config import ReadOnly
+  from index import Friday
 
 
 class ConfirmationView(discord.ui.View):
-  def __init__(self, *, timeout: float, author_id: int, reacquire: bool, ctx: Context, delete_after: bool) -> None:
+  def __init__(self, *, timeout: float, author_id: int, reacquire: bool, ctx: MyContext, delete_after: bool) -> None:
     super().__init__(timeout=timeout)
     self.value: Optional[bool] = None
     self.delete_after: bool = delete_after
     self.author_id: int = author_id
-    self.ctx: Context = ctx
+    self.ctx: MyContext = ctx
     self.reacquire: bool = reacquire
     self.message: Optional[discord.Message] = None
 
@@ -64,22 +40,22 @@ class ConfirmationView(discord.ui.View):
       await self.message.delete()
 
   @discord.ui.button(emoji="\N{HEAVY CHECK MARK}", label='Confirm', custom_id="confirmation_true", style=discord.ButtonStyle.green)
-  async def confirm(self, button: discord.ui.Button, interaction: discord.Interaction):
+  async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
     self.value = True
-    if self.delete_after and self.message:
-      await self.message.delete()
+    if self.delete_after:
+      await interaction.delete_original_message()
     self.stop()
 
   @discord.ui.button(emoji="\N{HEAVY MULTIPLICATION X}", label='Cancel', custom_id="confirmation_false", style=discord.ButtonStyle.red)
-  async def cancel(self, button: discord.ui.Button, interaction: discord.Interaction):
+  async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
     self.value = False
-    if self.delete_after and self.message:
-      await self.message.delete()
+    if self.delete_after:
+      await interaction.delete_original_message()
     self.stop()
 
 
 class MultiSelectView(discord.ui.View):
-  def __init__(self, options: list, *, values: list = [], emojis: list = [], descriptions: list = [], placeholder: str = None, min_values: int = 1, max_values: int = 1, default: str = None, timeout: float, delete_after: bool, reacquire: bool, author_id: int, ctx: Context) -> None:
+  def __init__(self, options: list, *, values: list = [], emojis: list = [], descriptions: list = [], placeholder: str = None, min_values: int = 1, max_values: int = 1, default: str = None, timeout: float, delete_after: bool, reacquire: bool, author_id: int, ctx: MyContext) -> None:
     super().__init__(timeout=timeout)
     new = False
     if not values and not emojis and not descriptions:
@@ -88,12 +64,12 @@ class MultiSelectView(discord.ui.View):
     emojis = emojis if len(emojis) > 0 else [None] * len(options)
     descriptions = descriptions if len(descriptions) > 0 else [None] * len(options)
     if not new:
-      self.options: list = [discord.SelectOption(label=p, value=v, emoji=e, description=d, default=True if default == v else False) for p, v, e, d in zip(options, values, emojis, descriptions)]
+      self.options: list = [discord.SelectOption(label=p, value=v or p, emoji=e, description=d, default=True if default == v else False) for p, v, e, d in zip(options, values, emojis, descriptions)]
     else:
       self.options = [discord.SelectOption(**ks) for ks in options]
     self.placeholder: Optional[str] = placeholder
     self.author_id: int = author_id
-    self.ctx: Context = ctx
+    self.ctx: MyContext = ctx
     self.min_values: int = min_values
     self.max_values: int = max_values
     self.reacquire: bool = reacquire
@@ -107,11 +83,11 @@ class MultiSelectView(discord.ui.View):
     self.select.min_values = self.min_values
     self.select.max_values = self.max_values
 
-  @discord.ui.select(custom_id="prompt_select", options=["Loading..."], min_values=0, max_values=0)
-  async def select(self, select: discord.ui.Select, interaction: discord.Interaction):
-    self.values = select.data["values"]
-    if self.delete_after and self.message:
-      await self.message.delete()
+  @discord.ui.select(custom_id="prompt_select", options=[discord.SelectOption(label="Loading...")], min_values=0, max_values=0)
+  async def select(self, interaction: discord.Interaction, select: discord.ui.Select):
+    self.values = select.data["values"]  # type: ignore
+    if self.delete_after:
+      await interaction.delete_original_message()
     self.stop()
 
   async def interaction_check(self, interaction: discord.Interaction) -> bool:
@@ -178,28 +154,34 @@ class MultiSelectView(discord.ui.View):
 class _ContextDBAcquire:
   __slots__ = ("ctx", "timeout")
 
-  def __init__(self, ctx, timeout):
-    self.ctx = ctx
-    self.timeout = timeout
+  def __init__(self, ctx: MyContext, timeout: Optional[float]):
+    self.ctx: MyContext = ctx
+    self.timeout: Optional[float] = timeout
 
-  def __await__(self):
+  def __await__(self) -> Generator[Any, None, Connection]:
     return self.ctx._acquire(self.timeout).__await__()
 
-  async def __aenter__(self):
+  async def __aenter__(self) -> Union[Pool, Connection]:
     await self.ctx._acquire(self.timeout)
     return self.ctx.db
 
-  async def __aexit__(self, *args):
+  async def __aexit__(self, *args) -> None:
     await self.ctx.release()
 
 
-class MyContext(Context):
-  def __init__(self, *args, **kwargs):
-    self.to_bot_channel: int = None
-    super().__init__(*args, **kwargs)
+class MyContext(commands.Context):
+  channel: Union[discord.VoiceChannel, discord.TextChannel, discord.Thread, discord.DMChannel]
+  prefix: str
+  command: commands.Command[Any, ..., Any]
+  bot: Friday
+
+  def __init__(self, **kwargs):
+    super().__init__(**kwargs)
     self.pool: Pool = self.bot.pool
-    self._db = None
-    self._lang = self._lang_default = "en", self.bot.languages["en"]
+    self._db: Optional[Union[Pool, Connection]] = None
+    name: str = "en"
+    self._lang: Tuple[str, ReadOnly[dict[str, Any]]] = (name, self.bot.langs["en"])
+    self._lang_default = self._lang
 
   def __repr__(self) -> str:
     return "<Context>"
@@ -212,19 +194,19 @@ class MyContext(Context):
     return None
 
   @property
-  def session(self) -> ClientSession():
+  def session(self) -> ClientSession:
     return self.bot.session
 
   @property
   def db(self) -> Union[Pool, Connection]:
     return self._db if self._db else self.pool
 
-  async def _acquire(self, timeout) -> Connection:
+  async def _acquire(self, timeout: Optional[float]) -> Connection:
     if self._db is None:
       self._db = await self.pool.acquire(timeout=timeout)
     return self._db
 
-  def acquire(self, *, timeout=300.0):
+  def acquire(self, *, timeout=300.0) -> _ContextDBAcquire:
     """Acquires a database connection from the pool. e.g. ::
           async with ctx.acquire():
               await ctx.db.execute(...)
@@ -237,7 +219,7 @@ class MyContext(Context):
     """
     return _ContextDBAcquire(self, timeout)
 
-  async def release(self):
+  async def release(self) -> None:
     """Releases the database connection from the pool.
       Useful if needed for "long" interactive commands where
       we want to release the connection and re-acquire later.
@@ -251,15 +233,14 @@ class MyContext(Context):
       self._db = None
 
   @property
-  def lang(self) -> Tuple[str, ReadOnly]:
+  def lang(self):
     return self._lang
 
-  async def get_lang(self) -> Tuple[str, ReadOnly]:
+  async def get_lang(self):
     if not self.guild:
-      return "en", self.bot.languages["en"]
+      return ("en", self.bot.langs["en"])
     conf = await self.bot.log.get_guild_config(self.guild.id, connection=self.db)
-    lang = conf and conf.lang
-    self._lang = lang, self.bot.languages.get(lang, "en")
+    self._lang = (conf.lang, self.bot.langs.get(conf.lang, "en"))  # type: ignore
     return self._lang
 
     # if msg.guild is None:
@@ -302,6 +283,9 @@ class MyContext(Context):
         ``None`` if deny due to timeout
     """
     author_id = author_id or self.author.id
+    if self.author.bot and author_id == 892865928520413245:
+      # unit testing bots can't use interactions :(
+      return True
     view = ConfirmationView(
         timeout=timeout,
         delete_after=delete_after,
@@ -318,10 +302,12 @@ class MyContext(Context):
     author_id = author_id or self.author.id
     view = MultiSelectView(
         options=options,
+        # depricate this at some point
         values=values,
         emojis=emojis,
         descriptions=descriptions,
         default=default,
+        # ############################
         placeholder=placeholder,
         timeout=timeout,
         min_values=min_values,
@@ -349,45 +335,28 @@ class MyContext(Context):
   #   await view.wait()
   #   return view.value
 
-  async def reply(self, content: str = None, *, delete_original: bool = False, reply_to_replied: bool = True, **kwargs) -> Optional[discord.Message]:
-    return await self.send(content, delete_original=delete_original, reply_to_replied=reply_to_replied, **kwargs)
+  async def reply(self, *args, **kwargs) -> discord.Message:
+    return await self.send(*args, **kwargs)
 
-  async def send(self, content: str = None, *, delete_original: bool = False, reply_to_replied: bool = True, **kwargs) -> Optional[discord.Message]:
-    message = None
-    if not hasattr(kwargs, "mention_author") and self.message.type.name != "application_command":
+  async def send(self, *args, **kwargs) -> discord.Message:
+    if not hasattr(kwargs, "mention_author") and not self.interaction:
       kwargs.update({"mention_author": False})
-    if self.to_bot_channel is not None:
-      content = f"{self.author.mention}\n{content if content else ''}"
-      try:
-        channel = self.bot.get_channel(self.to_bot_channel)
-        if channel is None:
-          channel = await self.bot.fetch_channel(self.to_bot_channel)
-          if channel is None:
-            # Bruh
-            return
-        message = await channel.send(content, **kwargs)
-      except (discord.Forbidden, discord.HTTPException):
-        return message
-      return message
+    reference = self.replied_reference if self.command and self.replied_reference else self.message
     try:
-      # if self.message.type == discord.MessageType.thread_starter_message:
-      #   message = await self.message.channel.send(content, **kwargs)
-      reference = self.replied_reference if self.command and self.replied_reference else self.message if reply_to_replied else None
       return await super().send(
-          content=content,
+          *args,
           reference=reference,
           **kwargs
       )
-      # message = await self.message.channel.send(content, reference=reference, **kwargs)
-    except (discord.Forbidden, discord.HTTPException):
-      kwargs.pop("ephemeral", None)
+    except (discord.Forbidden, discord.HTTPException) as e:
+      if self.interaction:
+        raise e
       try:
-        message = await self.message.channel.send(content, **kwargs)
+        return await self.message.channel.send(*args, **kwargs)
       except (discord.Forbidden, discord.HTTPException):
-        return message
-    return message
+        raise e
 
-  async def safe_send(self, content: str, *, escape_mentions=True, **kwargs) -> Optional[discord.Message]:
+  async def safe_send(self, content: str, *, escape_mentions=True, **kwargs) -> discord.Message:
     if escape_mentions:
       content = discord.utils.escape_mentions(content)
 
@@ -397,3 +366,11 @@ class MyContext(Context):
       return await self.send(file=discord.File(fp, filename="message_too_long.txt"), **kwargs)
     else:
       return await self.send(content, **kwargs)
+
+
+class GuildContext(MyContext):
+  author: discord.Member
+  guild: discord.Guild
+  channel: Union[discord.VoiceChannel, discord.TextChannel, discord.Thread]
+  me: discord.Member
+  prefix: str
