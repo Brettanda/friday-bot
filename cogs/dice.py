@@ -25,7 +25,7 @@ class Dice(commands.Cog):
     try:
       result = d20.roll(roll)
     except Exception as e:
-      return await ctx.send(embed=embed(title=f"{e}", color=MessageColors.ERROR))
+      return await ctx.send(embed=embed(title=f"{e}", color=MessageColors.error()))
     else:
       return await ctx.send(embed=embed(title=f"Your total: {str(result.total)}", description=f"Query: {str(result.ast)}\nResult: {str(result)}"))
 
