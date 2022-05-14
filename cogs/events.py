@@ -142,7 +142,7 @@ class ScheduledEvents(commands.Cog):
       await self.bulk_insert()
 
   @cache.cache()
-  async def get_guild_config(self, guild_id: int, *, connection: Optional[Union[asyncpg.Pool, asyncpg.Connection]]) -> Config:
+  async def get_guild_config(self, guild_id: int, *, connection: Optional[Union[asyncpg.Pool, asyncpg.Connection]] = None) -> Config:
     connection = connection or self.bot.pool
     # query = """SELECT s.default_event_role_id, s.id::bigint as guild_id, e.event_id, e.role_id, e.subscribers
     #           FROM servers s
