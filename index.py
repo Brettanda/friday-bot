@@ -22,8 +22,8 @@ from functions.config import Config, ReadOnly
 
 if TYPE_CHECKING:
   from .cogs.database import Database
-  from .cogs.reminder import Reminder
   from .cogs.log import Log
+  from .cogs.reminder import Reminder
 
 load_dotenv()
 
@@ -48,6 +48,7 @@ class Friday(commands.AutoShardedBot):
   gateway_handler: Any
   bot_app_info: discord.AppInfo
   uptime: datetime.datetime
+  chat_repeat_counter: Counter[int]
 
   def __init__(self, **kwargs):
     self.cluster = kwargs.pop("cluster", None)
@@ -120,7 +121,7 @@ class Friday(commands.AutoShardedBot):
 
     self.blacklist: Config[bool] = Config("blacklist.json", loop=self.loop)
 
-    self.langs: Dict[str, ReadOnly[dict[dict, str | dict]]] = {
+    self.langs: Dict[str, ReadOnly[dict[str, Any]]] = {
         "en": ReadOnly("i18n/source/commands.json", loop=self.loop),
         **{name: ReadOnly(f"i18n/translations/{name}/commands.json", loop=self.loop) for name in os.listdir("./i18n/translations")}
     }
