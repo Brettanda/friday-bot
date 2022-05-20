@@ -147,8 +147,9 @@ class Friday(commands.AutoShardedBot):
         self.logger.error(f"Failed to load extenstion {cog} with \n {e}")
 
   async def on_ready(self):
-    DIARY = discord.Object(id=243159711237537802)
-    await self.tree.sync(guild=DIARY)
+    if not (self.prod or self.canary):
+      DIARY = discord.Object(id=243159711237537802)
+      await self.tree.sync(guild=DIARY)
     await self.tree.sync()
 
   def _clear_gateway_data(self) -> None:
