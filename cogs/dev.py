@@ -587,7 +587,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
         await ctx.send(f'```py\n{value}{ret}\n```')
 
   @norm_dev.command("perf")
-  async def perf(self, ctx: MyContext, *, command):
+  async def perf(self, ctx: MyContext, *, command: str):
     msg = copy.copy(ctx.message)
     msg.content = ctx.prefix + command
 
