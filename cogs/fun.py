@@ -1,25 +1,27 @@
-import json
-import re
-# import random
-from typing import Optional
-import numpy.random as random
+from __future__ import annotations
+
 import asyncio
 import datetime
-from async_timeout import timeout
+import json
+import re
 from collections import defaultdict
+# import random
+from typing import TYPE_CHECKING, Any, Optional, Sequence
 
 import discord
+import numpy as np
+import numpy.random as random
+from async_timeout import timeout
 from discord.ext import commands, tasks
-# from discord_slash import cog_ext, SlashContext
-# from discord_slash.utils.manage_commands import create_choice, create_option, SlashCommandOptionType
-
 # sys.path.insert(1, os.path.join(sys.path[0], '..'))
 from pyfiglet import figlet_format
-from functions import MessageColors, embed, exceptions, checks, MyContext
-from typing_extensions import TYPE_CHECKING
+
+from functions import MessageColors, checks, embed, exceptions
+from functions.config import PremiumTiers
 
 if TYPE_CHECKING:
-  from index import Friday as Bot
+  from functions.custom_contexts import GuildContext, MyContext
+  from index import Friday
 
 
 with open('./config.json') as f:
@@ -32,10 +34,9 @@ POLLNAME_REGEX = re.compile(r'(?:\s{4}|\t)(.+)')
 class Fun(commands.Cog):
   """Fun games and other commands to give more life to your Discord server."""
 
-  def __init__(self, bot: "Bot"):
-    self.bot = bot
-    self.countdowns = []
-    self.bot.loop.create_task(self.setup())
+  def __init__(self, bot: Friday):
+    self.bot: Friday = bot
+    self.countdowns: list[tuple[str, str, str, Any, float]] = []
     self.rpsoptions = ["rock", "paper", "scissors"]
     self.countdown_messages = []
     self.loop_countdown.add_exception_type(discord.NotFound)
@@ -50,20 +51,22 @@ class Fun(commands.Cog):
   def __repr__(self) -> str:
     return f"<cogs.{self.__cog_name__}>"
 
-  async def setup(self) -> None:
-    self.countdowns = await self.bot.db.query("SELECT guild,channel,message,title,time FROM countdowns")
+  async def cog_load(self) -> None:
+    countdowns = await self.bot.pool.fetch("SELECT guild,channel,message,title,time FROM countdowns")
+    for countdown in countdowns:
+      self.countdowns.append(tuple(c for c in countdown))
 
-  def cog_unload(self):
+  async def cog_unload(self):
     self.loop_countdown.stop()
     self.poll_loop.stop()
 
-  async def cog_command_error(self, ctx: "MyContext", error: Exception):
+  async def cog_command_error(self, ctx: MyContext, error: commands.CommandError):
     error = getattr(error, "original", error)
-    just_send = (exceptions.ArgumentTooSmall, exceptions.ArgumentTooLarge,)
+    just_send = (exceptions.ArgumentTooSmall, exceptions.ArgumentTooLarge)
     if isinstance(error, just_send):
-      await ctx.send(embed=embed(title=f"{error}", color=MessageColors.ERROR))
+      await ctx.send(embed=embed(title=f"{error}", color=MessageColors.error()))
     elif isinstance(error, asyncio.TimeoutError):
-      await ctx.send(embed=embed(title="This command took too long to execute. Please try again with different arguments", color=MessageColors.ERROR))
+      await ctx.send(embed=embed(title="This command took too long to execute. Please try again with different arguments", color=MessageColors.error()))
 
   # @commands.Cog.listener()
   # async def on_ready(self):
@@ -102,45 +105,11 @@ class Fun(commands.Cog):
   # @commands.has_guild_permissions(move_members = True)
 
   @commands.command(name="rockpaperscissors", help="Play Rock Paper Scissors with Friday", aliases=["rps"], usage="<rock, paper or scissors>")
-  async def norm_rockpaperscissors(self, ctx: "MyContext", choice: str):
-    await self.rock_paper_scissors(ctx, choice)
-
-  # @cog_ext.cog_slash(
-  #     name="rockpaperscissors",
-  #     options=[
-  #         create_option(
-  #             "choice",
-  #             description="Rock Paper or Scissors",
-  #             option_type=3,
-  #             required=True,
-  #             choices=[
-  #                 create_choice(
-  #                     "rock",
-  #                     "Rock"
-  #                 ),
-  #                 create_choice(
-  #                     "paper",
-  #                     "Paper"
-  #                 ),
-  #                 create_choice(
-  #                     "scissors",
-  #                     "Scissors"
-  #                 )
-  #             ]
-  #         )
-  #     ]
-  # )
-  # @checks.slash(user=False, private=True)
-  # async def slash_rockpaperscissors(self, ctx, choice: str):
-  #   await ctx.defer()
-  #   await self.rock_paper_scissors(ctx, choice)
-
-  # , SlashContext
-  async def rock_paper_scissors(self, ctx: "MyContext", args: str) -> None:
-    arg = args.lower()
+  async def norm_rockpaperscissors(self, ctx: MyContext, choice: str):
+    arg = choice.lower()
 
     if arg not in self.rpsoptions:
-      return await ctx.send(embed=embed(title=f"`{arg}` is not Rock, Paper, Scissors. Please choose one of those three.", color=MessageColors.ERROR))
+      return await ctx.send(embed=embed(title=f"`{arg}` is not Rock, Paper, Scissors. Please choose one of those three.", color=MessageColors.error()))
 
     mychoice = random.choice(self.rpsoptions)
 
@@ -158,11 +127,13 @@ class Fun(commands.Cog):
       conclusion = ctx.author
     elif mychoice == "scissors" and arg == "paper":
       conclusion = self.bot.user
+    else:
+      conclusion = "Something went wrong"
 
     return await ctx.send(
         embed=embed(
             title=f"Your move: {arg} VS My move: {mychoice}",
-            color=MessageColors.RPS,
+            color=MessageColors.rps(),
             description=f"The winner of this round is: **{conclusion}**"))
 
   MINEEMOTES = {
@@ -175,39 +146,39 @@ class Fun(commands.Cog):
       5: "5️⃣",
       6: "6️⃣",
       7: "7️⃣",
-      8: "8️⃣"
+      8: "8️⃣",
+      "0": "0️⃣",
+      "1": "1️⃣",
+      "2": "2️⃣",
+      "3": "3️⃣",
+      "4": "4️⃣",
+      "5": "5️⃣",
+      "6": "6️⃣",
+      "7": "7️⃣",
+      "8": "8️⃣"
   }
 
   @commands.command(name="minesweeper", aliases=["ms"], extras={"examples": ["9 10", "5 5"]}, help="Play minesweeper")
-  async def norm_minesweeper(self, ctx, size: Optional[int] = 5, bomb_count: Optional[int] = 6):
-    async with timeout(5):
+  async def norm_minesweeper(self, ctx, size: int = 5, bomb_count: int = 6):
+    async with timeout(2):
       mines = await self.bot.loop.run_in_executor(None, self.mine_sweeper, size, bomb_count)
     await ctx.reply(embed=embed(title=f"{size}x{size} with {bomb_count} bombs", author_name="Minesweeper", description=mines))
 
-  # @cog_ext.cog_slash(
-  #     name="minesweeper",
-  #     description="Minesweeper",
-  #     options=[
-  #         create_option("size", "SizeXSize", SlashCommandOptionType.INTEGER, False),
-  #         create_option("bomb_count", "Amount of bombs", SlashCommandOptionType.INTEGER, False)
-  #     ]
-  # )
-  # @checks.slash(user=False, private=True)
-  # async def slash_minesweeper(self, ctx, size: int = 5, bomb_count: int = 3):
-  #   await ctx.send(**await self.mine_sweeper(size, bomb_count))
-
   def mine_sweeper(self, size: int = 5, bomb_count: int = 3):
     if size > 9:
-      raise exceptions.ArgumentTooLarge("Size cannot be larger than 9 due to the message character limit of Discord")
-    if bomb_count > size * size or bomb_count >= 81:
-      raise exceptions.ArgumentTooLarge("Bomb count cannot be larger than the game board")
+      raise commands.BadArgument("Size cannot be larger than 9 due to the message character limit of Discord")
+    if bomb_count >= size**2 or bomb_count >= 81:
+      raise commands.BadArgument("Bomb count cannot be larger than the game board")
     if size <= 1 or bomb_count <= 1:
-      raise exceptions.ArgumentTooSmall("Bomb count and board size must be greater than 1")
+      raise commands.BadArgument("Bomb count and board size must be greater than 1")
 
-    arr = [[0 for row in range(size)] for column in range(size)]
+    arr = np.full((size, size), "0", dtype='<U21')
 
-    planted = 0
-    while planted < bomb_count:
+    # arr: list[list[str | int]] = [[0 for row in range(size)] for column in range(size)]
+
+    planted, x = 0, 0
+    while planted < bomb_count and x < size**2:
+      x += 1
       loc = random.randint(0, size**2 - 1)
       row = loc // size
       col = loc % size
@@ -218,43 +189,33 @@ class Fun(commands.Cog):
       arr[row][col] = "X"
       planted += 1
 
-    for r in range(size):
-      for c in range(size):
-        if arr[r][c] == "X":
-          continue
+    for a in np.nditer(arr, op_flags=['readwrite']):
+      if a == "X":
+        continue
 
-        neighbors = 0
-        for row in range(max(0, r - 1), min(size - 1, r + 1) + 1):
-          for col in range(max(0, c - 1), min(size - 1, c + 1) + 1):
-            if r == row and c == col:
-              continue
-            if arr[row][col] == "X":
-              neighbors += 1
-        arr[r][c] = neighbors
+      neighbors = 0
+      for row in range(max(0, int(a) - 1), min(size - 1, int(a) + 1) + 1):
+        for col in range(max(0, int(a) - 1), min(size - 1, int(a) + 1) + 1):
+          if a == row and a == col:
+            continue
+          if arr[row][col] == "X":
+            neighbors += 1
+      a[...] = neighbors
 
     return "||" + "||\n||".join("||||".join(self.MINEEMOTES[cell] for cell in row) for row in arr) + "||"
 
   @commands.command(name='souptime', help='Soup Time')
   @commands.cooldown(1, 7, commands.BucketType.user)
-  async def norm_souptime(self, ctx: "MyContext"):
-    await ctx.reply(**self.souptime())
-
-  # @commands.cooldown(1,7, commands.BucketType.user)
-  # @cog_ext.cog_slash(name='souptime', description="Soup!")
-  # @checks.slash(user=False, private=True)
-  # async def slash_souptime(self, ctx):
-  #   await ctx.send(**self.souptime())
-
-  def souptime(self):
-    return dict(embed=embed(
+  async def norm_souptime(self, ctx: MyContext):
+    await ctx.reply(embed=embed(
         title="Here is sum soup, just for you",
-        color=MessageColors.SOUPTIME,
+        color=MessageColors.souptime(),
         description="I hope you enjoy!",
         image=random.choice(config['soups'])
     ))
 
   @commands.command(name="coinflip", aliases=["coin"], help="Flip a coin")
-  async def norm_coinflip(self, ctx: "MyContext"):
+  async def norm_coinflip(self, ctx: MyContext):
     await ctx.reply(embed=embed(title="The coin landed on: " + random.choice(["Heads", "Tails"])))
 
   # @cog_ext.cog_slash(
@@ -294,49 +255,22 @@ class Fun(commands.Cog):
 
   def is_poll(self, msg: discord.Message) -> bool:
     e = msg.embeds[0]
-    return (e.title.startswith("Poll: ") or e.title.startswith("Pole: ")) and not (e.author and "Poll Ended" in e.author.name)
+    return bool(e.title and (e.title.startswith("Poll: ") or e.title.startswith("Pole: ")) and not (e.author and e.author.name and "Poll Ended" in e.author.name))
 
   @commands.group(name="poll", extras={"examples": ["\"this is a title\" '1' '2' '3'", "\"Do you like being pinged for random things\" Yes No \"I just mute everything\""]}, help="Make a poll. Contain each option in qoutes `'option' 'option 2'`", invoke_without_command=True)
   # @commands.group(name="poll", extras={"examples": ["\"this is a title\" 1;;2;;3"]}, help="Make a poll. Seperate the options with `;;`")
   @commands.guild_only()
   @commands.bot_has_permissions(add_reactions=True)
-  async def norm_poll(self, ctx: "MyContext", title: str, option1: str = None, option2: str = None, option3: str = None, option4: str = None, option5: str = None, option6: str = None, option7: str = None, option8: str = None, option9: str = None, option10: str = None):
+  async def norm_poll(self, ctx: MyContext, title: str, option1: str = None, option2: str = None, option3: str = None, option4: str = None, option5: str = None, option6: str = None, option7: str = None, option8: str = None, option9: str = None, option10: str = None):
     options = []
     for item in [option1, option2, option3, option4, option5, option6, option7, option8, option9, option10]:
       if item is not None:
         options.append(item)
 
     if len(options) < 2:
-      return await ctx.reply(embed=embed(title="Please choose 2 or more options for this poll", color=MessageColors.ERROR))
+      return await ctx.reply(embed=embed(title="Please choose 2 or more options for this poll", color=MessageColors.error()))
 
     await self.poll(ctx, title, options)
-
-  # @cog_ext.cog_slash(
-  #     name="poll",
-  #     description="Make a poll",
-  #     options=[
-  #         create_option("title", "The title of the poll", SlashCommandOptionType.STRING, True),
-  #         create_option("option1", "Option for the poll", SlashCommandOptionType.STRING, True),
-  #         create_option("option2", "Option for the poll", SlashCommandOptionType.STRING, True),
-  #         create_option("option3", "Option for the poll", SlashCommandOptionType.STRING, False),
-  #         create_option("option4", "Option for the poll", SlashCommandOptionType.STRING, False),
-  #         create_option("option5", "Option for the poll", SlashCommandOptionType.STRING, False),
-  #         create_option("option6", "Option for the poll", SlashCommandOptionType.STRING, False),
-  #         create_option("option7", "Option for the poll", SlashCommandOptionType.STRING, False),
-  #         create_option("option8", "Option for the poll", SlashCommandOptionType.STRING, False),
-  #         create_option("option9", "Option for the poll", SlashCommandOptionType.STRING, False),
-  #         create_option("option10", "Option for the poll", SlashCommandOptionType.STRING, False),
-  #     ]
-  # )
-  # @checks.slash(user=True, private=False)
-  # @commands.bot_has_permissions(manage_messages=True)
-  # async def slash_poll(self, ctx, title, option1, option2, option3=None, option4=None, option5=None, option6=None, option7=None, option8=None, option9=None, option10=None):
-  #   ...
-  #   # options = []
-  #   # for item in [option1, option2, option3, option4, option5, option6, option7, option8, option9, option10]:
-  #   #   if item is not None:
-  #   #     options.append(item)
-  #   # await self.poll(ctx, title, options, True)
 
   def bar(self, iteration=0, total=0, length=25, decimals=1, fill="█"):
     percent = ("{0:." + str(decimals if iteration != total else 0) + "f}").format(100 * (iteration / float(max(total, 1))))
@@ -344,7 +278,7 @@ class Fun(commands.Cog):
     bar = fill * filledLength + '░' * (length - filledLength)
     return f"\r |{bar}| {percent}% ({iteration}/{total})"
 
-  async def poll(self, ctx: "MyContext", title, options=None, slash=False):
+  async def poll(self, ctx: MyContext, title: str, options: Sequence[str]):
     x = 0
     titles = []
     vals = []
@@ -354,9 +288,13 @@ class Fun(commands.Cog):
       vals.append(f"{self.bar()}")
       ins.append(False)
       x += 1
-    message = await ctx.send(embed=embed(title=f"Poll: {title}", fieldstitle=titles, fieldsval=vals, fieldsin=ins))
-    for x in range(len(options)):
-      await message.add_reaction(self.POLLEMOTES[x])
+    try:
+      message = await ctx.send(embed=embed(title=f"Poll: {title}", fieldstitle=titles, fieldsval=vals, fieldsin=ins))
+    except discord.HTTPException as e:
+      raise e
+    else:
+      for x in range(len(options)):
+        await message.add_reaction(self.POLLEMOTES[x])
 
   @tasks.loop(seconds=6.0)
   async def poll_loop(self):
@@ -381,35 +319,41 @@ class Fun(commands.Cog):
           ins.append(False)
           vals.append(self.bar(voter_reactions[x].count - 1 if len(voter_reactions) > x else 0, react_count))
 
-        await msg.edit(embed=embed(title=msg.embeds[0].title.replace("Pole: ", "Poll: "), fieldstitle=titles, fieldsval=vals, fieldsin=ins))
+        try:
+          await msg.edit(embed=embed(title=msg.embeds[0].title.replace("Pole: ", "Poll: "), fieldstitle=titles, fieldsval=vals, fieldsin=ins))
+        except discord.HTTPException:
+          pass
       self.poll_edit_batch.clear()
 
   @commands.Cog.listener("on_raw_reaction_add")
   @commands.Cog.listener("on_raw_reaction_remove")
-  async def on_raw_reaction(self, payload):
+  async def on_raw_reaction(self, payload: discord.RawReactionActionEvent):
     if payload.member == self.bot.user:
       return
     if payload.emoji.name not in self.POLLEMOTES.values():
       return
-    message = None
     try:
-      message = await (self.bot.get_channel(payload.channel_id)).fetch_message(payload.message_id)
-    except Exception:
+      channel: Optional[discord.TextChannel] = self.bot.get_channel(payload.channel_id) or await self.bot.fetch_channel(payload.channel_id)  # type: ignore
+      if not channel:
+        return
+      message = await channel.fetch_message(payload.message_id)
+    except discord.HTTPException:
       pass
-    if message is None or message.author != self.bot.user:
-      return
-    if len(message.embeds) == 0:
-      return
-    if not self.is_poll(message):
-      return
+    else:
+      if message is None or message.author != self.bot.user:
+        return
+      if len(message.embeds) == 0:
+        return
+      if not self.is_poll(message):
+        return
 
-    async with self.poll_edit_lock:
-      self.poll_edit_batch[message.id] = message
+      async with self.poll_edit_lock:
+        self.poll_edit_batch[message.id] = message
 
   @norm_poll.command("title", hidden=True)
   @commands.guild_only()
   @commands.is_owner()
-  async def poll_edit_title(self, ctx: "MyContext", message: discord.Message, *, new_title: str):
+  async def poll_edit_title(self, ctx: MyContext, message: discord.Message, *, new_title: str):
     if not self.is_poll(message):
       return
 
@@ -421,7 +365,7 @@ class Fun(commands.Cog):
   @commands.guild_only()
   @commands.is_owner()
   @commands.bot_has_permissions(add_reactions=True)
-  async def poll_edit_option(self, ctx: "MyContext", message: discord.Message, option_id: int, *, new_name: str):
+  async def poll_edit_option(self, ctx: MyContext, message: discord.Message, option_id: int, *, new_name: str):
     if not self.is_poll(message):
       return
 
@@ -442,7 +386,7 @@ class Fun(commands.Cog):
   @commands.guild_only()
   @commands.is_owner()
   @commands.bot_has_permissions(add_reactions=True)
-  async def poll_edit_remove(self, ctx: "MyContext", message: discord.Message, option_id: int):
+  async def poll_edit_remove(self, ctx: GuildContext, message: discord.Message, option_id: int):
     if not self.is_poll(message):
       return
 
@@ -454,7 +398,7 @@ class Fun(commands.Cog):
   @norm_poll.command("conclude", aliases=["end", "finish"], hidden=True)
   @commands.guild_only()
   @commands.is_owner()
-  async def poll_edit_conclude(self, ctx: "MyContext", message: discord.Message):
+  async def poll_edit_conclude(self, ctx: MyContext, message: discord.Message):
     if not self.is_poll(message):
       return
 
@@ -465,17 +409,17 @@ class Fun(commands.Cog):
   # @norm_poll.command(name="conclude", help="Concludes the poll", hidden=True)
   # @commands.guild_only()
   # @commands.bot_has_permissions(manage_messages=True)
-  # async def norm_poll_conclude(self, ctx: "MyContext", poll: discord.Message):
+  # async def norm_poll_conclude(self, ctx: MyContext, poll: discord.Message):
   #   if not self.is_poll(poll):
-  #     return await ctx.send(embed=embed(title="That message is not a poll", color=MessageColors.ERROR))
+  #     return await ctx.send(embed=embed(title="That message is not a poll", color=MessageColors.error()))
 
   # @cog_ext.cog_subcommand(base="poll", base_desc="Make a poll", name="conclude", description="Concludes a poll", options=[create_option(name="message", description="The link to the poll message", option_type=SlashCommandOptionType.STRING, required=True)], guild_ids=[243159711237537802])
   # @checks.slash(user=True, private=False)
   # async def slash_poll_conclude(self, ctx: SlashContext, message: discord.Message):
   #   if not message.embeds[0].title.startswith("Poll: "):
-  #     return await ctx.send(embed=embed(title="That message is not a poll", color=MessageColors.ERROR))
+  #     return await ctx.send(embed=embed(title="That message is not a poll", color=MessageColors.error()))
 
-  def get_time(self, now: int, future: int):
+  def get_time(self, now: float, future: float) -> tuple[float, float, float]:
     time = datetime.timedelta(seconds=future - now)
     sec = time.seconds
     hours = sec // 3600
@@ -485,38 +429,38 @@ class Fun(commands.Cog):
 
   @commands.command(name="countdown", aliases=["cd"], help="Start a countdown. This command only updates every 10 seconds to avoid being ratelimited by Discord")
   @commands.max_concurrency(3, commands.BucketType.guild, wait=True)
-  async def countdown(self, ctx: "MyContext", hours: Optional[int] = 0, minutes: Optional[int] = 0, seconds: Optional[int] = 0, title: Optional[str] = None):
+  async def countdown(self, ctx: GuildContext, hours: int = 0, minutes: int = 0, seconds: int = 0, title: Optional[str] = None):
     if hours == 0 and minutes == 0 and seconds == 0:
       return await ctx.send_help(ctx.command)
 
     if hours < 0 or minutes < 0 or seconds < 0:
-      return await ctx.reply(embed=embed(title="Only positive numbers are accepted", color=MessageColors.ERROR))
+      return await ctx.reply(embed=embed(title="Only positive numbers are accepted", color=MessageColors.error()))
 
     current_countdowns = [item for item in self.countdowns if (item[0] is not None and item[0] == ctx.guild.id) or (item[0] is None and ctx.author.dm_channel is not None and item[1] == ctx.author.dm_channel.id)] if ctx.guild is not None else []
     free_max, paid_max = 3, 8
     if len(current_countdowns) > free_max:
       if ctx.guild is not None:
-        guild_min = await checks.guild_is_min_tier(self.bot, ctx.guild, "t1_one_guild")
+        guild_min = await checks.guild_is_min_tier(PremiumTiers.tier_1).predicate(ctx)
         if len(current_countdowns) > free_max and not guild_min:
-          return await ctx.reply(embed=embed(title=f"This server can only have a max of {free_max} concurrent countdowns per server", description="To unlock more please check out [patreon.com/fridaybot](https://www.patreon.com/bePatron?u=42649008)", color=MessageColors.ERROR))
+          return await ctx.reply(embed=embed(title=f"This server can only have a max of {free_max} concurrent countdowns per server", description="To unlock more please check out [patreon.com/fridaybot](https://www.patreon.com/bePatron?u=42649008)", color=MessageColors.error()))
         elif len(current_countdowns) > paid_max and guild_min:
-          return await ctx.reply(embed=embed(title=f"This server can only have a max of {paid_max} concurrent countdowns per server", color=MessageColors.ERROR))
+          return await ctx.reply(embed=embed(title=f"This server can only have a max of {paid_max} concurrent countdowns per server", color=MessageColors.error()))
       if ctx.guild is None and ctx.author.dm_channel is not None:
-        user_min = await checks.user_is_min_tier(self.bot, ctx.author, "t1_one_guild")
+        user_min = await checks.user_is_min_tier(PremiumTiers.tier_1).predicate(ctx)
         if len(current_countdowns) > free_max and not user_min:
-          return await ctx.reply(embed=embed(title=f"You can only have a max of {free_max} concurrent countdowns per server", description="To unlock more please check out [patreon.com/fridaybot](https://www.patreon.com/bePatron?u=42649008)", color=MessageColors.ERROR))
+          return await ctx.reply(embed=embed(title=f"You can only have a max of {free_max} concurrent countdowns per server", description="To unlock more please check out [patreon.com/fridaybot](https://www.patreon.com/bePatron?u=42649008)", color=MessageColors.error()))
         elif len(current_countdowns) > paid_max and user_min:
-          return await ctx.reply(embed=embed(title=f"You can only have a max of {paid_max} concurrent countdowns per server", color=MessageColors.ERROR))
+          return await ctx.reply(embed=embed(title=f"You can only have a max of {paid_max} concurrent countdowns per server", color=MessageColors.error()))
 
     duration = datetime.timedelta(hours=hours, minutes=minutes, seconds=seconds)
     if duration.days > 0:
-      return await ctx.reply(embed=embed(title="Countdowns can't be set to any longer than 24 hours", color=MessageColors.ERROR))
+      return await ctx.reply(embed=embed(title="Countdowns can't be set to any longer than 24 hours", color=MessageColors.error()))
     now = datetime.datetime.utcnow().timestamp()
     future = now + duration.seconds
-    hours, minutes, sec = self.get_time(now, future)
-    message = await ctx.send(embed=embed(title=f"Countdown: {title if title is not None else ''}", description="```" + figlet_format(f"{hours}:{minutes}:{sec}") + "```"))
-    await self.bot.db.query("INSERT INTO countdowns (guild,channel,message,title,time) VALUES ($1,$2,$3,$4,$5) ON CONFLICT DO NOTHING", str(message.guild.id), str(message.channel.id), str(message.id), title, future)
-    self.countdowns.append((str(message.guild.id), str(message.channel.id), str(message.id), title, future))
+    hs, min, secs = self.get_time(now, future)
+    message = await ctx.send(embed=embed(title=f"Countdown: {title if title is not None else ''}", description="```" + figlet_format(f"{hs}:{min}:{secs}") + "```"))
+    await ctx.db.execute("INSERT INTO countdowns (guild,channel,message,title,time) VALUES ($1,$2,$3,$4,$5) ON CONFLICT DO NOTHING", str(message.guild.id), str(message.channel.id), str(message.id), title, future)  # type: ignore
+    self.countdowns.append((str(ctx.guild.id), str(ctx.channel.id), str(message.id), title, future))
     self.countdown_messages.append((message, title, future))
 
   @tasks.loop(seconds=10.0)
@@ -527,7 +471,8 @@ class Fun(commands.Cog):
     if len(self.countdown_messages) == 0:
       for guild_id, channel_id, message_id, title, time in self.countdowns:
         try:
-          message = await (await self.bot.fetch_channel(int(channel_id))).fetch_message(int(message_id))
+          channel = self.bot.get_channel(int(channel_id)) or await self.bot.fetch_channel(int(channel_id))
+          message = channel and await channel.fetch_message(int(message_id))  # type: ignore
         except discord.NotFound:
           batch_delete_db.append(str(message_id))
           try:
@@ -549,7 +494,7 @@ class Fun(commands.Cog):
         batch.append(message.edit(embed=embed(title=f"Countdown: {title if title is not None else ''}", description="```" + figlet_format(f"{hours}:{minutes}:{sec}") + "```")))
       y += 1
     if len(batch_delete_db) > 0:
-      batch.append(self.bot.db.query(f"""DELETE FROM countdowns WHERE message IN ('{"', '".join(batch_delete_db)}')"""))
+      batch.append(self.bot.pool.execute(f"""DELETE FROM countdowns WHERE message IN ('{"', '".join(batch_delete_db)}')"""))
     await asyncio.gather(*batch)
 
   @commands.Cog.listener()
@@ -557,7 +502,7 @@ class Fun(commands.Cog):
     while self.bot.is_closed():
       await asyncio.sleep(0.1)
     if payload.guild_id is not None and len([item for item in self.countdowns if int(item[2]) == payload.message_id]) > 0:
-      await self.bot.db.query("DELETE FROM countdowns WHERE message=$1", str(payload.message_id))
+      await self.bot.pool.execute("DELETE FROM countdowns WHERE message=$1", str(payload.message_id))
       self.countdown_messages.pop(self.countdown_messages.index([i for i in self.countdown_messages if int(i[0].id) == payload.message_id][0]))
       self.countdowns.pop(self.countdowns.index([i for i in self.countdowns if int(i[2]) == payload.message_id][0]))
 
@@ -566,7 +511,7 @@ class Fun(commands.Cog):
     await self.bot.wait_until_ready()
 
   # @commands.command("soup", help="Get a random soup picture")
-  # async def soup(self, ctx: "MyContext"):
+  # async def soup(self, ctx: MyContext):
   #   redditlink = await self.bot.get_context(f"{ctx.clean_prefix}redditlink https://www.reddit.com/r/soup/random/.json")
   #   if not redditlink:
   #     return await ctx.send(embed=embed(title="This command not currently available. Please try again later."))
@@ -574,7 +519,7 @@ class Fun(commands.Cog):
   #   await self.bot.invoke(redditlink)
 
   @commands.command("8ball", help="Ask the magic 8ball a question")
-  async def eightball(self, ctx: "MyContext", *, question: str):
+  async def eightball(self, ctx: MyContext, *, question: str):
     answers = [
         "It is certain.",
         "It is decidedly so.",
@@ -601,25 +546,25 @@ class Fun(commands.Cog):
     await ctx.send(embed=embed(title=f"🎱 | {random.choice(answers)}"))
 
   @commands.command("rng", help="Get a random number between the given range")
-  async def rng(self, ctx: "MyContext", start: int = 0, end: int = 100):
+  async def rng(self, ctx: MyContext, start: int = 0, end: int = 100):
     if start > end:
-      return await ctx.send(embed=embed(title="Start cannot be greater than end", color=MessageColors.ERROR))
+      return await ctx.send(embed=embed(title="Start cannot be greater than end", color=MessageColors.error()))
     try:
       number = random.randint(start, end)
     except ValueError as e:
       if str(e) == "high is out of bounds for int64":
-        return await ctx.send(embed=embed(title="One or both of the numbers are too large", color=MessageColors.ERROR))
+        return await ctx.send(embed=embed(title="One or both of the numbers are too large", color=MessageColors.error()))
       elif str(e) == "low is out of bounds for int64":
-        return await ctx.send(embed=embed(title="One or both of the numbers are too small", color=MessageColors.ERROR))
+        return await ctx.send(embed=embed(title="One or both of the numbers are too small", color=MessageColors.error()))
       else:
-        return await ctx.send(embed=embed(title="(╯°□°）╯︵ ┻━┻", color=MessageColors.ERROR))
+        return await ctx.send(embed=embed(title="(╯°□°）╯︵ ┻━┻", color=MessageColors.error()))
     else:
       await ctx.send(embed=embed(title=f"{number}"))
 
   @commands.command("choice", aliases=["pick", "select"], help="Pick a random item from a list. For multiple items, separate them with a comma.")
-  async def choice(self, ctx: "MyContext", *, choices: str):
-    choices = choices.split(",")
-    await ctx.send(embed=embed(title=f"{random.choice(choices)}"))
+  async def choice(self, ctx: MyContext, *, choices: str):
+    new_choices = choices.split(",")
+    await ctx.send(embed=embed(title=f"{random.choice(new_choices)}"))
 
 
 async def setup(bot):
