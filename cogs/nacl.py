@@ -11,7 +11,7 @@ from functions import MessageColors, embed, time
 if TYPE_CHECKING:
   from discord.channel import VoiceChannel
 
-  from cogs.reminder import Reminder, Timer
+  from cogs.reminder import Timer
   from index import Friday
 
 
@@ -64,7 +64,7 @@ class NaCl(commands.Cog):
     if not after.self_deaf:
       return
 
-    reminder: Optional[Reminder] = self.bot.get_cog("Reminder")  # type: ignore
+    reminder = self.bot.reminder
     if reminder is None:
       return
 
@@ -113,7 +113,7 @@ class NaCl(commands.Cog):
     if after.self_stream or after.self_video:
       return
 
-    reminder: Optional[Reminder] = self.bot.get_cog("Reminder")  # type: ignore
+    reminder = self.bot.reminder
     if reminder is None:
       return
 
