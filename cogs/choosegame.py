@@ -1,12 +1,13 @@
-from numpy import random
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 import discord
-from discord.ext import tasks, commands
-
-from typing_extensions import TYPE_CHECKING
+from discord.ext import commands, tasks
+from numpy import random
 
 if TYPE_CHECKING:
-  from index import Friday as Bot
+  from index import Friday
 
 GAMES = [
     "Developing myself",
@@ -41,9 +42,9 @@ GAMES = [
 
 
 class ChooseGame(commands.Cog):
-  def __init__(self, bot: "Bot"):
-    self.bot = bot
-    self.status_update_shards = []
+  def __init__(self, bot: Friday):
+    self.bot: Friday = bot
+    self.status_update_shards: list[int] = []
 
   def __repr__(self) -> str:
     return f"<cogs.{self.__cog_name__}>"
@@ -85,7 +86,7 @@ class ChooseGame(commands.Cog):
 
   @tasks.loop(minutes=1)
   async def status_updates(self):
-    member_count = sum(guild.member_count for guild in self.bot.guilds)
+    member_count = sum(g.member_count for g in self.bot.guilds if g.member_count)
     for shard in self.status_update_shards:
       await self.bot.change_presence(
           activity=discord.Activity(
