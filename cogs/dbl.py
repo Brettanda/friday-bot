@@ -2,12 +2,11 @@ from __future__ import annotations
 
 import asyncio
 import os
-from typing import Optional, Union
+from typing import TYPE_CHECKING, Optional, Union
 
 import discord
-from topgg.webhook import WebhookManager
 from discord.ext import commands, tasks
-from typing_extensions import TYPE_CHECKING
+from topgg.webhook import WebhookManager
 
 from functions import MyContext, cache, config, embed, time
 
