@@ -1,79 +1,46 @@
-from functions.messagecolors import MessageColors
+from __future__ import annotations
+
+from typing import Collection, Optional, Union, Any
+
 import discord
 
-from typing import Union
-from typing_extensions import TYPE_CHECKING
+from functions.messagecolors import MessageColors
+
 
 MISSING = discord.utils.MISSING
 
-if TYPE_CHECKING:
-  from .custom_contexts import MyContext
 
-# class Embed():
-#   def __init__(self,MessageColors):
-#     self.MessageColors = MessageColors
+class embed(discord.Embed):
+  def __init__(self,
+               *,
+               author_name: Optional[str] = None,
+               author_url: Optional[str] = None,
+               author_icon: Optional[str] = None,
+               image: Optional[str] = None,
+               thumbnail: Optional[str] = None,
+               footer: Optional[str] = None,
+               footer_icon: Optional[str] = None,
+               fieldstitle: Optional[Union[Any, Collection[Any]]] = None,
+               fieldsval: Optional[Union[Any, Collection[Any]]] = None,
+               fieldsin: Optional[Union[bool, Collection[bool]]] = None,
+               **kwargs) -> None:
+    super().__init__(**kwargs)
+    if self.color is MISSING or self.color is None:
+      self.color = MessageColors.default()
 
+    if author_name:
+      self.set_author(name=author_name, url=author_url, icon_url=author_icon)
 
-def embed(
-        title: str = "Text",
-        description: str = "",
-        color: discord.Colour = MISSING,
-        author_name: str = MISSING,
-        author_url: str = MISSING,
-        author_icon: str = MISSING,
-        image: str = MISSING,
-        thumbnail: str = MISSING,
-        footer: str = MISSING,
-        footer_icon: str = MISSING,
-        ctx: "MyContext" = MISSING,
-        fieldstitle: Union[str, list] = MISSING,
-        fieldsval: Union[str, list] = MISSING,
-        fieldsin: Union[bool, list] = MISSING,
-        url: str = MISSING, **kwargs) -> discord.Embed:
-  """My Custom embed function"""
-  if color is MISSING or color is None:
-    color = MessageColors.default()
-  r = discord.Embed(title=title, description=description, color=color, **kwargs)
+    self.set_image(url=image)
+    self.set_thumbnail(url=thumbnail)
+    self.set_footer(text=footer, icon_url=footer_icon)
 
-  if image is not MISSING and image is not None:
-    r.set_image(url=image)
+    if fieldstitle and fieldsin is None:
+      fieldsin = [True] * len(fieldstitle)
 
-  if thumbnail is not MISSING and thumbnail is not None:
-    r.set_thumbnail(url=thumbnail)
-
-  # if len(fieldstitle) > 0 and len(fieldsval) > 0:
-  if fieldstitle is not MISSING and fieldsval is not MISSING and isinstance(fieldstitle, list) and isinstance(fieldsval, list):
-    if len(fieldstitle) > 0 and len(fieldsval) > 0:
-      if len(fieldstitle) == len(fieldsval):
-        x = 0
-        for i in fieldstitle:
-          r.add_field(name=i, value=fieldsval[x], inline=fieldsin[x] if isinstance(fieldsin, list) and fieldsin is not MISSING else True)
-          x += 1
+    if fieldstitle and fieldsval and fieldsin is not None:
+      if isinstance(fieldstitle, str) and isinstance(fieldsval, str) and isinstance(fieldsin, bool):
+        self.add_field(name=fieldstitle, value=fieldsval, inline=fieldsin)
       else:
-        raise TypeError("fieldstitle and fieldsval must have the same number of elements")
-  elif isinstance(fieldstitle, str) and isinstance(fieldsval, str) and isinstance(fieldsin, bool):
-    r.add_field(name=fieldstitle, value=fieldsval, inline=fieldsin if isinstance(fieldsin, bool) and fieldsin is not MISSING else True)
-
-  if author_name is not MISSING and author_name is not None and author_url is not MISSING and author_url is not None and author_icon is not MISSING and author_icon is not None:
-    r.set_author(name=author_name, url=author_url, icon_url=author_icon)
-  elif author_name is not MISSING and author_name is not None and author_url is not MISSING and author_url is not None:
-    r.set_author(name=author_name, url=author_url)
-  elif author_name is not MISSING and author_name is not None and author_icon is not MISSING and author_icon is not None:
-    r.set_author(name=author_name, icon_url=author_icon)
-  elif author_name is not MISSING and author_name is not None:
-    r.set_author(name=author_name)
-  elif author_name is MISSING and author_name is not None and (author_url is not MISSING or author_icon is not MISSING):
-    raise TypeError("author_name needs to be set")
-
-  if url is not MISSING and url is not None:
-    r.url = url
-
-  if footer is not MISSING and footer is not None:
-    if footer_icon:
-      r.set_footer(text=footer, icon_url=footer_icon)
-    else:
-      r.set_footer(text=footer)
-  elif ctx is not MISSING and ctx is not None:
-    r.set_footer(text="Called by: {}".format(ctx.author.display_name), icon_url=ctx.author.avatar.url)
-
-  return r
+        for t, v, i in zip(fieldstitle, fieldsval, fieldsin):  # type: ignore
+          self.add_field(name=t, value=v, inline=i)
