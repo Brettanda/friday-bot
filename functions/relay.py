@@ -1,16 +1,26 @@
+from __future__ import annotations
 import logging
 import os
 
 import discord
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-  from index import Friday as Bot
+  from index import Friday
   from cogs.log import CustomWebhook
 
 MISSING = discord.utils.MISSING
 
 
-async def relay_info(msg: str, bot: "Bot", embed: discord.Embed = MISSING, file=MISSING, filefirst=MISSING, short: str = MISSING, webhook: "CustomWebhook" = MISSING, logger=logging.getLogger(__name__)):
+async def relay_info(
+        msg: str,
+        bot: Friday,
+        embed: discord.Embed = MISSING,
+        file: discord.File = MISSING,
+        filefirst: bool = MISSING,
+        short: str = MISSING,
+        webhook: CustomWebhook = MISSING,
+        logger=logging.getLogger(__name__)
+):
   if webhook is MISSING:
     webhook = bot.log.log_info
   if bot.prod or bot.canary:
