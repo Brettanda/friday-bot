@@ -59,11 +59,6 @@ jobs:
           version: '1.1.242'
           warnings: false
           no-comments: ${{ matrix.python-version != '3.x' }}
-
-      - name: Run black
-        if: ${{ always() && steps.install-deps.outcome == 'success' }}
-        run: |
-          black --check discord examples
   lint:
     runs-on: ${{ matrix.os }}
     name: Linter os ${{ matrix.os }}, Python ${{ matrix.python-version }}
