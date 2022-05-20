@@ -10,14 +10,13 @@ import sys
 import textwrap
 import traceback
 from collections import Counter
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 import asyncpg
 import discord
 import psutil
 import wavelink
 from discord.ext import commands, tasks
-from typing_extensions import TYPE_CHECKING
 
 from functions import MyContext, time
 
@@ -952,17 +951,17 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
 
     await ctx.send(f"```\n{graph}\n```")
 
-  # @commands.command("beforeleave")
-  # async def beforeleave(self, ctx: "MyContext"):
-  #   # from the database get the servers that friday joined then left
-  #   # get the commands that executed in those servers before friday left
-  #   # return the common commands that executed before friday left
+  @commands.command("beforeleave")
+  async def beforeleave(self, ctx: "MyContext"):
+    # from the database get the servers that friday joined then left
+    # get the commands that executed in those servers before friday left
+    # return the common commands that executed before friday left
 
-  #   query = """SELECT DISTINCT guild_id
-  #             FROM joined
-  #             WHERE joined IS false;"""
-  #   guilds = await ctx.db.fetch(query)
-  #   guild_ids = [g["guild_id"] for g in guilds]
+    query = """SELECT DISTINCT guild_id
+              FROM joined
+              WHERE joined IS false;"""
+    guilds = await ctx.db.fetch(query)
+    guild_ids = [g["guild_id"] for g in guilds]
 
 
 old_on_error = commands.AutoShardedBot.on_error
