@@ -3,6 +3,67 @@ name: Will it blend?
 on: [push]
 
 jobs:
+  type-checking:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [ '3.8', '3.x' ]
+    name: Type Checking ${{ matrix.python-version }}
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Set up CPython ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Cache dependencies
+        id: cache
+        uses: actions/cache@v2
+        env:
+          cache-name: cache-friday-build-dep
+        with:
+          path: |
+            ${{ env.pythonLocation}}/lib/python${{ matrix.python-version }}/site-packages/*
+            ~/venv
+          key: ${{ matrix.os }}-pip-${{ env.cache-name }}-${{ hashfiles('requirements.txt') }}
+          restore-keys: |
+            ${{ matrix.os }}-pip-${{ env.cache-name }}-${{ hashfiles('requirements.txt') }}
+            ${{ matrix.os }}-pip-${{ env.cache-name }}-
+            ${{ matrix.os }}-pip-
+            ${{ matrix.os }}-
+      - name: Install dependencies
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          python -m venv ~/venv
+          . ~/venv/bin/activate
+          python -m pip install --upgrade pip
+          pip install pytest
+          if [ -f requirements.txt ]; then python -m pip install -r requirements.txt; fi
+      - name: Checkout all the submodules
+        uses: actions/checkout@v2
+        with:
+          ssh-key: ${{ secrets.I18N_SUBMODULE_GH_ACTIONS_PULL }}
+          submodules: recursive
+      - name: Setup node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '16'
+
+      - name: Run Pyright
+        uses: jakebailey/pyright-action@v1
+        with:
+          version: '1.1.242'
+          warnings: false
+          no-comments: ${{ matrix.python-version != '3.x' }}
+
+      - name: Run black
+        if: ${{ always() && steps.install-deps.outcome == 'success' }}
+        run: |
+          black --check discord examples
   lint:
     runs-on: ${{ matrix.os }}
     name: Linter os ${{ matrix.os }}, Python ${{ matrix.python-version }}
