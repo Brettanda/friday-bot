@@ -3,19 +3,19 @@ import json
 import os
 import random
 
-import nltk
+import nltk  # type: ignore
 import numpy as np
 import pandas as pd
 # from flair.data import Sentence
 # from flair.models import MultiTagger  # , SequenceTagger
 # from tensorflow.keras.layers import Dropout, Activation, Dense
-from tensorflow.keras.models import load_model  # , Sequential
+from tensorflow.keras.models import load_model   # type: ignore
 # from tensorflow.keras.optimizers import SGD
-from nltk.sentiment import SentimentIntensityAnalyzer
+from nltk.sentiment import SentimentIntensityAnalyzer  # type: ignore
 # from nltk.stem.lancaster import LancasterStemmer
-from nltk.stem import PorterStemmer
+from nltk.stem import PorterStemmer  # type: ignore
 
-from spellchecker import SpellChecker
+from spellchecker import SpellChecker  # type: ignore
 
 spell = SpellChecker()
 
