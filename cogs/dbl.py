@@ -80,8 +80,8 @@ class TopGG(commands.Cog):
               AND extra #>> '{args,0}' = $1
               ORDER BY expires
               LIMIT 1;"""
-    connection = connection or self.bot.pool
-    record = await connection.fetchrow(query, str(user_id))
+    conn = connection or self.bot.pool
+    record = await conn.fetchrow(query, str(user_id))
     return True if record else False
 
   @commands.Cog.listener()
