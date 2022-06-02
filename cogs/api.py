@@ -1,16 +1,28 @@
+from __future__ import annotations
+
 import datetime
 import json
 import os
 import ssl
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, List, Optional, Protocol, Union
 
 import aiohttp_cors
+import asyncpg
 import discord
 from aiohttp import web
 from discord.ext import commands
 
+from functions import config
+
 if TYPE_CHECKING:
-  from index import Friday as Bot
+  from cogs.general import General
+  from cogs.patreons import Patreons
+  from index import Friday
+
+
+class CogConfig(Protocol):
+  async def get_guild_config(self, guild_id: int, *, connection: Optional[Union[asyncpg.Pool, asyncpg.Connection]] = None):
+    ...
 
 
 class HTTPImATeaPot(web.HTTPClientError):
@@ -31,11 +43,10 @@ class HTTPBlocked(web.HTTPClientError):
 
 
 class API(commands.Cog):
-  def __init__(self, bot: "Bot"):
+  def __init__(self, bot: Friday):
     self.app = web.Application(logger=bot.logger, debug=not bot.prod and not bot.canary)
-    self.runner = None
     self.site = None
-    self.bot = bot
+    self.bot: Friday = bot
     self.log = bot.logger
 
     # TODO: Not sure how to choose which cluster to ping from API
@@ -54,8 +65,8 @@ class API(commands.Cog):
   def cog_unload(self):
     self.bot.loop.create_task(self.runner.cleanup())
 
-  async def get_guild_config(self, cog: str, guild_id: int):
-    cog = self.bot.get_cog(cog)
+  async def get_guild_config(self, cog_name: str, guild_id: int) -> Any:
+    cog: CogConfig = self.bot.get_cog(cog_name)  # type: ignore
     if cog is None:
       return None
     return await cog.get_guild_config(guild_id)
@@ -108,7 +119,7 @@ class API(commands.Cog):
 
     @routes.get("/invite")
     async def get_invite(request: web.Request):
-      invite = bot.get_cog("General")
+      invite: Optional[General] = bot.get_cog("General")  # type: ignore
       if invite is None:
         return web.HTTPInternalServerError()
 
@@ -261,7 +272,7 @@ class API(commands.Cog):
         return HTTPBlocked(reason="This server is blacklisted from the bot.")
 
       try:
-        customsounds = await self.bot.db.query("SELECT customSounds FROM servers WHERE id=$1 LIMIT 1", str(guild.id))
+        customsounds: list = await self.bot.pool.fetchval("SELECT customSounds FROM servers WHERE id=$1 LIMIT 1", str(guild.id))
       except Exception as e:
         return web.HTTPInternalServerError(reason=f"Failed to get custom sounds: {e}")
 
@@ -314,7 +325,7 @@ class API(commands.Cog):
                               "enabled": bool(sub.qualified_name not in log_config.disabled_commands),
                               "restricted": bool(sub.qualified_name in log_config.restricted_commands),
                               "checks": False,
-                          } for sub in com.commands
+                          } for sub in com.commands  # type: ignore
                       } if hasattr(com, "commands") else {}
                   } for com in cog.get_commands()}
           } for cog in self.bot.cogs.values() if len(cog.get_commands()) > 0 and cog.qualified_name not in ("Dev", "Config") and not cog.__cog_settings__.get("hidden", False)
@@ -346,19 +357,19 @@ class API(commands.Cog):
         return HTTPBlocked(reason="This server is blacklisted from the bot.")
 
       passes = 0
-      cogs = [
+      cogs: List[Optional[CogConfig]] = [
           self.bot.get_cog("Moderation"),
           self.bot.get_cog("AutoMod"),
           self.bot.get_cog("Welcome"),
           self.bot.get_cog("Chat"),
-          self.bot.get_cog("redditlink")
+          self.bot.get_cog("redditlink")  # type: ignore
       ]
       for cog in cogs:
         if cog is not None:
           cog.get_guild_config.invalidate(cog, int(gid, base=10))
           passes += 1
 
-      self.bot.prefixes[int(gid, base=10)] = await self.bot.db.query("SELECT prefix FROM servers WHERE id=$1 LIMIT 1", str(gid))
+      self.bot.prefixes[int(gid, base=10)] = await self.bot.pool.fetchval("SELECT prefix FROM servers WHERE id=$1 LIMIT 1", str(gid))
 
       return web.json_response({"success": True, "passes": f"{passes}/{len(cogs)}"})
 
@@ -366,7 +377,7 @@ class API(commands.Cog):
       ssl_ctx = None
       if self.bot.prod or self.bot.canary:
         ssl_ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-        ssl_ctx.load_cert_chain(os.environ.get("SSLCERT", None), os.environ.get("SSLKEY", None))
+        ssl_ctx.load_cert_chain(os.environ.get("SSLCERT", None), os.environ.get("SSLKEY", None))  # type: ignore
 
       app.add_routes(routes)
       for route in list(app.router.routes()):
