@@ -5,15 +5,16 @@ import datetime
 import functools
 import os
 from collections import Counter, defaultdict
-from typing import TYPE_CHECKING, Any, List, Optional
+from typing import TYPE_CHECKING, ClassVar, List, Optional, Union
 
 import asyncpg
 import discord
 import openai
 import validators
+from discord.app_commands.checks import Cooldown
 from discord.ext import commands
 from google.cloud import translate_v2 as translate
-from six.moves.html_parser import HTMLParser
+from six.moves.html_parser import HTMLParser  # type: ignore
 from slugify import slugify
 
 from functions import (MessageColors, MyContext, cache, checks, embed,
@@ -23,9 +24,12 @@ from functions.config import PremiumTiersNew
 if TYPE_CHECKING:
   from typing_extensions import Self
 
-  from index import Friday as Bot
+  from cogs.patreons import Patreons
+  from functions.custom_contexts import GuildContext
+  from index import Friday
 
-openai.api_key = os.environ.get("OPENAI")
+
+openai.api_key = os.environ["OPENAI"]
 
 POSSIBLE_SENSITIVE_MESSAGE = "*Possibly sensitive:* ||"
 POSSIBLE_OFFENSIVE_MESSAGE = "**I failed to respond because my message might have been offensive, please choose another topic or try again**"
@@ -38,38 +42,53 @@ class ChatError(commands.CheckFailure):
 
 
 class Config:
-  __slots__ = ("bot", "id", "chat_channel_id", "persona", "lang", "tier", "puser",)
+  __slots__ = ("bot", "id", "chat_channel_id", "persona", "lang", "tier", "puser",
+               )
+
+  bot: Friday
+  id: int
+  chat_channel_id: Optional[int]
+  tier: int
+  puser: Optional[int]
+  persona: Optional[str]
+  lang: str
 
   @classmethod
-  async def from_record(cls, record: Any, bot: Bot) -> Self:
+  async def from_record(cls, record: asyncpg.Record, bot: Friday) -> Self:
     self = cls()
 
     self.bot = bot
-    self.id: int = int(record["id"], base=10)
-    self.chat_channel_id: Optional[int] = record.get("chatchannel") and int(record["chatchannel"], base=10)
-    self.tier: int = record["tier"] if record else 0
-    self.puser: str = record["user_id"] if record else None
-    self.persona: Optional[str] = record["persona"]
-    self.lang: str = record["lang"] or "en"
+    self.id = int(record["id"], base=10)
+    self.chat_channel_id = record.get("chatchannel") and int(record["chatchannel"], base=10)
+    self.tier = record["tier"] if record else 0
+    self.puser = record["user_id"] if record else None
+    self.persona = record["persona"]
+    self.lang = record["lang"] or "en"
     return self
 
   @property
-  def chat_channel(self):
-    guild = self.bot.get_guild(self.id)
-    return guild and self.chat_channel_id and guild.get_channel(self.chat_channel_id)
+  def chat_channel(self) -> Optional[Union[discord.TextChannel, discord.VoiceChannel, discord.Thread]]:
+    if self.chat_channel_id:
+      guild = self.bot.get_guild(self.id)
+      return guild and guild.get_channel(self.chat_channel_id)  # type: ignore
 
 
 class UserConfig:
   __slots__ = ("bot", "user_id", "tier", "guild_ids",)
 
+  bot: Friday
+  user_id: int
+  tier: int
+  guild_ids: List[int]
+
   @classmethod
-  async def from_record(cls, record: asyncpg.Record, bot: Bot) -> Self:
+  async def from_record(cls, record: asyncpg.Record, bot: Friday) -> Self:
     self = cls()
 
     self.bot = bot
-    self.user_id: int = int(record["user_id"], base=10)
-    self.tier: int = record["tier"] if record else 0
-    self.guild_ids: list = record["guild_ids"] or []
+    self.user_id = int(record["user_id"], base=10)
+    self.tier = record["tier"] if record else 0
+    self.guild_ids = record["guild_ids"] or []
     return self
 
 
@@ -81,7 +100,7 @@ class SpamChecker:
     self._voted = commands.CooldownMapping.from_cooldown(60, 43200, commands.BucketType.user)
     self._patron = commands.CooldownMapping.from_cooldown(100, 43200, commands.BucketType.user)
 
-  def is_spamming(self, msg: discord.Message, tier: int, voted: bool):
+  def is_spamming(self, msg: discord.Message, tier: int, voted: bool) -> tuple[bool, Optional[Cooldown], Optional[str]]:
     current = msg.created_at.timestamp()
 
     min_bucket = self._absolute_minute.get_bucket(msg)
@@ -115,8 +134,8 @@ class SpamChecker:
 
 
 class ChatHistory:
-  _limit = 3
-  _messages_per_group = 2
+  _limit: ClassVar[int] = 3
+  _messages_per_group: ClassVar[int] = 2
 
   def __init__(self):
     self.lock = asyncio.Lock()
@@ -171,14 +190,19 @@ class CooldownByRepeating(commands.CooldownMapping):
 
 
 class Translation:
+  text: str
+  translatedText: str
+  input: str
+  detectedSourceLanguage: Optional[str]
+
   @classmethod
-  async def from_text(cls, text: str, from_lang: str = None, to_lang: str = "en", *, parent: "Chat") -> Self:
+  async def from_text(cls, text: str, from_lang: str = None, to_lang: str = "en", *, parent: Chat) -> Self:
     self = cls()
 
-    self.text: str = text
-    self.translatedText: str = text
-    self.input: str = text
-    self.detectedSourceLanguage: str = from_lang
+    self.text = text
+    self.translatedText = text
+    self.input = text
+    self.detectedSourceLanguage = from_lang
     if from_lang != to_lang and from_lang != "ep" and to_lang != "ep":
       try:
         trans_func = functools.partial(parent.translate_client.translate, source_language=from_lang, target_language=to_lang)
@@ -186,7 +210,7 @@ class Translation:
         self.input = translation.get("input", text)
         self.detectedSourceLanguage = translation.get("detectedSourceLanguage", from_lang)
         if translation is not None and translation.get("translatedText", None) is not None:
-          self.translatedText = parent.h.unescape(translation["translatedText"])
+          self.translatedText = parent.h.unescape(translation["translatedText"])  # type: ignore
       except OSError:
         pass
 
@@ -199,18 +223,18 @@ class Translation:
 class Chat(commands.Cog):
   """Chat with Friday, say something on Friday's behalf, and more with the chat commands."""
 
-  def __init__(self, bot: "Bot"):
-    self.bot = bot
+  def __init__(self, bot: Friday):
+    self.bot: Friday = bot
     self.translate_client = translate.Client()  # _http=self.bot.http)
     self.h = HTMLParser()
 
-    self.api_lock = bot.cluster and bot.cluster.launcher.api_lock or asyncio.Semaphore(3)
+    self.api_lock = asyncio.Semaphore(3)
 
     self._spam_check = SpamChecker()
     self._repeating_spam = CooldownByRepeating.from_cooldown(3, 60 * 3, commands.BucketType.channel)
 
     # channel_id: list
-    self.chat_history = defaultdict(lambda: ChatHistory())
+    self.chat_history: defaultdict[int, ChatHistory] = defaultdict(lambda: ChatHistory())
 
   def __repr__(self) -> str:
     return f"<cogs.{self.__cog_name__}>"
@@ -238,13 +262,13 @@ class Chat(commands.Cog):
     self.get_guild_config.invalidate(self, guild_id)
 
   @commands.command(name="say", aliases=["repeat"], help="Make Friday say what ever you want")
-  async def say(self, ctx: "MyContext", *, content: str):
+  async def say(self, ctx: MyContext, *, content: str):
     if content in ("im stupid", "i'm stupid", "i am dumb", "im dumb"):
       return await ctx.reply("yeah we know", allowed_mentions=discord.AllowedMentions.none())
     await ctx.reply(content, allowed_mentions=discord.AllowedMentions.none())
 
   @commands.command(name="reset", help="Resets Friday's chat history. Helps if Friday is repeating messages")
-  async def reset_history(self, ctx: "MyContext"):
+  async def reset_history(self, ctx: MyContext):
     try:
       self.chat_history.pop(ctx.channel.id)
     except KeyError:
@@ -258,7 +282,7 @@ class Chat(commands.Cog):
   @commands.group(name="chatchannel", extras={"examples": ["#channel"]}, invoke_without_command=True, case_insensitive=True)
   @commands.guild_only()
   @commands.has_guild_permissions(manage_channels=True)
-  async def chatchannel(self, ctx: "MyContext", channel: discord.TextChannel = None):
+  async def chatchannel(self, ctx: GuildContext, channel: discord.TextChannel = None):
     if channel is None:
       chat_channel = await ctx.pool.fetchval("SELECT chatchannel FROM servers WHERE id=$1 LIMIT 1", str(ctx.guild.id))
       chat_channel = chat_channel and await self.bot.fetch_channel(chat_channel)
@@ -270,14 +294,14 @@ class Chat(commands.Cog):
   @chatchannel.command(name="clear", help="Clear the current chat channel")
   @commands.guild_only()
   @commands.has_guild_permissions(manage_channels=True)
-  async def chatchannel_clear(self, ctx: "MyContext"):
+  async def chatchannel_clear(self, ctx: GuildContext):
     await ctx.pool.execute("UPDATE servers SET chatchannel=NULL WHERE id=$1", str(ctx.guild.id))
     await ctx.send(embed=embed(title="Chat channel cleared", description="I will no longer respond to messages in this channel"))
 
   @commands.command(name="persona", help="Change Friday's persona")
   @commands.guild_only()
   @checks.is_mod_and_min_tier(tier=PremiumTiersNew.tier_1.value, manage_channels=True)
-  async def persona(self, ctx: "MyContext"):
+  async def persona(self, ctx: GuildContext):
     current = await ctx.pool.fetchval("SELECT persona FROM servers WHERE id=$1", str(ctx.guild.id))
     choice = await ctx.multi_select("Please select a new persona", [p.capitalize() for _, p, _ in PERSONAS], values=[p for _, p, _ in PERSONAS], emojis=[e for e, _, _ in PERSONAS], descriptions=[d for _, _, d in PERSONAS], default=current, placeholder=f"Current: {current.capitalize()}")
     if choice is None:
@@ -288,7 +312,7 @@ class Chat(commands.Cog):
 
   @chatchannel.after_invoke
   @persona.after_invoke
-  async def settings_after_invoke(self, ctx: "MyContext"):
+  async def settings_after_invoke(self, ctx: GuildContext):
     if not ctx.guild:
       return
 
@@ -342,7 +366,7 @@ class Chat(commands.Cog):
       output_label = "2"
     return int(output_label)
 
-  async def openai_req(self, msg: discord.Message, current_tier: int, persona: str = None, *, content: str = None) -> str:
+  async def openai_req(self, msg: discord.Message, current_tier: int, persona: str = None, *, content: str = None) -> Optional[str]:
     content = content or msg.clean_content
     author_prompt_name, my_prompt_name = msg.author.display_name, "Friday"
     my_prompt_name = msg.guild.me.display_name if msg.guild else self.bot.user.name
