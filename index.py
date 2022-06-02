@@ -6,7 +6,7 @@ import logging
 import os
 import sys
 from collections import Counter, defaultdict
-from typing import Any, AsyncIterator, Dict, Iterable, Optional
+from typing import TYPE_CHECKING, Any, AsyncIterator, Dict, Iterable, Optional
 
 import aiohttp
 import asyncpg
@@ -14,7 +14,6 @@ import discord
 from discord.ext import commands
 from dotenv import load_dotenv
 from topgg.webhook import WebhookManager
-from typing_extensions import TYPE_CHECKING
 
 import cogs
 import functions
@@ -44,11 +43,12 @@ class Friday(commands.AutoShardedBot):
   topgg_webhook: WebhookManager
   command_stats: Counter[str]
   socket_stats: Counter[str]
-  chat_stats: Counter[str]
+  chat_stats: Counter[int]
   gateway_handler: Any
   bot_app_info: discord.AppInfo
   uptime: datetime.datetime
   chat_repeat_counter: Counter[int]
+  old_help_command: Optional[commands.HelpCommand]
 
   def __init__(self, **kwargs):
     self.cluster = kwargs.pop("cluster", None)
@@ -89,6 +89,7 @@ class Friday(commands.AutoShardedBot):
     self.prod = kwargs.pop("prod", None) or True if len(sys.argv) > 1 and (sys.argv[1] == "--prod" or sys.argv[1] == "--production") else False
     self.canary = kwargs.pop("canary", None) or True if len(sys.argv) > 1 and (sys.argv[1] == "--canary") else False
     self.ready = False
+    self.testing = False
 
     # shard_id: List[datetime.datetime]
     # shows the last attempted IDENTIFYs and RESUMEs
