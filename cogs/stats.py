@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 import datetime
 import gc
@@ -10,7 +12,8 @@ import sys
 import textwrap
 import traceback
 from collections import Counter
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, Any, TypedDict
+from typing_extensions import Annotated
 
 import asyncpg
 import discord
@@ -18,24 +21,58 @@ import psutil
 import wavelink
 from discord.ext import commands, tasks
 
-from functions import MyContext, time
+from functions import embed, time
 
 if TYPE_CHECKING:
-  from index import Friday as Bot
+
+  from functions import MyContext
+  from index import Friday
+
+  from .chat import Chat
+
+
+class DataCommandsBatchEntry(TypedDict):
+  guild: Optional[str]
+  channel: str
+  author: str
+  used: str
+  prefix: str
+  command: str
+  failed: bool
+
+
+class DataJoinsBatchEntry(TypedDict):
+  guild: str
+  time: str
+  joined: Optional[bool]
+  current_count: int
+
+
+class DataChatsBatchEntry(TypedDict):
+  guild: Optional[str]
+  channel: str
+  author: str
+  used: str
+  user_msg: str
+  bot_msg: Optional[str]
+  failed: bool
+  filtered: Optional[int]
+  persona: str
+  prompt: Optional[str]
 
 
 class GatewayHandler(logging.Handler):
-  def __init__(self, cog):
-    self.cog = cog
+  def __init__(self, cog: Stats):
+    self.cog: Stats = cog
     super().__init__(logging.INFO)
 
-  def filter(self, record):
+  def filter(self, record: logging.LogRecord) -> bool:
     try:
       return record.name == "discord.gateway" or "Shard ID" in record.msg or "Websocket closed" in record.msg
     except TypeError:
       return False
 
-  def emit(self, record):
+  def emit(self, record: logging.LogRecord) -> None:
     self.cog.add_record(record)
 
 
@@ -95,15 +132,15 @@ class TabularData:
 _INVITE_REGEX = re.compile(r'(?:https?:\/\/)?discord(?:\.gg|\.com|app\.com\/invite)?\/[A-Za-z0-9]+')
 
 
-def censor_invite(obj, *, _regex=_INVITE_REGEX):
+def censor_invite(obj, *, _regex=_INVITE_REGEX) -> str:
   return _regex.sub('[censored-invite]', str(obj))
 
 
-def hex_value(arg):
+def hex_value(arg) -> int:
   return int(arg, base=16)
 
 
-def object_at(addr):
+def object_at(addr) -> Optional[Any]:
   for o in gc.get_objects():
     if id(o) == addr:
       return o
@@ -111,11 +148,13 @@ def object_at(addr):
 
 
 class Stats(commands.Cog, command_attrs=dict(hidden=True)):
-  def __init__(self, bot: "Bot"):
-    self.bot = bot
+  def __init__(self, bot: Friday):
+    self.bot: Friday = bot
     self.process = psutil.Process()
     self._batch_commands_lock, self._batch_chats_lock, self._batch_joins_lock = asyncio.Lock(), asyncio.Lock(), asyncio.Lock()
-    self._data_commands_batch, self._data_chats_batch, self._data_joins_batch = [], [], []
+    self._data_commands_batch: list[DataCommandsBatchEntry] = []
+    self._data_chats_batch: list[DataChatsBatchEntry] = []
+    self._data_joins_batch: list[DataJoinsBatchEntry] = []
     self.bulk_insert_commands_loop.add_exception_type(asyncpg.PostgresConnectionError)
     self.bulk_insert_commands_loop.start()
 
@@ -131,7 +170,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
   def __repr__(self) -> str:
     return f"<cogs.{self.__cog_name__}>"
 
-  async def cog_check(self, ctx: "MyContext") -> bool:
+  async def cog_check(self, ctx: MyContext) -> bool:
     is_owner = await self.bot.is_owner(ctx.author)
     if ctx.author.id != 892865928520413245 and not is_owner:
       raise commands.NotOwner()
@@ -207,9 +246,9 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
   @discord.utils.cached_property
   def webhook(self):
     wh_id, wh_token = os.environ["WEBHOOKINFOID"], os.environ["WEBHOOKINFOTOKEN"]
-    return discord.Webhook.partial(id=wh_id, token=wh_token, session=self.bot.session)
+    return discord.Webhook.partial(id=wh_id, token=wh_token, session=self.bot.session)  # type: ignore
 
-  async def register_command(self, ctx: "MyContext"):
+  async def register_command(self, ctx: MyContext):
     if ctx.command is None:
       return
 
@@ -224,7 +263,8 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
       destination = f"#{message.channel} ({message.guild})"
       guild_id = ctx.guild.id
 
-    self.bot.logger.info(f'{message.author} in {destination}: {message.content}')
+    command_with_args = message.content or f"{ctx.clean_prefix}{command} {' '.join([a for a in ctx.args[2:] if a])}{' ' and ' '.join([str(k) for k in ctx.kwargs.values()])}"
+    self.bot.logger.info(f'{message.author} in {destination}: {command_with_args}')
     async with self._batch_commands_lock:
       self._data_commands_batch.append({
           'guild': str(guild_id),
@@ -245,7 +285,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
           'current_count': len(self.bot.guilds),
       })
 
-  async def register_chat(self, user_msg: discord.Message, bot_msg: Optional[discord.Message], failed: bool, *, prompt: str = None, filtered: Optional[int] = None, persona: Optional[str] = "friday"):
+  async def register_chat(self, user_msg: discord.Message, bot_msg: Optional[discord.Message], failed: bool, *, prompt: str = None, filtered: Optional[int] = None, persona: Annotated[str, Optional[str]] = "friday"):
     user_message = user_msg.clean_content
     bot_message = bot_msg and bot_msg.clean_content
 
@@ -282,7 +322,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
     await self.register_joins(guild, False)
 
   @commands.Cog.listener()
-  async def on_chat_completion(self, user_msg: discord.Message, bot_msg: discord.Message, failed: bool, *, prompt: str = None, filtered: Optional[int] = None, persona: Optional[str] = "friday"):
+  async def on_chat_completion(self, user_msg: discord.Message, bot_msg: discord.Message, failed: bool, *, prompt: str = None, filtered: Optional[int] = None, persona: Annotated[str, Optional[str]] = "friday"):
     await self.register_chat(user_msg, bot_msg, failed, filtered=filtered, persona=persona, prompt=prompt)
 
   @commands.Cog.listener()
@@ -304,7 +344,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
     await ctx.send(f"```\n{output}\n```")
 
   @commands.group("chatstats", invoke_without_command=True)
-  async def chatstats(self, ctx: "MyContext"):
+  async def chatstats(self, ctx: MyContext):
     delta = discord.utils.utcnow() - self.bot.uptime
     minutes = delta.total_seconds() / 60
     total = sum(self.bot.chat_stats.values())
@@ -312,7 +352,10 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
 
     counter_message = textwrap.shorten(f"{self.bot.chat_stats}", width=1910)
 
-    chat_cog = self.bot.get_cog("Chat")
+    chat_cog: Optional[Chat] = self.bot.get_cog("Chat")  # type: ignore
+    if chat_cog is None:
+      return await ctx.send(embed=embed(title="Chat functionality is not currently available. Please try again later."))
+
     rate_control = chat_cog._spam_check
     free_rate = [str(key) for key, value in rate_control._free._cache.items() if value._tokens == 0]
     voted_rate = [str(key) for key, value in rate_control._voted._cache.items() if value._tokens == 0]
@@ -320,7 +363,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
     await ctx.send(f"{total:,} messages ({cpm:.2f}/min)\n**Rate-limits**\nFree: {len(free_rate)} users\nVoted: {len(voted_rate)} users\nPatron: {len(patron_rate)} users\n{counter_message}")
 
   @commands.command("socketstats")
-  async def socketstats(self, ctx: "MyContext"):
+  async def socketstats(self, ctx: MyContext):
     delta = discord.utils.utcnow() - self.bot.uptime
     minutes = delta.total_seconds() / 60
     total = sum(self.bot.socket_stats.values())
@@ -341,7 +384,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
   )
 
   @chatstats.command("global")
-  async def chatstats_global(self, ctx: "MyContext"):
+  async def chatstats_global(self, ctx: MyContext):
     query = """SELECT COUNT(*) FROM chats;"""
     total = await ctx.db.fetchrow(query)
 
@@ -394,7 +437,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
     await ctx.send(embed=e)
 
   @chatstats.command("today")
-  async def chatstats_today(self, ctx: "MyContext"):
+  async def chatstats_today(self, ctx: MyContext):
     query = """SELECT COUNT(*) FROM chats WHERE used > (CURRENT_TIMESTAMP - INTERVAL '1 day');"""
     total = await ctx.db.fetchval(query)
 
@@ -440,7 +483,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
     await ctx.send(embed=e)
 
   @commandstats.command("global")
-  async def commandstats_global(self, ctx: "MyContext"):
+  async def commandstats_global(self, ctx: MyContext):
     query = """SELECT COUNT(*) FROM commands;"""
     total = await ctx.db.fetchrow(query)
 
@@ -493,7 +536,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
     await ctx.send(embed=e)
 
   @commandstats.command("today")
-  async def commandstats_today(self, ctx: "MyContext"):
+  async def commandstats_today(self, ctx: MyContext):
     query = """SELECT failed, COUNT(*) FROM commands WHERE used > (CURRENT_TIMESTAMP - INTERVAL '1 day') GROUP BY failed;"""
     total = await ctx.db.fetch(query)
     failed, success, question = 0, 0, 0
@@ -586,7 +629,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
     await self.webhook.send(msg, username='Gateway', avatar_url='https://i.imgur.com/4PnCKB3.png')
 
   @commands.command("bothealth")
-  async def bothealth(self, ctx: "MyContext"):
+  async def bothealth(self, ctx: MyContext):
     """Various bot health monitoring tools."""
 
     # This uses a lot of private methods because there is no
@@ -645,8 +688,8 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
     except AttributeError:
       # future proofing for 3.9 I guess
       task_retriever = asyncio.all_tasks
-    finally:
-      all_tasks = task_retriever(loop=self.bot.loop)
+
+    all_tasks = task_retriever(loop=self.bot.loop)
 
     event_tasks = [
         t for t in all_tasks
@@ -701,7 +744,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
     await ctx.send(embed=embed_)
 
   @commands.command("gateway")
-  async def gateway(self, ctx: "MyContext"):
+  async def gateway(self, ctx: MyContext):
     yesterday = discord.utils.utcnow() - datetime.timedelta(days=1)
     identifies = {
         shard_id: sum(1 for dt in dates if dt > yesterday)
@@ -733,7 +776,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
       if shard.is_closed():
         badge = ":spider_web:"
         issues += 1
-      elif shard._parent._task.done():
+      elif shard._parent._task and shard._parent._task.done():
         exc = shard._parent._task.exception()
         if exc is not None:
           badge = "\N{FIRE}"
@@ -770,7 +813,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
 
   @commands.command(hidden=True, aliases=['cancel_task'])
   @commands.is_owner()
-  async def debug_task(self, ctx, memory_id: hex_value):
+  async def debug_task(self, ctx: MyContext, memory_id: Annotated[int, hex_value]):
     """Debug a task by a memory location."""
     task = object_at(memory_id)
     if task is None or not isinstance(task, asyncio.Task):
@@ -793,14 +836,14 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
       await ctx.send(page)
 
   @commands.command("wavelink")
-  async def wavelink(self, ctx: "MyContext"):
+  async def wavelink(self, ctx: MyContext):
     node = wavelink.NodePool.get_node()
     e = discord.Embed(title="Wavelink stats", colour=discord.Colour.blurple())
     e.add_field(name=f"Node: {node.identifier}", value=f"```\nRegion: {node.region}\nPlayers: {len(node.players)}\nPenalty: {node.penalty}\nConnected: {node.is_connected()}\n```")
 
     await ctx.send(embed=e)
 
-  async def tabulate_query(self, ctx: "MyContext", query: str, *args):
+  async def tabulate_query(self, ctx: MyContext, query: str, *args: Any):
     records = await ctx.db.fetch(query, *args)
 
     if len(records) == 0:
@@ -820,7 +863,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
       await ctx.send(fmt)
 
   @commands.group("commandhistory", invoke_without_command=True)
-  async def command_history(self, ctx: "MyContext"):
+  async def command_history(self, ctx: MyContext):
     query = """SELECT
                  CASE failed
                    WHEN TRUE THEN command || ' [!]'
@@ -836,7 +879,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
     await self.tabulate_query(ctx, query)
 
   @command_history.command("for")
-  async def command_history_for(self, ctx: "MyContext", days: Optional[int] = 7, *, command: str):
+  async def command_history_for(self, ctx: MyContext, days: Annotated[int, Optional[int]] = 7, *, command: str):
     query = """SELECT *, t.success + t.failed AS "total"
                 FROM (
                   SELECT guild_id,
@@ -853,7 +896,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
     await self.tabulate_query(ctx, query, command, datetime.timedelta(days=days))
 
   @command_history.command("guild", aliases=["server"])
-  async def command_history_guild(self, ctx: "MyContext", guild_id: int):
+  async def command_history_guild(self, ctx: MyContext, guild_id: int):
     query = """SELECT
                  CASE failed
                    WHEN TRUE THEN command || ' [!]'
@@ -887,7 +930,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
     await self.tabulate_query(ctx, query, str(user_id))
 
   @commands.group("chathistory", invoke_without_command=True)
-  async def chat_histroy(self, ctx: "MyContext"):
+  async def chat_histroy(self, ctx: MyContext):
     query = """SELECT
                  guild_id,
                  author_id,
@@ -900,7 +943,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
     await self.tabulate_query(ctx, query)
 
   @commands.group("commandactivity", invoke_without_command=True)
-  async def command_activity(self, ctx: "MyContext"):
+  async def command_activity(self, ctx: MyContext):
       # WHERE used > (CURRENT_TIMESTAMP - '1 day'::interval)
     query = """SELECT
                   extract(hour from used) AS "hour",
@@ -926,7 +969,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
     await ctx.send(f"```\n{graph}\n```")
 
   @commands.group("chatactivity", invoke_without_command=True)
-  async def chat_activity(self, ctx: "MyContext"):
+  async def chat_activity(self, ctx: MyContext):
       # WHERE used > (CURRENT_TIMESTAMP - '1 day'::interval)
     query = """SELECT
                   extract(hour from used) AS "hour",
@@ -952,7 +995,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
     await ctx.send(f"```\n{graph}\n```")
 
   # @commands.command("beforeleave")
-  # async def beforeleave(self, ctx: "MyContext"):
+  # async def beforeleave(self, ctx: MyContext):
   #   # from the database get the servers that friday joined then left
   #   # get the commands that executed in those servers before friday left
   #   # return the common commands that executed before friday left
@@ -967,7 +1010,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
 old_on_error = commands.AutoShardedBot.on_error
 
 
-async def on_error(self, event, *args, **kwargs):
+async def on_error(self, event: str, *args: Any, **kwargs: Any) -> None:
   (exc_type, exc, tb) = sys.exc_info()
   # Silence command errors that somehow get bubbled up far enough here
   if isinstance(exc, commands.CommandInvokeError):
@@ -991,27 +1034,24 @@ async def on_error(self, event, *args, **kwargs):
     pass
 
 
-async def setup(bot):
+async def setup(bot: Friday):
   if not hasattr(bot, 'command_stats'):
     bot.command_stats = Counter()
 
   if not hasattr(bot, "chat_stats"):
     bot.chat_stats = Counter()
 
-  if hasattr(bot, "chats_counter"):
-    bot.chat_stats[215227961048170496] += bot.chats_counter
-
   if not hasattr(bot, "socket_stats"):
     bot.socket_stats = Counter()
 
   cog = Stats(bot)
   await bot.add_cog(cog)
-  bot._stats_cog_gateway_handler = handler = GatewayHandler(cog)
+  bot.gateway_handler = handler = GatewayHandler(cog)
   logging.getLogger().addHandler(handler)
   commands.AutoShardedBot.on_error = on_error
 
 
-def teardown(bot):
+def teardown(bot: Friday):
   commands.AutoShardedBot.on_error = old_on_error
-  logging.getLogger().removeHandler(bot._stats_cog_gateway_handler)
-  del bot._stats_cog_gateway_handler
+  logging.getLogger().removeHandler(bot.gateway_handler)
+  del bot.gateway_handler
