@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import os
 from typing import TYPE_CHECKING, Optional
 
 import asyncpg
 import discord
+import pycountry
 from discord.ext import commands
 from typing_extensions import Annotated
 
@@ -148,7 +150,7 @@ class Config(commands.Cog, command_attrs=dict(extras={"permissions": ["manage_gu
   @commands.command(name="language", extras={"examples": ["en", "es", "english", "spanish"]}, aliases=["lang"], help="Change the language that I will speak. This currently only applies to the chatbot messages not the commands.")
   # @commands.cooldown(1, 3600, commands.BucketType.guild)
   @commands.has_guild_permissions(administrator=True)
-  async def language(self, ctx: "MyContext", language: Optional[str] = None):
+  async def language(self, ctx: GuildContext, language: Optional[str] = None):
     lang = ctx.guild.preferred_locale.value.split("-")[0]
     if language is None and ctx.guild is not None:
       language = lang
@@ -262,11 +264,11 @@ class Config(commands.Cog, command_attrs=dict(extras={"permissions": ["manage_gu
     ...
 
 
-async def setup(bot):
-  if not hasattr(bot, "languages") or len(bot.languages) == 0:
-    bot.languages["en"] = ReadOnly("i18n/source/commands.json")
-    for lang in os.listdir("./i18n/translations"):
-      bot.languages[lang] = ReadOnly(f"i18n/translations/{lang}/commands.json")
+async def setup(bot: Friday):
+  # if not hasattr(bot, "languages") or len(bot.languages) == 0:
+  #   bot.languages["en"] = ReadOnly("i18n/source/commands.json")
+  #   for lang in os.listdir("./i18n/translations"):
+  #     bot.languages[lang] = ReadOnly(f"i18n/translations/{lang}/commands.json")
 
   # if not hasattr(bot, "language_config"):
   #   bot.language_config = ConfigFile("languages.json")
