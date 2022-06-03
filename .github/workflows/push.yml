@@ -50,11 +50,10 @@ jobs:
 
       - name: Run Pyright
         uses: jakebailey/pyright-action@v1
-        run: |
-          . ~/venv/bin/activate
         with:
           version: '1.1.242'
           warnings: false
+          venv-path: ~/venv
           no-comments: ${{ matrix.python-version != '3.x' }}
   lint:
     runs-on: ${{ matrix.os }}
