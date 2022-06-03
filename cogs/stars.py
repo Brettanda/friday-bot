@@ -123,9 +123,9 @@ class Stars(commands.Cog):
 
   @cache.cache()
   async def get_starboard(self, guild_id: int, *, connection: Optional[asyncpg.Pool | asyncpg.Connection] = None) -> StarboardConfig:
-    connection = connection or self.bot.pool
+    conn = connection or self.bot.pool
     query = "SELECT * FROM starboard WHERE id=$1;"
-    record = await connection.fetchrow(query, guild_id)  # type: ignore
+    record = await conn.fetchrow(query, guild_id)
     return StarboardConfig(guild_id=guild_id, bot=self.bot, record=record)
 
   def star_emoji(self, stars: int) -> str:
