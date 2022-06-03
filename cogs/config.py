@@ -8,7 +8,7 @@ import pycountry
 from discord.ext import commands
 from typing_extensions import Annotated
 
-from functions import MessageColors, cache, embed
+from functions import MessageColors, cache, config, embed
 
 if TYPE_CHECKING:
   from typing_extensions import Self
