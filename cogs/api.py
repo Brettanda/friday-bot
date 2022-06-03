@@ -12,11 +12,8 @@ import discord
 from aiohttp import web
 from discord.ext import commands
 
-from functions import config
-
 if TYPE_CHECKING:
   from cogs.general import General
-  from cogs.patreons import Patreons
   from index import Friday
 
 

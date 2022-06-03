@@ -5,10 +5,8 @@ from typing import TYPE_CHECKING, Optional
 import discord
 from discord.ext import commands
 
-from functions import embed
-
 if TYPE_CHECKING:
-  from functions.custom_contexts import GuildContext, MyContext
+  from functions.custom_contexts import MyContext
   from index import Friday
 
 

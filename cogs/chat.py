@@ -24,7 +24,6 @@ from functions.config import PremiumTiersNew
 if TYPE_CHECKING:
   from typing_extensions import Self
 
-  from cogs.patreons import Patreons
   from functions.custom_contexts import GuildContext
   from index import Friday
 
