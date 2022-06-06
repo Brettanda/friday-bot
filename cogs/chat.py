@@ -321,16 +321,10 @@ class Chat(commands.Cog):
 
     self.get_guild_config.invalidate(self, ctx.guild.id)
 
-  async def fetch_message_history(self, channel: discord.TextChannel, *, message_limit: int = 15, current_tier: int) -> str:
-    my_prompt_name = channel.guild.me.display_name if hasattr(channel, "guild") and channel.guild is not None else self.bot.user.name
-    history = self.chat_history[channel.id]
-    if len(history) > 6:
-      history = self.chat_history[channel.id] = self.chat_history[channel.id][:7]
-    prompt = "\n".join(reversed(history))
-
-    return prompt + f"\n{my_prompt_name}:"
-
-  async def content_filter_check(self, text: str, user_id: str):
+  @cache.cache(maxsize=1024)
+  async def content_filter_check(self, text: str, user_id: str) -> Optional[int]:
+    if self.bot.testing:
+      return 0
     try:
       async with self.api_lock:
         response = await self.bot.loop.run_in_executor(
@@ -377,6 +371,8 @@ class Chat(commands.Cog):
     engine = os.environ["OPENAIMODEL"]
     if persona and persona == "pirate":
       engine = os.environ["OPENAIMODELPIRATE"]
+    if self.bot.testing:
+      return "This message is a test"
     try:
       async with self.api_lock:
         response = await self.bot.loop.run_in_executor(
@@ -402,7 +398,7 @@ class Chat(commands.Cog):
   async def on_message(self, msg: discord.Message):
     await self.bot.wait_until_ready()
 
-    if msg.author.bot:
+    if msg.author.bot and msg.author.id != 892865928520413245:
       return
 
     if msg.clean_content == "" or msg.activity is not None:
@@ -438,12 +434,14 @@ class Chat(commands.Cog):
           await ctx.db.execute(f"INSERT INTO servers (id,lang) VALUES ({str(ctx.guild.id)},'{ctx.guild.preferred_locale.value.split('-')[0]}') ON CONFLICT DO NOTHING")
           log.get_guild_config.invalidate(log, ctx.guild.id)
           self.get_guild_config.invalidate(self, ctx.guild.id)
-          conf = await log.get_guild_config(msg.guild.id, connection=ctx.db)
-      config = await self.get_guild_config(msg.guild.id, connection=ctx.db)
-      if config is None:
-        self.bot.logger.error(f"Config was not available in chat for (guild: {msg.guild.id if msg.guild else None}) (channel type: {msg.channel.type if msg.channel else 'uhm'}) (user: {msg.author.id})")
-        return
+          conf = await log.get_guild_config(ctx.guild.id, connection=ctx.db)
+        if "chat" in conf.disabled_commands:
+          return
 
+      config = await self.get_guild_config(ctx.guild.id, connection=ctx.db)
+      if config is None:
+        self.bot.logger.error(f"Config was not available in chat for (guild: {ctx.guild.id if ctx.guild else None}) (channel type: {ctx.channel.type if ctx.channel else 'uhm'}) (user: {msg.author.id})")
+        raise ChatError("Guild config not available, please contact developer.")
       chat_channel = config.chat_channel
       if chat_channel is not None and ctx.channel != chat_channel:
         if ctx.guild.me not in msg.mentions:
