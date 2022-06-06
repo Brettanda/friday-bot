@@ -79,8 +79,7 @@ class BannedMember(commands.Converter):
       except discord.NotFound:
         raise commands.BadArgument("This member has not been banned.") from None
 
-    ban_list = await ctx.guild.bans()
-    entity = discord.utils.find(lambda u: str(u.user) == argument, ban_list)
+    entity = await discord.utils.find(lambda u: u.user.mention == argument, ctx.guild.bans(limit=None))
 
     if entity is None:
       raise commands.BadArgument("This member has not been banned.")
@@ -254,22 +253,21 @@ class Moderation(commands.Cog):
 
   @commands.command(name="last", help="Gets the last member to leave a voice channel.")
   @commands.guild_only()
-  async def last_member(self, ctx: "MyContext", *, voice_channel: Optional[discord.VoiceChannel] = None):
+  async def last_member(self, ctx: GuildContext, *, voice_channel: Optional[VoiceChannel] = None):
     if voice_channel is None and ctx.author.voice is None:
-      return await ctx.reply(embed=embed(title="You must either select a voice channel or be in one.", color=MessageColors.ERROR))
-    if voice_channel is None:
-      voice_channel = ctx.author.voice.channel
-    if not isinstance(voice_channel, discord.VoiceChannel):
-      return await ctx.reply(embed=embed(title="That is not a voice channel.", color=MessageColors.ERROR))
-    member = self.last_to_leave_vc[voice_channel.id]
+      return await ctx.reply(embed=embed(title="You must either select a voice channel or be in one.", color=MessageColors.error()))
+    voice = voice_channel or ctx.author.voice and ctx.author.voice.channel
+    # if not isinstance(voice, VoiceChannel):
+    #   return await ctx.reply(embed=embed(title="That is not a voice channel.", color=MessageColors.error()))
+    member = voice and self.last_to_leave_vc[voice.id]
     if member is None:
-      return await ctx.reply(embed=embed(title=f"No currently saved departing member of `{voice_channel}` saved.", description="I'll catch the next one :)", color=MessageColors.ERROR))
-    await ctx.reply(embed=embed(title=f"`{member['member']}` left `{voice_channel}` <t:{int(member['time'])}:R>."))
+      return await ctx.reply(embed=embed(title=f"No currently saved departing member of `{voice}` saved.", description="I'll catch the next one :)", color=MessageColors.error()))
+    await ctx.reply(embed=embed(title=f"`{member['member']}` left `{voice}` <t:{int(member['time'])}:R>."))
 
   # @commands.command(name="clear",description="Deletes my messages and commands (not including the meme command)")
   # @commands.has_permissions(manage_messages = True)
   # @commands.bot_has_permissions(manage_messages = True)
-  # async def clear(self,ctx,count:int):
+  # async def clear(self,ctx: MyContextcount:int):
   #   # await ctx.channel.purge(limit=count)
   #   async for message in ctx.channel.history():
   #     if message.author == self.bot.user:
