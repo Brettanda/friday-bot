@@ -12,33 +12,17 @@ jobs:
         python-version: [3.8]
     name: Type Checking ${{ matrix.python-version }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 0
-      - name: Cache dependencies
+      - uses: actions/setup-python@v3
         id: cache
-        uses: actions/cache@v2
-        env:
-          cache-name: cache-friday-build-dep
         with:
-          path: |
-            ${{ env.pythonLocation}}/lib/python${{ matrix.python-version }}/site-packages/*
-            ~/venv
-          key: ${{ matrix.os }}-pip-${{ env.cache-name }}-${{ hashfiles('requirements.txt') }}
-          restore-keys: |
-            ${{ matrix.os }}-pip-${{ env.cache-name }}-${{ hashfiles('requirements.txt') }}
-            ${{ matrix.os }}-pip-${{ env.cache-name }}-
-            ${{ matrix.os }}-pip-
-            ${{ matrix.os }}-
-      - name: Where is venv
-        run: |
-          cd ~/venv
-          pwd
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
       - name: Install dependencies
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          python -m venv ~/venv
-          . ~/venv/bin/activate
           python -m pip install --upgrade pip
           pip install pytest
           if [ -f requirements.txt ]; then python -m pip install -r requirements.txt; fi
@@ -57,7 +41,6 @@ jobs:
         with:
           version: '1.1.242'
           warnings: false
-          venv-path: /home/runner/venv
           no-comments: ${{ matrix.python-version != '3.x' }}
   lint:
     runs-on: ${{ matrix.os }}
@@ -125,10 +108,9 @@ jobs:
         path: |
           ${{ env.pythonLocation}}/lib/python${{ matrix.python-version }}/site-packages/*
           ~/venv
-        key: ${{ matrix.os }}-pip-${{ env.cache-name }}-${{ hashfiles('requirements.txt') }}
+        key: ${{ matrix.os }}-pip-${{ hashfiles('requirements.txt') }}
         restore-keys: |
-          ${{ matrix.os }}-pip-${{ env.cache-name }}-${{ hashfiles('requirements.txt') }}
-          ${{ matrix.os }}-pip-${{ env.cache-name }}-
+          ${{ matrix.os }}-pip-${{ hashfiles('requirements.txt') }}
           ${{ matrix.os }}-pip-
           ${{ matrix.os }}-
     - name: Install dependencies
