@@ -426,10 +426,10 @@ class Chat(commands.Cog):
 
     current_tier = PremiumTiersNew.free.value
     config = None
-    if msg.guild is not None:
-      log = self.bot.get_cog("Log")
+    if ctx.guild:
+      log = self.bot.log
       if log:
-        conf = await log.get_guild_config(msg.guild.id, connection=ctx.db)
+        conf = await log.get_guild_config(ctx.guild.id, connection=ctx.db)
         if not conf:
           await ctx.db.execute(f"INSERT INTO servers (id,lang) VALUES ({str(ctx.guild.id)},'{ctx.guild.preferred_locale.value.split('-')[0]}') ON CONFLICT DO NOTHING")
           log.get_guild_config.invalidate(log, ctx.guild.id)
@@ -441,29 +441,26 @@ class Chat(commands.Cog):
         return
 
       chat_channel = config.chat_channel
-      if chat_channel is not None and msg.channel != chat_channel:
-        if msg.guild.me not in msg.mentions:
+      if chat_channel is not None and ctx.channel != chat_channel:
+        if ctx.guild.me not in msg.mentions:
           return
-      elif chat_channel is None and msg.guild.me not in msg.mentions:
+      elif chat_channel is None and ctx.guild.me not in msg.mentions:
         return
 
       if config.tier:
         current_tier = config.tier
-    lang = msg.guild and config.lang or "en"
+    lang = ctx.guild and config and config.lang or "en"
 
-    voted = await checks.user_voted(self.bot, msg.author, connection=ctx.db)
+    voted = await checks.user_voted(self.bot, ctx.author, connection=ctx.db)
 
     if voted and not current_tier > PremiumTiersNew.voted.value:
       current_tier = PremiumTiersNew.voted.value
 
-    patron_cog = self.bot.get_cog("Patreons")
-    if patron_cog is None:
-      self.bot.logger.error("Patrons cog is not loaded")
-
+    patron_cog: Optional[Patreons] = self.bot.get_cog("Patreons")  # type: ignore
     if patron_cog is not None:
       patrons = await patron_cog.get_patrons(connection=ctx.db)
 
-      patron = next((p for p in patrons if p.id == msg.author.id), None)
+      patron = next((p for p in patrons if p.id == ctx.author.id), None)
 
       if patron is not None:
         current_tier = patron.tier if patron.tier > current_tier else current_tier

@@ -142,7 +142,7 @@ class Config:
   async def kick(self, member: discord.Member, reason: Optional[str] = "Auto-kick for spamming.") -> None:
     await member.kick(reason=reason or "Auto-kick for spamming.")
 
-  async def ban(self, member: discord.Member, duration: Optional[datetime.timedelta], reason: Optional[str] = "Auto-ban for spamming.") -> None:
+  async def ban(self, member: discord.Member, duration: Optional[datetime.timedelta] = None, reason: Optional[str] = "Auto-ban for spamming.") -> None:
     await member.ban(reason=reason or "Auto-ban for spamming.")
     if duration:
       now = discord.utils.utcnow()
@@ -158,13 +158,13 @@ class Config:
     if "delete" in punishments:
       await self.delete(msg)
     if "ban" in punishments:
-      await self.ban(new_member, duration=self.warn_ban_duration, reason=reason)
+      await self.ban(new_member, reason=reason)
     elif "kick" in punishments:
       await self.kick(new_member, reason=reason)
     elif "timeout" in punishments:
-      await self.timeout(new_member, duration=self.warn_timeout_duration, reason=reason)
+      await self.timeout(new_member, reason=reason)
     elif "mute" in punishments:
-      await self.mute(new_member, duration=self.warn_mute_duration, reason=reason)
+      await self.mute(new_member, reason=reason)
 
 
 class CooldownByContent(commands.CooldownMapping):
