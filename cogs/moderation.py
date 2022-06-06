@@ -789,10 +789,20 @@ class Moderation(commands.Cog):
 
   @norm_mute.group("role", help="Set the role to be applied to members that get muted", invoke_without_command=True, case_insensitive=True)
   @commands.guild_only()
-  @commands.has_guild_permissions(manage_roles=True)
+  @checks.is_mod_or_guild_permissions(manage_roles=True)
   @commands.bot_has_guild_permissions(manage_roles=True)
-  async def mute_role(self, ctx: "MyContext", *, role: Optional[discord.Role] = None):
-    await self.bot.db.query("UPDATE servers SET mute_role=$1 WHERE id=$2", str(role.id) if role is not None else None, str(ctx.guild.id))
+  @commands.cooldown(1, 60.0, commands.BucketType.guild)
+  async def mute_role(self, ctx: GuildContext, *, role: discord.Role):
+    if role.is_default():
+      return await ctx.send(embed=embed(title="Cannot use the @\u200beveryone role.", color=MessageColors.error()))
+
+    if role > ctx.author.top_role and ctx.author.id != ctx.guild.owner_id:
+      return await ctx.send(embed=embed(title='This role is higher than your highest role.', color=MessageColors.error()))
+
+    if role > ctx.me.top_role:
+      return await ctx.send(embed=embed(title='This role is higher than my highest role.', color=MessageColors.error()))
+
+    await self.bot.pool.execute("UPDATE servers SET mute_role=$1 WHERE id=$2", str(role.id) if role is not None else None, str(ctx.guild.id))
     if role is not None:
       return await ctx.send(embed=embed(title=f"Friday will now use `{role}` as the new mute role"))
     await ctx.send(embed=embed(title="The saved mute role has been removed"))
