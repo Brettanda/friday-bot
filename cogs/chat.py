@@ -424,7 +424,19 @@ class Chat(commands.Cog):
     if valid:
       return
 
+    try:
+      # await self.answer_message(msg)
+      await self.chat_message(ctx)
+    except ChatError:
+      pass
+    finally:
+      await ctx.release()
+
+  async def chat_message(self, ctx: MyContext | GuildContext, *, content: str = None):
+    msg = ctx.message
+    content = content or msg.clean_content
     current_tier = PremiumTiersNew.free.value
+
     config = None
     if ctx.guild:
       log = self.bot.log
