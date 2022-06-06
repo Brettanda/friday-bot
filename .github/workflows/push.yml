@@ -71,6 +71,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+      with:
+        ssh-key: ${{ secrets.I18N_SUBMODULE_GH_ACTIONS_PULL }}
+        submodules: recursive
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v3
       id: cache
@@ -92,11 +95,6 @@ jobs:
       run: |
         if ! [ -f friday-trans-key.json ]; then python create_trans_key.py; fi
         if [ -f friday-trans-key.json ]; then printf "File created"; fi
-    - name: Checkout all the submodules
-      uses: actions/checkout@v3
-      with:
-        ssh-key: ${{ secrets.I18N_SUBMODULE_GH_ACTIONS_PULL }}
-        submodules: recursive
     - name: Test with pytest
       env:
         DBHOSTNAME: ${{ secrets.DBHOSTNAME }}
