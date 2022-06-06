@@ -1,5 +1,5 @@
 import discord
-# from typing_extensions import TYPE_CHECKING
+# from typing import TYPE_CHECKING
 
 # if TYPE_CHECKING:
 #   from index import Friday as Bot
@@ -13,7 +13,8 @@ class PersistantButtons(discord.ui.View):
 class StopButton(PersistantButtons):
   @discord.ui.button(emoji="⏹", label="Stop", style=discord.ButtonStyle.danger, custom_id="stopbutton-stop")
   async def stop(self, interaction: discord.Interaction, button: discord.ui.Button):
-    await interaction.message.delete()
+    if interaction.message:
+      await interaction.message.delete()
 
 
 class Links(PersistantButtons):
