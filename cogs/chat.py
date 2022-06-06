@@ -421,7 +421,7 @@ class Chat(commands.Cog):
       return
 
     valid = validators.url(msg.clean_content)
-    if valid or (hasattr(msg.channel, "type") and isinstance(msg.channel.type, (discord.TextChannel)) and msg.channel.type not in (discord.ChannelType.store, discord.ChannelType.voice, discord.ChannelType.category, discord.ChannelType.news)):
+    if valid:
       return
 
     current_tier = PremiumTiersNew.free.value
@@ -442,12 +442,14 @@ class Chat(commands.Cog):
       if config is None:
         self.bot.logger.error(f"Config was not available in chat for (guild: {ctx.guild.id if ctx.guild else None}) (channel type: {ctx.channel.type if ctx.channel else 'uhm'}) (user: {msg.author.id})")
         raise ChatError("Guild config not available, please contact developer.")
-      chat_channel = config.chat_channel
-      if chat_channel is not None and ctx.channel != chat_channel:
-        if ctx.guild.me not in msg.mentions:
+
+      if not ctx.command:
+        chat_channel = config.chat_channel
+        if chat_channel is not None and ctx.channel != chat_channel:
+          if ctx.guild.me not in msg.mentions:
+            return
+        elif chat_channel is None and ctx.guild.me not in msg.mentions:
           return
-      elif chat_channel is None and ctx.guild.me not in msg.mentions:
-        return
 
       if config.tier:
         current_tier = config.tier
@@ -467,50 +469,51 @@ class Chat(commands.Cog):
       if patron is not None:
         current_tier = patron.tier if patron.tier > current_tier else current_tier
 
-    char_count = len(msg.clean_content)
-    if (char_count > 100 and current_tier == PremiumTiersNew.free.value) or char_count > 200:
-      return
+    char_count = len(content)
+    max_content = 100 if current_tier == PremiumTiersNew.free.value else 200
+    if char_count > max_content:
+      raise ChatError(f"Message is too long. Max length is {max_content} characters.")
 
     # Anything to do with sending messages needs to be below the above check
     response = None
     is_spamming, rate_limiter, rate_name = self._spam_check.is_spamming(msg, current_tier, voted)
     resp = None
-    if is_spamming:
+    if is_spamming and rate_limiter:
       vote_advertise = bool(rate_name == "free" and not voted)
       patreon_advertise = bool(rate_name == "voted" and not (current_tier >= PremiumTiersNew.tier_1.value))
       retry_after = discord.utils.utcnow() + datetime.timedelta(seconds=rate_limiter.get_retry_after())
       self.bot.logger.info(f"{msg.author} ({msg.author.id}) is being ratelimited at over {rate_limiter.rate} messages and can retry after {time.human_timedelta(retry_after, accuracy=2, brief=True)}")
       ad_message = "If you would like to send me more messages you can get more by voting at https://top.gg/bot/476303446547365891/vote" if vote_advertise else "If you would like to send even more messages please support Friday on Patreon at https://patreon.com/join/fridaybot" if patreon_advertise else ""
-      resp = await ctx.reply(embed=embed(title=f"You have sent me over `{rate_limiter.rate}` messages in that last `{rate_limiter.per} seconds` and are being rate limited, try again <t:{int(retry_after.timestamp())}:R>", description=ad_message, color=MessageColors.ERROR), mention_author=False)
+      resp = await ctx.reply(embed=embed(title=f"You have sent me over `{rate_limiter.rate}` messages in that last `{rate_limiter.per} seconds` and are being rate limited, try again <t:{int(retry_after.timestamp())}:R>", description=ad_message, color=MessageColors.error()), mention_author=False)
       return
+    chat_history = self.chat_history[msg.channel.id]
     async with ctx.typing():
-      translation = await Translation.from_text(msg.clean_content, from_lang=lang, parent=self)
+      translation = await Translation.from_text(content, from_lang=lang, parent=self)
       try:
         response = await self.openai_req(msg, current_tier, config and config.persona, content=str(translation).strip('\n'))
       except Exception as e:
-        resp = await ctx.send(embed=embed(title="Something went wrong, please try again later", color=MessageColors.ERROR))
-        self.bot.dispatch("chat_completion", msg, resp, True, filtered=None, prompt="\n".join(self.chat_history[msg.channel.id].history(limit=5 if current_tier >= PremiumTiersNew.tier_1.value else 3)))
-        self.bot.logger.error(e)
-        return
+        # resp = await ctx.send(embed=embed(title="", color=MessageColors.error()))
+        self.bot.dispatch("chat_completion", msg, resp, True, filtered=None, prompt="\n".join(chat_history.history(limit=5 if current_tier >= PremiumTiersNew.tier_1.value else 3)))
+        raise ChatError("Something went wrong, please try again later") from e
       if response is None or response == "":
-        return
-      await self.chat_history[msg.channel.id].add_message(msg, response)
+        raise ChatError("Somehow, I don't know what to say.")
+      await chat_history.add_message(msg, response, user_content=content)
       content_filter = await self.content_filter_check(response, str(msg.channel.id))
     if translation is not None and translation.detectedSourceLanguage != "en" and response is not None and "dynamic" not in response:
       chars_to_strip = "?!,;'\":`"
-      final_translation = await Translation.from_text(response.replace("dynamic", ""), from_lang="en", to_lang=translation.detectedSourceLanguage if translation.translatedText.strip(chars_to_strip).lower() != translation.input.strip(chars_to_strip).lower() else "en", parent=self)
+      final_translation = await Translation.from_text(response.replace("dynamic", ""), from_lang="en", to_lang=str(translation.detectedSourceLanguage) if translation.translatedText.strip(chars_to_strip).lower() != translation.input.strip(chars_to_strip).lower() else "en", parent=self)
       response = str(final_translation)
 
     if content_filter != 2:
       resp = await ctx.reply(content=response if content_filter == 0 else f"{POSSIBLE_SENSITIVE_MESSAGE}{response}||", allowed_mentions=discord.AllowedMentions.none(), mention_author=False)
-      await relay_info(f"{PremiumTiersNew(current_tier)} - **{ctx.author.name}:** {ctx.message.clean_content}\n**Me:** {response}", self.bot, webhook=self.bot.log.log_chat)
+      await relay_info(f"{PremiumTiersNew(current_tier)} - **{ctx.author.name}:** {content}\n**Me:** {response}", self.bot, webhook=self.bot.log.log_chat)
     elif content_filter == 2:
       resp = await ctx.reply(content=POSSIBLE_OFFENSIVE_MESSAGE, mention_author=False)
-      await relay_info(f"{PremiumTiersNew(current_tier)} - **{ctx.author.name}:** {ctx.message.clean_content}\n**Me:** Possible offensive message: {response}", self.bot, webhook=self.bot.log.log_chat)
+      await relay_info(f"{PremiumTiersNew(current_tier)} - **{ctx.author.name}:** {content}\n**Me:** Possible offensive message: {response}", self.bot, webhook=self.bot.log.log_chat)
     self.bot.dispatch("chat_completion", msg, resp, False, filtered=content_filter, persona=msg.guild and config and config.persona, prompt="\n".join(self.chat_history[msg.channel.id].history(limit=5 if current_tier >= PremiumTiersNew.tier_1.value else 3)))
 
-    async with self.chat_history[msg.channel.id].lock:
-      if self.chat_history[msg.channel.id].bot_repeating():
+    async with chat_history.lock:
+      if chat_history.bot_repeating():
         self.chat_history.pop(ctx.channel.id)
         self.bot.chat_repeat_counter[msg.channel.id] += 1
         self.bot.logger.info("Popped chat history for channel #{}".format(ctx.channel))
