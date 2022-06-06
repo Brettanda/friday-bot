@@ -253,9 +253,23 @@ class ModLogging(commands.Cog):
   @commands.guild_only()
   @commands.has_guild_permissions(administrator=True)
   @commands.bot_has_guild_permissions(view_audit_log=True)
-  async def mod_log_events(self, ctx: "MyContext", events: commands.Greedy[Literal["bans", "mutes", "unbans", "unmutes", "kicks"]]):
-    if not events:
-      return await ctx.send(embed=embed(title="No events specified", description="You must specify at least one event to log.", color=MessageColors.ERROR))
+  async def mod_log_events(self, ctx: GuildContext, events: commands.Greedy[Literal["bans", "mutes", "unbans", "unmutes", "kicks"]]):
+    config = await self.get_guild_config(ctx.guild.id, connection=ctx.db)
+    current = config.mod_log_events
+    new = await ctx.multi_select(
+        options=[
+            {
+                "label": f"{i}",
+                "value": i,
+                "default": i in current,
+            } for i in EVENT_TYPES
+        ], max_values=len(EVENT_TYPES), min_values=0
+    )
+    if not new:
+      return await ctx.send(embed=embed(title="No events selected.", color=MessageColors.error()))
+    #  events: commands.Greedy[Literal["bans", "mutes", "unbans", "unmutes", "kicks"]]
+    # if not events:
+    #   return await ctx.send(embed=embed(title="No events specified", description="You must specify at least one event to log.", color=MessageColors.error()))
 
     await ctx.db.execute("UPDATE servers SET mod_log_events=$1 WHERE id=$2", new, str(ctx.guild.id))
     self.get_guild_config.invalidate(self, ctx.guild.id)
