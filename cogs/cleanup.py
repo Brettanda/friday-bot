@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from collections import Counter
 from typing import TYPE_CHECKING, Optional
 
 from discord.ext import commands
 
 if TYPE_CHECKING:
-  from functions.custom_contexts import GuildContext, MyContext
+  from functions.custom_contexts import MyContext
   from index import Friday
 
 
