@@ -1,37 +1,35 @@
-# import itertools
-# import math
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Union
+
 import discord
 from discord import Embed
 from discord.ext import commands
-# from discord.ext.menus import ListPageSource
-# from discord.utils import get
 
-# from interactions import Context as SlashContext
-# import typing
-from typing_extensions import TYPE_CHECKING
-# from cogs.cleanup import get_delete_time
 from functions import MessageColors, MyContext, embed  # , views
 
 if TYPE_CHECKING:
-  from index import Friday as Bot
+  from index import Friday
 
 
-def get_examples(command: commands.command, prefix: str = "!") -> list:
+def get_examples(command: Union[commands.Command, commands.Group], prefix: str = "!") -> list:
   if command.extras != {} and "examples" in command.extras:
     examples, x, ay, gy = [], 0, 0, 0
-    alias, aliases, group_aliases = None, [command.name, *command.aliases], [command.parent.name, *command.parent.aliases] if command.parent is not None else []
+    alias = None
+    aliases = [command.name, *command.aliases]
+    group_aliases = command.parent and [command.parent.name, *command.parent.aliases] or []  # type: ignore
     if len(list(command.clean_params)) > 0 and "NoneType" in str(list(command.clean_params.items())[0][1]):
       ay = divmod(x, len(aliases))
       alias = aliases[x - (ay[0] * len(aliases))]
       gy = divmod(x, len(group_aliases)) if command.parent is not None else 0
-      group = group_aliases[x - (gy[0] * len(group_aliases))] + " " if command.parent is not None else ""
+      group = group_aliases[x - (gy[0] * len(group_aliases))] + " " if command.parent is not None else ""  # type: ignore
       x += 1
       examples.append(f"{prefix}{group}{alias}")
     for ex in command.extras["examples"]:
       ay = divmod(x, len(aliases))
       alias = aliases[x - (ay[0] * len(aliases))]
       gy = divmod(x, len(group_aliases)) if command.parent is not None else 0
-      group = group_aliases[x - (gy[0] * len(group_aliases))] + " " if command.parent is not None else ""
+      group = group_aliases[x - (gy[0] * len(group_aliases))] + " " if command.parent is not None else ""  # type: ignore
       examples.append(f"{prefix}{group}{alias} {ex}")
       x += 1
     return examples
@@ -43,17 +41,13 @@ def get_params(com):
   for key, value in com.params.items():
     if key not in ("self", "ctx"):
       if com.usage is not None:
-        # params.append(f"[{command.usage}]" if "NoneType" in str(value) else f"<{command.usage}>")
-        params = f"{com.usage}" if "NoneType" in str(value) else f"{com.usage}"
-      else:
-        post_key = "..." if "Greedy" in str(value) else ""
-        equals = str(value).split(' = ')[1] if len(str(value).split(' = ')) > 1 else str(None)
-        follow_key = f"={equals}" if equals != str(None) else ""
-        # params.append(f"[{key}{follow_key}]{post_key}" if "_Greedy" in str(value) or "NoneType" in str(value) else f"<{key}>")
-        params.append(f"[{key}{follow_key}]{post_key}" if "NoneType" in str(value) else f"<{key}>{post_key}")
-  if isinstance(params, list):
-    params = " ".join(params)
-  return params
+        return f"{com.usage}" if "NoneType" in str(value) else f"{com.usage}"
+      post_key = "..." if "Greedy" in str(value) else ""
+      equals = str(value).split(' = ')[1] if len(str(value).split(' = ')) > 1 else str(None)
+      follow_key = f"={equals}" if equals != str(None) else ""
+      # params.append(f"[{key}{follow_key}]{post_key}" if "_Greedy" in str(value) or "NoneType" in str(value) else f"<{key}>")
+      params.append(f"[{key}{follow_key}]{post_key}" if "NoneType" in str(value) else f"<{key}>{post_key}")
+  return " ".join(params)
 
 
 def syntax(command, prefix: str = "!", quotes: bool = True, *, subcommands: list = None):
@@ -134,7 +128,7 @@ def syntax(command, prefix: str = "!", quotes: bool = True, *, subcommands: list
 #     embed = Embed(
 #         title=self.title,
 #         description=self.description,
-#         colour=MessageColors.DEFAULT
+#         colour=MessageColors.default()
 #     )
 #     embed.set_thumbnail(url=self.ctx.bot.user.display_avatar.url)
 #     embed.set_footer(text=f"{offset:,} - {min(len_data, offset+self.per_page-1):,} of {len_data:,} commands | Use `{self.ctx.clean_prefix}help command` to get more info on a command.")
@@ -156,15 +150,16 @@ def syntax(command, prefix: str = "!", quotes: bool = True, *, subcommands: list
 class Help(commands.HelpCommand):
   def __init__(self):
     super().__init__(command_attrs={"help": "Show help about the bot, a command, or a category.", "case_insensitive": True}, case_insensitive=True)
+    self.context: MyContext = self.context
 
   async def send_error_message(self, error):
-    return await self.context.reply(embed=embed(title=str(error), color=MessageColors.ERROR))
+    return await self.context.reply(embed=embed(title=str(error), color=MessageColors.error()))
 
-  def get_command_signature(self, command: commands.command, *, subcommands: list = None) -> str:
+  def get_command_signature(self, command: commands.Command, *, subcommands: list = None) -> str:
     return '\n'.join(syntax(command, self.context.clean_prefix, quotes=False, subcommands=subcommands).split('\n'))
 
   def make_page_embed(self, commands, title="Friday - Help", description="If you would like to make a suggestion for a command please join the [Friday's Development](https://discord.gg/NTRuFjU) and explain your suggestion.\n\nFor more info on how commands work and how to format them please check out [docs.friday-bot.com](https://docs.friday-bot.com/).\n\n**Some commands will only show if you have the correct permissions to use them.**", missing_perms=False):
-    embed = Embed(color=MessageColors.DEFAULT)
+    embed = Embed(color=MessageColors.default())
     embed.title = title
     embed.description = description
     # embed.set_footer()
@@ -189,19 +184,19 @@ class Help(commands.HelpCommand):
 
     return embed
 
-  def make_default_embed(self, cogs: [commands.Cog], title="Friday - Help", description=None):
-    embed = Embed(color=MessageColors.DEFAULT)
-    embed.title = title
-    embed.description = description
+  # def make_default_embed(self, cogs: Iterable[commands.Cog], title="Friday - Help", description=None):
+  #   embed = Embed(color=MessageColors.default())
+  #   embed.title = title
+  #   embed.description = description
 
-    x = 0
-    for cog in cogs:
-      cog, description, command_list = cog
-      description = f"{description or 'No description'} \n {''.join([f'`{command.qualified_name}` ' for command in command_list])}"
-      embed.add_field(name=cog.qualified_name, value=description, inline=False)
-      x += 1
+  #   x = 0
+  #   for cog in cogs:
+  #     cog, description, command_list = cog
+  #     description = f"{description or 'No description'} \n {''.join([f'`{command.qualified_name}` ' for command in command_list])}"
+  #     embed.add_field(name=cog.qualified_name, value=description, inline=False)
+  #     x += 1
 
-    return embed
+  #   return embed
 
   async def command_callback(self, ctx: "MyContext", *, command=None):
     self.context = ctx
@@ -210,7 +205,7 @@ class Help(commands.HelpCommand):
   async def send_bot_help(self, mapping):
     ctx = self.context
     ctx.invoked_with = "help"
-    # bot: "Bot" = ctx.bot
+    # bot: Friday = ctx.bot
 
     e = embed(
           title="Friday - Help links",
@@ -224,7 +219,7 @@ class Help(commands.HelpCommand):
 
     try:
       await ctx.author.send(embed=e)
-    except discord.Forbidden:
+    except discord.HTTPException:
       await ctx.send(embed=e)
     else:
       await ctx.message.add_reaction("✅")
@@ -246,23 +241,23 @@ class Help(commands.HelpCommand):
   async def send_cog_help(self, cog):
     ctx = self.context
     ctx.invoked_with = "help"
-    # bot: "Bot" = ctx.bot
+    # bot: Friday = ctx.bot
 
     filtered = await self.filter_commands(cog.get_commands(), sort=True)
 
     embed = self.make_page_embed(
         filtered,
         title=(cog and cog.qualified_name or "Other") + " Commands",
-        description=discord.Embed.Empty if cog is None else cog.description,
+        description=cog and cog.description,
         missing_perms=len(filtered) != len(cog.get_commands())
     )
 
-    await ctx.reply(embed=embed)
+    await ctx.reply(embed=embed, reference=ctx.replied_reference)
 
   async def send_group_help(self, group):
     ctx = self.context
     ctx.invoked_with = "help"
-    # bot: "Bot" = ctx.bot
+    # bot: Friday = ctx.bot
 
     subcommands = group.commands
     if len(subcommands) == 0:
@@ -286,10 +281,10 @@ class Help(commands.HelpCommand):
 
     embed.add_field(name="Signature", value="```py\n" + self.get_command_signature(group, subcommands=filtered) + "```", inline=False)
 
-    await ctx.reply(embed=embed)
+    await ctx.reply(embed=embed, reference=ctx.replied_reference)
 
   async def send_command_help(self, command: commands.Command):
-    embed = Embed(color=MessageColors.DEFAULT)
+    embed = Embed(color=MessageColors.default())
     embed.title = self.context.clean_prefix + command.qualified_name
 
     if command.description:
@@ -308,10 +303,10 @@ class Help(commands.HelpCommand):
     await self.context.reply(embed=embed)
 
 
-async def setup(bot: "Bot"):
+async def setup(bot: Friday):
   bot.old_help_command = bot.help_command
   bot.help_command = Help()
 
 
-def teardown(bot: "Bot"):
+def teardown(bot: Friday):
   bot.help_command = bot.old_help_command
