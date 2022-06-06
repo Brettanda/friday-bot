@@ -21,11 +21,9 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
       - name: Install dependencies
-        if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          python -m pip install --upgrade pip
           pip install pytest
-          if [ -f requirements.txt ]; then python -m pip install -r requirements.txt; fi
+          pip install -r requirements.txt
       - name: Checkout all the submodules
         uses: actions/checkout@v2
         with:
