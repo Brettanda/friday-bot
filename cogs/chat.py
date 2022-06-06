@@ -270,6 +270,31 @@ class Chat(commands.Cog):
       return await ctx.reply("yeah we know", allowed_mentions=discord.AllowedMentions.none())
     await ctx.reply(content, allowed_mentions=discord.AllowedMentions.none())
 
+  @commands.group("chat", invoke_without_command=True)
+  async def chat(self, ctx: MyContext, *, message: str):
+    """Chat with Friday powered by GPT-3 and get a response."""
+    await self.chat_message(ctx, content=message)
+
+  @chat.error
+  async def chat_error(self, ctx: MyContext, error: commands.CommandError):
+    if isinstance(error, ChatError):
+      await ctx.send(embed=embed(title=str(error), color=MessageColors.error()))
+
+  @chat.command("info")
+  async def chat_info(self, ctx: MyContext):
+    """Displays information about the current conversation."""
+    free_rate = self._spam_check._free.get_bucket(ctx.message).get_tokens(ctx.message.created_at.timestamp())
+    voted_rate = self._spam_check._voted.get_bucket(ctx.message).get_tokens(ctx.message.created_at.timestamp())
+    patroned_rate = self._spam_check._patron.get_bucket(ctx.message).get_tokens(ctx.message.created_at.timestamp())
+    history = self.chat_history[ctx.channel.id]
+    content = history and str(history) or "No history"
+    await ctx.send(embed=embed(
+        title="Chat Info",
+        fieldstitle=["Messages", "Voted messages", "Patroned messages", "Recent history resets", "Message History"],
+        fieldsval=[f"{free_rate} remaining", f"{voted_rate} remaining", f"{patroned_rate} remaining", str(self.bot.chat_repeat_counter[ctx.channel.id]), f"```\n{content}\n```"],
+        fieldsin=[True, True, True, False, False]
+    ))
+
   @commands.command(name="reset", help="Resets Friday's chat history. Helps if Friday is repeating messages")
   async def reset_history(self, ctx: MyContext):
     try:
