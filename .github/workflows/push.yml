@@ -32,7 +32,8 @@ jobs:
             ${{ matrix.os }}-
       - name: Where is venv
         run: |
-          ls ~/venv
+          cd ~/venv
+          pwd
       - name: Install dependencies
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
