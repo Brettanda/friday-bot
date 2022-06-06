@@ -18,7 +18,7 @@ from typing_extensions import Annotated
 from functions import (MessageColors, cache, checks, embed, exceptions,
                        relay_info, time)
 
-from .moderation import can_execute_action
+# from .moderation import can_execute_action
 
 if TYPE_CHECKING:
   from typing_extensions import Self
@@ -49,8 +49,8 @@ class RoleOrChannel(commands.Converter):
       except commands.BadArgument:
         raise commands.BadArgument("Role or channel not found.")
 
-    if isinstance(item, discord.Role) and not can_execute_action(ctx, ctx.author, item):
-      raise commands.BadArgument("Your role hierarchy is too low for this action.")
+    # if isinstance(item, discord.Role) and not can_execute_action(ctx, ctx.author, item):
+    #   raise commands.BadArgument("Your role hierarchy is too low for this action.")
     return item
 
 
@@ -143,20 +143,29 @@ class Config:
   async def kick(self, member: discord.Member, reason: Optional[str] = "Auto-kick for spamming.") -> None:
     await member.kick(reason=reason or "Auto-kick for spamming.")
 
-  async def ban(self, member: discord.Member, reason: str = "Auto-ban for spamming.") -> None:
+  async def ban(self, member: discord.Member, duration: Optional[datetime.timedelta], reason: Optional[str] = "Auto-ban for spamming.") -> None:
     await member.ban(reason=reason or "Auto-ban for spamming.")
+    if duration:
+      now = discord.utils.utcnow()
+      dur = now + duration
+      reminder = self.bot.reminder
+      if reminder is None:
+        return self.bot.logger.error("Reminder cog is not loaded.")
+      await reminder.create_timer(dur, "tempban", member.guild.id, self.bot.user.id, member.id, created=now)
 
-  async def apply_punishment(self, guild: discord.Guild, msg: discord.Message, punishments: List[str], *, reason: str = None) -> Optional[discord.Message]:
+  async def apply_punishment(self, guild: discord.Guild, msg: discord.Message, punishments: Sequence[str], *, member: Optional[discord.Member] = None, reason: Optional[str] = None) -> None:
+    new_member = member or msg.author
+    assert isinstance(new_member, discord.Member)
     if "delete" in punishments:
       await self.delete(msg)
     if "ban" in punishments:
-      await self.ban(msg.author, reason=reason)
+      await self.ban(new_member, duration=self.warn_ban_duration, reason=reason)
     elif "kick" in punishments:
-      await self.kick(msg.author, reason=reason)
+      await self.kick(new_member, reason=reason)
     elif "timeout" in punishments:
-      await self.timeout(msg.author, reason=reason)
+      await self.timeout(new_member, duration=self.warn_timeout_duration, reason=reason)
     elif "mute" in punishments:
-      await self.mute(msg.author, reason=reason)
+      await self.mute(new_member, duration=self.warn_mute_duration, reason=reason)
 
 
 class CooldownByContent(commands.CooldownMapping):
