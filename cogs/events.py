@@ -143,7 +143,7 @@ class ScheduledEvents(commands.Cog):
 
   @cache.cache()
   async def get_guild_config(self, guild_id: int, *, connection: Optional[Union[asyncpg.Pool, asyncpg.Connection]] = None) -> Config:
-    connection = connection or self.bot.pool
+    conn = connection or self.bot.pool
     # query = """SELECT s.default_event_role_id, s.id::bigint as guild_id, e.event_id, e.role_id, e.subscribers
     #           FROM servers s
     #           LEFT OUTER JOIN scheduledevents e ON s.id::bigint = e.guild_id
@@ -152,7 +152,7 @@ class ScheduledEvents(commands.Cog):
               FROM servers s
               LEFT OUTER JOIN scheduledevents e ON s.id::bigint = e.guild_id
               WHERE s.id::bigint=$1;"""
-    records = await connection.fetch(query, guild_id)  # type: ignore
+    records = await conn.fetch(query, guild_id)
     return records and await Config.from_records(records, self.bot)
 
   @commands.Cog.listener()

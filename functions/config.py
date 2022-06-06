@@ -244,32 +244,7 @@ class PremiumTiers:
     return self.roles[tier - 1]
 
 
-premium_tiers = {
-    "free": 0,
-    "t1_one_guild": 1,
-    "t1_three_guilds": 2,
-    "t2_one_guild": 3,
-    "t3_one_guild": 4,
-    "t4_one_guild": 5,
-}
-
-premium_roles = {
-    "t1_one_guild": 844090257221222401,
-    premium_tiers["t1_one_guild"]: 844090257221222401,
-    "t1_three_guilds": 849440438598238218,
-    premium_tiers["t1_three_guilds"]: 849440438598238218,
-    "t2_one_guild": 851980183962910720,
-    premium_tiers["t2_one_guild"]: 851980183962910720,
-    # "t2_three_guilds": 851980649920331798,
-    # premium_tiers["t2_three_guilds"]: 851980649920331798,
-    "t3_one_guild": 858993523536429056,
-    premium_tiers["t3_one_guild"]: 858993523536429056,
-    "t4_one_guild": 858993776994418708,
-    premium_tiers["t4_one_guild"]: 858993776994418708,
-}
-
-
-allowed_mentions = discord.AllowedMentions(roles=False, everyone=False, users=True)
+allowed_mentions = discord.AllowedMentions(roles=False, everyone=False, users=True, replied_user=False)
 
 
 soups = [

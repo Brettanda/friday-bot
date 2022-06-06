@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Union
 
 import discord
 import psutil
@@ -156,7 +156,7 @@ class General(commands.Cog):
 
   @commands.command(name="userinfo", extras={"examples": ["@Friday", "476303446547365891"]}, help="Some information on the mentioned user")
   @commands.guild_only()
-  async def userinfo(self, ctx: GuildContext, *, user: Optional[Union[discord.Member, discord.User]] = None):
+  async def userinfo(self, ctx: GuildContext, *, user: Union[discord.Member, discord.User] = None):
     user = user or ctx.author
     await ctx.send(embed=embed(
         title=f"{user.name} - Info",

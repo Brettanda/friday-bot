@@ -338,10 +338,10 @@ class Log(commands.Cog):
     return ["/", "!", "f!", "!f", "%", ">", "?", "-", "(", ")"]
 
   @cache.cache(ignore_kwargs=True)
-  async def get_guild_config(self, guild_id: int, *, connection: Optional[Union[asyncpg.Pool, asyncpg.Connection]] = None) -> Config:
+  async def get_guild_config(self, guild_id: int, *, connection: Optional[asyncpg.Pool | asyncpg.Connection] = None) -> Config:
     query = "SELECT * FROM servers WHERE id=$1 LIMIT 1;"
-    connection = connection or self.bot.pool
-    record = await connection.fetchrow(query, str(guild_id))  # type: ignore
+    conn = connection or self.bot.pool
+    record = await conn.fetchrow(query, str(guild_id))
     self.bot.logger.debug(f"PostgreSQL Query: \"{query}\" + {str(guild_id)}")
     if not record:
       raise ValueError("Server not found.")
@@ -387,6 +387,8 @@ class Log(commands.Cog):
 
     if isinstance(error, just_send):
       await ctx.send(embed=embed(title=str(error), color=MessageColors.error()), ephemeral=True)
+    elif isinstance(error, commands.BadUnionArgument) and "into Member or User." in str(error):
+      await ctx.send(embed=embed(title="Invalid user. Please mention a user or provide a user ID.", color=MessageColors.error()))
     elif isinstance(error, (commands.MissingRequiredArgument, commands.TooManyArguments)):
       await ctx.send_help(ctx.command)
     elif isinstance(error, commands.CommandOnCooldown):

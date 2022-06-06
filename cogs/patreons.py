@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import functools
 import os
-from typing import TYPE_CHECKING, List, Sequence
+from typing import TYPE_CHECKING, List, Sequence, Optional, Union
 
 import asyncpg
 import discord
@@ -96,8 +96,8 @@ class Patreons(commands.Cog):
     return f"<cogs.{self.__cog_name__}>"
 
   @cache.cache()
-  async def get_patrons(self, *, connection=None) -> Sequence[PatreonConfig]:
-    connection = connection or self.bot.pool
+  async def get_patrons(self, *, connection: Optional[Union[asyncpg.Pool, asyncpg.Connection]] = None) -> Sequence[PatreonConfig]:
+    conn = connection or self.bot.pool
     campaign = await self.bot.loop.run_in_executor(None, self.patreon.fetch_campaign)
     campaign_id = campaign.data()[0].id()
 
@@ -113,7 +113,7 @@ class Patreons(commands.Cog):
         break
 
     query = "SELECT * FROM patrons"
-    records = await connection.fetch(query)
+    records = await conn.fetch(query)
 
     configs = []
     for p in all_pledges:
