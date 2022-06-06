@@ -24,6 +24,7 @@ from functions.config import PremiumTiersNew
 if TYPE_CHECKING:
   from typing_extensions import Self
 
+  from cogs.patreons import Patreons
   from functions.custom_contexts import GuildContext
   from index import Friday
 
@@ -282,19 +283,19 @@ class Chat(commands.Cog):
   @commands.guild_only()
   @commands.has_guild_permissions(manage_channels=True)
   async def chatchannel(self, ctx: GuildContext, channel: discord.TextChannel = None):
+    """Set the current channel so that I will always try to respond with something"""
     if channel is None:
-      chat_channel = await ctx.pool.fetchval("SELECT chatchannel FROM servers WHERE id=$1 LIMIT 1", str(ctx.guild.id))
-      chat_channel = chat_channel and await self.bot.fetch_channel(chat_channel)
-      return await ctx.send(embed=embed(title="Current chat channel", description=f"{chat_channel.mention if chat_channel else 'None'}"))
+      config = await self.get_guild_config(ctx.guild.id, connection=ctx.db)
+      return await ctx.send(embed=embed(title="Current chat channel", description=f"{config and config.chat_channel and config.chat_channel.mention}"))
 
-    await ctx.pool.execute("UPDATE servers SET chatchannel=$1 WHERE id=$2", str(channel.id), str(ctx.guild.id))
+    await ctx.db.execute("UPDATE servers SET chatchannel=$1 WHERE id=$2", str(channel.id), str(ctx.guild.id))
     await ctx.send(embed=embed(title="Chat channel set", description=f"I will now respond to every message in this channel\n{channel.mention}"))
 
   @chatchannel.command(name="clear", help="Clear the current chat channel")
   @commands.guild_only()
   @commands.has_guild_permissions(manage_channels=True)
   async def chatchannel_clear(self, ctx: GuildContext):
-    await ctx.pool.execute("UPDATE servers SET chatchannel=NULL WHERE id=$1", str(ctx.guild.id))
+    await ctx.db.execute("UPDATE servers SET chatchannel=NULL WHERE id=$1", str(ctx.guild.id))
     await ctx.send(embed=embed(title="Chat channel cleared", description="I will no longer respond to messages in this channel"))
 
   @commands.command(name="persona", help="Change Friday's persona")
@@ -306,7 +307,7 @@ class Chat(commands.Cog):
     if choice is None:
       return await ctx.send(embed=embed(title="No change made"))
 
-    await ctx.pool.execute("UPDATE servers SET persona=$1 WHERE id=$2", choice[0], str(ctx.guild.id))
+    await ctx.db.execute("UPDATE servers SET persona=$1 WHERE id=$2", choice[0], str(ctx.guild.id))
     await ctx.send(embed=embed(title=f"New Persona `{choice[0].capitalize()}`"))
 
   @chatchannel.after_invoke

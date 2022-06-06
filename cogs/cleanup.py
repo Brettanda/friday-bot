@@ -1,22 +1,22 @@
-# import asyncio
+from __future__ import annotations
 
-# import discord
+from collections import Counter
+from typing import TYPE_CHECKING, Optional
+
 from discord.ext import commands
 
-from typing_extensions import TYPE_CHECKING
-from functions import MyContext
-
 if TYPE_CHECKING:
-  from index import Friday as Bot
+  from functions.custom_contexts import GuildContext, MyContext
+  from index import Friday
 
 
-async def get_delete_time(ctx: "MyContext" = None, guild_id: int = None):
-  if isinstance(ctx, commands.Context) and guild_id is None:
+async def get_delete_time(ctx: MyContext, guild_id: int = None) -> Optional[int]:
+  if guild_id is None:
     guild_id = ctx.guild.id if ctx.guild is not None else None
   if ctx is None and guild_id is None:
     return None
   try:
-    result = await ctx.bot.db.query("SELECT autoDeleteMSGs FROM servers WHERE id=%s", guild_id)
+    result = await ctx.db.fetchval("SELECT autoDeleteMSGs FROM servers WHERE id=%s", guild_id)
     if result is None or result == 0:
       return None
     return result
@@ -25,8 +25,8 @@ async def get_delete_time(ctx: "MyContext" = None, guild_id: int = None):
 
 
 class CleanUp(commands.Cog):
-  def __init__(self, bot: "Bot"):
-    self.bot = bot
+  def __init__(self, bot: Friday):
+    self.bot: Friday = bot
   #   # self.exlusions = ["meme","issue","reactionrole"]
 
   # @commands.command(name="clear", help="Deletes the bots commands ignoring anything that is not a command", hidden=True)
