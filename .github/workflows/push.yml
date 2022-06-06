@@ -21,7 +21,6 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
       - name: Install dependencies
-        if: steps.cache.outputs.cache-hit != 'true'
         run: |
           pip install pytest
           pip install -r requirements.txt
@@ -57,7 +56,6 @@ jobs:
         python-version: ${{ matrix.python-version }}
         cache: 'pip'
     - name: Install dependencies
-      if: steps.cache.outputs.cache-hit != 'true'
       run: |
         pip install flake8
     - name: Lint with flake8
@@ -83,7 +81,6 @@ jobs:
         python-version: ${{ matrix.python-version }}
         cache: 'pip'
     - name: Install dependencies
-      if: steps.cache.outputs.cache-hit != 'true'
       run: |
         pip install pytest
         pip install -r requirements.txt
