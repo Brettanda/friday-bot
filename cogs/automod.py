@@ -1,12 +1,9 @@
 from __future__ import annotations
 
-import asyncio
 import datetime
-import enum
 import json
 import re
-from collections import defaultdict
-from typing import (TYPE_CHECKING, List, Literal, Optional, Sequence, Set,
+from typing import (TYPE_CHECKING, List, Optional, Sequence, Set,
                     TypedDict, Union)
 
 import asyncpg
@@ -34,6 +31,8 @@ if TYPE_CHECKING:
 INVITE_REG = re.compile(r"<?(https?:\/\/)?(www\.)?((discord\.(gg|io|me))|(discord(app|)\.(gg|com)\/invite))\/[a-zA-Z0-9\-]+>?", re.RegexFlag.MULTILINE + re.RegexFlag.IGNORECASE)
 
 PUNISHMENT_TYPES = ["delete", "kick", "ban", "mute", "timeout"]
+
+
 class InvalidPunishments(exceptions.Base):
   def __init__(self, punishments: list = []):
     super().__init__(message=f"The following punishments are invalid: {', '.join(punishments)}" if len(punishments) > 0 else "One or more of the punishments you provided is invalid.")
