@@ -8,7 +8,7 @@ import sys
 import traceback
 import typing
 from collections import Counter
-from typing import TYPE_CHECKING, List, Optional, Set, Union
+from typing import TYPE_CHECKING, List, Optional, Set
 
 import asyncpg
 import discord
