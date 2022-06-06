@@ -13,6 +13,7 @@ from functions import MessageColors, cache, config, embed
 if TYPE_CHECKING:
   from typing_extensions import Self
 
+  from cogs.chat import Chat
   from functions.custom_contexts import GuildContext
   from index import Friday
 
@@ -150,23 +151,24 @@ class Config(commands.Cog, command_attrs=dict(extras={"permissions": ["manage_gu
   @commands.has_guild_permissions(administrator=True)
   async def language(self, ctx: GuildContext, language: Optional[str] = None):
     lang = ctx.guild.preferred_locale.value.split("-")[0]
-    if language is None and ctx.guild is not None:
-      language = lang
+    new_language = language or lang
 
-    new_lang = pycountry.languages.get(alpha_2=language) if len(language) <= 2 else pycountry.languages.get(name=language)
+    new_lang = pycountry.languages.get(alpha_2=language) if len(new_language) <= 2 else pycountry.languages.get(name=new_language)
     if new_lang is None:
       return await ctx.reply(embed=embed(title=f"Failed to find language: `{language}`", color=MessageColors.ERROR))
 
     final_lang = new_lang.alpha_2 if new_lang is not None else lang
     final_lang_name = new_lang.name if new_lang is not None else lang
-    await self.bot.db.query("UPDATE servers SET lang=$1 WHERE id=$2", final_lang, str(ctx.guild.id))
+    await ctx.db.execute("UPDATE servers SET lang=$1 WHERE id=$2", final_lang, str(ctx.guild.id))
     await ctx.reply(embed=embed(title=f"New language set to: `{final_lang_name}`"))
-    chat = self.bot.get_cog("Chat")
+    chat: Optional[Chat] = self.bot.get_cog("Chat")  # type: ignore
+
     if chat is not None:
       chat.get_guild_config.invalidate(chat, ctx.guild.id)
     log = self.bot.log
     if log is not None:
       log.get_guild_config.invalidate(log, ctx.guild.id)
+    ctx._lang = final_lang, self.bot.languages[final_lang]
 
   @commands.group("botchannel", invoke_without_command=True, case_insensitive=True, extras={"examples": ["#botspam"]}, help="The channel where bot commands live.")
   async def botchannel(self, ctx: GuildContext, *, channel: discord.TextChannel = None):
