@@ -262,8 +262,11 @@ class ModLogging(commands.Cog):
     await ctx.send(embed=embed(title=f"Mod log events have been set to `{formats.human_join(new, final='and')}`"))
 
   @mod_log_events.error
-  async def mod_log_events_error(self, ctx: "MyContext", error: Exception):
+  async def mod_log_events_error(self, ctx: MyContext, error: commands.CommandError):
     if isinstance(error, commands.BadLiteralArgument):
+      return await ctx.send(embed=embed(title="Invalid event(s)", description=f"You must specify one of the following events: {', '.join(EVENT_TYPES)}.", color=MessageColors.error()))
+
+
 class LogEvents(enum.Enum):
   # nothing = 0
   delete = 1
