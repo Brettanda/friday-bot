@@ -228,10 +228,10 @@ class FriendlyTimeResult:
 
 class UserFriendlyTime(commands.Converter):
   def __init__(self, converter: Optional[Union[type[commands.Converter], commands.Converter]] = None, *, default: Any = None):
-    if isinstance(converter, type) and issubclass(converter, commands.Converter):  # type: ignore
+    if isinstance(converter, type) and issubclass(converter, commands.Converter):
       converter = converter()
 
-    if converter is not None and not isinstance(converter, commands.Converter):  # type: ignore
+    if converter is not None and not isinstance(converter, commands.Converter):
       raise TypeError("converter must be a subclass of Converter")
 
     self.converter: commands.Converter = converter  # type: ignore  # It doesn't understand this narrowing
