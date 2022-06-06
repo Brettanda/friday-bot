@@ -19,7 +19,7 @@ jobs:
         id: cache
         with:
           python-version: ${{ matrix.python-version }}
-          cache: pip-${{ hashfiles('requirements.txt') }}
+          cache: main-pip
       - name: Install dependencies
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
