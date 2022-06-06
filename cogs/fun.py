@@ -6,7 +6,8 @@ import json
 import re
 from collections import defaultdict
 # import random
-from typing import TYPE_CHECKING, Any, Optional, Sequence
+from typing import TYPE_CHECKING, Any, Optional, Sequence, List, Tuple
+from typing_extensions import Annotated
 
 import discord
 import numpy as np
@@ -31,6 +32,16 @@ with open('./config.json') as f:
 POLLNAME_REGEX = re.compile(r'(?:\s{4}|\t)(.+)')
 
 
+def is_nacl_server():
+  async def predicate(ctx: MyContext):
+    if ctx.guild is None:
+      raise commands.NotOwner()
+    if ctx.guild.id not in (215346091321720832, 243159711237537802):
+      raise commands.NotOwner()
+    return True
+  return commands.check(predicate)
+
+
 class Fun(commands.Cog):
   """Fun games and other commands to give more life to your Discord server."""
 
@@ -48,6 +59,8 @@ class Fun(commands.Cog):
     self.poll_edit_lock = asyncio.Lock()
     self.poll_loop.start()
 
+    self.callroulette_batch: List[Tuple[discord.Member, Sequence[discord.VoiceChannel]]] = []
+
   def __repr__(self) -> str:
     return f"<cogs.{self.__cog_name__}>"
 
@@ -55,10 +68,14 @@ class Fun(commands.Cog):
     countdowns = await self.bot.pool.fetch("SELECT guild,channel,message,title,time FROM countdowns")
     for countdown in countdowns:
       self.countdowns.append(tuple(c for c in countdown))
+    if self.callroulette_loop.is_running():
+      self.callroulette_loop.cancel()
+    self.callroulette_loop.start()
 
   async def cog_unload(self):
     self.loop_countdown.stop()
     self.poll_loop.stop()
+    self.callroulette_loop.stop()
 
   async def cog_command_error(self, ctx: MyContext, error: commands.CommandError):
     error = getattr(error, "original", error)
@@ -257,7 +274,7 @@ class Fun(commands.Cog):
     e = msg.embeds[0]
     return bool(e.title and (e.title.startswith("Poll: ") or e.title.startswith("Pole: ")) and not (e.author and e.author.name and "Poll Ended" in e.author.name))
 
-  @commands.group(name="poll", extras={"examples": ["\"this is a title\" '1' '2' '3'", "\"Do you like being pinged for random things\" Yes No \"I just mute everything\""]}, help="Make a poll. Contain each option in qoutes `'option' 'option 2'`", invoke_without_command=True)
+  @commands.group(name="poll", extras={"examples": ["\"this is a title\" '1' '2' '3'", "\"Do you like being pinged for random things\" Yes No \"I just mute everything\""]}, help="Make a poll. Contain each option in qoutes `'option' 'option 2'`", invoke_without_command=True, case_insensitive=True)
   # @commands.group(name="poll", extras={"examples": ["\"this is a title\" 1;;2;;3"]}, help="Make a poll. Seperate the options with `;;`")
   @commands.guild_only()
   @commands.bot_has_permissions(add_reactions=True)
@@ -565,6 +582,59 @@ class Fun(commands.Cog):
   async def choice(self, ctx: MyContext, *, choices: str):
     new_choices = choices.split(",")
     await ctx.send(embed=embed(title=f"{random.choice(new_choices)}"))
+
+  @tasks.loop(seconds=2)
+  async def callroulette_loop(self):
+    if not self.callroulette_batch:
+      return
+
+    for member, excepts in self.callroulette_batch:
+      all_channels = member.guild.voice_channels
+      if not member.voice or not member.voice.channel or isinstance(member.voice.channel, discord.StageChannel):
+        self.callroulette_batch.remove((member, excepts))
+        continue
+      for exp in excepts:
+        if exp in excepts:
+          all_channels.remove(exp)
+      for ch in all_channels:
+        perms = ch.permissions_for(member)
+        if not perms.connect or not perms.view_channel:
+          all_channels.remove(ch)
+      index = all_channels.index(member.voice.channel) + 1
+      if index >= len(all_channels):
+        index = 0
+      _next = all_channels[index]
+      await member.move_to(_next, reason="Command: callroulette")
+      if len(_next.members) > 1:
+        self.callroulette_batch.remove((member, excepts))
+        continue
+
+  @commands.group("callroulette", aliases=["voiceroulette", "channelroulette"], invoke_without_command=True, case_insensitive=True, hidden=True)
+  @commands.guild_only()
+  @is_nacl_server()
+  async def callroulette(self, ctx: GuildContext, excluded_channels: Annotated[List[discord.VoiceChannel], commands.Greedy[discord.VoiceChannel]] = []):
+    """
+      Auto ignores voicechannels that are currently occupied.
+    """
+    if ctx.author in [i for i, _ in self.callroulette_batch]:
+      return await ctx.send(embed=embed(title="You already have callroulette active", color=MessageColors.error()))
+
+    if not ctx.author.voice or not ctx.author.voice.channel:
+      return await ctx.send(embed=embed(title="You are not in a voice channel", color=MessageColors.error()))
+
+    self.callroulette_batch.append((ctx.author, excluded_channels))
+    await ctx.send(embed=embed(title="Callroulette started"))
+
+  @callroulette.command("stop", aliases=["end", "cancel"], hidden=True)
+  @commands.guild_only()
+  @is_nacl_server()
+  async def callroulette_stop(self, ctx: GuildContext):
+    if ctx.author not in [i for i, _ in self.callroulette_batch]:
+      return await ctx.send(embed=embed(title="You do not have callroulette active", color=MessageColors.error()))
+
+    excepts = self.callroulette_batch[self.callroulette_batch.index((ctx.author, []))][1]
+    self.callroulette_batch.remove((ctx.author, excepts))
+    await ctx.send(embed=embed(title="Callroulette stopped"))
 
 
 async def setup(bot):
