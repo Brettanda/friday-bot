@@ -301,6 +301,8 @@ class Logging(commands.Cog):
 
   def __repr__(self) -> str:
     return f"<cogs.{self.__cog_name__}>"
+
+
 async def setup(bot):
   await bot.add_cog(ModLogging(bot))
   await bot.add_cog(Logging(bot))
