@@ -10,7 +10,7 @@ import asyncpg
 import discord
 from discord.ext import commands  # , tasks
 
-from functions import MessageColors, MyContext, cache, checks, embed, formats
+from functions import MessageColors, MyContext, cache, embed, formats
 
 if TYPE_CHECKING:
   from typing_extensions import Self
@@ -267,9 +267,6 @@ class ModLogging(commands.Cog):
     )
     if not new:
       return await ctx.send(embed=embed(title="No events selected.", color=MessageColors.error()))
-    #  events: commands.Greedy[Literal["bans", "mutes", "unbans", "unmutes", "kicks"]]
-    # if not events:
-    #   return await ctx.send(embed=embed(title="No events specified", description="You must specify at least one event to log.", color=MessageColors.error()))
 
     await ctx.db.execute("UPDATE servers SET mod_log_events=$1 WHERE id=$2", new, str(ctx.guild.id))
     self.get_guild_config.invalidate(self, ctx.guild.id)
