@@ -304,17 +304,17 @@ class Log(commands.Cog):
     if ctx.command is None:
       return
 
-    bucket = self.spam_control.get_bucket(message)
     current = message.created_at.replace(tzinfo=datetime.timezone.utc).timestamp()
-    retry_after = bucket.update_rate_limit(current)
+    bucket = self.spam_control.get_bucket(message, current)
+    retry_after = bucket and bucket.update_rate_limit(current)
     author_id = message.author.id
 
-    super_bucket = self.super_spam_control.get_bucket(message)
-    super_retry_after = super_bucket.get_retry_after(current)
+    super_bucket = self.super_spam_control.get_bucket(message, current)
+    super_retry_after = super_bucket and super_bucket.get_retry_after(current)
 
     if retry_after and author_id != self.bot.owner_id and author_id != 892865928520413245:
       self._auto_spam_count[author_id] += 1
-      super_retry_after = super_bucket.update_rate_limit(current)
+      super_retry_after = super_bucket and super_bucket.update_rate_limit(current)
       if super_retry_after and self._auto_spam_count[author_id] == 5:
         await self.log_spammer(ctx, message, retry_after, notify=True)
       elif self._auto_spam_count[author_id] > 5:

@@ -103,17 +103,17 @@ class SpamChecker:
   def is_spamming(self, msg: discord.Message, tier: int, voted: bool) -> tuple[bool, Optional[Cooldown], Optional[str]]:
     current = msg.created_at.timestamp()
 
-    min_bucket = self._absolute_minute.get_bucket(msg)
-    hour_bucket = self._absolute_hour.get_bucket(msg)
-    free_bucket = self._free.get_bucket(msg)
-    voted_bucket = self._voted.get_bucket(msg)
-    patron_bucket = self._patron.get_bucket(msg)
+    min_bucket = self._absolute_minute.get_bucket(msg, current)
+    hour_bucket = self._absolute_hour.get_bucket(msg, current)
+    free_bucket = self._free.get_bucket(msg, current)
+    voted_bucket = self._voted.get_bucket(msg, current)
+    patron_bucket = self._patron.get_bucket(msg, current)
 
-    min_rate = min_bucket.update_rate_limit(current)
-    hour_rate = hour_bucket.update_rate_limit(current)
-    free_rate = free_bucket.update_rate_limit(current)
-    voted_rate = voted_bucket.update_rate_limit(current)
-    patron_rate = patron_bucket.update_rate_limit(current)
+    min_rate = min_bucket and min_bucket.update_rate_limit(current)
+    hour_rate = hour_bucket and hour_bucket.update_rate_limit(current)
+    free_rate = free_bucket and free_bucket.update_rate_limit(current)
+    voted_rate = voted_bucket and voted_bucket.update_rate_limit(current)
+    patron_rate = patron_bucket and patron_bucket.update_rate_limit(current)
 
     if min_rate:
       return True, min_bucket, None
@@ -270,7 +270,7 @@ class Chat(commands.Cog):
       return await ctx.reply("yeah we know", allowed_mentions=discord.AllowedMentions.none())
     await ctx.reply(content, allowed_mentions=discord.AllowedMentions.none())
 
-  @commands.group("chat", invoke_without_command=True)
+  @commands.group("chat", invoke_without_command=True, case_insensitive=True)
   async def chat(self, ctx: MyContext, *, message: str):
     """Chat with Friday powered by GPT-3 and get a response."""
     await self.chat_message(ctx, content=message)
@@ -283,9 +283,13 @@ class Chat(commands.Cog):
   @chat.command("info")
   async def chat_info(self, ctx: MyContext):
     """Displays information about the current conversation."""
-    free_rate = self._spam_check._free.get_bucket(ctx.message).get_tokens(ctx.message.created_at.timestamp())
-    voted_rate = self._spam_check._voted.get_bucket(ctx.message).get_tokens(ctx.message.created_at.timestamp())
-    patroned_rate = self._spam_check._patron.get_bucket(ctx.message).get_tokens(ctx.message.created_at.timestamp())
+    current = ctx.message.created_at.timestamp()
+    free_rate = self._spam_check._free.get_bucket(ctx.message, current)
+    free_rate = free_rate and free_rate.get_tokens(ctx.message.created_at.timestamp())
+    voted_rate = self._spam_check._voted.get_bucket(ctx.message, current)
+    voted_rate = voted_rate and voted_rate.get_tokens(ctx.message.created_at.timestamp())
+    patroned_rate = self._spam_check._patron.get_bucket(ctx.message, current)
+    patroned_rate = patroned_rate and patroned_rate.get_tokens(ctx.message.created_at.timestamp())
     history = self.chat_history[ctx.channel.id]
     content = history and str(history) or "No history"
     await ctx.send(embed=embed(
