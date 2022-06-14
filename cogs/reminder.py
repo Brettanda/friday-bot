@@ -57,7 +57,7 @@ class Timer:
     except AttributeError:
       return False
 
-  def __hash__(self):
+  def __hash__(self) -> int:
     return hash(self.id)
 
   @property
@@ -93,7 +93,7 @@ class Reminder(commands.Cog):
     if isinstance(error, commands.TooManyArguments):
       await ctx.send(embed=embed(title=f'You called the {ctx.command.name} command with too many arguments.', color=MessageColors.error()))
 
-  async def get_active_timer(self, *, connection=None, days=7) -> Optional[Timer]:
+  async def get_active_timer(self, *, connection: Optional[asyncpg.Connection] = None, days: int = 7) -> Optional[Timer]:
     query = "SELECT * FROM reminders WHERE expires < (CURRENT_DATE + $1::interval) ORDER BY expires LIMIT 1;"
     con = connection or self.bot.pool
 

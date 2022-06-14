@@ -354,6 +354,48 @@ class PaginatorSource(menus.ListPageSource):
     return True
 
 
+# class QueueMenu(menus.ButtonMenuPages):
+#   def __init__(self, source, *, title="Commands", description=""):
+#     super().__init__(source=source, timeout=30.0)
+#     self._source = source
+#     self.current_page = 0
+#     self.ctx = None
+#     self.message = None
+
+#   async def start(self, ctx, *, channel: discord.TextChannel = None, wait=False) -> None:
+#     await self._source._prepare_once()
+#     self.ctx = ctx
+#     self.message = await self.send_initial_message(ctx, ctx.channel)
+
+#   async def send_initial_message(self, ctx: "MyContext", channel: discord.TextChannel):
+#     page = await self._source.get_page(0)
+#     kwargs = await self._get_kwargs_from_page(page)
+#     return await ctx.send(**kwargs)
+
+#   async def _get_kwargs_from_page(self, page):
+#     value = await super()._get_kwargs_from_page(page)
+#     if "view" not in value:
+#       value.update({"view": self})
+#     return value
+
+#   async def interaction_check(self, interaction: discord.Interaction) -> bool:
+#     if interaction.user and interaction.user == self.ctx.author:
+#       return True
+#     else:
+#       await interaction.response.send_message('This help menu is not for you.', ephemeral=True)
+#       return False
+
+#   def stop(self):
+#     try:
+#       self.ctx.bot.loop.create_task(self.message.edit(view=None))
+#       super().stop()
+#     except discord.NotFound:
+#       pass
+
+#   async def on_timeout(self) -> None:
+#     self.stop()
+
+
 class Music(commands.Cog):
   """Listen to your favourite music and audio clips with Friday's music commands"""
 
@@ -402,6 +444,7 @@ class Music(commands.Cog):
   async def cog_command_error(self, ctx: MyContext, error: commands.CommandError):
     error = getattr(error, "original", error)
     wavelink_errors = (wavelink.errors.LoadTrackError, wavelink.errors.WavelinkError, wavelink.errors.LavalinkException, wavelink.errors.NodeOccupied, wavelink.errors.QueueException,)
+    # TODO: Test this shit
     if isinstance(error, IncorrectChannelError):
       return await ctx.send(error.channel and error.channel.mention, embed=embed(title=error, color=MessageColors.error()))
     elif isinstance(error, (NoChannelProvided, NoCustomSoundsFound, VoiceConnectionError, NothingPlaying, *wavelink_errors)):

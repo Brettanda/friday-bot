@@ -367,6 +367,17 @@ class Log(commands.Cog):
     guild_id = getattr(ctx.guild, "id", None)
     self.logger.warning(f"Spamming: {{User: {message.author.id}, Guild: {guild_id}, Retry: {retry_after}}}")
 
+  # @commands.Cog.listener()
+  # async def on_application_command_error(self, ctx: discord.ApplicationContext, error: Exception):
+  #   just_send = (commands.DisabledCommand, commands.BotMissingPermissions, commands.MissingPermissions, commands.RoleNotFound,)
+  #   error = getattr(error, 'original', error)
+  #   # if hasattr(error, "log") and error.log is False:
+  #   #   return
+
+  #   # if isinstance(error, just_send):
+  #   self.logger.error(f"{error}")
+  #   await ctx.respond(embed=embed(title=str(error) or "An error has occured, try again later.", color=MessageColors.error()), ephemeral=True)
+
   @commands.Cog.listener()
   async def on_command_error(self, ctx: MyContext, error: CommandError):
     # if hasattr(ctx.command, 'on_error'):
