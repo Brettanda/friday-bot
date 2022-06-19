@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import io
-from typing import TYPE_CHECKING, Any, Generator, List, Optional, Union, Tuple
+from typing import TYPE_CHECKING, Any, Generator, List, Optional, Tuple, Union
 
 import discord
+from discord.context_managers import Typing as TypingOld
 from discord.ext import commands
 
 from .myembed import embed
@@ -14,6 +15,14 @@ if TYPE_CHECKING:
 
   from functions.config import ReadOnly
   from index import Friday
+
+
+class Typing(TypingOld):
+  async def __aenter__(self) -> None:
+    try:
+      await super().__aenter__()
+    except discord.Forbidden:
+      pass
 
 
 class ConfirmationView(discord.ui.View):
@@ -233,6 +242,11 @@ class MyContext(commands.Context):
     if self._db is not None:
       await self.bot.pool.release(self._db)
       self._db = None
+
+  def typing(self, **kwargs: Any):
+    if self.interaction:
+      return Typing(self)
+    return super().typing(**kwargs)
 
   @property
   def lang(self):
