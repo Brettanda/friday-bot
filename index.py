@@ -79,6 +79,7 @@ class Friday(commands.AutoShardedBot):
         chunk_guilds_at_startup=False,
         allowed_mentions=discord.AllowedMentions(roles=False, everyone=False, users=True),
         enable_debug_events=True,
+        log_handler=None,
         **kwargs
     )
 
@@ -257,6 +258,9 @@ class Friday(commands.AutoShardedBot):
     await super().close()
     await self.session.close()
 
+  async def start(self, token: str) -> None:
+    await super().start(token, reconnect=True)
+
   @property
   def log(self) -> Log:
     return self.get_cog("Log")  # type: ignore
@@ -272,7 +276,7 @@ class Friday(commands.AutoShardedBot):
 
 async def main(bot):
   async with bot:
-    await bot.start(TOKEN, reconnect=True)
+    await bot.start(TOKEN)
 
 if __name__ == "__main__":
   from launcher import get_logger
