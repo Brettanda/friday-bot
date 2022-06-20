@@ -244,6 +244,7 @@ class API(commands.Cog):
           "lang": chat_config.lang if chat_config is not None else None,
           "persona": chat_config.persona if chat_config is not None else None,
           "name": guild.name,
+          "tier": 0,
           "icon": guild.icon.url if guild.icon is not None else None,
           "reddit_extract": reddit_config.enabled if reddit_config is not None else False,
           "channels": channels,
@@ -297,6 +298,7 @@ class API(commands.Cog):
           "channels": channels,
           "top_role": top_role,
           "roles": roles,
+          "tier": 0,
           "mute_role": str(automod_config.mute_role_id) if automod_config is not None else None,
           "whitelist": list(automod_config.automod_whitelist) if automod_config is not None else None,
           "mod_log_events": list(logging_config.mod_log_events) if logging_config is not None else None,
@@ -338,6 +340,7 @@ class API(commands.Cog):
 
       response: GetMusicType = {
           "customsounds": customsounds,
+          "tier": 0,
       }
 
       return web.json_response(response)
