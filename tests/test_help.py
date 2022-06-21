@@ -1,19 +1,22 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import pytest
-from typing_extensions import TYPE_CHECKING
+
+from .conftest import send_command
 
 if TYPE_CHECKING:
-  from .conftest import UnitTester
   from discord import TextChannel
+
+  from .conftest import UnitTester
 
 pytestmark = pytest.mark.asyncio
 
 
 async def test_help(bot: UnitTester, channel: TextChannel):
   content = "!help"
-  com = await channel.send(content)
-  assert com
+  com = await send_command(bot, channel, content)
 
   msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, com), timeout=pytest.timeout)  # type: ignore
   assert msg.embeds[0].title == "Friday - Help links"
@@ -22,8 +25,7 @@ async def test_help(bot: UnitTester, channel: TextChannel):
 
 async def test_command_unknown(bot: UnitTester, channel: TextChannel):
   content = "!help asd"
-  com = await channel.send(content)
-  assert com
+  com = await send_command(bot, channel, content)
 
   msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, com), timeout=pytest.timeout)  # type: ignore
   assert msg.embeds[0].title == 'No command called "asd" found.'
@@ -32,8 +34,7 @@ async def test_command_unknown(bot: UnitTester, channel: TextChannel):
 @pytest.mark.parametrize("command", ["ping", "souptime", "ban", "kick"])
 async def test_command(bot: UnitTester, channel: TextChannel, command: str):
   content = f"!help {command}"
-  com = await channel.send(content)
-  assert com
+  com = await send_command(bot, channel, content)
 
   msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, com), timeout=pytest.timeout)  # type: ignore
   assert msg.embeds[0].title == f"!{command}"
@@ -42,8 +43,7 @@ async def test_command(bot: UnitTester, channel: TextChannel, command: str):
 @pytest.mark.parametrize("cog", ["Music", "Moderation", "Dev", "TopGG"])
 async def test_cog(bot: UnitTester, channel: TextChannel, cog: str):
   content = f"!help {cog}"
-  com = await channel.send(content)
-  assert com
+  com = await send_command(bot, channel, content)
 
   msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, com), timeout=pytest.timeout)  # type: ignore
   assert cog in msg.embeds[0].title
@@ -53,8 +53,7 @@ async def test_cog(bot: UnitTester, channel: TextChannel, cog: str):
 @pytest.mark.parametrize("group", ["blacklist", "custom", "welcome"])
 async def test_group(bot: UnitTester, channel: TextChannel, group: str):
   content = f"!help {group}"
-  com = await channel.send(content)
-  assert com
+  com = await send_command(bot, channel, content)
 
   msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, com), timeout=pytest.timeout)  # type: ignore
   assert msg.embeds[0].title == f"!{group}"
@@ -64,8 +63,7 @@ async def test_group(bot: UnitTester, channel: TextChannel, group: str):
 @pytest.mark.parametrize("subcommand", ["blacklist add", "welcome role", "custom add"])
 async def test_subcommand(bot: UnitTester, channel: TextChannel, subcommand: str):
   content = f"!help {subcommand}"
-  com = await channel.send(content)
-  assert com
+  com = await send_command(bot, channel, content)
 
   msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, com), timeout=pytest.timeout)  # type: ignore
   assert msg.embeds[0].title == f"!{subcommand}"

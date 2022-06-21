@@ -1,29 +1,33 @@
+from __future__ import annotations
+
 import asyncio
 import os
-# import sys
 from datetime import date
+from typing import TYPE_CHECKING
 
-# import discord
-from discord.ext import tasks, commands
-
-# from functions import embed
-from typing_extensions import TYPE_CHECKING
+from discord.ext import commands, tasks
 
 if TYPE_CHECKING:
-  from index import Friday as Bot
+  from index import Friday
 
 
 original_image = "assets\\friday-logo.png"
 
 
 class DatedEvents(commands.Cog):
-  def __init__(self, bot: "Bot"):
-    self.bot = bot
-    self.dated_events.start()
+  def __init__(self, bot: Friday):
+    self.bot: Friday = bot
     # self.events = bot.loop.create_task(self.dated_events(),name="Dated events")
 
   def __repr__(self) -> str:
     return f"<cogs.{self.__cog_name__}>"
+
+  async def cog_load(self) -> None:
+    self.dated_events.start()
+
+  async def cog_unload(self) -> None:
+    if self.dated_events.is_running():
+      self.dated_events.cancel()
 
   @tasks.loop(hours=1.0)
   async def dated_events(self):
@@ -33,6 +37,8 @@ class DatedEvents(commands.Cog):
     month = today.strftime("%m")
     day = today.strftime("%d")
     guild = self.bot.get_guild(707441352367013899)
+    if not guild:
+      return
     user = self.bot.user
     thispath = os.getcwd()
     if "\\" in thispath:
@@ -62,9 +68,6 @@ class DatedEvents(commands.Cog):
   async def before_dated_events(self):
     await self.bot.wait_until_ready()
 
-  def cog_unload(self):
-    self.dated_events.cancel()
 
-
-async def setup(bot):
+async def setup(bot: Friday):
   await bot.add_cog(DatedEvents(bot))

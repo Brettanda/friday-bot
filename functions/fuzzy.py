@@ -36,10 +36,10 @@ def levenshtein_ratio_and_distance(first: str, second: str, ratio_calc=False) ->
                                distance[row][col - 1] + 1,          # Cost of insertions
                                distance[row - 1][col - 1] + cost)     # Cost of substitutions
   if ratio_calc is True:
-    Ratio = ((len(first) + len(second)) - distance[row][col]) / (len(first) + len(second))
+    Ratio = ((len(first) + len(second)) - distance[row][col]) / (len(first) + len(second))  # type: ignore
     return Ratio
   else:
-    return distance[row][col]
+    return distance[row][col]  # type: ignore
 
 
 def levenshtein_string_list(string: str, arr: list, *, min_: float = 0.7) -> list:

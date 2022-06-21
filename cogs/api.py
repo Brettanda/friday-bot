@@ -1,16 +1,84 @@
+from __future__ import annotations
+
 import datetime
-import json
+# import hmac
+# import json
 import os
 import ssl
-from typing import TYPE_CHECKING
+from typing import (TYPE_CHECKING, Any, List, Optional, Protocol, TypedDict,
+                    Union)
 
 import aiohttp_cors
+import asyncpg
 import discord
 from aiohttp import web
 from discord.ext import commands
 
+# from functions import config
+
 if TYPE_CHECKING:
-  from index import Friday as Bot
+  from cogs.automod import Config as AutoModConfig
+  from cogs.automod import SpamType
+  from cogs.chat import Config as ChatConfig
+  from cogs.general import General
+  from cogs.log import Config as LogConfig
+  from cogs.logging import ModConfig as LoggingConfig
+  # from cogs.patreons import Patreons
+  from cogs.redditlink import Config as RedditLinkConfig
+  from cogs.welcome import Config as WelcomeConfig
+  from index import Friday
+
+  class StatsClusterType(TypedDict):
+    guilds: int
+    ready: bool
+    connected: dict[int, bool]
+    latencies: dict[int, float]
+    uptime: int
+
+  class StatsType(TypedDict):
+    shard_count: int
+    clusters: List[StatsClusterType]
+
+  class GetGuildType(TypedDict):
+    prefix: str
+    chatchannel: Optional[int]
+    lang: Optional[str]
+    persona: Optional[str]
+    name: str
+    tier: int
+    icon: Optional[str]
+    reddit_extract: bool
+    channels: list[Any]
+
+  class GetModerationType(TypedDict):
+    remove_invites: Optional[bool]
+    max_mentions: Optional[SpamType]
+    max_messages: Optional[SpamType]
+    max_content: Optional[SpamType]
+    channels: list[dict]
+    top_role: dict
+    roles: list[dict]
+    tier: int
+    mute_role: Optional[str]
+    whitelist: Optional[list[str]]
+    mod_log_events: Optional[list[str]]
+    mod_log_channel_id: Optional[int]
+    welcome: Optional[dict]
+    blacklist: Optional[dict]
+
+  class GetMusicType(TypedDict):
+    customsounds: list[dict]
+    tier: int
+
+  class GetCommandsType(TypedDict):
+    channels: list
+    cogs: list
+    config: dict
+
+
+class CogConfig(Protocol):
+  async def get_guild_config(self, guild_id: int, *, connection: Optional[Union[asyncpg.Pool, asyncpg.Connection]] = None):
+    ...
 
 
 class HTTPImATeaPot(web.HTTPClientError):
@@ -31,11 +99,10 @@ class HTTPBlocked(web.HTTPClientError):
 
 
 class API(commands.Cog):
-  def __init__(self, bot: "Bot"):
+  def __init__(self, bot: Friday):
     self.app = web.Application(logger=bot.logger, debug=not bot.prod and not bot.canary)
-    self.runner = None
     self.site = None
-    self.bot = bot
+    self.bot: Friday = bot
     self.log = bot.logger
 
     # TODO: Not sure how to choose which cluster to ping from API
@@ -54,8 +121,8 @@ class API(commands.Cog):
   def cog_unload(self):
     self.bot.loop.create_task(self.runner.cleanup())
 
-  async def get_guild_config(self, cog: str, guild_id: int):
-    cog = self.bot.get_cog(cog)
+  async def get_guild_config(self, cog_name: str, guild_id: int) -> Any:
+    cog: CogConfig = self.bot.get_cog(cog_name)  # type: ignore
     if cog is None:
       return None
     return await cog.get_guild_config(guild_id)
@@ -78,7 +145,7 @@ class API(commands.Cog):
     #     return abort(401)
 
     @routes.get("/")
-    async def index(request: web.Request):
+    async def index(request: web.Request) -> web.Response:
       response = web.HTTPSeeOther("https://youtu.be/dQw4w9WgXcQ")
       response.headers["Cache-Control"] = "no-cache, no-store, max-age=0, must-revalidate"
       response.headers["Pragma"] = "no-cache"
@@ -86,8 +153,8 @@ class API(commands.Cog):
       return response
 
     @routes.get("/stats")
-    async def stats(request: web.Request):
-      return web.json_response({
+    async def stats(request: web.Request) -> web.Response:
+      response: StatsType = {
           "shard_count": len(bot.shards),
           "clusters": [
               {
@@ -104,11 +171,12 @@ class API(commands.Cog):
                   "uptime": int((datetime.datetime.utcnow() - self.bot.uptime).total_seconds())
               }
           ],
-      })
+      }
+      return web.json_response(response)
 
     @routes.get("/invite")
-    async def get_invite(request: web.Request):
-      invite = bot.get_cog("General")
+    async def get_invite(request: web.Request) -> web.Response:
+      invite: Optional[General] = bot.get_cog("General")  # type: ignore
       if invite is None:
         return web.HTTPInternalServerError()
 
@@ -119,7 +187,7 @@ class API(commands.Cog):
       return response
 
     @routes.get("/guilds")
-    async def get_guilds(request: web.Request):
+    async def get_guilds(request: web.Request) -> web.Response:
       if "guilds" not in request.headers:
         return HTTPImATeaPot()
       if len(request.headers["guilds"]) == 0:
@@ -142,7 +210,7 @@ class API(commands.Cog):
       return web.json_response(guilds)
 
     @routes.get("/guilds/{gid}")
-    async def get_guild(request: web.Request):
+    async def get_guild(request: web.Request) -> web.Response:
       gid = request.match_info["gid"]
       guild = bot.get_guild(int(gid, base=10))
       if guild is None:
@@ -166,23 +234,25 @@ class API(commands.Cog):
           "parent_id": i.category.id if i.category is not None else None,
       } for i in guild.channels if i.type in (discord.ChannelType.text, discord.ChannelType.category)]
 
-      chat_config = await self.get_guild_config("Chat", int(gid, base=10))
-      reddit_config = await self.get_guild_config("redditlink", int(gid, base=10))
+      chat_config: Optional[ChatConfig] = await self.get_guild_config("Chat", int(gid, base=10))
+      reddit_config: Optional[RedditLinkConfig] = await self.get_guild_config("redditlink", int(gid, base=10))
       # reddit_extract = await self.bot.db.query("SELECT reddit_extract FROM servers WHERE id=$1 LIMIT 1", str(gid))
 
-      return web.json_response({
+      response: GetGuildType = {
           "prefix": bot.prefixes[guild.id],
           "chatchannel": chat_config.chat_channel_id if chat_config is not None else None,
           "lang": chat_config.lang if chat_config is not None else None,
           "persona": chat_config.persona if chat_config is not None else None,
           "name": guild.name,
+          "tier": 0,
           "icon": guild.icon.url if guild.icon is not None else None,
           "reddit_extract": reddit_config.enabled if reddit_config is not None else False,
           "channels": channels,
-      })
+      }
+      return web.json_response(response)
 
     @routes.get("/guilds/{gid}/moderation")
-    async def get_moderation(request: web.Request):
+    async def get_moderation(request: web.Request) -> web.Response:
       gid = request.match_info["gid"]
       guild = bot.get_guild(int(gid, base=10))
       if guild is None:
@@ -216,11 +286,11 @@ class API(commands.Cog):
 
       top_role = {"name": guild.me.top_role.name, "id": str(guild.me.top_role.id), "position": guild.me.top_role.position}
 
-      automod_config = await self.get_guild_config("AutoMod", int(gid, base=10))
-      welcome_config = await self.get_guild_config("Welcome", int(gid, base=10))
-      logging_config = await self.get_guild_config("Logging", int(gid, base=10))
+      automod_config: Optional[AutoModConfig] = await self.get_guild_config("AutoMod", int(gid, base=10))
+      welcome_config: Optional[WelcomeConfig] = await self.get_guild_config("Welcome", int(gid, base=10))
+      logging_config: Optional[LoggingConfig] = await self.get_guild_config("Logging", int(gid, base=10))
 
-      return web.json_response({
+      response: GetModerationType = {
           "remove_invites": automod_config.remove_invites if automod_config is not None else None,
           "max_mentions": automod_config.max_mentions if automod_config is not None else None,
           "max_messages": automod_config.max_messages if automod_config is not None else None,
@@ -228,6 +298,7 @@ class API(commands.Cog):
           "channels": channels,
           "top_role": top_role,
           "roles": roles,
+          "tier": 0,
           "mute_role": str(automod_config.mute_role_id) if automod_config is not None else None,
           "whitelist": list(automod_config.automod_whitelist) if automod_config is not None else None,
           "mod_log_events": list(logging_config.mod_log_events) if logging_config is not None else None,
@@ -241,10 +312,12 @@ class API(commands.Cog):
               words=automod_config.blacklisted_words if automod_config is not None else [],
               punishments=automod_config.blacklist_punishments if automod_config is not None else [],
           )
-      })
+      }
+
+      return web.json_response(response)
 
     @routes.get("/guilds/{gid}/music")
-    async def get_music(request: web.Request):
+    async def get_music(request: web.Request) -> web.Response:
       gid = request.match_info["gid"]
       guild = bot.get_guild(int(gid, base=10))
       if guild is None:
@@ -261,16 +334,19 @@ class API(commands.Cog):
         return HTTPBlocked(reason="This server is blacklisted from the bot.")
 
       try:
-        customsounds = await self.bot.db.query("SELECT customSounds FROM servers WHERE id=$1 LIMIT 1", str(guild.id))
+        customsounds: list = await self.bot.pool.fetchval("SELECT customSounds FROM servers WHERE id=$1 LIMIT 1", str(guild.id))
       except Exception as e:
         return web.HTTPInternalServerError(reason=f"Failed to get custom sounds: {e}")
 
-      return web.json_response({
-          "customsounds": [json.loads(i) for i in customsounds]
-      })
+      response: GetMusicType = {
+          "customsounds": customsounds,
+          "tier": 0,
+      }
+
+      return web.json_response(response)
 
     @routes.get("/guilds/{gid}/commands")
-    async def get_commands(request: web.Request):
+    async def get_commands(request: web.Request) -> web.Response:
       gid = request.match_info["gid"]
       guild = bot.get_guild(int(gid, base=10))
       if guild is None:
@@ -286,7 +362,7 @@ class API(commands.Cog):
       if gid in self.bot.blacklist:
         return HTTPBlocked(reason="This server is blacklisted from the bot.")
 
-      log_config = await self.get_guild_config("Log", int(gid, base=10))
+      log_config: LogConfig = await self.get_guild_config("Log", int(gid, base=10))
 
       channels = [{
           "name": i.name,
@@ -314,22 +390,24 @@ class API(commands.Cog):
                               "enabled": bool(sub.qualified_name not in log_config.disabled_commands),
                               "restricted": bool(sub.qualified_name in log_config.restricted_commands),
                               "checks": False,
-                          } for sub in com.commands
+                          } for sub in com.commands  # type: ignore
                       } if hasattr(com, "commands") else {}
                   } for com in cog.get_commands()}
           } for cog in self.bot.cogs.values() if len(cog.get_commands()) > 0 and cog.qualified_name not in ("Dev", "Config") and not cog.__cog_settings__.get("hidden", False)
       ]
 
-      return web.json_response({
+      response: GetCommandsType = {
           "channels": channels,
           "cogs": cogs,
           "config": {
               "bot_channel": log_config.bot_channel if log_config is not None else None,
           }
-      })
+      }
+
+      return web.json_response(response)
 
     @routes.post("/guilds/{gid}/invalidate")
-    async def guild_invalidate(request: web.Request):
+    async def guild_invalidate(request: web.Request) -> web.Response:
       gid = request.match_info["gid"]
       guild = bot.get_guild(int(gid, base=10))
       if guild is None:
@@ -346,27 +424,101 @@ class API(commands.Cog):
         return HTTPBlocked(reason="This server is blacklisted from the bot.")
 
       passes = 0
-      cogs = [
+      cogs: List[Optional[CogConfig]] = [
           self.bot.get_cog("Moderation"),
           self.bot.get_cog("AutoMod"),
           self.bot.get_cog("Welcome"),
           self.bot.get_cog("Chat"),
-          self.bot.get_cog("redditlink")
+          self.bot.get_cog("redditlink")  # type: ignore
       ]
       for cog in cogs:
         if cog is not None:
           cog.get_guild_config.invalidate(cog, int(gid, base=10))
           passes += 1
 
-      self.bot.prefixes[int(gid, base=10)] = await self.bot.db.query("SELECT prefix FROM servers WHERE id=$1 LIMIT 1", str(gid))
+      self.bot.prefixes[int(gid, base=10)] = await self.bot.pool.fetchval("SELECT prefix FROM servers WHERE id=$1 LIMIT 1", str(gid))
 
       return web.json_response({"success": True, "passes": f"{passes}/{len(cogs)}"})
+
+    # @routes.post("/patreon/activate/{uid}/{gid}")
+    # async def patreon_activate(request: web.Request) -> web.Response:
+    #   uid = request.match_info["uid"]
+    #   gid = request.match_info["gid"]
+    #   guild = bot.get_guild(int(gid, base=10))
+    #   if guild is None:
+    #     try:
+    #       guild = await bot.fetch_guild(int(gid, base=10))
+    #       if guild is None:
+    #         return web.HTTPNotFound(reason="Guild not found")
+    #     except Exception as e:
+    #       return web.HTTPNotFound(reason=f"Guild not found: {e}")
+    #   elif guild.unavailable:
+    #     return web.HTTPBadGateway(reason="Guild is unavailable")
+
+    #   if gid in self.bot.blacklist:
+    #     return HTTPBlocked(reason="This server is blacklisted from the bot.")
+
+    #   pat_cog: Optional[Patreons] = self.bot.get_cog("Patreons")  # type: ignore
+    #   if pat_cog is None:
+    #     return web.HTTPInternalServerError()
+
+    #   patron_configs = await pat_cog.get_patrons()
+    #   discord_ids = [i.id for i in patron_configs]
+    #   if uid not in discord_ids:
+    #     return web.HTTPForbidden(reason="User is not a patron")
+
+    #   query = f"INSERT INTO patrons (user_id,tier,guild_ids) VALUES ($1,{config.PremiumTiersNew.tier_1.value},array[$2]::text[]) ON CONFLICT (user_id) DO UPDATE SET guild_ids=array_append(patrons.guild_ids,$2) WHERE NOT ($2=any(patrons.guild_ids));"
+    #   await self.bot.pool.execute(query, str(uid), str(gid))
+
+    #   return web.HTTPOk()
+
+    # @routes.post("/patreon/deactivate/{uid}/{gid}")
+    # async def patreon_deactivate(request: web.Request) -> web.Response:
+    #   uid = request.match_info["uid"]
+    #   gid = request.match_info["gid"]
+    #   guild = bot.get_guild(int(gid, base=10))
+    #   if guild is None:
+    #     try:
+    #       guild = await bot.fetch_guild(int(gid, base=10))
+    #       if guild is None:
+    #         return web.HTTPNotFound(reason="Guild not found")
+    #     except Exception as e:
+    #       return web.HTTPNotFound(reason=f"Guild not found: {e}")
+    #   elif guild.unavailable:
+    #     return web.HTTPBadGateway(reason="Guild is unavailable")
+
+    #   if gid in self.bot.blacklist:
+    #     return HTTPBlocked(reason="This server is blacklisted from the bot.")
+
+    #   pat_cog: Optional[Patreons] = self.bot.get_cog("Patreons")  # type: ignore
+    #   if pat_cog is None:
+    #     return web.HTTPInternalServerError()
+
+    #   patron_configs = await pat_cog.get_patrons()
+    #   discord_ids = [i.id for i in patron_configs]
+    #   if uid not in discord_ids:
+    #     return web.HTTPForbidden(reason="User is not a patron")
+
+    #   query = "UPDATE patrons SET guild_ids=array_remove(patrons.guild_ids,$1) WHERE user_id=$2 AND ($1=ANY(patrons.guild_ids));"
+    #   await self.bot.pool.execute(query, str(gid), str(uid))
+
+    #   return web.HTTPOk()
+
+    # @routes.post("/patreon")
+    # async def patron(secret: str, request: web.Request):
+    #   assert request.content_length and request.content_length < 1000000, "Request content too fat"  # 1M
+    #   digest, signature = request.headers['X-HUB-SIGNATURE'].split("=", 1)
+    #   assert digest == "sha1", "Digest must be sha1"  # use a whitelist
+    #   body = await request.content.read()
+    #   h = hmac.HMAC(bytes(secret, "UTF8"), msg=body, digestmod=digest)
+    #   assert h.hexdigest() == signature, "Bad signature"
+    #   return json.loads(body.decode('UTF8'))
 
     try:
       ssl_ctx = None
       if self.bot.prod or self.bot.canary:
         ssl_ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-        ssl_ctx.load_cert_chain(os.environ.get("SSLCERT", None), os.environ.get("SSLKEY", None))
+        ssl_ctx.load_cert_chain(os.environ.get("SSLCERT", None), os.environ.get("SSLKEY", None))  # type: ignore
 
       app.add_routes(routes)
       for route in list(app.router.routes()):

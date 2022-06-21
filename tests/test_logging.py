@@ -1,16 +1,25 @@
 from __future__ import annotations
 
-import discord
 import datetime
+from typing import TYPE_CHECKING, AsyncIterator, List, Optional
+
+import discord
 import pytest
-from typing import TYPE_CHECKING, AsyncIterator, Optional, List
+
+from .conftest import send_command
 
 if TYPE_CHECKING:
-  from .conftest import UnitTester, Friday, UnitTesterUser
-  from discord.channel import TextChannel
   from discord import Guild
+  from discord.channel import TextChannel
+
+  from .conftest import Friday, UnitTester, UnitTesterUser
 
 pytestmark = pytest.mark.asyncio
+
+
+@pytest.mark.dependency()
+async def test_get_cog(friday: Friday):
+  assert friday.get_cog("Logging") is not None
 
 
 @pytest.fixture(scope="module")
@@ -35,8 +44,7 @@ async def setup_logging_channel(friday: Friday, bot: UnitTester, channel: TextCh
   await friday.wait_until_ready()
 
   content = f"!modlog {channel.id}"
-  com = await channel.send(content)
-  assert com
+  com = await send_command(bot, channel, content)
 
   msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, com), timeout=pytest.timeout)  # type: ignore
   assert msg.embeds[0].title == f"Mod log channel has been set to `{channel}`"
@@ -44,8 +52,7 @@ async def setup_logging_channel(friday: Friday, bot: UnitTester, channel: TextCh
   yield
 
   content = "!modlog"
-  com = await channel.send(content)
-  assert com
+  com = await send_command(bot, channel, content)
 
   msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, com), timeout=pytest.timeout)  # type: ignore
   assert msg.embeds[0].title == "Mod log channel has been set to `None`"
@@ -57,6 +64,7 @@ async def setup_logging_channel(friday: Friday, bot: UnitTester, channel: TextCh
 #   content =
 
 @pytest.mark.parametrize("reason", ["", "Auto-mute for spamming.", "big sus times", "lajks hdlkjahs lkjdhlaksjhdlkj ashlkdjhaslk"])
+@pytest.mark.dependency(depends=["test_get_cog"])
 async def test_bans_from_automod(friday: Friday, logs: List[discord.AuditLogEntry], bot: UnitTester, guild_friday: Guild, guild: Guild, guild_user: Guild, channel: TextChannel, reason: str):
   async def audit_logs(limit: Optional[int] = 100, before=..., after=..., oldest_first: bool = False, user: discord.abc.Snowflake = ..., action=...) -> AsyncIterator[discord.audit_logs.AuditLogEntry]:
     for log in logs[1:limit]:
@@ -67,7 +75,7 @@ async def test_bans_from_automod(friday: Friday, logs: List[discord.AuditLogEntr
     oldest_log.reason = reason
     oldest_log._target_id = guild_user.me.id
     oldest_log.user = guild_friday.me
-    oldest_log.created_at = discord.utils.utcnow() - datetime.timedelta(seconds=1)
+    oldest_log.created_at = discord.utils.utcnow() - datetime.timedelta(seconds=1)  # type: ignore
     yield oldest_log
 
   friday.dispatch("member_ban", guild=guild_user, member=guild_user.me, audit_logs=audit_logs)
@@ -88,6 +96,7 @@ async def test_bans_from_automod(friday: Friday, logs: List[discord.AuditLogEntr
 
 
 @pytest.mark.parametrize("reason", ["", "being stupid", "sus"])
+@pytest.mark.dependency(depends=["test_get_cog"])
 async def test_bans_not_friday(friday: Friday, logs: List[discord.AuditLogEntry], bot: UnitTester, guild_friday: Guild, guild: Guild, guild_user: Guild, channel: TextChannel, reason: str):
   async def audit_logs(limit: Optional[int] = 100, before=..., after=..., oldest_first: bool = False, user: discord.abc.Snowflake = ..., action=...) -> AsyncIterator[discord.audit_logs.AuditLogEntry]:
     for log in logs[1:limit]:
@@ -98,7 +107,7 @@ async def test_bans_not_friday(friday: Friday, logs: List[discord.AuditLogEntry]
     oldest_log.reason = reason
     oldest_log._target_id = guild_user.me.id
     oldest_log.user = guild_friday.owner
-    oldest_log.created_at = discord.utils.utcnow() - datetime.timedelta(seconds=1)
+    oldest_log.created_at = discord.utils.utcnow() - datetime.timedelta(seconds=1)  # type: ignore
     yield oldest_log
 
   friday.dispatch("member_ban", guild=guild_user, member=guild_user.me, audit_logs=audit_logs)
@@ -119,6 +128,7 @@ async def test_bans_not_friday(friday: Friday, logs: List[discord.AuditLogEntry]
 
 
 @pytest.mark.skip("Not implemented")
+@pytest.mark.dependency(depends=["test_get_cog"])
 async def test_bans_from_commands(friday: Friday):
   # async def audit_logs(limit: Optional[int] = 100, before=..., after=..., oldest_first: bool = False, user: discord.abc.Snowflake = ..., action=...) -> AsyncIterator[discord.audit_logs.AuditLogEntry]:
   #   for log in logs[1:limit]:
@@ -149,6 +159,7 @@ async def test_bans_from_commands(friday: Friday):
 
 
 @pytest.mark.parametrize("reason", ["", "Auto-mute for spamming.", "big sus times", "lajks hdlkjahs lkjdhlaksjhdlkj ashlkdjhaslk"])
+@pytest.mark.dependency(depends=["test_get_cog"])
 async def test_unbans_from_automod(friday: Friday, logs: List[discord.AuditLogEntry], bot: UnitTester, guild_friday: Guild, guild: Guild, guild_user: Guild, channel: TextChannel, reason: str):
   async def audit_logs(limit: Optional[int] = 100, before=..., after=..., oldest_first: bool = False, user: discord.abc.Snowflake = ..., action=...) -> AsyncIterator[discord.audit_logs.AuditLogEntry]:
     for log in logs[1:limit]:
@@ -159,7 +170,7 @@ async def test_unbans_from_automod(friday: Friday, logs: List[discord.AuditLogEn
     oldest_log.reason = reason
     oldest_log._target_id = guild_user.me.id
     oldest_log.user = guild_friday.me
-    oldest_log.created_at = discord.utils.utcnow() - datetime.timedelta(seconds=1)
+    oldest_log.created_at = discord.utils.utcnow() - datetime.timedelta(seconds=1)  # type: ignore
     yield oldest_log
 
   friday.dispatch("member_unban", guild=guild_user, member=guild_user.me, audit_logs=audit_logs)
@@ -178,6 +189,7 @@ async def test_unbans_from_automod(friday: Friday, logs: List[discord.AuditLogEn
 
 
 @pytest.mark.parametrize("reason", ["", "stopped being stupid", "not sus"])
+@pytest.mark.dependency(depends=["test_get_cog"])
 async def test_unbans_not_friday(friday: Friday, logs: List[discord.AuditLogEntry], bot: UnitTester, guild_friday: Guild, guild: Guild, guild_user: Guild, channel: TextChannel, reason: str):
   async def audit_logs(limit: Optional[int] = 100, before=..., after=..., oldest_first: bool = False, user: discord.abc.Snowflake = ..., action=...) -> AsyncIterator[discord.audit_logs.AuditLogEntry]:
     for log in logs[1:limit]:
@@ -188,7 +200,7 @@ async def test_unbans_not_friday(friday: Friday, logs: List[discord.AuditLogEntr
     oldest_log.reason = reason
     oldest_log._target_id = guild_user.me.id
     oldest_log.user = guild_friday.owner
-    oldest_log.created_at = discord.utils.utcnow() - datetime.timedelta(seconds=1)
+    oldest_log.created_at = discord.utils.utcnow() - datetime.timedelta(seconds=1)  # type: ignore
     yield oldest_log
 
   friday.dispatch("member_unban", guild=guild_user, member=guild_user.me, audit_logs=audit_logs)
@@ -209,6 +221,7 @@ async def test_unbans_not_friday(friday: Friday, logs: List[discord.AuditLogEntr
 
 
 @pytest.mark.skip("Not implemented")
+@pytest.mark.dependency(depends=["test_get_cog"])
 async def test_unbans_from_commands(friday: Friday):
   # async def audit_logs(limit: Optional[int] = 100, before=..., after=..., oldest_first: bool = False, user: discord.abc.Snowflake = ..., action=...) -> AsyncIterator[discord.audit_logs.AuditLogEntry]:
   #   for log in logs[1:limit]:
@@ -239,6 +252,7 @@ async def test_unbans_from_commands(friday: Friday):
 
 
 @pytest.mark.parametrize("reason", ["", "big sus times", "lajks hdlkjahs lkjdhlaksjhdlkj ashlkdjhaslk"])
+@pytest.mark.dependency(depends=["test_get_cog"])
 async def test_kicks_from_automod(friday: Friday, logs: List[discord.AuditLogEntry], bot: UnitTester, guild_friday: Guild, guild: Guild, guild_user: Guild, channel: TextChannel, reason: str):
   async def audit_logs(limit: Optional[int] = 100, before=..., after=..., oldest_first: bool = False, user: discord.abc.Snowflake = ..., action=...) -> AsyncIterator[discord.audit_logs.AuditLogEntry]:
     for log in logs[1:limit]:
@@ -249,7 +263,7 @@ async def test_kicks_from_automod(friday: Friday, logs: List[discord.AuditLogEnt
     oldest_log.reason = reason
     oldest_log._target_id = guild_user.me.id
     oldest_log.user = guild_friday.me
-    oldest_log.created_at = discord.utils.utcnow() - datetime.timedelta(seconds=1)
+    oldest_log.created_at = discord.utils.utcnow() - datetime.timedelta(seconds=1)  # type: ignore
     yield oldest_log
 
   friday.dispatch("member_remove", member=guild_user.me, audit_logs=audit_logs)
@@ -270,6 +284,7 @@ async def test_kicks_from_automod(friday: Friday, logs: List[discord.AuditLogEnt
 
 
 @pytest.mark.parametrize("reason", ["", "being stupid", "sus"])
+@pytest.mark.dependency(depends=["test_get_cog"])
 async def test_kicks_not_friday(friday: Friday, logs: List[discord.AuditLogEntry], bot: UnitTester, guild_friday: Guild, guild: Guild, guild_user: Guild, channel: TextChannel, reason: str):
   async def audit_logs(limit: Optional[int] = 100, before=..., after=..., oldest_first: bool = False, user: discord.abc.Snowflake = ..., action=...) -> AsyncIterator[discord.audit_logs.AuditLogEntry]:
     for log in logs[1:limit]:
@@ -280,7 +295,7 @@ async def test_kicks_not_friday(friday: Friday, logs: List[discord.AuditLogEntry
     oldest_log.reason = reason
     oldest_log._target_id = guild_user.me.id
     oldest_log.user = guild_friday.owner
-    oldest_log.created_at = discord.utils.utcnow() - datetime.timedelta(seconds=1)
+    oldest_log.created_at = discord.utils.utcnow() - datetime.timedelta(seconds=1)  # type: ignore
     yield oldest_log
 
   friday.dispatch("member_remove", member=guild_user.me, audit_logs=audit_logs)
@@ -301,12 +316,14 @@ async def test_kicks_not_friday(friday: Friday, logs: List[discord.AuditLogEntry
 
 
 @pytest.mark.skip("Not implemented")
+@pytest.mark.dependency(depends=["test_get_cog"])
 async def test_kicks_from_commands(friday: Friday):
   ...
 
 
 @pytest.mark.skip("Not implemented")
 @pytest.mark.parametrize("reason", ["", "big sus times", "lajks hdlkjahs lkjdhlaksjhdlkj ashlkdjhaslk"])
+@pytest.mark.dependency(depends=["test_get_cog"])
 async def test_mutes_from_automod(friday: Friday, logs: List[discord.AuditLogEntry], bot: UnitTester, guild_friday: Guild, guild: Guild, guild_user: Guild, channel: TextChannel, reason: str):
   ...
 
@@ -319,7 +336,7 @@ async def test_mutes_from_automod(friday: Friday, logs: List[discord.AuditLogEnt
     oldest_log.reason = reason
     oldest_log._target_id = guild_user.me.id
     oldest_log.user = guild_friday.me
-    oldest_log.created_at = discord.utils.utcnow() - datetime.timedelta(seconds=1)
+    oldest_log.created_at = discord.utils.utcnow() - datetime.timedelta(seconds=1)  # type: ignore
     yield oldest_log
 
   # new_me = guild_user.me
@@ -344,6 +361,7 @@ async def test_mutes_from_automod(friday: Friday, logs: List[discord.AuditLogEnt
 
 @pytest.mark.skip("Not implemented")
 @pytest.mark.parametrize("reason", ["", "being stupid", "sus"])
+@pytest.mark.dependency(depends=["test_get_cog"])
 async def test_mutes_not_friday(friday: Friday, logs: List[discord.AuditLogEntry], bot: UnitTester, guild_friday: Guild, guild: Guild, guild_user: Guild, channel: TextChannel, reason: str):
   ...
 
@@ -356,7 +374,7 @@ async def test_mutes_not_friday(friday: Friday, logs: List[discord.AuditLogEntry
     oldest_log.reason = reason
     oldest_log._target_id = guild_user.me.id
     oldest_log.user = guild_friday.owner
-    oldest_log.created_at = discord.utils.utcnow() - datetime.timedelta(seconds=1)
+    oldest_log.created_at = discord.utils.utcnow() - datetime.timedelta(seconds=1)  # type: ignore
     yield oldest_log
 
   friday.dispatch("member_update", member=guild_user.me, audit_logs=audit_logs)
@@ -377,12 +395,14 @@ async def test_mutes_not_friday(friday: Friday, logs: List[discord.AuditLogEntry
 
 
 @pytest.mark.skip("Not implemented")
+@pytest.mark.dependency(depends=["test_get_cog"])
 async def test_mutes_from_commands(friday: Friday):
   ...
 
 
 @pytest.mark.skip("Not implemented")
 @pytest.mark.parametrize("reason", ["", "big sus times", "lajks hdlkjahs lkjdhlaksjhdlkj ashlkdjhaslk"])
+@pytest.mark.dependency(depends=["test_get_cog"])
 async def test_unmutes_from_automod(friday: Friday, logs: List[discord.AuditLogEntry], bot: UnitTester, guild_friday: Guild, guild: Guild, guild_user: Guild, channel: TextChannel, reason: str):
   ...
 
@@ -395,7 +415,7 @@ async def test_unmutes_from_automod(friday: Friday, logs: List[discord.AuditLogE
     oldest_log.reason = reason
     oldest_log._target_id = guild_user.me.id
     oldest_log.user = guild_friday.me
-    oldest_log.created_at = discord.utils.utcnow() - datetime.timedelta(seconds=1)
+    oldest_log.created_at = discord.utils.utcnow() - datetime.timedelta(seconds=1)  # type: ignore
     yield oldest_log
 
   # new_me = guild_user.me
@@ -420,6 +440,7 @@ async def test_unmutes_from_automod(friday: Friday, logs: List[discord.AuditLogE
 
 @pytest.mark.skip("Not implemented")
 @pytest.mark.parametrize("reason", ["", "being stupid", "sus"])
+@pytest.mark.dependency(depends=["test_get_cog"])
 async def test_unmutes_not_friday(friday: Friday, logs: List[discord.AuditLogEntry], bot: UnitTester, guild_friday: Guild, guild: Guild, guild_user: Guild, channel: TextChannel, reason: str):
   ...
 
@@ -432,7 +453,7 @@ async def test_unmutes_not_friday(friday: Friday, logs: List[discord.AuditLogEnt
     oldest_log.reason = reason
     oldest_log._target_id = guild_user.me.id
     oldest_log.user = guild_friday.owner
-    oldest_log.created_at = discord.utils.utcnow() - datetime.timedelta(seconds=1)
+    oldest_log.created_at = discord.utils.utcnow() - datetime.timedelta(seconds=1)  # type: ignore
     yield oldest_log
 
   friday.dispatch("member_update", member=guild_user.me, audit_logs=audit_logs)
@@ -453,12 +474,14 @@ async def test_unmutes_not_friday(friday: Friday, logs: List[discord.AuditLogEnt
 
 
 @pytest.mark.skip("Not implemented")
+@pytest.mark.dependency(depends=["test_get_cog"])
 async def test_unmutes_from_commands(friday: Friday):
   ...
 
 
 @pytest.mark.skip("Not implemented")
 @pytest.mark.parametrize("reason", ["", "big sus times", "lajks hdlkjahs lkjdhlaksjhdlkj ashlkdjhaslk"])
+@pytest.mark.dependency(depends=["test_get_cog"])
 async def test_timeouts_from_automod(friday: Friday, logs: List[discord.AuditLogEntry], bot: UnitTester, guild_friday: Guild, guild: Guild, guild_user: Guild, channel: TextChannel, reason: str):
   ...
 
@@ -471,7 +494,7 @@ async def test_timeouts_from_automod(friday: Friday, logs: List[discord.AuditLog
     oldest_log.reason = reason
     oldest_log._target_id = guild_user.me.id
     oldest_log.user = guild_friday.me
-    oldest_log.created_at = discord.utils.utcnow() - datetime.timedelta(seconds=1)
+    oldest_log.created_at = discord.utils.utcnow() - datetime.timedelta(seconds=1)  # type: ignore
     yield oldest_log
 
   # new_me = guild_user.me
@@ -496,6 +519,7 @@ async def test_timeouts_from_automod(friday: Friday, logs: List[discord.AuditLog
 
 @pytest.mark.skip("Not implemented")
 @pytest.mark.parametrize("reason", ["", "being stupid", "sus"])
+@pytest.mark.dependency(depends=["test_get_cog"])
 async def test_timeouts_not_friday(friday: Friday, logs: List[discord.AuditLogEntry], bot: UnitTester, guild_friday: Guild, guild: Guild, guild_user: Guild, channel: TextChannel, reason: str):
   ...
 
@@ -508,7 +532,7 @@ async def test_timeouts_not_friday(friday: Friday, logs: List[discord.AuditLogEn
     oldest_log.reason = reason
     oldest_log._target_id = guild_user.me.id
     oldest_log.user = guild_friday.owner
-    oldest_log.created_at = discord.utils.utcnow() - datetime.timedelta(seconds=1)
+    oldest_log.created_at = discord.utils.utcnow() - datetime.timedelta(seconds=1)  # type: ignore
     yield oldest_log
 
   friday.dispatch("member_update", member=guild_user.me, audit_logs=audit_logs)
@@ -529,12 +553,14 @@ async def test_timeouts_not_friday(friday: Friday, logs: List[discord.AuditLogEn
 
 
 @pytest.mark.skip("Not implemented")
+@pytest.mark.dependency(depends=["test_get_cog"])
 async def test_timeouts_from_commands(friday: Friday):
   ...
 
 
 @pytest.mark.skip("Not implemented")
 @pytest.mark.parametrize("reason", ["", "big sus times", "lajks hdlkjahs lkjdhlaksjhdlkj ashlkdjhaslk"])
+@pytest.mark.dependency(depends=["test_get_cog"])
 async def test_untimeouts_from_automod(friday: Friday, logs: List[discord.AuditLogEntry], bot: UnitTester, guild_friday: Guild, guild: Guild, guild_user: Guild, channel: TextChannel, reason: str):
   ...
 
@@ -547,7 +573,7 @@ async def test_untimeouts_from_automod(friday: Friday, logs: List[discord.AuditL
     oldest_log.reason = reason
     oldest_log._target_id = guild_user.me.id
     oldest_log.user = guild_friday.me
-    oldest_log.created_at = discord.utils.utcnow() - datetime.timedelta(seconds=1)
+    oldest_log.created_at = discord.utils.utcnow() - datetime.timedelta(seconds=1)  # type: ignore
     yield oldest_log
 
   # new_me = guild_user.me
@@ -572,6 +598,7 @@ async def test_untimeouts_from_automod(friday: Friday, logs: List[discord.AuditL
 
 @pytest.mark.skip("Not implemented")
 @pytest.mark.parametrize("reason", ["", "being stupid", "sus"])
+@pytest.mark.dependency(depends=["test_get_cog"])
 async def test_untimeouts_not_friday(friday: Friday, logs: List[discord.AuditLogEntry], bot: UnitTester, guild_friday: Guild, guild: Guild, guild_user: Guild, channel: TextChannel, reason: str):
   ...
 
@@ -584,7 +611,7 @@ async def test_untimeouts_not_friday(friday: Friday, logs: List[discord.AuditLog
     oldest_log.reason = reason
     oldest_log._target_id = guild_user.me.id
     oldest_log.user = guild_friday.owner
-    oldest_log.created_at = discord.utils.utcnow() - datetime.timedelta(seconds=1)
+    oldest_log.created_at = discord.utils.utcnow() - datetime.timedelta(seconds=1)  # type: ignore
     yield oldest_log
 
   friday.dispatch("member_update", member=guild_user.me, audit_logs=audit_logs)
@@ -605,5 +632,6 @@ async def test_untimeouts_not_friday(friday: Friday, logs: List[discord.AuditLog
 
 
 @pytest.mark.skip("Not implemented")
+@pytest.mark.dependency(depends=["test_get_cog"])
 async def test_untimeouts_from_commands(friday: Friday):
   ...

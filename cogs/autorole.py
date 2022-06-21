@@ -1,11 +1,12 @@
-import asyncio
+from __future__ import annotations
+# import asyncio
 
 import discord
 from discord.ext import commands
 
 # from cogs.cleanup import get_delete_time
 from functions import embed  # , checks
-from typing_extensions import TYPE_CHECKING
+from typing import TYPE_CHECKING
 # from interactions import Context as SlashContext, cog_ext, ComponentContext
 # from discord_slash.model import SlashCommandOptionType
 # from discord_slash.utils.manage_commands import create_option, create_choice
@@ -38,7 +39,7 @@ class AutoRole(commands.Cog):
   @commands.command(name="autorole", hidden=True)
   @commands.is_owner()
   async def autorole(self, ctx: "MyContext"):
-    self
+    ...
 
   # @cog_ext.cog_slash(name="autorole", description="Make an autorole", guild_ids=[243159711237537802])
   # @checks.slash(user=True, private=False)
@@ -225,10 +226,10 @@ class AutoRole(commands.Cog):
   @commands.bot_has_guild_permissions(manage_roles=True)
   @commands.bot_has_permissions(manage_messages=True)
   async def reaction_role(self, ctx, message: discord.Message, *, reaction_roles: str):
-    reaction_roles = reaction_roles.split(" ")
+    new_reaction_roles = reaction_roles.split(" ")
     x = 0
     roles = {}
-    for item in reaction_roles:
+    for item in new_reaction_roles:
       item = item.split(";;")
       item[1] = "".join(item[1].split("<@&"))
       item[1] = "".join(item[1].split(">"))
@@ -237,25 +238,25 @@ class AutoRole(commands.Cog):
       # print(role)
       # item[1] = role.id
       roles.update({item[0]: role.id})
-      # reaction_roles[x] = [item[0],ctx.guild.get_role(int(item[1]))]
+      # new_reaction_roles[x] = [item[0],ctx.guild.get_role(int(item[1]))]
       x = x + 1
-    reaction_roles = roles
-    print(reaction_roles)
+    new_reaction_roles = roles
+    print(new_reaction_roles)
 
-    for emoji in reaction_roles:
+    for emoji in new_reaction_roles:
       # emoji = emoji[0]
       print(emoji)
       await message.add_reaction(f"{emoji}")
 
-    msg = None
+    # msg = None
     await ctx.reply(embed=embed(title=f"{message.jump_url} is a new reaction role message"))
 
-    await asyncio.gather(
-        ctx.message.delete(delay=self.bot.log.get_guild_delete_commands(ctx.guild)),
-        msg.delete(delay=self.bot.log.get_guild_delete_commands(ctx.guild))
-    )
+    # await asyncio.gather(
+    #     ctx.message.delete(delay=self.bot.log.get_guild_delete_commands(ctx.guild)),
+    #     msg.delete(delay=self.bot.log.get_guild_delete_commands(ctx.guild))
+    # )
 
-    print({f"{message.jump_url}": {**reaction_roles}})
+    print({f"{message.jump_url}": {**new_reaction_roles}})
 
   # {message_id:{"🔗":role_id,"😈":role_id}}
 

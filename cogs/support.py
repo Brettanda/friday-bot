@@ -1,14 +1,14 @@
-from discord.ext import commands
-# from discord_slash import cog_ext
+from __future__ import annotations
 
-from functions import config  # ,embed
-from typing import Optional
-from typing_extensions import TYPE_CHECKING
-
-if TYPE_CHECKING:
-  from index import Friday as Bot
+from typing import TYPE_CHECKING, Optional
 
 import discord
+from discord.ext import commands
+
+if TYPE_CHECKING:
+  from functions.custom_contexts import MyContext
+  from index import Friday
+
 
 SUPPORT_SERVER_ID = 707441352367013899
 SUPPORT_SERVER_INVITE = "https://discord.gg/NTRuFjU"
@@ -21,16 +21,21 @@ class SupportIntroRoles(discord.ui.View):
   def __init__(self):
     super().__init__(timeout=None)
 
+  async def interaction_check(self, interaction: discord.Interaction) -> bool:
+    if interaction.guild_id != 707441352367013899 or interaction.channel_id != 707458929696702525 or interaction.message and interaction.message.id != 707520808448294983:
+      return False
+    if isinstance(interaction.user, discord.User):
+      return False
+    if interaction.user.pending:
+      await interaction.followup.send(ephemeral=True, content="You must complete the membership screening before you can receive this role")
+      return False
+    return True
+
   @discord.ui.button(emoji="📌", label="Get Updates", style=discord.ButtonStyle.blurple, custom_id="support_updates")
   async def support_updates(self, interaction: discord.Interaction, button: discord.ui.Button):
-    if interaction.guild_id != 707441352367013899 or interaction.channel_id != 707458929696702525 or interaction.message.id != 707520808448294983:
-      return
-
     await interaction.response.defer(ephemeral=True)
 
-    if interaction.user.pending:
-      return await interaction.followup.send(ephemeral=True, content="You must complete the membership screening before you can receive this role")
-
+    assert interaction.guild is not None
     role = interaction.guild.get_role(848626624365592636)
     if role is None:
       return
@@ -46,21 +51,18 @@ class SupportIntroRoles(discord.ui.View):
       await interaction.followup.send(ephemeral=True, content="You will now be pinged when a new update comes out")
 
 
-class Support(commands.Cog, name="Support"):
+class Support(commands.Cog):
   """Every thing related to the Friday development server"""
 
-  def __init__(self, bot: "Bot"):
-    self.bot = bot
-
-    if not hasattr(self.bot, "invite_tracking"):
-      self.bot.invite_tracking = {}
+  def __init__(self, bot: Friday):
+    self.bot: Friday = bot
 
   @commands.command(name="support", help="Get an invite link to my support server")
-  async def norm_support(self, ctx):
+  async def _support(self, ctx: MyContext):
     await ctx.reply(SUPPORT_SERVER_INVITE)
 
   @commands.command(name="donate", help="Get the Patreon link for Friday")
-  async def norm_donate(self, ctx):
+  async def _donate(self, ctx: MyContext):
     await ctx.reply(PATREON_LINK)
 
   @commands.Cog.listener()
@@ -84,7 +86,7 @@ class Support(commands.Cog, name="Support"):
       return
 
     if not after_has:
-      await self.bot.db.query("UPDATE servers SET patreon_user=NULL,tier=NULL WHERE patreon_user=$1", str(after.id))
+      await self.bot.pool.execute("UPDATE servers SET patreon_user=NULL,tier=NULL WHERE patreon_user=$1", str(after.id))
       self.bot.logger.info(f"Lost patreonage for guild {after.guild.id} with user {after.id} :(")
     # else:
     #   welcome new patron
@@ -98,24 +100,24 @@ class Support(commands.Cog, name="Support"):
     if not self.bot.views_loaded:
       self.bot.add_view(SupportIntroRoles())
 
-  @commands.Cog.listener("on_ready")
-  @commands.Cog.listener("on_invite_create")
-  @commands.Cog.listener("on_invite_delete")
-  async def set_invite_tracking(self, invite: discord.Invite = None):
-    if self.bot.cluster_idx != 0:
-      return
+  # @commands.Cog.listener("on_ready")
+  # @commands.Cog.listener("on_invite_create")
+  # @commands.Cog.listener("on_invite_delete")
+  # async def set_invite_tracking(self, invite: discord.Invite = None):
+  #   if self.bot.cluster_idx != 0:
+  #     return
 
-    try:
-      if invite is not None:
-        if hasattr(invite, "guild") and hasattr(invite.guild, "id") and invite.guild.id != SUPPORT_SERVER_ID:
-          return
+  #   try:
+  #     if invite is not None:
+  #       if hasattr(invite, "guild") and hasattr(invite.guild, "id") and invite.guild.id != SUPPORT_SERVER_ID:
+  #         return
 
-      if self.bot.get_guild(SUPPORT_SERVER_ID) is not None:
-        for invite in await self.bot.get_guild(SUPPORT_SERVER_ID).invites():
-          if invite.max_age == 0 and invite.max_uses == 0 and invite.inviter.id == self.bot.owner_id:
-            self.bot.invite_tracking.update({invite.code: invite.uses})
-    except discord.Forbidden:
-      pass
+  #     if self.bot.get_guild(SUPPORT_SERVER_ID) is not None:
+  #       for invite in await self.bot.get_guild(SUPPORT_SERVER_ID).invites():
+  #         if invite.max_age == 0 and invite.max_uses == 0 and invite.inviter.id == self.bot.owner_id:
+  #           self.bot.invite_tracking.update({invite.code: invite.uses})
+  #   except discord.Forbidden:
+  #     pass
 
   @commands.Cog.listener()
   async def on_member_join(self, member: discord.Member):
@@ -129,35 +131,28 @@ class Support(commands.Cog, name="Support"):
     if self.bot.get_guild(SUPPORT_SERVER_ID) is None:
       return
 
-    invite_used, x, invites = None, 0, await self.bot.get_guild(SUPPORT_SERVER_ID).invites()
-    for invite in invites:
-      if invite.max_age == 0 and invite.max_uses == 0 and invite.inviter.id == self.bot.owner_id:
-        if int(invite.uses) > int(self.bot.invite_tracking[invite.code]):
-          invite_used = invite
-          self.bot.invite_tracking[invite.code] = invite.uses
-        x += 1
+    # invite_used, x, invites = None, 0, await self.bot.get_guild(SUPPORT_SERVER_ID).invites()
+    # for invite in invites:
+    #   if invite.max_age == 0 and invite.max_uses == 0 and invite.inviter.id == self.bot.owner_id:
+    #     if int(invite.uses) > int(self.bot.invite_tracking[invite.code]):
+    #       invite_used = invite
+    #       self.bot.invite_tracking[invite.code] = invite.uses
+    #     x += 1
 
-    if invite_used is not None:
-      if config.support_server_invites.get(invite_used.code, None) is not None:
-        with open("invite_tracking.csv", "w") as f:
-          f.write("reference,key,count\n")
-          x = 0
-          for reference in config.support_server_invites:
-            inv = [invite for invite in invites if invite.code == reference][0]
-            count, inv = inv.uses, inv.code
-            f.write(f"{config.support_server_invites.get(reference, None)},{inv},{count}\n")
-            x += 1
-          f.close()
-        print(config.support_server_invites[invite_used.code])
-      else:
-        print(invite_used.code)
-
-    if 215346091321720832 not in [guild.id for guild in member.mutual_guilds]:
-      return
-
-    role = member.guild.get_role(763916955388084246)
-
-    await member.add_roles(role, reason="Friend from NaCl")
+    # if invite_used is not None:
+    #   if config.support_server_invites.get(invite_used.code, None) is not None:
+    #     with open("invite_tracking.csv", "w") as f:
+    #       f.write("reference,key,count\n")
+    #       x = 0
+    #       for reference in config.support_server_invites:
+    #         inv = [invite for invite in invites if invite.code == reference][0]
+    #         count, inv = inv.uses, inv.code
+    #         f.write(f"{config.support_server_invites.get(reference, None)},{inv},{count}\n")
+    #         x += 1
+    #       f.close()
+    #     print(config.support_server_invites[invite_used.code])
+    #   else:
+    #     print(invite_used.code)
 
 
 async def setup(bot):

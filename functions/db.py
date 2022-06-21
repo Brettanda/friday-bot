@@ -9,6 +9,7 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # These are just things that allow me to make tables for PostgreSQL easier
 # This isn't exactly good. It's just good enough for my uses.
 # Also shoddy migration support.
+from __future__ import annotations
 
 import asyncio
 import datetime
@@ -21,13 +22,13 @@ import pydoc
 import uuid
 from collections import OrderedDict
 from pathlib import Path
-from typing import Optional, Union
+from typing import TYPE_CHECKING, Any, ClassVar, Optional, Type, Union
 
 import asyncpg
-from typing_extensions import TYPE_CHECKING
 
 if TYPE_CHECKING:
-  from index import Friday as Bot
+  # from index import Friday as Bot
+  from typing_extensions import Self
 
 log = logging.getLogger(__name__)
 
@@ -37,16 +38,16 @@ class SchemaError(Exception):
 
 
 class SQLType:
-  python = None
+  python: ClassVar[Optional[type[Any]]] = None
 
-  def to_dict(self):
+  def to_dict(self) -> dict[str, Any]:
     o = self.__dict__.copy()
     cls = self.__class__
     o['__meta__'] = cls.__module__ + '.' + cls.__qualname__
     return o
 
   @classmethod
-  def from_dict(cls, data):
+  def from_dict(cls, data: dict[str, Any]) -> Self:
     meta = data.pop('__meta__')
     given = cls.__module__ + '.' + cls.__qualname__
     if given != meta:
@@ -54,20 +55,20 @@ class SQLType:
       if cls is None:
         raise RuntimeError('Could not locate "%s".' % meta)
 
-    self = cls.__new__(cls)
+    self: Self = cls.__new__(cls)  # type: ignore
     self.__dict__.update(data)
     return self
 
-  def __eq__(self, other):
+  def __eq__(self, other: object) -> bool:
     return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
 
-  def __ne__(self, other):
+  def __ne__(self, other: object) -> bool:
     return not self.__eq__(other)
 
-  def to_sql(self):
+  def to_sql(self) -> str:
     raise NotImplementedError()
 
-  def is_real_type(self):
+  def is_real_type(self) -> bool:
     return True
 
 
@@ -152,9 +153,21 @@ class Interval(SQLType):
   def __init__(self, field=None):
     if field:
       field = field.upper()
-      if field not in ('YEAR', 'MONTH', 'DAY', 'HOUR', 'MINUTE', 'SECOND',
-                       'YEAR TO MONTH', 'DAY TO HOUR', 'DAY TO MINUTE', 'DAY TO SECOND',
-                       'HOUR TO MINUTE', 'HOUR TO SECOND', 'MINUTE TO SECOND'):
+      if field not in (
+          'YEAR',
+          'MONTH',
+          'DAY',
+          'HOUR',
+          'MINUTE',
+          'SECOND',
+          'YEAR TO MONTH',
+          'DAY TO HOUR',
+          'DAY TO MINUTE',
+          'DAY TO SECOND',
+          'HOUR TO MINUTE',
+          'HOUR TO SECOND',
+          'MINUTE TO SECOND',
+      ):
         raise SchemaError('invalid interval specified')
       self.field = field
     else:
@@ -267,8 +280,7 @@ class ForeignKey(SQLType):
     return False
 
   def to_sql(self):
-    fmt = '{0.sql_type} REFERENCES {0.table} ({0.column})' \
-          ' ON DELETE {0.on_delete} ON UPDATE {0.on_update}'
+    fmt = '{0.sql_type} REFERENCES {0.table} ({0.column}) ON DELETE {0.on_delete} ON UPDATE {0.on_update}'
     return fmt.format(self)
 
 
@@ -298,11 +310,19 @@ class Array(SQLType):
 
 
 class Column:
-  __slots__ = ('column_type', 'index', 'primary_key', 'nullable',
-               'default', 'unique', 'name', 'index_name')
+  __slots__ = ('column_type', 'index', 'primary_key', 'nullable', 'default', 'unique', 'name', 'index_name')
 
-  def __init__(self, column_type, *, index=False, primary_key=False,
-               nullable=True, unique=False, default=None, name=None):
+  def __init__(
+      self,
+      column_type: Union[Type[SQLType], SQLType],
+      *,
+      index: bool = False,
+      primary_key: bool = False,
+      nullable: bool = True,
+      unique: bool = False,
+      default: Any = None,
+      name: Optional[str] = None,
+  ):
 
     if inspect.isclass(column_type):
       column_type = column_type()
@@ -310,14 +330,14 @@ class Column:
     if not isinstance(column_type, SQLType):
       raise TypeError('Cannot have a non-SQLType derived column_type')
 
-    self.column_type = column_type
-    self.index = index
-    self.unique = unique
-    self.primary_key = primary_key
-    self.nullable = nullable
-    self.default = default
-    self.name = name
-    self.index_name = None  # to be filled later
+    self.column_type: SQLType = column_type
+    self.index: bool = index
+    self.unique: bool = unique
+    self.primary_key: bool = primary_key
+    self.nullable: bool = nullable
+    self.default: Any = default
+    self.name: Optional[str] = name
+    self.index_name: Optional[str] = None  # to be filled later
 
     if sum(map(bool, (unique, primary_key, default is not None))) > 1:
       raise SchemaError("'unique', 'primary_key', and 'default' are mutually exclusive.")
@@ -336,10 +356,7 @@ class Column:
     return '-'.join('%s:%s' % (attr, getattr(self, attr)) for attr in self.__slots__)
 
   def _to_dict(self):
-    d = {
-        attr: getattr(self, attr)
-        for attr in self.__slots__
-    }
+    d = {attr: getattr(self, attr) for attr in self.__slots__}
     d['column_type'] = self.column_type.to_dict()
     return d
 
@@ -505,9 +522,13 @@ class TableMeta(type):
     super().__init__(name, parents, dct)
 
 
-class Table(metaclass=TableMeta):
+class Table(metaclass=TableMeta):  # type: ignore  # Pyright Bug I think
+  _pool: asyncpg.Pool
+  __tablename__: str
+  columns: list[Column]
+
   @classmethod
-  async def create_pool(cls, *, prod=False, canary=False, **kwargs):
+  async def create_pool(cls, *, prod=False, canary=False, **kwargs) -> asyncpg.Pool:
     """Sets up and returns the PostgreSQL connection pool that is used.
 
     .. note::
@@ -837,7 +858,7 @@ class Table(metaclass=TableMeta):
     verified = {}
     for column in cls.columns:
       try:
-        value = kwargs[column.name]
+        value = kwargs[column.name]  # type: ignore  # Doesn't understand that None | str is okay
       except KeyError:
         continue
 
@@ -876,7 +897,7 @@ class Table(metaclass=TableMeta):
       if cls is None:
         raise RuntimeError('Could not locate "%s".' % meta)
 
-    self = cls()
+    self = cls()  # type: ignore
     self.__tablename__ = data['name']
     self.columns = [Column.from_dict(a) for a in data['columns']]
     return self
@@ -1130,86 +1151,86 @@ COLUMNS = {
 }
 
 
-class Database:
-  """Database Stuffs and Tings"""
+# class Database:
+#   """Database Stuffs and Tings"""
 
-  @classmethod
-  async def create(cls, *, bot: "Bot", loop: asyncio.AbstractEventLoop = None):
-    self = cls()
-    self.bot = bot
-    self.loop = loop or asyncio.get_event_loop()
+#   @classmethod
+#   async def create(cls, *, bot: "Bot", loop: asyncio.AbstractEventLoop = None):
+#     self = cls()
+#     self.bot = bot
+#     self.loop = loop or asyncio.get_event_loop()
 
-    hostname = 'localhost' if bot.prod or bot.canary else os.environ["DBHOSTNAME"]
-    username = os.environ["DBUSERNAMECANARY"] if bot.canary else os.environ["DBUSERNAME"] if bot.prod else os.environ["DBUSERNAMELOCAL"]
-    password = os.environ["DBPASSWORDCANARY"] if bot.canary else os.environ["DBPASSWORD"] if bot.prod else os.environ["DBPASSWORDLOCAL"]
-    database = os.environ["DBDATABASECANARY"] if bot.canary else os.environ["DBDATABASE"] if bot.prod else os.environ["DBDATABASELOCAL"]
-    kwargs = {
-        'command_timeout': 60,
-        'max_size': 20,
-        'min_size': 20,
-    }
-    self._connection: asyncpg.Pool = bot.loop.run_until_complete(asyncpg.create_pool(host=hostname, user=username, password=password, database=database, loop=self.loop, **kwargs))
+#     hostname = 'localhost' if bot.prod or bot.canary else os.environ["DBHOSTNAME"]
+#     username = os.environ["DBUSERNAMECANARY"] if bot.canary else os.environ["DBUSERNAME"] if bot.prod else os.environ["DBUSERNAMELOCAL"]
+#     password = os.environ["DBPASSWORDCANARY"] if bot.canary else os.environ["DBPASSWORD"] if bot.prod else os.environ["DBPASSWORDLOCAL"]
+#     database = os.environ["DBDATABASECANARY"] if bot.canary else os.environ["DBDATABASE"] if bot.prod else os.environ["DBDATABASELOCAL"]
+#     kwargs = {
+#         'command_timeout': 60,
+#         'max_size': 20,
+#         'min_size': 20,
+#     }
+#     self._connection: asyncpg.Pool = bot.loop.run_until_complete(asyncpg.create_pool(host=hostname, user=username, password=password, database=database, loop=self.loop, **kwargs))
 
-    if bot.cluster_idx == 0:
-      bot.loop.create_task(self.create_tables())
-      bot.loop.create_task(self.sync_table_columns())
-    return self
+#     if bot.cluster_idx == 0:
+#       bot.loop.create_task(self.create_tables())
+#       bot.loop.create_task(self.sync_table_columns())
+#     return self
 
-  def __repr__(self):
-    return "<Database>"
+#   def __repr__(self):
+#     return "<Database>"
 
-  @property
-  def pool(self) -> asyncpg.Pool:
-    return self._connection
+#   @property
+#   def pool(self) -> asyncpg.Pool:
+#     return self._connection
 
-  async def create_tables(self):
-    async with self.pool.acquire(timeout=300.0) as conn:
-      async with conn.transaction():
-        for table in self.columns:
-          await conn.execute(f"CREATE TABLE IF NOT EXISTS {table} ({','.join(self.columns[table])});")
+#   async def create_tables(self):
+#     async with self.pool.acquire(timeout=300.0) as conn:
+#       async with conn.transaction():
+#         for table in self.columns:
+#           await conn.execute(f"CREATE TABLE IF NOT EXISTS {table} ({','.join(self.columns[table])});")
 
-  async def sync_table_columns(self):
-    # https://stackoverflow.com/questions/9991043/how-can-i-test-if-a-column-exists-in-a-table-using-an-sql-statement
-    async with self.pool.acquire(timeout=300.0) as conn:
-      async with conn.transaction():
-        for table in self.columns:
-          for column in self.columns[table]:
-            result = await conn.fetch(f"SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='{table}' AND column_name='{column.split(' ')[0]}') LIMIT 1")
-            if not result[0].get("exists"):
-              await conn.execute(f"ALTER TABLE {table} ADD COLUMN {column};")
+#   async def sync_table_columns(self):
+#     # https://stackoverflow.com/questions/9991043/how-can-i-test-if-a-column-exists-in-a-table-using-an-sql-statement
+#     async with self.pool.acquire(timeout=300.0) as conn:
+#       async with conn.transaction():
+#         for table in self.columns:
+#           for column in self.columns[table]:
+#             result = await conn.fetch(f"SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='{table}' AND column_name='{column.split(' ')[0]}') LIMIT 1")
+#             if not result[0].get("exists"):
+#               await conn.execute(f"ALTER TABLE {table} ADD COLUMN {column};")
 
-  async def get_many(self, query: str, *params) -> Optional[Union[str, list]]:
-    async with self.pool.acquire(timeout=300.0) as conn:
-      result = await conn.fetch(query, *params)
-    if hasattr(self.bot, "logger"):
-      self.bot.logger.debug(f"PostgreSQL Query: \"{query}\" + {params}")
-    if isinstance(result, list) and len(result) == 1 and "limit 1" in query.lower():
-      result = [tuple(i) for i in result][0]
-      if len(result) == 1:
-        return result[0]
-      return result
-    if isinstance(result, list) and len(result) > 0 and "limit 1" not in query.lower():
-      return [tuple(i) for i in result]
-    elif isinstance(result, list) and len(result) == 0 and "limit 1" in query.lower():
-      return None
-    return result
+#   async def get_many(self, query: str, *params) -> Optional[Union[str, list]]:
+#     async with self.pool.acquire(timeout=300.0) as conn:
+#       result = await conn.fetch(query, *params)
+#     if hasattr(self.bot, "logger"):
+#       self.bot.logger.debug(f"PostgreSQL Query: \"{query}\" + {params}")
+#     if isinstance(result, list) and len(result) == 1 and "limit 1" in query.lower():
+#       result = [tuple(i) for i in result][0]
+#       if len(result) == 1:
+#         return result[0]
+#       return result
+#     if isinstance(result, list) and len(result) > 0 and "limit 1" not in query.lower():
+#       return [tuple(i) for i in result]
+#     elif isinstance(result, list) and len(result) == 0 and "limit 1" in query.lower():
+#       return None
+#     return result
 
-  async def query(self, query: str, *params) -> Optional[Union[str, list]]:
-    async with self.pool.acquire(timeout=300.0) as mycursor:
-      if "select" in query.lower():
-        result = await mycursor.fetch(query, *params)
-      else:
-        await mycursor.execute(query, *params)
-    if hasattr(self.bot, "logger"):
-      self.bot.logger.debug(f"PostgreSQL Query: \"{query}\" + {params}")
-    if "select" in query.lower():
-      if isinstance(result, list) and len(result) == 1 and "limit 1" in query.lower():
-        result = [tuple(i) for i in result][0]
-        if len(result) == 1:
-          return result[0]
-        return result
-      if isinstance(result, list) and len(result) > 0 and "limit 1" not in query.lower():
-        return [tuple(i) for i in result]
-      elif isinstance(result, list) and len(result) == 0 and "limit 1" in query.lower():
-        return None
-      return result
+#   async def query(self, query: str, *params) -> Optional[Union[str, list]]:
+#     async with self.pool.acquire(timeout=300.0) as mycursor:
+#       if "select" in query.lower():
+#         result = await mycursor.fetch(query, *params)
+#       else:
+#         await mycursor.execute(query, *params)
+#     if hasattr(self.bot, "logger"):
+#       self.bot.logger.debug(f"PostgreSQL Query: \"{query}\" + {params}")
+#     if "select" in query.lower():
+#       if isinstance(result, list) and len(result) == 1 and "limit 1" in query.lower():
+#         result = [tuple(i) for i in result][0]
+#         if len(result) == 1:
+#           return result[0]
+#         return result
+#       if isinstance(result, list) and len(result) > 0 and "limit 1" not in query.lower():
+#         return [tuple(i) for i in result]
+#       elif isinstance(result, list) and len(result) == 0 and "limit 1" in query.lower():
+#         return None
+#       return result

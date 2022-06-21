@@ -1,30 +1,38 @@
-# import discord
+from __future__ import annotations
+
+import asyncpg
+from typing import TYPE_CHECKING, Optional
+
 from discord.ext import commands
 
-from functions import MyContext, cache
-from typing import Optional
-from typing_extensions import TYPE_CHECKING
+from functions import cache
 
 if TYPE_CHECKING:
-  from index import Friday as Bot
+  from typing_extensions import Self
+  from index import Friday
+  from functions.custom_contexts import MyContext
 
 
 class Config:
   __slots__ = ("bot", "id", "shortcuts", )
 
+  bot: Friday
+  id: int
+  shortcuts: dict
+
   @classmethod
-  async def from_record(cls, record, bot):
+  async def from_record(cls, record: asyncpg.Record, bot: Friday) -> Self:
     self = cls()
 
     self.bot = bot
-    self.id: int = int(record["id"], base=10)
-    self.shortcuts: dict = record["shortcuts"]
+    self.id = int(record["id"], base=10)
+    self.shortcuts = record["shortcuts"]
     return self
 
 
 class Shortcuts(commands.Cog):
-  def __init__(self, bot: "Bot"):
-    self.bot = bot
+  def __init__(self, bot: Friday):
+    self.bot: Friday = bot
 
     # shortcuts = bot.command_group("shortcuts", "Shortcut commands")
 
@@ -41,14 +49,14 @@ class Shortcuts(commands.Cog):
     return True
 
   @cache.cache()
-  async def get_guild_config(self, guild_id: int) -> Optional[Config]:
+  async def get_guild_config(self, guild_id: int, *, connection: Optional[asyncpg.Connection] = None) -> Optional[Config]:
+    conn = connection or self.bot.pool
     query = "SELECT * FROM servers WHERE id=$1 LIMIT 1;"
-    async with self.bot.db.pool.acquire(timeout=300.0) as conn:
-      record = await conn.fetchrow(query, str(guild_id))
-      self.bot.logger.debug(f"PostgreSQL Query: \"{query}\" + {str(guild_id)}")
-      if record is not None:
-        return await Config.from_record(record, self.bot)
-      return None
+    record = await conn.fetchrow(query, str(guild_id))
+    self.bot.logger.debug(f"PostgreSQL Query: \"{query}\" + {str(guild_id)}")
+    if record is not None:
+      return await Config.from_record(record, self.bot)
+    return None
 
   @commands.group(name="shortcuts", aliases=["sc"], help="Setup shortcuts for your favourite commands and arguments")
   async def shortcuts(self, ctx: MyContext):

@@ -1,22 +1,28 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Optional
+
 import discord
 from discord.ext import commands
 from numpy import random
-from typing_extensions import TYPE_CHECKING
 
 from functions import MessageColors, embed, time
 
 if TYPE_CHECKING:
-  from index import Friday as Bot
+  from discord.channel import VoiceChannel
+
+  from cogs.reminder import Timer
+  from index import Friday
 
 
 class NaCl(commands.Cog):
-  def __init__(self, bot: "Bot"):
-    self.bot = bot
+  def __init__(self, bot: Friday):
+    self.bot: Friday = bot
 
   def __repr__(self) -> str:
     return f"<cogs.{self.__cog_name__}>"
 
-  async def sexed(self, member: discord.Member, before, after):
+  async def sexed(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState) -> None:
     # NaCl
     if member.guild.id != 215346091321720832:
       return
@@ -35,16 +41,16 @@ class NaCl(commands.Cog):
       return
     self.bot.logger.info(f"Sexed {member} ({member.id})")
 
-    sex = member.guild.get_channel(932111746620084224)
+    sex: Optional[VoiceChannel] = member.guild.get_channel(932111746620084224)  # type: ignore
     if sex is None:
       return
 
     if len(sex.voice_states) >= sex.user_limit:
       return
 
-    await member.edit(voice_channel=sex, reason="Got that 6.9% Sexed")
+    await member.edit(voice_channel=sex, reason=f"Got that 6.9% Sexed: {member}")
 
-  async def ghost_fapper(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
+  async def ghost_fapper(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState) -> None:
     # THE CROC
     if member.guild.id != 582046945674002442:
       return
@@ -58,21 +64,24 @@ class NaCl(commands.Cog):
     if not after.self_deaf:
       return
 
-    reminder = self.bot.get_cog("Reminder")
+    reminder = self.bot.reminder
     if reminder is None:
       return
 
     two_min = time.FutureTime("2m")
-    await reminder.create_timer(two_min.dt, "ghostfapper", member.guild.id, member.voice.channel.id, member.id)
+    await reminder.create_timer(two_min.dt, "ghostfapper", member.guild.id, after.channel.id, member.id)
 
   @commands.Cog.listener()
-  async def on_ghostfapper_timer_complete(self, timer):
+  async def on_ghostfapper_timer_complete(self, timer: Timer) -> None:
     guild_id, vc_id, member_id = timer.args
 
     guild = self.bot.get_guild(guild_id)
+    if guild is None:
+      return
+
     member = await self.bot.get_or_fetch_member(guild, member_id)
 
-    if member.voice is None:
+    if member is None or member.voice is None:
       return
 
     if member.voice.channel is None:
@@ -83,11 +92,11 @@ class NaCl(commands.Cog):
 
     try:
       await member.edit(voice_channel=None, reason="Ghost Fapper")
-      await member.send(embed=embed(title="It's creepy when you leave a ghost in a voice channel.", color=MessageColors.ERROR))
+      await member.send(embed=embed(title="It's creepy when you leave a ghost in a voice channel.", color=MessageColors.error()))
     except Exception:
       pass
 
-  async def cam_only(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
+  async def cam_only(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState) -> None:
     # THE CROC
     if member.guild.id != 582046945674002442:
       return
@@ -104,21 +113,24 @@ class NaCl(commands.Cog):
     if after.self_stream or after.self_video:
       return
 
-    reminder = self.bot.get_cog("Reminder")
+    reminder = self.bot.reminder
     if reminder is None:
       return
 
     two_min = time.FutureTime("2m")
-    await reminder.create_timer(two_min.dt, "camonly", member.guild.id, member.voice.channel.id, member.id)
+    await reminder.create_timer(two_min.dt, "camonly", member.guild.id, after.channel.id, member.id)
 
   @commands.Cog.listener()
-  async def on_camonly_timer_complete(self, timer):
+  async def on_camonly_timer_complete(self, timer: Timer) -> None:
     guild_id, vc_id, member_id = timer.args
 
     guild = self.bot.get_guild(guild_id)
+    if guild is None:
+      return
+
     member = await self.bot.get_or_fetch_member(guild, member_id)
 
-    if member.voice is None:
+    if member is None or member.voice is None:
       return
 
     if member.voice.channel is None or member.voice.channel.id != vc_id:
@@ -129,7 +141,7 @@ class NaCl(commands.Cog):
 
     try:
       await member.edit(voice_channel=None, reason="Cam Only")
-      await member.send(embed=embed(title="Your vibes seems kinda off 😦 <:grunch:785387930445152256>", color=MessageColors.ERROR))
+      await member.send(embed=embed(title="Your vibes seems kinda off 😦 <:grunch:785387930445152256>", color=MessageColors.error()))
     except Exception:
       pass
 

@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import time
+from typing import Any
 from discord.ext.commands import BucketType
 
 
@@ -15,9 +18,9 @@ class Cooldown:
 
   def __init__(
       self,
-      max: int,
-      tokens: int,
-      refill_amount: int,
+      max: int | float,
+      tokens: int | float,
+      refill_amount: int | float,
       refill_interval: float,
       type: BucketType,
   ) -> None:
@@ -39,7 +42,7 @@ class Cooldown:
 
   def get_retry_after(self, current: float = None):
     current = current or time.time()
-    tokens = self.get_tokens(current)
+    tokens = self.get_tokens(current)  # type: ignore
 
     if tokens < 1:
       tokens_needed = 1 - tokens
@@ -59,7 +62,7 @@ class Cooldown:
       return self.refill_interval * refills_needed
 
   def is_full_at(self, current: float = None):
-    self.update_tokens(current)
+    self.update_tokens(current)  # type: ignore
     return self.tokens == self.max
 
   def reset(self):
@@ -96,8 +99,8 @@ class CooldownMapping:
     return self._cooldown is not None
 
   @classmethod
-  def from_cooldown(cls, rate, per, type):
-    return cls(Cooldown(rate, per, type))
+  def from_cooldown(cls, rate: int | float, per: int | float, _type: Any):
+    return cls(Cooldown(rate, per, _type))  # type: ignore
 
   def _bucket_key(self, msg):
     return self._cooldown.type.get_key(msg)

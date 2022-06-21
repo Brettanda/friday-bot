@@ -8,10 +8,16 @@ import discord
 import pytest
 
 if TYPE_CHECKING:
-  from .conftest import UnitTester
   from discord import Guild
 
+  from .conftest import Friday, UnitTester
+
 pytestmark = pytest.mark.asyncio
+
+
+@pytest.mark.dependency()
+async def test_get_cog(friday: Friday):
+  assert friday.get_cog("ScheduledEvents") is not None
 
 
 @pytest.fixture(scope="module")

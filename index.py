@@ -6,7 +6,7 @@ import logging
 import os
 import sys
 from collections import Counter, defaultdict
-from typing import Any, AsyncIterator, Dict, Iterable, Optional
+from typing import TYPE_CHECKING, Any, AsyncIterator, Dict, Iterable, Optional
 
 import aiohttp
 import asyncpg
@@ -14,7 +14,6 @@ import discord
 from discord.ext import commands
 from dotenv import load_dotenv
 from topgg.webhook import WebhookManager
-from typing_extensions import TYPE_CHECKING
 
 import cogs
 import functions
@@ -22,8 +21,8 @@ from functions.config import Config, ReadOnly
 
 if TYPE_CHECKING:
   from .cogs.database import Database
-  from .cogs.reminder import Reminder
   from .cogs.log import Log
+  from .cogs.reminder import Reminder
 
 load_dotenv()
 
@@ -44,10 +43,12 @@ class Friday(commands.AutoShardedBot):
   topgg_webhook: WebhookManager
   command_stats: Counter[str]
   socket_stats: Counter[str]
-  chat_stats: Counter[str]
+  chat_stats: Counter[int]
   gateway_handler: Any
   bot_app_info: discord.AppInfo
   uptime: datetime.datetime
+  chat_repeat_counter: Counter[int]
+  old_help_command: Optional[commands.HelpCommand]
 
   def __init__(self, **kwargs):
     self.cluster = kwargs.pop("cluster", None)
@@ -78,6 +79,7 @@ class Friday(commands.AutoShardedBot):
         chunk_guilds_at_startup=False,
         allowed_mentions=discord.AllowedMentions(roles=False, everyone=False, users=True),
         enable_debug_events=True,
+        log_handler=None,
         **kwargs
     )
 
@@ -88,6 +90,7 @@ class Friday(commands.AutoShardedBot):
     self.prod = kwargs.pop("prod", None) or True if len(sys.argv) > 1 and (sys.argv[1] == "--prod" or sys.argv[1] == "--production") else False
     self.canary = kwargs.pop("canary", None) or True if len(sys.argv) > 1 and (sys.argv[1] == "--canary") else False
     self.ready = False
+    self.testing = False
 
     # shard_id: List[datetime.datetime]
     # shows the last attempted IDENTIFYs and RESUMEs
@@ -120,7 +123,7 @@ class Friday(commands.AutoShardedBot):
 
     self.blacklist: Config[bool] = Config("blacklist.json", loop=self.loop)
 
-    self.langs: Dict[str, ReadOnly[dict[dict, str | dict]]] = {
+    self.langs: Dict[str, ReadOnly[dict[str, Any]]] = {
         "en": ReadOnly("i18n/source/commands.json", loop=self.loop),
         **{name: ReadOnly(f"i18n/translations/{name}/commands.json", loop=self.loop) for name in os.listdir("./i18n/translations")}
     }
@@ -146,8 +149,9 @@ class Friday(commands.AutoShardedBot):
         self.logger.error(f"Failed to load extenstion {cog} with \n {e}")
 
   async def on_ready(self):
-    DIARY = discord.Object(id=243159711237537802)
-    await self.tree.sync(guild=DIARY)
+    if not (self.prod or self.canary):
+      DIARY = discord.Object(id=243159711237537802)
+      await self.tree.sync(guild=DIARY)
     await self.tree.sync()
 
   def _clear_gateway_data(self) -> None:
@@ -254,6 +258,9 @@ class Friday(commands.AutoShardedBot):
     await super().close()
     await self.session.close()
 
+  async def start(self, token: str) -> None:
+    await super().start(token, reconnect=True)
+
   @property
   def log(self) -> Log:
     return self.get_cog("Log")  # type: ignore
@@ -269,7 +276,7 @@ class Friday(commands.AutoShardedBot):
 
 async def main(bot):
   async with bot:
-    await bot.start(TOKEN, reconnect=True)
+    await bot.start(TOKEN)
 
 if __name__ == "__main__":
   from launcher import get_logger
