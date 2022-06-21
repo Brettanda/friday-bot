@@ -99,7 +99,7 @@ class Friday(commands.AutoShardedBot):
 
     self.logger.info(f"Cluster Starting {kwargs.get('shard_ids', None)}, {kwargs.get('shard_count', 1)}")
     if self.should_start:
-      self.run(kwargs["token"], reconnect=True)
+      self.run(kwargs["token"])
 
   def __repr__(self) -> str:
     return f"<Friday username=\"{self.user.display_name if self.user else None}\" id={self.user.id if self.user else None}>"
@@ -258,7 +258,7 @@ class Friday(commands.AutoShardedBot):
     await super().close()
     await self.session.close()
 
-  async def start(self, token: str) -> None:
+  async def start(self, token: str, **kwargs) -> None:
     await super().start(token, reconnect=True)
 
   @property
