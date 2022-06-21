@@ -12,12 +12,12 @@ jobs:
         python-version: [3.8]
     name: Type Checking ${{ matrix.python-version }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           ssh-key: ${{ secrets.I18N_SUBMODULE_GH_ACTIONS_PULL }}
           submodules: recursive
-      - uses: actions/setup-python@v3
+      - uses: actions/setup-python@v4
         id: cache
         with:
           python-version: ${{ matrix.python-version }}
@@ -45,9 +45,9 @@ jobs:
         python-version: [3.8, 3.9, '3.10']
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v4
       id: cache
       with:
         python-version: ${{ matrix.python-version }}
@@ -70,12 +70,12 @@ jobs:
         python-version: [3.8]
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         ssh-key: ${{ secrets.I18N_SUBMODULE_GH_ACTIONS_PULL }}
         submodules: recursive
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v4
       id: cache
       with:
         python-version: ${{ matrix.python-version }}
