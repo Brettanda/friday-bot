@@ -17,7 +17,7 @@ jobs:
           fetch-depth: 0
           ssh-key: ${{ secrets.I18N_SUBMODULE_GH_ACTIONS_PULL }}
           submodules: recursive
-      - uses: actions/setup-python@v3
+      - uses: actions/setup-python@v4
         id: cache
         with:
           python-version: ${{ matrix.python-version }}
@@ -47,7 +47,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v4
       id: cache
       with:
         python-version: ${{ matrix.python-version }}
@@ -75,7 +75,7 @@ jobs:
         ssh-key: ${{ secrets.I18N_SUBMODULE_GH_ACTIONS_PULL }}
         submodules: recursive
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v4
       id: cache
       with:
         python-version: ${{ matrix.python-version }}

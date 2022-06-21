@@ -141,7 +141,7 @@ class Launcher:
         asyncio.ensure_future(self.shutdown())
       to_remove = []
       for cluster in self.clusters:
-        if not cluster.process.is_alive():
+        if cluster.process and not cluster.process.is_alive():
           if cluster.process.exitcode != 0:
             logger.info(f"CLUSTER #{cluster.name} exited with code {cluster.process.exitcode}")
             logger.info(f"Restarting cluster #{cluster.name}")
@@ -163,9 +163,9 @@ class Launcher:
 
 
 class Cluster:
-  def __init__(self, launcher, name, shard_ids, max_shards):
+  def __init__(self, launcher: Launcher, name: str, shard_ids: list, max_shards: int):
     self.launcher: Launcher = launcher
-    self.process = None
+    self.process: Optional[multiprocessing.Process] = None
     self.name: str = name
 
     self.logger = get_logger(f"Cluster#{name}")
@@ -175,7 +175,7 @@ class Cluster:
         token=TOKEN,
         shard_ids=shard_ids,
         shard_count=max_shards,
-        cluster=self,
+        cluster=self,  # type: ignore
         cluster_name=name,
         cluster_idx=CLUSER_NAMES.index(name),
         logger=self.logger,
@@ -188,7 +188,8 @@ class Cluster:
   async def start(self, *, force: bool = False) -> bool:
     if self.process and self.process.is_alive():
       if not force:
-        return self.logger.warning("Start called with already running cluster, pass `force=True` to override")
+        self.logger.warning("Start called with already running cluster, pass `force=True` to override")
+        return False
       self.logger.info("Terminating existing process")
       self.process.terminate()
       self.process.close()
@@ -201,10 +202,11 @@ class Cluster:
 
   def stop(self, sign=signal.SIGINT) -> None:
     self.logger.info(f"Shutting down with signal {sign!r}")
-    try:
-      os.kill(self.process.pid, sign)
-    except ProcessLookupError:
-      pass
+    if self.process and self.process.pid:
+      try:
+        os.kill(self.process.pid, sign)
+      except ProcessLookupError:
+        pass
 
 
 if __name__ == "__main__":
