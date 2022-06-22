@@ -115,8 +115,8 @@ class Friday(commands.AutoShardedBot):
       return self.langs.get(msg.guild.preferred_locale.value[:2], "en")
     return self.langs.get((await self.log.get_guild_config(msg.guild.id)).lang)
 
-  async def get_context(self, message, *, cls=None) -> functions.MyContext:
-    return await super().get_context(message, cls=cls or functions.MyContext)
+  async def get_context(self, origin: discord.Message | discord.Interaction, /, *, cls=None) -> functions.MyContext:
+    return await super().get_context(origin, cls=cls or functions.MyContext)
 
   async def setup_hook(self) -> None:
     self.session = aiohttp.ClientSession()
