@@ -1,20 +1,29 @@
+from __future__ import annotations
+
 import asyncio
 import os
-import pytest
 # import sys
 import time
+from typing import Callable, Optional
 
 import discord
+import pytest
 from discord.ext import commands
 from dotenv import load_dotenv
 
+import index
+from launcher import get_logger
+
 load_dotenv()
 
-TOKEN = os.environ.get('TOKENUNITTEST')
-TOKENUSER = os.environ.get('TOKENUNITTESTUSER')
+TOKEN = os.environ['TOKENUNITTEST']
+FRIDAYTOKEN = os.environ['TOKENTEST']
+TOKENUSER = os.environ['TOKENUNITTESTUSER']
 
 
 class UnitTester(commands.Bot):
+  user: discord.ClientUser
+
   def __init__(self, **kwargs):
     self.was_online = False
     super().__init__(
@@ -30,6 +39,9 @@ class UnitTester(commands.Bot):
     if msg.author.id != 751680714948214855:
       return
 
+    # if msg.author.id == self.user.id:
+    #   self.x += 1
+
     await self.process_commands(msg)
 
   async def on_ready(self):
@@ -39,15 +51,20 @@ class UnitTester(commands.Bot):
             type=discord.ActivityType.playing,
             name="Unit Testing"
         ))
-    guild = self.get_guild(243159711237537802)
-    await guild.chunk(cache=True)
-    main = guild.get_member(751680714948214855)
-    if main.status not in (discord.Status.online, discord.Status.idle):
-      def check_online(m):
-        return m.author.id == 751680714948214855 and m.channel.id == 892840236781015120
-      await self.wait_for("message", check=check_online, timeout=30.0)
-    else:
-      self.was_online = True
+
+
+class Friday(index.Friday):
+  def __init__(self, **kwargs):
+    super().__init__(**kwargs)
+    self.x = 0
+    self.testing = True
+    self.the_message: Optional[discord.Message] = None
+
+  async def on_message(self, m: discord.Message) -> None:
+    if m.author.id == self.user.id:
+      self.x += 1
+
+    await self.process_commands(m)
 
 
 class UnitTesterUser(UnitTester):
@@ -55,123 +72,194 @@ class UnitTesterUser(UnitTester):
 
 
 @pytest.fixture(scope="session")
-def event_loop():
-  loop = asyncio.new_event_loop()
-  yield loop
-  loop.close()
+def event_loop() -> asyncio.AbstractEventLoop:
+  return asyncio.new_event_loop()
 
 
 @pytest.fixture(scope="session")
-def event_loop_user():
-  loop = asyncio.new_event_loop()
-  yield loop
-  loop.close()
+def event_loop_friday() -> asyncio.AbstractEventLoop:
+  return asyncio.new_event_loop()
 
 
 @pytest.fixture(scope="session")
-async def bot(event_loop) -> commands.Bot:
+def event_loop_user() -> asyncio.AbstractEventLoop:
+  return asyncio.new_event_loop()
+
+
+@pytest.fixture(scope="session")
+async def bot(event_loop: asyncio.AbstractEventLoop) -> UnitTester:
   bot = UnitTester()
   event_loop.create_task(bot.start(TOKEN))
-  yield bot
-  await bot.close()
+  return bot
 
 
 @pytest.fixture(scope="session")
-async def bot_user(event_loop) -> commands.Bot:
+async def friday(event_loop_friday: asyncio.AbstractEventLoop) -> Friday:
+  async def main(bot):
+    async with bot:
+      await bot.start(FRIDAYTOKEN, reconnect=True)
+  log = get_logger("Friday")
+  bot = Friday(logger=log)
+  asyncio.create_task(main(bot))
+  return bot
+
+
+@pytest.fixture(scope="session")
+async def bot_user(event_loop: asyncio.AbstractEventLoop) -> UnitTesterUser:
   bot_user = UnitTesterUser()
   event_loop.create_task(bot_user.start(TOKENUSER))
-  yield bot_user
-  await bot_user.close()
+  return bot_user
 
 
 @pytest.fixture(scope="session", autouse=True)
-async def cleanup(request, bot, bot_user, channel):
+async def cleanup(request, bot: UnitTester, friday: Friday, bot_user: UnitTesterUser, event_loop: asyncio.AbstractEventLoop, event_loop_friday: asyncio.AbstractEventLoop, event_loop_user: asyncio.AbstractEventLoop):  # bot, bot_user, channel):
   def close():
-    if bot and not bot.was_online:
-      asyncio.get_event_loop().run_until_complete(channel.send("!complete"))
-    if bot_user and not bot_user.was_online:
-      asyncio.get_event_loop().run_until_complete(channel.send("!complete"))
+    try:
+      event_loop.close()
+      event_loop_friday.close()
+      event_loop_user.close()
+    except (RuntimeError, StopAsyncIteration):
+      pass
+    try:
+      asyncio.get_event_loop().run_until_complete(bot.close())
+    except (RuntimeError, StopAsyncIteration):
+      pass
+    try:
+      asyncio.get_event_loop().run_until_complete(friday.close())
+    except (RuntimeError, StopAsyncIteration):
+      pass
+    try:
+      asyncio.get_event_loop().run_until_complete(bot_user.close())
+    except (RuntimeError, StopAsyncIteration):
+      pass
   request.addfinalizer(close)
 
 
 @pytest.fixture(autouse=True)
-async def slow_down_tests(bot):
-  await bot.wait_until_ready()
-  yield
-  bot.x += 1
-  if bot.x % 3 == 0:
-    time.sleep(1)
+async def slow_down_tests(bot: UnitTester):
+  return await bot.wait_until_ready()
 
 
 @pytest.fixture(autouse=True)
-async def slow_down_tests_user(bot_user):
-  await bot_user.wait_until_ready()
+async def slow_down_friday(friday: Friday):
+  await friday.wait_until_ready()
   yield
-  bot_user.x += 1
-  if bot_user.x % 3 == 0:
-    time.sleep(1)
+  if friday.x % 3 == 0:
+    friday.x = 0
+    time.sleep(2)
+
+
+@pytest.fixture(autouse=True)
+async def slow_down_tests_user(bot_user: UnitTesterUser):
+  return await bot_user.wait_until_ready()
+
+
+async def get_guild(bot: Friday | UnitTester | UnitTesterUser) -> discord.Guild:
+  await bot.wait_until_ready()
+  guild = bot.get_guild(243159711237537802)
+  if not guild:
+    raise RuntimeError("Guild not found")
+  return guild
+
+
+async def get_channel(bot: Friday | UnitTester | UnitTesterUser, guild: discord.Guild) -> discord.TextChannel:
+  await bot.wait_until_ready()
+  return guild.get_channel(892840236781015120) or await guild.fetch_channel(892840236781015120)  # type: ignore
+
+
+async def get_voice_channel(bot: Friday | UnitTester | UnitTesterUser, guild: discord.Guild) -> discord.VoiceChannel:
+  await bot.wait_until_ready()
+  return guild.get_channel(895486009465266176) or await guild.fetch_channel(895486009465266176)  # type: ignore
+
+
+async def get_user(bot: Friday | UnitTester | UnitTesterUser, guild: discord.Guild) -> discord.Member:
+  await bot.wait_until_ready()
+  return await guild.fetch_member(813618591878086707)
 
 
 @pytest.fixture(scope="session")
 async def guild(bot: UnitTester) -> discord.Guild:
+  return await get_guild(bot)
+
+
+@pytest.fixture(scope="session")
+async def channel(bot: UnitTester, guild: discord.Guild) -> discord.TextChannel:
+  return await get_channel(bot, guild)
+
+
+@pytest.fixture(scope="session")
+async def voice_channel(bot: UnitTester, guild: discord.Guild) -> discord.VoiceChannel:
+  return await get_voice_channel(bot, guild)
+
+
+@pytest.fixture(scope="session")
+async def user(bot: UnitTester, guild: discord.Guild) -> discord.Member:
+  return await get_user(bot, guild)
+
+
+@pytest.fixture(scope="session")
+async def guild_user(bot_user: UnitTesterUser) -> discord.Guild:
+  return await get_guild(bot_user)
+
+
+@pytest.fixture(scope="session")
+async def channel_user(bot_user: UnitTesterUser, guild_user: discord.Guild) -> discord.TextChannel:
+  return await get_channel(bot_user, guild_user)
+
+
+@pytest.fixture(scope="session")
+async def voice_channel_user(bot_user: UnitTesterUser, guild_user: discord.Guild) -> discord.VoiceChannel:
+  return await get_voice_channel(bot_user, guild_user)
+
+
+@pytest.fixture(scope="session")
+async def user_user(bot_user: UnitTesterUser, guild_user: discord.Guild) -> discord.Member:
+  return await get_user(bot_user, guild_user)
+
+
+@pytest.fixture(scope="session")
+async def guild_friday(friday: Friday) -> discord.Guild:
+  return await get_guild(friday)
+
+
+@pytest.fixture(scope="session")
+async def channel_friday(friday: Friday, guild_friday: discord.Guild) -> discord.TextChannel:
+  return await get_channel(friday, guild_friday)
+
+
+@pytest.fixture(scope="session")
+async def voice_channel_friday(friday: Friday, guild_friday: discord.Guild) -> discord.VoiceChannel:
+  return await get_voice_channel(friday, guild_friday)
+
+
+@pytest.fixture(scope="session")
+async def user_friday(friday: Friday, guild_friday: discord.Guild) -> discord.Member:
+  return await get_user(friday, guild_friday)
+
+
+async def send_command(bot: Friday | UnitTester | UnitTesterUser, channel: discord.TextChannel, command: str) -> discord.Message:
   await bot.wait_until_ready()
-  yield bot.get_guild(243159711237537802)
+  com = await channel.send(command)
+  assert com
+  return com
 
 
-@pytest.fixture(scope="session")
-async def channel(bot, guild: guild) -> discord.TextChannel:
-  await bot.wait_until_ready()
-  yield guild.get_channel(892840236781015120) or await guild.fetch_channel(892840236781015120)
-
-
-@pytest.fixture(scope="session")
-async def voice_channel(bot, guild: guild) -> discord.VoiceChannel:
-  await bot.wait_until_ready()
-  yield guild.get_channel(895486009465266176) or await guild.fetch_channel(895486009465266176)
-
-
-@pytest.fixture(scope="session")
-async def user(bot, guild: guild) -> discord.User:
-  await bot.wait_until_ready()
-  yield await guild.fetch_user(813618591878086707)
-
-
-@pytest.fixture(scope="session")
-async def guild_user(bot_user) -> discord.Guild:
-  await bot_user.wait_until_ready()
-  yield bot_user.get_guild(243159711237537802)
-
-
-@pytest.fixture(scope="session")
-async def channel_user(bot_user, guild_user: guild_user) -> discord.TextChannel:
-  await bot_user.wait_until_ready()
-  yield guild_user.get_channel(892840236781015120) or await guild_user.fetch_channel(892840236781015120)
-
-
-@pytest.fixture(scope="session")
-async def voice_channel_user(bot_user, guild_user: guild) -> discord.VoiceChannel:
-  await bot_user.wait_until_ready()
-  yield guild_user.get_channel(895486009465266176) or await guild_user.fetch_channel(895486009465266176)
-
-
-@pytest.fixture(scope="session")
-async def user_user(bot_user, guild_user: guild) -> discord.User:
-  await bot_user.wait_until_ready()
-  yield await guild_user.fetch_user(813618591878086707)
-
-
-def msg_check(msg: discord.Message, content: str = None) -> bool:
-  is_reference = (msg.reference is not None and msg.reference.cached_message is not None and (msg.reference.cached_message.author.id == 892865928520413245 or msg.reference.cached_message.author.id == 968261189828231308))
-  if content is not None and is_reference:
-    return msg.channel.id == 892840236781015120 and msg.author.id == 751680714948214855 and is_reference and content.strip() == msg.reference.cached_message.content
-  return msg.channel.id == 892840236781015120 and msg.author.id == 751680714948214855 and is_reference
+def msg_check(new_msg: discord.Message, command_message: discord.Message) -> bool:
+  return new_msg.author != command_message.author and \
+      new_msg.reference is not None and \
+      new_msg.reference.message_id == command_message.id
 
 
 def raw_message_delete_check(payload: discord.RawMessageDeleteEvent, msg: discord.Message) -> bool:
   return payload.message_id == msg.id
 
 
-def pytest_configure():
-  pytest.timeout = 8.0
-  pytest.msg_check = msg_check
-  pytest.raw_message_delete_check = raw_message_delete_check
+def pytest_configure() -> None:
+  # setattr(pytest, "timeout", 8.0)
+  # setattr(pytest, "msg_check", msg_check)
+  # setattr(pytest, "raw_message_delete_check", raw_message_delete_check)
+
+  pytest.timeout: float = 8.0  # type: ignore
+  pytest.send_command: Callable = send_command  # type: ignore
+  pytest.msg_check: Callable = msg_check  # type: ignore
+  pytest.raw_message_delete_check: Callable = raw_message_delete_check  # type: ignore

@@ -1,16 +1,23 @@
+from __future__ import annotations
+
+import asyncio
+import logging
 import os
+from typing import TYPE_CHECKING, Optional, Union
 
 import discord
-import topgg
 from discord.ext import commands, tasks
-from typing_extensions import TYPE_CHECKING
+from topgg.webhook import WebhookManager
 
-from functions import MyContext, config, embed, time, cache
+from functions import MyContext, cache, config, embed, time
 
 from .log import CustomWebhook
 
 if TYPE_CHECKING:
-  from index import Friday as Bot
+  from cogs.reminder import Timer
+  from index import Friday
+
+log = logging.getLogger(__name__)
 
 VOTE_ROLE = 834347369998843904
 VOTE_URL = "https://top.gg/bot/476303446547365891/vote"
@@ -19,9 +26,9 @@ VOTE_URL = "https://top.gg/bot/476303446547365891/vote"
 class VoteView(discord.ui.View):
   """A view that shows the user how to vote for the bot."""
 
-  def __init__(self, parent: "TopGG", *, timeout=None):
-    self.parent = parent
-    self.bot = self.parent.bot
+  def __init__(self, parent: TopGG, *, timeout=None):
+    self.parent: TopGG = parent
+    self.bot: Friday = self.parent.bot
     super().__init__(timeout=timeout)
     self.add_item(discord.ui.Button(label="Vote link", url=VOTE_URL, style=discord.ButtonStyle.url))
 
@@ -44,8 +51,8 @@ class TopGG(commands.Cog):
 
       - Better rate limits when chatting with Friday"""
 
-  def __init__(self, bot: "Bot"):
-    self.bot = bot
+  def __init__(self, bot: Friday):
+    self.bot: Friday = bot
 
     self._current_len_guilds = len(self.bot.guilds)
 
@@ -54,12 +61,14 @@ class TopGG(commands.Cog):
 
   @discord.utils.cached_property
   def log_bumps(self) -> CustomWebhook:
-    return CustomWebhook.partial(os.environ.get("WEBHOOKBUMPSID"), os.environ.get("WEBHOOKBUMPSTOKEN"), session=self.bot.session)
+    id = int(os.environ["WEBHOOKBUMPSID"], base=10)
+    token = os.environ["WEBHOOKBUMPSTOKEN"]
+    return CustomWebhook.partial(id, token, session=self.bot.session)
 
   async def cog_load(self):
     if self.bot.cluster_idx == 0:
       if not hasattr(self.bot, "topgg_webhook"):
-        self.bot.topgg_webhook = topgg.WebhookManager(self.bot).dbl_webhook("/dblwebhook", os.environ["DBLWEBHOOKPASS"])
+        self.bot.topgg_webhook = WebhookManager(self.bot).dbl_webhook("/dblwebhook", os.environ["DBLWEBHOOKPASS"])
         self.bot.topgg_webhook.run(5000)
       self._update_stats_loop.start()
 
@@ -74,8 +83,8 @@ class TopGG(commands.Cog):
               AND extra #>> '{args,0}' = $1
               ORDER BY expires
               LIMIT 1;"""
-    connection = connection or self.bot.pool
-    record = await connection.fetchrow(query, str(user_id))
+    conn = connection or self.bot.pool
+    record = await conn.fetchrow(query, str(user_id))
     return True if record else False
 
   @commands.Cog.listener()
@@ -89,7 +98,7 @@ class TopGG(commands.Cog):
       await self.update_stats()
 
   @commands.command(help="Get the link to vote for me on Top.gg", case_insensitive=True)
-  async def vote(self, ctx: "MyContext"):
+  async def vote(self, ctx: MyContext):
     query = """SELECT id,expires
               FROM reminders
               WHERE event = 'vote'
@@ -103,9 +112,8 @@ class TopGG(commands.Cog):
 
   @commands.command(extras={"examples": ["test", "upvote"]}, hidden=True)
   @commands.is_owner()
-  async def vote_fake(self, ctx: "MyContext", _type: str = "test", user: discord.User = None):
-    if user is None:
-      user = ctx.author
+  async def vote_fake(self, ctx: MyContext, user: Optional[Union[discord.User, discord.Member]] = None, _type: Optional[str] = "test"):
+    user = user or ctx.author
     data = {
         "type": _type,
         "user": str(user.id),
@@ -119,66 +127,65 @@ class TopGG(commands.Cog):
   async def update_stats(self):
     await self.bot.wait_until_ready()
     self._current_len_guilds = len(self.bot.guilds)
-    self.bot.logger.info("Updating DBL stats")
+    log.info("Updating DBL stats")
     try:
-      top_payload = {
-          "server_count": len(self.bot.guilds),
-          "shard_count": self.bot.shard_count,
-      }
-      await self.bot.session.post(
+      tasks = []
+      tasks += self.bot.session.post(
           f"https://top.gg/api/bots/{self.bot.user.id}/stats",
           headers={"Authorization": os.environ["TOKENTOP"]},
-          json=top_payload
+          json={
+              "server_count": len(self.bot.guilds),
+              "shard_count": self.bot.shard_count,
+          }
       )
-      dbots_payload = {
-          "guildCount": len(self.bot.guilds),
-          "shardCount": self.bot.shard_count,
-      }
-      await self.bot.session.post(
+      tasks += self.bot.session.post(
           f"https://discord.bots.gg/api/v1/bots/{self.bot.user.id}/stats",
           headers={"Authorization": os.environ["TOKENDBOTSGG"]},
-          json=dbots_payload
+          json={
+              "guildCount": len(self.bot.guilds),
+              "shardCount": self.bot.shard_count,
+          }
       )
-      dbl_payload = {
-          "guilds": len(self.bot.guilds),
-          "users": len(self.bot.users),
-          "voice_connections": len(self.bot.voice_clients),
-      }
-      await self.bot.session.post(
+      tasks += self.bot.session.post(
           f"https://discordbotlist.com/api/v1/bots/{self.bot.user.id}/stats",
           headers={"Authorization": f'Bot {os.environ["TOKENDBL"]}'},
-          json=dbl_payload
+          json={
+              "guilds": len(self.bot.guilds),
+              "users": len(self.bot.users),
+              "voice_connections": len(self.bot.voice_clients),
+          }
       )
-      bls_payload = {
-          "serverCount": len(self.bot.guilds)
-      }
-      await self.bot.session.post(
+      tasks += self.bot.session.post(
           f"https://api.discordlist.space/v2/bots/{self.bot.user.id}",
           headers={"Authorization": os.environ["TOKENDLS"], 'Content-Type': 'application/json'},
-          json=bls_payload
+          json={
+              "serverCount": len(self.bot.guilds)
+          }
       )
+      await asyncio.gather(*tasks)
     except Exception as e:
-      self.bot.logger.exception('Failed to post server count\n?: ?', type(e).__name__, e)
+      log.exception('Failed to post server count\n?: ?', type(e).__name__, e)
     else:
-      self.bot.logger.info("Server count posted successfully")
+      log.info("Server count posted successfully")
 
   @commands.Cog.listener()
-  async def on_vote_timer_complete(self, timer):
+  async def on_vote_timer_complete(self, timer: Timer):
     user_id = timer.args[0]
     await self.bot.wait_until_ready()
 
     self.user_has_voted.invalidate(self, user_id)
 
     support_server = self.bot.get_guild(config.support_server_id)
-    member = await self.bot.get_or_fetch_member(support_server, user_id)
     role_removed = False
-    if member is not None:
-      try:
-        await member.remove_roles(discord.Object(id=VOTE_ROLE), reason="Top.gg vote expired")
-      except discord.HTTPException:
-        pass
-      else:
-        role_removed = True
+    if support_server:
+      member = await self.bot.get_or_fetch_member(support_server, user_id)
+      if member is not None:
+        try:
+          await member.remove_roles(discord.Object(id=VOTE_ROLE), reason="Top.gg vote expired")
+        except discord.HTTPException:
+          pass
+        else:
+          role_removed = True
     reminder_sent = False
     try:
       private = await self.bot.fetch_user(user_id)
@@ -188,11 +195,11 @@ class TopGG(commands.Cog):
     else:
       reminder_sent = True
 
-    self.bot.logger.info(f"Vote expired for {user_id}. Reminder sent: {reminder_sent}, role removed: {role_removed}")
+    log.info(f"Vote expired for {user_id}. Reminder sent: {reminder_sent}, role removed: {role_removed}")
 
   # @commands.Cog.listener()
   # async def on_dbl_test(self, data):
-  #   self.bot.logger.info(f"Testing received, {data}")
+  #   log.info(f"Testing received, {data}")
   #   time = datetime.datetime.now() - datetime.timedelta(hours=11, minutes=59)
   #   await self.on_dbl_vote(data, time)
 
@@ -200,18 +207,21 @@ class TopGG(commands.Cog):
   async def on_dbl_vote(self, data: dict):
     fut = time.FutureTime("12h", now=discord.utils.utcnow())
     _type, user = data.get("type", None), data.get("user", None)
-    self.bot.logger.info(f'Received an upvote, {data}')
+    log.info(f'Received an upvote, {data}')
     if _type == "test":
       fut = time.FutureTime("2m", now=discord.utils.utcnow())
     if user is None:
       return
-    reminder = self.bot.get_cog("Reminder")
+    reminder = self.bot.reminder
     if reminder is None:
       return
     await reminder.create_timer(fut.dt, "vote", user, created=discord.utils.utcnow())
     self.user_has_voted.invalidate(self, int(user, base=10))
     if _type == "test" or int(user, base=10) not in (215227961048170496, 813618591878086707):
       support_server = self.bot.get_guild(config.support_server_id)
+      if not support_server:
+        return
+
       member = await self.bot.get_or_fetch_member(support_server, user)
       if member is not None:
         try:
@@ -219,7 +229,7 @@ class TopGG(commands.Cog):
         except discord.HTTPException:
           pass
         else:
-          self.bot.logger.info(f"Added vote role to {member.id}")
+          log.info(f"Added vote role to {member.id}")
       await self.log_bumps.send(
           username=self.bot.user.display_name,
           avatar_url=self.bot.user.display_avatar.url,
@@ -233,5 +243,5 @@ class TopGG(commands.Cog):
       )
 
 
-async def setup(bot):
+async def setup(bot: Friday):
   await bot.add_cog(TopGG(bot))

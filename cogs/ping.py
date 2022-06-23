@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from discord.ext import commands
-from typing_extensions import TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from functions import embed
 
@@ -22,8 +22,9 @@ class Ping(commands.Cog):
   @commands.hybrid_command(name="ping")
   async def ping(self, ctx: MyContext):
     """Pong!"""
-    latency = f"{self.bot.get_shard(ctx.guild.shard_id).latency*1000:,.0f}" if ctx.guild is not None else f"{self.bot.latency*1000:,.0f}"
-    return await ctx.send(embed=embed(title="Pong!", description=f"⏳ API is {latency}ms"))
+    shard = ctx.guild and self.bot.get_shard(ctx.guild.shard_id)
+    latency = f"{shard.latency*1000:,.0f}" if shard is not None else f"{self.bot.latency*1000:,.0f}"
+    await ctx.send(embed=embed(title="Pong!", description=f"⏳ API is {latency}ms"))
 
 
 async def setup(bot):

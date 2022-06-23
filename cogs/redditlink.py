@@ -1,22 +1,24 @@
+from __future__ import annotations
+
 import asyncio
+import logging
 import os
 import re
+from typing import TYPE_CHECKING, Optional
 
+# import ffmpeg
+import asyncpg
 import asyncpraw
 import discord
 import youtube_dl
-# import ffmpeg
 from discord.ext import commands
-from typing import Optional
-from typing_extensions import TYPE_CHECKING
 
-from functions import MessageColors, MyContext, embed, exceptions, cache
-
-# from discord_slash import cog_ext
-
+from functions import MessageColors, MyContext, cache, embed, exceptions
+log = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-  from index import Friday as Bot
+  from functions.custom_contexts import GuildContext
+  from index import Friday
 
 
 ytdl_format_options = {
@@ -64,12 +66,16 @@ class NotRedditLink(exceptions.Base):
 class Config:
   __slots__ = ("bot", "id", "enabled", )
 
+  bot: Friday
+  id: int
+  enabled: bool
+
   @classmethod
-  async def from_record(cls, record, bot):
+  async def from_record(cls, record: asyncpg.Record, bot: Friday):
     self = cls()
 
     self.bot = bot
-    self.id: int = int(record["id"], base=10)
+    self.id = int(record["id"], base=10)
     self.enabled = bool(record["reddit_extract"])
     return self
 
@@ -83,8 +89,8 @@ class redditlink(commands.Cog):
     with 🔗 as well, and Friday will begin the process.
   """
 
-  def __init__(self, bot: "Bot"):
-    self.bot = bot
+  def __init__(self, bot: Friday):
+    self.bot: Friday = bot
 
     self.emoji = "🔗"
     self.loop = bot.loop
@@ -103,19 +109,19 @@ class redditlink(commands.Cog):
   @cache.cache()
   async def get_guild_config(self, guild_id: int, *, connection=None) -> Optional[Config]:
     query = "SELECT * FROM servers WHERE id=$1 LIMIT 1;"
-    connection = connection or self.bot.pool
-    record = await connection.fetchrow(query, str(guild_id))
-    self.bot.logger.debug(f"PostgreSQL Query: \"{query}\" + {str(guild_id)}")
+    conn = connection or self.bot.pool
+    record = await conn.fetchrow(query, str(guild_id))
+    log.debug(f"PostgreSQL Query: \"{query}\" + {str(guild_id)}")
     if record is not None:
       return await Config.from_record(record, self.bot)
     return None
 
-  async def cog_command_error(self, ctx: "MyContext", error: Exception):
+  async def cog_command_error(self, ctx: MyContext, error: commands.CommandError):
     just_send = (MustBeAuthor, NotRedditLink,)
     error = getattr(error, 'original', error)
 
     if isinstance(error, just_send):
-      await ctx.send(embed=embed(title=error, color=MessageColors.ERROR))
+      await ctx.send(embed=embed(title=str(error), color=MessageColors.error()))
     else:
       raise error
 
@@ -141,7 +147,7 @@ class redditlink(commands.Cog):
     if len(reg) != 1:
       return
 
-    ctx: "MyContext" = await self.bot.get_context(message, cls=MyContext)
+    ctx: MyContext = await self.bot.get_context(message, cls=MyContext)
     if ctx.command is not None:
       return
 
@@ -182,10 +188,12 @@ class redditlink(commands.Cog):
 
   @commands.Cog.listener()
   async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
-    if payload.emoji.name != self.emoji or payload.member.bot or not payload.guild_id:
+    if payload.emoji.name != self.emoji or payload.member and payload.member.bot or not payload.guild_id:
       return
     channel = self.bot.get_channel(payload.channel_id)
     if not channel:
+      return
+    if isinstance(channel, (discord.StageChannel, discord.ForumChannel, discord.CategoryChannel, discord.abc.PrivateChannel)):
       return
     message = await channel.fetch_message(payload.message_id)
     if not message:
@@ -205,11 +213,11 @@ class redditlink(commands.Cog):
         await message.reply(**thing, mention_author=False)
       except discord.HTTPException:
         try:
-          await message.channel.send(**thing, mention_author=False)
+          await message.channel.send(**thing, mention_author=False)  # type: ignore
         except discord.HTTPException:
           pass
       except Exception as e:
-        await message.reply(embed=embed(title="Something went wrong", description="Please try again later. I have notified my boss of this error", color=MessageColors.ERROR), mention_author=False)
+        await message.reply(embed=embed(title="Something went wrong", description="Please try again later. I have notified my boss of this error", color=MessageColors.error()), mention_author=False)
         raise e
 
   # @discord.slash_command(name="redditextract")
@@ -224,20 +232,31 @@ class redditlink(commands.Cog):
   #   await ctx.respond(**await self.extract(query=msg.content, message=msg, ctx=ctx, guild=ctx.guild, channel=ctx.channel))
 
   @commands.group(name="redditextract", help="Extracts the media from the reddit post", invoke_without_command=True, case_insensitive=True)
-  async def norm_extract(self, ctx: "MyContext", link: str):
+  async def norm_extract(self, ctx: MyContext, link: str):
+    await ctx.release()
+    if ctx.interaction:
+      await ctx.defer()
     try:
       async with ctx.typing():
-        return await ctx.send(**await self.extract(query=link, command=True, ctx=ctx, guild=ctx.guild, channel=ctx.channel))
-    except Exception:
-      return await ctx.send(**await self.extract(query=link, command=True, ctx=ctx, guild=ctx.guild, channel=ctx.channel))
+        extracted = await self.extract(query=link, command=True, ctx=ctx, guild=ctx.guild, channel=ctx.channel)
+    except discord.Forbidden:
+      extracted = await self.extract(query=link, command=True, ctx=ctx, guild=ctx.guild, channel=ctx.channel)
 
-    return await ctx.send(**await self.extract(query=link, command=True, ctx=ctx, guild=ctx.guild, channel=ctx.channel))
+    await ctx.send(**extracted)
+
+  # @discord.app_commands.context_menu(name="extract")
+  # @discord.app_commands.guilds(discord.Object(id=243159711237537802))
+  # async def context_extract(self, interaction: discord.Interaction, message: discord.Message):
+  #   if interaction.author.id != message.author.id:
+  #     raise MustBeAuthor()
+  #   await interaction.defer()
+  #   await interaction.respond(**await self.extract(query=message.content, message=message, ctx=interaction, guild=interaction.guild, channel=interaction.channel))
 
   @norm_extract.command("enable", help="Enable or disabled Friday's reddit link extraction. (When disabled Friday won't react to reddit links.)")
   @commands.guild_only()
   @commands.has_guild_permissions(manage_messages=True)
-  async def extract_toggle(self, ctx, enable: bool):
-    await self.bot.db.query("UPDATE servers SET reddit_extract=$1 WHERE id=$2", enable, str(ctx.guild.id))
+  async def extract_toggle(self, ctx: GuildContext, enable: bool):
+    await ctx.db.execute("UPDATE servers SET reddit_extract=$1 WHERE id=$2", enable, str(ctx.guild.id))
     self.get_guild_config.invalidate(self, ctx.guild.id)
     if enable:
       return await ctx.send(embed=embed(title="I will now react to Reddit links", description="For me to then extract a reddit link the author of the message must react with the same emoji Friday did.\nFriday also requires add_reaction permissions (if not already) for this to work."))
@@ -248,13 +267,9 @@ class redditlink(commands.Cog):
   #   await ctx.defer()
   #   await self.extract(query=link, command=True, ctx=ctx, guild=ctx.guild, channel=ctx.channel)
 
-  async def extract(self, query, command: bool = False, payload: discord.RawReactionActionEvent = None, ctx: "MyContext" = None, guild=None, channel: discord.TextChannel = None, message: discord.Message = None):
+  async def extract(self, query: str, command: bool = False, payload: discord.RawReactionActionEvent = None, ctx: MyContext = None, guild=None, channel: discord.abc.MessageableChannel = None, message: discord.Message = None):
     if ctx is None and message is not None:
-      ctx = await self.bot.get_context(message, cls=MyContext)
-    if guild is None and not ctx.guild_id:
-      raise commands.ArgumentParsingError()
-    if channel is None and not ctx.channel_id:
-      raise commands.ArgumentParsingError()
+      ctx = await self.bot.get_context(message, cls=type(ctx))
     if message is None and not command:
       raise commands.ArgumentParsingError()
     # TODO: check the max file size of the server and change the quality of the video to match
@@ -299,8 +314,8 @@ class redditlink(commands.Cog):
     #   raise
 
     # TODO: Does not get url for videos atm
-    channel = message.channel if payload is not None else ctx.channel
-    nsfw = channel.nsfw if channel is not None and not isinstance(channel, discord.Thread) else channel.parent.nsfw if channel is not None and isinstance(channel, discord.Thread) else False
+    channel = message and message.channel or ctx and ctx.channel
+    nsfw = channel.nsfw if channel is not None and not isinstance(channel, discord.Thread) else channel.parent.nsfw if channel is not None else False  # type: ignore
     if (nsfw is True and data.over_18 is True) or (nsfw is False and data.over_18 is False) or (nsfw is True and data.over_18 is False):
       spoiler = False
     else:
@@ -312,13 +327,13 @@ class redditlink(commands.Cog):
         seperator = "\\\\"
       else:
         seperator = "/"
-      mp4file = f'{thispath}{seperator}{linkdata["extractor"]}-{linkdata["id"]}-{linkdata["title"]}.{ext}'
+      mp4file = f'{thispath}{seperator}{linkdata["extractor"]}-{linkdata["id"]}-{linkdata["title"]}.{ext}'  # type: ignore
       try:
         # name = f'{linkdata["extractor"]}-{linkdata["id"]}-{linkdata["title"]}.{linkdata["ext"]}'
         name = data.title.split()
-        return dict(file=discord.File(fp=mp4file, filename=f'friday-bot.com_{"_".join(name)}.{ext}', spoiler=spoiler))
+        return dict(file=discord.File(fp=mp4file, filename=f'friday-bot.com_{"_".join(name)}.mp4', spoiler=spoiler))
       except discord.HTTPException:
-        return dict(embed=embed(title="This file is too powerful to be uploaded", description="You will have to open reddit to view this", color=MessageColors.ERROR))
+        return dict(embed=embed(title="This file is too powerful to be uploaded", description="You will have to open reddit to view this", color=MessageColors.error()))
       finally:
         try:
           os.remove(mp4file)

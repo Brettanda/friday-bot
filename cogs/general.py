@@ -1,14 +1,17 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Union
+
 import discord
-import typing
 import psutil
 from discord.ext import commands
-from discord.utils import oauth_url, cached_property
-from typing_extensions import TYPE_CHECKING
+from discord.utils import cached_property, oauth_url
 
-from functions import MyContext, config, embed, views, MessageColors, time
+from functions import MessageColors, config, embed, time, views
 
 if TYPE_CHECKING:
-  from index import Friday as Bot
+  from functions.custom_contexts import GuildContext, MyContext
+  from index import Friday
 
 GENERAL_CHANNEL_NAMES = {"welcome", "general", "lounge", "chat", "talk", "main"}
 
@@ -45,9 +48,8 @@ class InviteButtons(discord.ui.View):
 
 
 class General(commands.Cog):
-
-  def __init__(self, bot: "Bot"):
-    self.bot = bot
+  def __init__(self, bot: Friday):
+    self.bot: Friday = bot
     self.process = psutil.Process()
 
   def __repr__(self) -> str:
@@ -105,7 +107,7 @@ class General(commands.Cog):
     #   await self.bot.db.query("UPDATE ")
 
   @commands.command(name="intro", help="Replies with the intro message for the bot")
-  async def norm_intro(self, ctx: "MyContext"):
+  async def intro(self, ctx: MyContext):
     await ctx.send(**self.welcome_message())
 
   @cached_property
@@ -113,46 +115,38 @@ class General(commands.Cog):
     return oauth_url(self.bot.user.id, permissions=INVITE_PERMISSIONS, scopes=["bot", "applications.commands"])
 
   @commands.command("invite", help="Get the invite link to add me to your server")
-  async def _norm_invite(self, ctx):
+  async def _invite(self, ctx: MyContext):
     await ctx.send(embed=embed(title="Invite me :)"), view=InviteButtons(self.link))
 
-  # @cog_ext.cog_slash(name="invite", description="Get the invite link to add me to your server")
-  # async def _slash_invite(self, ctx):
-  #   await ctx.send(embed=embed(title="Invite me :)", description=f"[Invite link]({self.link})"))
-
   @commands.command(name="info", aliases=["about"], help="Displays some information about myself :)")
-  async def norm_info(self, ctx):
-    await self.info(ctx)
-
-  async def info(self, ctx: "MyContext"):
-    support_guild = self.bot.get_guild(707441352367013899)
-    owner = await self.bot.get_or_fetch_member(support_guild, self.bot.owner_id)
-
+  async def info(self, ctx: MyContext):
     uptime = time.human_timedelta(self.bot.uptime, accuracy=None, brief=True, suffix=False)
 
     memory_usage = self.process.memory_full_info().uss / 1024**2
     cpu_usage = self.process.cpu_percent() / psutil.cpu_count()
 
+    shard: discord.ShardInfo = self.bot.get_shard(ctx.guild.shard_id)  # type: ignore  # will never be None
+
     return await ctx.send(
         embed=embed(
             title=f"{self.bot.user.name} - About",
             thumbnail=self.bot.user.display_avatar.url,
-            author_icon=owner.display_avatar.url,
-            author_name=str(owner),
+            author_icon=self.bot.owner.display_avatar.url,
+            author_name=str(self.bot.owner),
             footer="Made with ❤️ and discord.py!",
             description="Big thanks to all Patrons!",
             fieldstitle=["Servers joined", "Latency", "Shards", "Loving Life", "Uptime", "CPU/RAM", "Existed since"],
-            fieldsval=[len(self.bot.guilds), f"{(self.bot.get_shard(ctx.guild.shard_id).latency if ctx.guild else self.bot.latency)*1000:,.0f} ms", self.bot.shard_count, "True", uptime, f'{memory_usage:.2f} MiB\n{cpu_usage:.2f}% CPU', f"<t:{int(self.bot.user.created_at.timestamp())}:D>"],
+            fieldsval=[len(self.bot.guilds), f"{(shard.latency if ctx.guild else self.bot.latency)*1000:,.0f} ms", self.bot.shard_count, "True", uptime, f'{memory_usage:.2f} MiB\n{cpu_usage:.2f}% CPU', f"<t:{int(self.bot.user.created_at.timestamp())}:D>"],
         ), view=views.Links()
     )
 
   @commands.command(name="serverinfo", aliases=["guildinfo"], help="Shows information about the server")
   @commands.guild_only()
-  async def norm_serverinfo(self, ctx):
+  async def serverinfo(self, ctx: GuildContext):
     await ctx.send(
         embed=embed(
             title=ctx.guild.name + " - Info",
-            thumbnail=ctx.guild.icon.url if ctx.guild.icon is not None else None,
+            thumbnail=getattr(ctx.guild.icon, "url"),
             fieldstitle=["Server Name", "Members", "Server ID", "Created", "Verification level", "Roles"],
             # fieldsval=[f"```py\n{ctx.guild.name}```", f"```py\n{ctx.guild.member_count}```", f"```py\n{ctx.guild.id}```", f"```py\n{ctx.guild.region}```", f'```py\n{ctx.guild.created_at.strftime("%b %d, %Y")}```', f"```py\n{ctx.guild.verification_level}```", f"```py\n{len(ctx.guild.roles)}```"]
             fieldsval=[ctx.guild.name, ctx.guild.member_count, ctx.guild.id, time.format_dt(ctx.guild.created_at, style="D"), ctx.guild.verification_level, len(ctx.guild.roles)],
@@ -162,7 +156,7 @@ class General(commands.Cog):
 
   @commands.command(name="userinfo", extras={"examples": ["@Friday", "476303446547365891"]}, help="Some information on the mentioned user")
   @commands.guild_only()
-  async def norm_userinfo(self, ctx, *, user: typing.Optional[typing.Union[discord.Member, discord.User]] = None):
+  async def userinfo(self, ctx: GuildContext, *, user: Union[discord.Member, discord.User] = None):
     user = user or ctx.author
     await ctx.send(embed=embed(
         title=f"{user.name} - Info",
@@ -172,25 +166,25 @@ class General(commands.Cog):
             user.name,
             user.display_name if user.display_name != user.name else None,
             user.mention,
-            len(user.roles) if hasattr(user, "roles") else 0,
+            len(getattr(user, "roles", [])),
             time.format_dt(user.created_at, style="D") if hasattr(user, "created_at") else None,
-            time.format_dt(user.joined_at, style="D") if hasattr(user, "joined_at") else None,
-            user.top_role.mention if hasattr(user, "top_role") else None,
-            user.pending if hasattr(user, "pending") else None],
-        color=user.color if user.color.value != 0 else MessageColors.DEFAULT
+            isinstance(user, discord.Member) and user.joined_at and time.format_dt(user.joined_at, style="D"),
+            getattr(getattr(user, "top_role"), "mention"),
+            getattr(user, "pending", None)],
+        color=user.color if user.color.value != 0 else MessageColors.default()
     ))
 
   @commands.command(name="roleinfo", help="Shows information about the role")
   @commands.guild_only()
-  async def norm_roleinfo(self, ctx, *, role: discord.Role):
+  async def roleinfo(self, ctx: GuildContext, *, role: discord.Role):
     await ctx.send(embed=embed(
         title=f"{role.name} - Info",
-        thumbnail=role.icon and role.icon.url,
+        thumbnail=getattr(role.icon, "url", None),
         fieldstitle=["Role Name", "Role ID", "Role Color", "Role Position", "Role Hoisted", "Role Mentionable", "Role Created"],
         fieldsval=[role.name, role.id, role.color, role.position, role.hoist, role.mentionable, time.format_dt(role.created_at, style="D")],
-        color=role.colour if role.colour.value != 0 else MessageColors.DEFAULT
+        color=role.colour if role.colour.value != 0 else MessageColors.default()
     ))
 
 
-async def setup(bot):
+async def setup(bot: Friday):
   await bot.add_cog(General(bot))

@@ -1,10 +1,16 @@
+from __future__ import annotations
+
+import logging
+from typing import TYPE_CHECKING, Optional, Union
+
 import asyncpg
 from discord.ext import commands
-from typing_extensions import TYPE_CHECKING
-from typing import Optional, Union
 
 if TYPE_CHECKING:
   from index import Friday as Bot
+
+
+log = logging.getLogger(__name__)
 
 
 class Database(commands.Cog):
@@ -20,9 +26,9 @@ class Database(commands.Cog):
             "prefix varchar(5) NOT NULL DEFAULT '!'",
             "patreon_user text NULL DEFAULT NULL",
             "lang varchar(2) NULL DEFAULT NULL",
-            "max_mentions json NULL DEFAULT NULL",
-            "max_messages json NULL DEFAULT NULL",
-            "max_content json NULL DEFAULT NULL",
+            "max_mentions jsonb NULL DEFAULT NULL",
+            "max_messages jsonb NULL DEFAULT NULL",
+            "max_content jsonb NULL DEFAULT NULL",
             "remove_invites boolean DEFAULT false",
             "bot_manager text DEFAULT NULL",
             "persona text DEFAULT 'friday'",
@@ -158,7 +164,7 @@ class Database(commands.Cog):
       for index in self.indexes:
         query = query + index
       await conn.execute(query)
-      self.bot.logger.debug(f"PostgreSQL Query: {query}")
+      log.debug(f"PostgreSQL Query: {query}")
 
   async def sync_table_columns(self):
     # https://stackoverflow.com/questions/9991043/how-can-i-test-if-a-column-exists-in-a-table-using-an-sql-statement
@@ -177,18 +183,18 @@ class Database(commands.Cog):
       else:
         await mycursor.execute(query, *params)
     if hasattr(self.bot, "logger"):
-      self.bot.logger.debug(f"PostgreSQL Query: \"{query}\" + {params}")
+      log.debug(f"PostgreSQL Query: \"{query}\" + {params}")
     if "select" in query.lower():
-      if isinstance(result, list) and len(result) == 1 and "limit 1" in query.lower():
+      if isinstance(result, list) and len(result) == 1 and "limit 1" in query.lower():  # type: ignore
         result = [tuple(i) for i in result][0]
         if len(result) == 1:
           return result[0]
-        return result
-      if isinstance(result, list) and len(result) > 0 and "limit 1" not in query.lower():
+        return result  # type: ignore
+      if isinstance(result, list) and len(result) > 0 and "limit 1" not in query.lower():  # type: ignore
         return [tuple(i) for i in result]
-      elif isinstance(result, list) and len(result) == 0 and "limit 1" in query.lower():
+      elif isinstance(result, list) and len(result) == 0 and "limit 1" in query.lower():  # type: ignore
         return None
-      return result
+      return result  # type: ignore
 
 
 async def setup(bot):

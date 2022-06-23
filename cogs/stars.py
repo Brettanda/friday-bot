@@ -1,17 +1,33 @@
+from __future__ import annotations
+
 import asyncio
 import re
 import time
 import weakref
-from typing import Optional
+from typing import TYPE_CHECKING, Optional, Union
 
 import asyncpg
 import discord
+import logging
 from discord.ext import commands, tasks
+from typing_extensions import Annotated
 
-from functions import MessageColors, cache, checks, embed, MyContext
+from functions import MessageColors, cache, checks, embed
 from functions.formats import plural
 
+if TYPE_CHECKING:
+  from cogs.stats import Stats
+  from functions.custom_contexts import GuildContext, MyContext
+  from index import Friday
+
+  class StarboardContext(GuildContext):
+    starboard: CompleteStarboardConfig
+
+  StarableChannel = Union[discord.TextChannel, discord.VoiceChannel, discord.Thread]
+
 # from .utils.paginator import SimplePages
+
+log = logging.getLogger(__name__)
 
 
 class StarError(commands.CheckFailure):
@@ -19,13 +35,13 @@ class StarError(commands.CheckFailure):
 
 
 def requires_starboard():
-  async def predicate(ctx):
+  async def predicate(ctx: StarboardContext) -> bool:
     if ctx.guild is None:
       return False
 
-    cog = ctx.bot.get_cog('Stars')
+    cog: Stars = ctx.bot.get_cog('Stars')  # type: ignore
 
-    ctx.starboard = await cog.get_starboard(ctx.guild.id, connection=ctx.db)
+    ctx.starboard = await cog.get_starboard(ctx.guild.id, connection=ctx.db)  # type: ignore
     if ctx.starboard.channel is None:
       raise StarError('\N{WARNING SIGN} Starboard channel not found.')
 
@@ -33,18 +49,28 @@ def requires_starboard():
   return commands.check(predicate)
 
 
+def MessageID(argument: str) -> int:
+  try:
+    return int(argument, base=10)
+  except ValueError:
+    raise StarError(f'"{argument}" is not a valid message ID. Use Developer Mode to get the Copy ID option.')
+
+
 class StarboardConfig:
   __slots__ = ('bot', 'id', 'channel_id', 'threshold', 'locked', 'needs_migration')
 
-  def __init__(self, *, guild_id, bot, record=None):
+  bot: Friday
+  id: int
+
+  def __init__(self, *, guild_id: int, bot: Friday, record: Optional[asyncpg.Record] = None):
     self.id = guild_id
     self.bot = bot
 
     if record:
-      self.channel_id = record['channel_id']
-      self.threshold = record['threshold']
-      self.locked = record['locked']
-      self.needs_migration = self.locked is None
+      self.channel_id: Optional[int] = record['channel_id']
+      self.threshold: int = record['threshold']
+      self.locked: bool = record['locked']
+      self.needs_migration: bool = self.locked is None
       if self.needs_migration:
         self.locked = True
 
@@ -52,9 +78,14 @@ class StarboardConfig:
       self.channel_id = None
 
   @property
-  def channel(self):
+  def channel(self) -> Optional[discord.TextChannel]:
     guild = self.bot.get_guild(self.id)
-    return guild and guild.get_channel(self.channel_id)
+    return guild and guild.get_channel(self.channel_id)   # type: ignore
+
+
+if TYPE_CHECKING:
+  class CompleteStarboardConfig(StarboardConfig):
+    channel: discord.TextChannel
 
 
 class Stars(commands.Cog):
@@ -69,15 +100,15 @@ class Stars(commands.Cog):
   and using the star/unstar commands.
   """
 
-  def __init__(self, bot):
-    self.bot = bot
+  def __init__(self, bot: Friday):
+    self.bot: Friday = bot
 
     # cache message objects to save Discord some HTTP requests.
-    self._message_cache = {}
+    self._message_cache: dict[int, discord.Message] = {}
     self.clean_message_cache.start()
 
     # if it's in this set,
-    self._about_to_be_deleted = set()
+    self._about_to_be_deleted: set[int] = set()
 
     self._locks = weakref.WeakValueDictionary()
     self.spoilers = re.compile(r'\|\|(.+?)\|\|')
@@ -85,22 +116,22 @@ class Stars(commands.Cog):
   def cog_unload(self):
     self.clean_message_cache.cancel()
 
-  async def cog_command_error(self, ctx, error):
+  async def cog_command_error(self, ctx: StarboardContext, error: commands.CommandError):
     if isinstance(error, StarError):
-      await ctx.send(embed=embed(title=error, color=MessageColors.ERROR))
+      await ctx.send(embed=embed(title=str(error), color=MessageColors.error()))
 
   @tasks.loop(hours=1.0)
   async def clean_message_cache(self):
     self._message_cache.clear()
 
   @cache.cache()
-  async def get_starboard(self, guild_id, *, connection=None):
-    connection = connection or self.bot.pool
+  async def get_starboard(self, guild_id: int, *, connection: Optional[asyncpg.Pool | asyncpg.Connection] = None) -> StarboardConfig:
+    conn = connection or self.bot.pool
     query = "SELECT * FROM starboard WHERE id=$1;"
-    record = await connection.fetchrow(query, guild_id)
+    record = await conn.fetchrow(query, guild_id)
     return StarboardConfig(guild_id=guild_id, bot=self.bot, record=record)
 
-  def star_emoji(self, stars):
+  def star_emoji(self, stars: int) -> str:
     if 5 > stars >= 0:
       return '\N{WHITE MEDIUM STAR}'
     elif 10 > stars >= 5:
@@ -110,7 +141,7 @@ class Stars(commands.Cog):
     else:
       return '\N{SPARKLES}'
 
-  def star_gradient_colour(self, stars):
+  def star_gradient_colour(self, stars: int) -> int:
     # We define as 13 stars to be 100% of the star gradient (half of the 26 emoji threshold)
     # So X / 13 will clamp to our percentage,
     # We start out with 0xfffdf7 for the beginning colour
@@ -127,14 +158,15 @@ class Stars(commands.Cog):
     blue = int((12 * p) + (247 * (1 - p)))
     return (red << 16) + (green << 8) + blue
 
-  def is_url_spoiler(self, text, url):
+  def is_url_spoiler(self, text: str, url: str) -> bool:
     spoilers = self.spoilers.findall(text)
     for spoiler in spoilers:
       if url in spoiler:
         return True
     return False
 
-  def get_emoji_message(self, message, stars):
+  def get_emoji_message(self, message: discord.Message, stars: int) -> tuple[str, discord.Embed]:
+    assert isinstance(message.channel, (discord.abc.GuildChannel, discord.Thread))
     emoji = self.star_emoji(stars)
 
     if stars > 1:
@@ -146,7 +178,7 @@ class Stars(commands.Cog):
     embed.set_footer(text=message.id)
     if message.embeds:
       data = message.embeds[0]
-      if data.type == 'image' and not self.is_url_spoiler(message.content, data.url):
+      if data.type == 'image' and data.url and not self.is_url_spoiler(message.content, data.url):
         embed.set_image(url=data.url)
 
     if message.attachments:
@@ -169,7 +201,7 @@ class Stars(commands.Cog):
     embed.colour = self.star_gradient_colour(stars)
     return content, embed
 
-  async def get_message(self, channel, message_id):
+  async def get_message(self, channel: discord.abc.Messageable, message_id: int) -> Optional[discord.Message]:
     try:
       return self._message_cache[message_id]
     except KeyError:
@@ -189,11 +221,11 @@ class Stars(commands.Cog):
       except Exception:
         return None
 
-  async def reaction_action(self, fmt, payload):
+  async def reaction_action(self, fmt: str, payload: discord.RawReactionActionEvent) -> None:
     if str(payload.emoji) != '\N{WHITE MEDIUM STAR}':
       return
 
-    guild = self.bot.get_guild(payload.guild_id)
+    guild = self.bot.get_guild(payload.guild_id)  # type: ignore
     if guild is None:
       return
 
@@ -213,7 +245,7 @@ class Stars(commands.Cog):
       pass
 
   @commands.Cog.listener()
-  async def on_guild_channel_delete(self, channel):
+  async def on_guild_channel_delete(self, channel: discord.abc.GuildChannel) -> None:
     if not isinstance(channel, discord.TextChannel):
       return
 
@@ -227,15 +259,15 @@ class Stars(commands.Cog):
       await con.execute(query, channel.guild.id)
 
   @commands.Cog.listener()
-  async def on_raw_reaction_add(self, payload):
+  async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent) -> None:
     await self.reaction_action('star', payload)
 
   @commands.Cog.listener()
-  async def on_raw_reaction_remove(self, payload):
+  async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent) -> None:
     await self.reaction_action('unstar', payload)
 
   @commands.Cog.listener()
-  async def on_raw_message_delete(self, payload):
+  async def on_raw_message_delete(self, payload: discord.RawMessageDeleteEvent) -> None:
     if payload.message_id in self._about_to_be_deleted:
       # we triggered this deletion ourselves and
       # we don't need to drop it from the database
@@ -253,7 +285,7 @@ class Stars(commands.Cog):
       await con.execute(query, payload.message_id)
 
   @commands.Cog.listener()
-  async def on_raw_bulk_message_delete(self, payload):
+  async def on_raw_bulk_message_delete(self, payload: discord.RawBulkMessageDeleteEvent) -> None:
     if payload.message_ids <= self._about_to_be_deleted:
       # see comment above
       self._about_to_be_deleted.difference_update(payload.message_ids)
@@ -268,8 +300,8 @@ class Stars(commands.Cog):
       await con.execute(query, list(payload.message_ids))
 
   @commands.Cog.listener()
-  async def on_raw_reaction_clear(self, payload):
-    guild = self.bot.get_guild(payload.guild_id)
+  async def on_raw_reaction_clear(self, payload: discord.RawReactionClearEmojiEvent) -> None:
+    guild = self.bot.get_guild(payload.guild_id)  # type: ignore
     if guild is None:
       return
 
@@ -293,7 +325,7 @@ class Stars(commands.Cog):
       if msg is not None:
         await msg.delete()
 
-  async def star_message(self, channel, message_id, starrer_id, *, verify=False):
+  async def star_message(self, channel: StarableChannel, message_id: int, starrer_id: int, *, verify: bool = False) -> None:
     guild_id = channel.guild.id
     lock = self._locks.get(guild_id)
     if lock is None:
@@ -302,15 +334,14 @@ class Stars(commands.Cog):
     async with lock:
       async with self.bot.pool.acquire(timeout=300.0) as con:
         if verify:
-          log = self.bot.get_cog("Log")
-          if log:
-            conf = await log.get_guild_config(guild_id, connection=con)
+          if self.bot.log:
+            conf = await self.bot.log.get_guild_config(guild_id, connection=con)
             if "star" in conf.disabled_commands:
               return
 
         await self._star_message(channel, message_id, starrer_id, connection=con)
 
-  async def _star_message(self, channel, message_id, starrer_id, *, connection):
+  async def _star_message(self, channel: StarableChannel, message_id: int, starrer_id: int, *, connection: asyncpg.Connection | asyncpg.Pool) -> None:
     """Stars a message.
 
     Parameters
@@ -351,7 +382,7 @@ class Stars(commands.Cog):
       if ch is None:
         raise StarError('Could not find original channel.')
 
-      return await self._star_message(ch, record['message_id'], starrer_id, connection=connection)
+      return await self._star_message(ch, record['message_id'], starrer_id, connection=connection)  # type: ignore
 
     if not starboard_channel.permissions_for(starboard_channel.guild.me).send_messages:
       raise StarError('\N{NO ENTRY SIGN} Cannot post messages in starboard channel.')
@@ -425,7 +456,7 @@ class Stars(commands.Cog):
       else:
         await new_msg.edit(content=content, embed=embed)
 
-  async def unstar_message(self, channel: discord.TextChannel, message_id, starrer_id, *, verify=False):
+  async def unstar_message(self, channel: StarableChannel, message_id: int, starrer_id: int, *, verify: bool = False) -> None:
     guild_id = channel.guild.id
     lock = self._locks.get(guild_id)
     if lock is None:
@@ -434,14 +465,13 @@ class Stars(commands.Cog):
     async with lock:
       async with self.bot.pool.acquire(timeout=300.0) as con:
         if verify:
-          log = self.bot.get_cog("Log")
-          if log:
-            conf = await log.get_guild_config(guild_id, connection=con)
+          if self.bot.log:
+            conf = await self.bot.log.get_guild_config(guild_id, connection=con)
             if "star" in conf.disabled_commands:
               return
         await self._unstar_message(channel, message_id, starrer_id, connection=con)
 
-  async def _unstar_message(self, channel, message_id, starrer_id, *, connection):
+  async def _unstar_message(self, channel: StarableChannel, message_id: int, starrer_id: int, *, connection: asyncpg.Connection | asyncpg.Pool) -> None:
     """Unstars a message.
 
     Parameters
@@ -475,7 +505,7 @@ class Stars(commands.Cog):
       if ch is None:
         raise StarError('Could not find original channel.')
 
-      return await self._unstar_message(ch, record['message_id'], starrer_id, connection=connection)
+      return await self._unstar_message(ch, record['message_id'], starrer_id, connection=connection)  # type: ignore
 
     if not starboard_channel.permissions_for(starboard_channel.guild.me).send_messages:
       raise StarError('\N{NO ENTRY SIGN} Cannot edit messages in starboard channel.')
@@ -528,7 +558,7 @@ class Stars(commands.Cog):
 
   @commands.group(invoke_without_command=True, case_insensitive=True, extras={"examples": ["starboard"]})
   @checks.is_admin()
-  async def starboard(self, ctx, *, name: Optional[str] = 'starboard'):
+  async def starboard(self, ctx: GuildContext, *, name: str = 'starboard'):
     """Sets up the starboard for this server.
 
     This creates a new channel with the specified name
@@ -551,12 +581,12 @@ class Stars(commands.Cog):
       try:
         confirm = await ctx.prompt('Apparently, a previously configured starboard channel was deleted. Is this true?')
       except RuntimeError as e:
-        await ctx.send(embed=embed(title=e, color=MessageColors.ERROR))
+        await ctx.send(embed=embed(title=str(e), color=MessageColors.error()))
       else:
         if confirm:
           await ctx.db.execute('DELETE FROM starboard WHERE id=$1;', ctx.guild.id)
         else:
-          return await ctx.send(embed=embed(title='Aborting starboard creation. Join the bot support server for more questions.', color=MessageColors.ERROR))
+          return await ctx.send(embed=embed(title='Aborting starboard creation. Join the bot support server for more questions.', color=MessageColors.error()))
 
     perms = ctx.channel.permissions_for(ctx.me)
 
@@ -586,14 +616,14 @@ class Stars(commands.Cog):
       await ctx.db.execute(query, ctx.guild.id, channel.id)
     except BaseException:
       await channel.delete(reason='Failure to commit to create the ')
-      await ctx.send(embed=embed(title='Could not create the channel due to an internal error. Join the bot support server for help.', color=MessageColors.ERROR))
+      await ctx.send(embed=embed(title='Could not create the channel due to an internal error. Join the bot support server for help.', color=MessageColors.error()))
     else:
       self.get_starboard.invalidate(self, ctx.guild.id)
       await ctx.send(f"{channel.mention}", embed=embed(title=f'\N{GLOWING STAR} Starboard created at `{channel}`.'))
 
   @starboard.command(name='info')
   @requires_starboard()
-  async def starboard_info(self, ctx):
+  async def starboard_info(self, ctx: StarboardContext):
     """Shows meta information about the starboard."""
     starboard = ctx.starboard
     channel = starboard.channel
@@ -609,9 +639,9 @@ class Stars(commands.Cog):
     data.append(f'Limit: {plural(starboard.threshold):star}')
     await ctx.send(embed=embed(title="Starboard Info", description='\n'.join(data)))
 
-  @commands.group(invoke_without_command=True, ignore_extra=False, extras={"examples": ["707520808448294983", "https://discord.com/channels/707441352367013899/707458929696702525/707520808448294983"]})
+  @commands.group(invoke_without_command=True, ignore_extra=False, extras={"examples": ["707520808448294983"]})
   @commands.guild_only()
-  async def star(self, ctx, message: discord.Message):
+  async def star(self, ctx: GuildContext, message: Annotated[int, MessageID]):
     """Stars a message via message ID.
 
     To star a message you should right click on the on a message and then
@@ -624,15 +654,15 @@ class Stars(commands.Cog):
     """
 
     try:
-      await self.star_message(message.channel, message.id, ctx.author.id)
+      await self.star_message(ctx.channel, message, ctx.author.id)
     except StarError as e:
-      await ctx.send(embed=embed(title=e, color=MessageColors.ERROR))
+      await ctx.send(embed=embed(title=str(e), color=MessageColors.error()))
     else:
       await ctx.message.delete()
 
-  @commands.command(extras={"examples": ["707520808448294983", "https://discord.com/channels/707441352367013899/707458929696702525/707520808448294983"]})
+  @commands.command(extras={"examples": ["707520808448294983"]})
   @commands.guild_only()
-  async def unstar(self, ctx, message: discord.Message):
+  async def unstar(self, ctx: GuildContext, message: Annotated[int, MessageID]):
     """Unstars a message via message ID.
 
     To unstar a message you should right click on the on a message and then
@@ -640,16 +670,16 @@ class Stars(commands.Cog):
     functionality.
     """
     try:
-      await self.unstar_message(message.channel, message.id, ctx.author.id, verify=True)
+      await self.unstar_message(ctx.channel, message, ctx.author.id, verify=True)
     except StarError as e:
-      return await ctx.send(embed=embed(title=e, color=MessageColors.ERROR))
+      return await ctx.send(embed=embed(title=str(e), color=MessageColors.error()))
     else:
       await ctx.message.delete()
 
   @star.command(name='clean', extras={"examples": ["1", "3"]})
   @checks.is_admin()
   @requires_starboard()
-  async def star_clean(self, ctx, stars: int = 1):
+  async def star_clean(self, ctx: StarboardContext, stars: int = 1):
     """Cleans the starboard
 
     This removes messages in the starboard that only have less
@@ -696,7 +726,7 @@ class Stars(commands.Cog):
 
   @star.command(name='show', extras={"examples": ["707520808448294983", "https://discord.com/channels/707441352367013899/707458929696702525/707520808448294983"]})
   @requires_starboard()
-  async def star_show(self, ctx, message: discord.Message):
+  async def star_show(self, ctx: StarboardContext, message: Annotated[int, MessageID]):
     """Shows a starred message via its ID.
 
     To get the ID of a message you should right click on the
@@ -718,7 +748,7 @@ class Stars(commands.Cog):
                    LIMIT 1
                 """
 
-    record = await ctx.db.fetchrow(query, ctx.guild.id, message.id)
+    record = await ctx.db.fetchrow(query, ctx.guild.id, message)
     if record is None:
       return await ctx.send(embed=embed(title='This message has not been starred.'))
 
@@ -736,7 +766,7 @@ class Stars(commands.Cog):
         return
 
     # slow path, try to fetch the content
-    channel = ctx.guild.get_channel_or_thread(record['channel_id'])
+    channel: Optional[discord.abc.Messageable] = ctx.guild.get_channel_or_thread(record['channel_id'])  # type: ignore
     if channel is None:
       return await ctx.send(embed=embed(title="The message's channel has been deleted."))
 
@@ -751,7 +781,7 @@ class Stars(commands.Cog):
   @requires_starboard()
   @checks.is_admin()
   @commands.max_concurrency(1, commands.BucketType.guild)
-  async def star_migrate(self, ctx):
+  async def star_migrate(self, ctx: StarboardContext):
     """Migrates the starboard to the newest version.
 
     While doing this, the starboard is locked.
@@ -770,7 +800,7 @@ class Stars(commands.Cog):
     if ctx.starboard.locked:
       return await ctx.send(embed=embed(title='Starboard must be unlocked to migrate. It will be locked during the migration.'))
 
-    stats = self.bot.get_cog('Stats')
+    stats: Optional[Stats] = self.bot.get_cog('Stats')  # type: ignore
     if stats is None:
       return await ctx.send(embed=embed(title='Internal error occurred: Stats cog not loaded'))
 
@@ -805,7 +835,7 @@ class Stars(commands.Cog):
           continue
 
         _embed = message.embeds[0]
-        if len(embed.fields) == 0 or _embed.fields[0].name == 'Attachments':
+        if len(embed.fields) == 0 or _embed.fields[0].name == 'Attachments':  # type: ignore
           _embed.add_field(name='Original', value=f'[Jump!]({fmt})', inline=False)
           try:
             await message.edit(embed=_embed)
@@ -987,7 +1017,7 @@ class Stars(commands.Cog):
 
   @star.command(name='stats', extras={"examples": ["215227961048170496", "@Motostar"]})
   @requires_starboard()
-  async def star_stats(self, ctx, *, member: Optional[discord.Member] = None):
+  async def star_stats(self, ctx: StarboardContext, *, member: Optional[discord.Member] = None):
     """Shows statistics on the starboard usage of the server or a member."""
 
     if member is None:
@@ -997,7 +1027,7 @@ class Stars(commands.Cog):
 
   @star.command(name='random')
   @requires_starboard()
-  async def star_random(self, ctx):
+  async def star_random(self, ctx: StarboardContext):
     """Shows a random starred message."""
 
     query = """SELECT bot_message_id
@@ -1031,7 +1061,7 @@ class Stars(commands.Cog):
   @star.command(name='lock')
   @checks.is_admin()
   @requires_starboard()
-  async def star_lock(self, ctx):
+  async def star_lock(self, ctx: StarboardContext):
     """Locks the starboard from being processed.
 
     This is a moderation tool that allows you to temporarily
@@ -1058,7 +1088,7 @@ class Stars(commands.Cog):
   @star.command(name='unlock')
   @checks.is_admin()
   @requires_starboard()
-  async def star_unlock(self, ctx):
+  async def star_unlock(self, ctx: StarboardContext):
     """Unlocks the starboard for re-processing.
 
     To use this command you need Manage Server permission.
@@ -1076,7 +1106,7 @@ class Stars(commands.Cog):
   @star.command(name='limit', aliases=['threshold'], extras={"examples": ["3", "5"]})
   @checks.is_admin()
   @requires_starboard()
-  async def star_limit(self, ctx, stars: int):
+  async def star_limit(self, ctx: StarboardContext, stars: int):
     """Sets the minimum number of stars required to show up.
 
     When this limit is set, messages must have this number
@@ -1104,7 +1134,7 @@ class Stars(commands.Cog):
 
   @commands.command(hidden=True)
   @commands.is_owner()
-  async def star_announce(self, ctx: "MyContext", *, message):
+  async def star_announce(self, ctx: MyContext, *, message: str):
     """Announce stuff to every starboard."""
     query = "SELECT id, channel_id FROM starboard;"
     records = await ctx.db.fetch(query)
@@ -1141,5 +1171,5 @@ class Stars(commands.Cog):
     await ctx.send(embed=embed(title=f'Successfully sent to {success} channels (out of {len(to_send)}) in {delta:.2f}s.'))
 
 
-async def setup(bot):
+async def setup(bot: Friday):
   await bot.add_cog(Stars(bot))

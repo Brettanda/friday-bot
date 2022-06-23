@@ -1,58 +1,50 @@
 from __future__ import annotations
 
 import asyncio
-# import time
+import logging
 from collections import defaultdict
-from typing import Dict, List, Optional, Union
+from typing import TYPE_CHECKING, List, Optional, Sequence, TypedDict, Union
 
 import asyncpg
 import discord
 from asyncpg import Record
 from discord.ext import commands, tasks
-from typing_extensions import TYPE_CHECKING
 
-from functions import MessageColors, MyContext, cache, embed, formats
+from functions import MessageColors, cache, embed, formats
 
 if TYPE_CHECKING:
   from typing_extensions import Self
 
-  from index import Friday as Bot
+  from functions.custom_contexts import GuildContext
+  from index import Friday
 
+  class EventsTyped(TypedDict):
+    role: int
+    subscribers: set[int]
 
-class ScheduledEvent(commands.Converter):
-  async def convert(self, ctx: "MyContext", argument):
-    if argument.isdigit():
-      return discord.utils.find(lambda e: e.id == int(argument), ctx.guild.scheduled_events)
-
-    argument = argument.lower().split("/")[-1]
-    if not argument.isdigit():
-      raise commands.BadArgument(f"{argument} is not a valid event id or url.")
-
-    return discord.utils.find(lambda e: e.id == int(argument), ctx.guild.scheduled_events)
+log = logging.getLogger(__name__)
 
 
 class Config:
   __slots__ = ("bot", "guild_id", "events")  # , "default_event_role_id")
 
-  bot: Bot
+  bot: Friday
   guild_id: int
-  events: Dict[int, Dict[str, Union[int, List[int]]]]
+  events: dict[int, EventsTyped]
 
   @classmethod
-  async def from_records(cls, records: List[Record], bot: Bot) -> Self:
+  async def from_records(cls, records: Sequence[Record], bot: Friday) -> Self:
     self = cls()
 
     self.bot = bot
     self.guild_id = records[0]["guild_id"]
 
     # self.default_event_role_id: Optional[int] = records[0]["default_event_role_id"]
-    self.events = {}
-    if records[0]["event_id"]:
-      for r in records:
-        # if not r["event_id"]:
-        #   self.default_role_id: int = r["role_id"]
-        #   break
-        self.events.update({r["event_id"]: {"role": r["role_id"], "subscribers": set(r["subscribers"] or [])}})
+    self.events = {
+        r["event_id"]: {
+            "role": r["role_id"],
+            "subscribers": set(r["subscribers"] or [])
+        } for r in records}
 
     return self
 
@@ -71,8 +63,8 @@ class Config:
 
 
 class ScheduledEvents(commands.Cog):
-  def __init__(self, bot: Bot):
-    self.bot: Bot = bot
+  def __init__(self, bot: Friday):
+    self.bot: Friday = bot
 
     # self._data_batch = defaultdict(lambda: defaultdict(list))
     self._data_batch = defaultdict(list)
@@ -82,7 +74,7 @@ class ScheduledEvents(commands.Cog):
   def __repr__(self) -> str:
     return f"<cogs.{self.__cog_name__}>"
 
-  async def cog_check(self, ctx: "MyContext"):
+  async def cog_check(self, ctx: GuildContext):
     if ctx.guild is None:
       raise commands.NoPrivateMessage("This command can only be used within a guild")
 
@@ -118,6 +110,8 @@ class ScheduledEvents(commands.Cog):
     async with self.bot.pool.acquire(timeout=300.0) as conn:
       for guild_id, data in self._data_batch.items():
         config = await self.get_guild_config(guild_id, connection=conn)
+        if not config:
+          continue
         event_subscribers = defaultdict(list)
         for event_id, role_id, user_id, insertion in data:
           event_subscribers[event_id].append((role_id, (user_id, insertion)))
@@ -141,7 +135,7 @@ class ScheduledEvents(commands.Cog):
         self.get_guild_config.invalidate(self, guild_id)
 
       await conn.execute(query, final_data)
-      self.bot.logger.info(f"Inserted {len(final_data)} scheduled events.")
+      log.info(f"Inserted {len(final_data)} scheduled events.")
       self._data_batch.clear()
 
   @tasks.loop(seconds=15.0)
@@ -150,13 +144,17 @@ class ScheduledEvents(commands.Cog):
       await self.bulk_insert()
 
   @cache.cache()
-  async def get_guild_config(self, guild_id: int, *, connection=None) -> Optional[Config]:
-    connection = connection or self.bot.pool
+  async def get_guild_config(self, guild_id: int, *, connection: Optional[Union[asyncpg.Pool, asyncpg.Connection]] = None) -> Config:
+    conn = connection or self.bot.pool
+    # query = """SELECT s.default_event_role_id, s.id::bigint as guild_id, e.event_id, e.role_id, e.subscribers
+    #           FROM servers s
+    #           LEFT OUTER JOIN scheduledevents e ON s.id::bigint = e.guild_id
+    #           WHERE s.id::bigint=$1;"""
     query = """SELECT s.id::bigint as guild_id, e.event_id, e.role_id, e.subscribers
               FROM servers s
               LEFT OUTER JOIN scheduledevents e ON s.id::bigint = e.guild_id
               WHERE s.id::bigint=$1;"""
-    records = await connection.fetch(query, guild_id)
+    records = await conn.fetch(query, guild_id)
     return records and await Config.from_records(records, self.bot)
 
   @commands.Cog.listener()
@@ -165,7 +163,7 @@ class ScheduledEvents(commands.Cog):
       return
 
     query = """SELECT * FROM scheduledevents;"""
-    self.bot.logger.error("#Continue working on the events thing")
+    log.error("#Continue working on the events thing")
     records = await self.bot.pool.fetch(query)
     to_remove = []
     for record in records:
@@ -200,7 +198,7 @@ class ScheduledEvents(commands.Cog):
     if to_remove:
       query = """DELETE FROM scheduledevents WHERE event_id=ANY($1);"""
       await self.bot.pool.execute(query, to_remove)
-      self.bot.logger.info(f"Removed {len(to_remove)} scheduled events.")
+      log.info(f"Removed {len(to_remove)} scheduled events.")
 
   # @commands.Cog.listener()
   # async def on_scheduled_event_create(self, event: discord.ScheduledEvent):
@@ -218,6 +216,8 @@ class ScheduledEvents(commands.Cog):
 
   @commands.Cog.listener()
   async def on_scheduled_event_user_add(self, event: discord.ScheduledEvent, user: discord.User):
+    if not event.guild:
+      return
     if self.bot.prod and event.guild.id != 215346091321720832:
       return
     config = await self.get_guild_config(event.guild.id)
@@ -239,6 +239,8 @@ class ScheduledEvents(commands.Cog):
 
   @commands.Cog.listener()
   async def on_scheduled_event_user_remove(self, event: discord.ScheduledEvent, user: discord.User):
+    if not event.guild:
+      return
     if self.bot.prod and event.guild.id != 215346091321720832:
       return
     config = await self.get_guild_config(event.guild.id)
@@ -260,6 +262,8 @@ class ScheduledEvents(commands.Cog):
 
   @commands.Cog.listener()
   async def on_scheduled_event_update(self, before: discord.ScheduledEvent, after: discord.ScheduledEvent):
+    if not before.guild or not after.guild:
+      return
     if self.bot.prod and before.guild.id != 215346091321720832:
       return
     if before.status == after.status:
@@ -289,10 +293,12 @@ class ScheduledEvents(commands.Cog):
               WHERE guild_id=$1 AND event_id=$2;"""
     await self.bot.pool.execute(query, after.guild.id, after.id)
     self.get_guild_config.invalidate(self, after.guild.id)
-    self.bot.logger.info(f"Event role ended and removed from {x} users in {after.guild.name} ({after.guild.id})")
+    log.info(f"Event role ended and removed from {x} users in {after.guild.name} ({after.guild.id})")
 
   @commands.Cog.listener()
   async def on_scheduled_event_delete(self, event: discord.ScheduledEvent):
+    if not event.guild:
+      return
     if self.bot.prod and event.guild.id != 215346091321720832:
       return
     config = await self.get_guild_config(event.guild.id)
@@ -323,7 +329,7 @@ class ScheduledEvents(commands.Cog):
               WHERE guild_id=$1 AND event_id=$2;"""
     await self.bot.pool.execute(query, event.guild.id, event.id)
     self.get_guild_config.invalidate(self, event.guild.id)
-    self.bot.logger.info(f"Event role deleted and removed from {x} users in {event.guild.name} ({event.guild.id})")
+    log.info(f"Event role deleted and removed from {x} users in {event.guild.name} ({event.guild.id})")
 
   @commands.Cog.listener()
   async def on_guild_role_delete(self, role: discord.Role):
@@ -345,11 +351,11 @@ class ScheduledEvents(commands.Cog):
   @commands.guild_only()
   @commands.bot_has_guild_permissions(manage_roles=True)
   @commands.has_guild_permissions(manage_roles=True, manage_events=True)
-  async def eventroles(self, ctx: "MyContext"):
+  async def eventroles(self, ctx: GuildContext):
     """Add roles to members that mark a scheduled event as interested"""
     config = await self.get_guild_config(ctx.guild.id)
     if not config:
-      return await ctx.send(embed=embed(title="No event roles found", color=MessageColors.ERROR))
+      return await ctx.send(embed=embed(title="No event roles found", color=MessageColors.error()))
 
     guild_events = await ctx.guild.fetch_scheduled_events(with_counts=False)
     events = [e for e in guild_events if e.id in config.events]
@@ -364,7 +370,7 @@ class ScheduledEvents(commands.Cog):
   # @commands.guild_only()
   # @commands.bot_has_guild_permissions(manage_roles=True)
   # @commands.has_guild_permissions(manage_roles=True, manage_events=True)
-  # async def eventroles_default(self, ctx: "MyContext", *, role: discord.Role = None):
+  # async def eventroles_default(self, ctx: MyContext, *, role: discord.Role = None):
   #   """Sets the default role to be assigned to members that mark a scheduled event as interested"""
   #   if role and not role.is_assignable():
   #     raise commands.BadArgument("I don't have permission to assign that role.")
@@ -389,11 +395,11 @@ class ScheduledEvents(commands.Cog):
   # @commands.bot_has_guild_permissions(manage_roles=True)
   # @commands.has_guild_permissions(manage_roles=True, manage_events=True)
   # @commands.max_concurrency(1, commands.BucketType.guild)
-  # async def eventroles_default_clear(self, ctx: "MyContext"):
+  # async def eventroles_default_clear(self, ctx: MyContext):
   #   """Clears the default role"""
   #   config = await self.get_guild_config(ctx.guild.id, connection=ctx.db)
   #   if not config or config.default_event_role_id is None:
-  #     return await ctx.send(embed=embed(title="No default role has been set", color=MessageColors.ERROR))
+  #     return await ctx.send(embed=embed(title="No default role has been set", color=MessageColors.error()))
 
   #   default_event_role_id = config.default_event_role_id
   #   query = """UPDATE servers
@@ -446,7 +452,7 @@ class ScheduledEvents(commands.Cog):
   #                                  f"Took {delta:.2f} seconds"))
 
   #   stats = self.bot.get_cog("Stats")
-  #   self.bot.logger.info(f"Removed events roles from Guild: {ctx.guild.id} ({ctx.guild.name}) Members: {fetched} {updated}/{failed} Took: {delta:.2f}")
+  #   log.info(f"Removed events roles from Guild: {ctx.guild.id} ({ctx.guild.name}) Members: {fetched} {updated}/{failed} Took: {delta:.2f}")
   #   if not stats:
   #     return
   #   await stats.webhook.send(embed=embed(title="Removed events roles",
@@ -460,7 +466,7 @@ class ScheduledEvents(commands.Cog):
   @commands.bot_has_guild_permissions(manage_roles=True)
   @commands.has_guild_permissions(manage_roles=True, manage_events=True)
   @commands.max_concurrency(1, commands.BucketType.guild)
-  async def eventroles_add(self, ctx: "MyContext", event: Union[ScheduledEvent, discord.Invite], role: discord.Role = None):
+  async def eventroles_add(self, ctx: GuildContext, event: Union[discord.ScheduledEvent, discord.Invite], role: discord.Role = None):
     """Adds the given role to members that mark the given event as interested.
 
       Doesn't add any other roles for this event
@@ -471,20 +477,24 @@ class ScheduledEvents(commands.Cog):
     if role and not role.is_assignable():
       raise commands.BadArgument("I don't have permission to assign that role.")
 
-    if isinstance(event, discord.Invite):
-      if not event.scheduled_event:
+    current_event = event
+    if isinstance(current_event, discord.Invite):
+      if not current_event.scheduled_event:
         raise commands.BadArgument("This invite is not associated with an event")
-      event = event.scheduled_event
+      current_event = current_event.scheduled_event
 
     async with self._batch_lock:
       await self.bulk_insert()
 
     config = await self.get_guild_config(ctx.guild.id, connection=ctx.db)
     if config and not role:
-      role_id = config.get_role(event.id)
+      role_id = config.get_role(current_event.id)
       return await ctx.send(embed=embed(title="Event Role", description=f"<@&{role_id}>" if role_id else "No role found"))
 
-    if config and role.id == config.get_role(event.id):
+    if not role:
+      raise commands.CommandError("No role has been set")
+
+    if config and role.id == config.get_role(current_event.id):
       raise commands.BadArgument("This role is already in use for this event")
 
     if config and role.id in config.roles:
@@ -497,7 +507,7 @@ class ScheduledEvents(commands.Cog):
 
     async with ctx.typing():
       n = 0
-      async for user in event.users(limit=None):
+      async for user in current_event.users(limit=None):
         member = await self.bot.get_or_fetch_member(ctx.guild, user.id)
         if not member:
           continue
@@ -506,8 +516,9 @@ class ScheduledEvents(commands.Cog):
         subscribers.append(member.id)
 
         if isinstance(member, discord.Member):
-          if config.get_role(event.id) and member._roles.has(config.get_role(event.id)):
-            await member.remove_roles(discord.Object(id=config.get_role(event.id)), reason="Old Event role")
+          role_id = config.get_role(current_event.id)
+          if role_id and member._roles.has(role_id):
+            await member.remove_roles(discord.Object(id=role_id), reason="Old Event role")
           if not member._roles.has(role.id):
             await member.add_roles(role, reason="Event role")
         n += 1
@@ -526,7 +537,7 @@ class ScheduledEvents(commands.Cog):
   @commands.bot_has_guild_permissions(manage_roles=True)
   @commands.has_guild_permissions(manage_roles=True, manage_events=True)
   @commands.max_concurrency(1, commands.BucketType.guild)
-  async def eventroles_clear(self, ctx: "MyContext", *, event_or_role: Union[ScheduledEvent, discord.Invite, discord.Role]):
+  async def eventroles_clear(self, ctx: GuildContext, *, event_or_role: Union[discord.ScheduledEvent, discord.Invite, discord.Role]):
     """Removes the given role from members that mark the given event as interested.
 
       Doesn't remove any other roles for this event
@@ -536,7 +547,7 @@ class ScheduledEvents(commands.Cog):
 
     config = await self.get_guild_config(ctx.guild.id, connection=ctx.db)
     if not config:
-      return await ctx.send(embed=embed(title="This server has not events setup", color=MessageColors.ERROR))
+      return await ctx.send(embed=embed(title="This server has not events setup", color=MessageColors.error()))
 
     if isinstance(event_or_role, discord.Invite):
       if not event_or_role.scheduled_event:
@@ -574,7 +585,10 @@ class ScheduledEvents(commands.Cog):
       if event_or_role.id not in config.roles:
         raise commands.BadArgument("This event has no role")
 
-      role = ctx.guild.get_role(config.get_role(event_or_role.id)) or [r for r in await ctx.guild.fetch_roles() if r.id == config.get_role(event_or_role.id)][0]
+      role_id = config.get_role(event_or_role.id)
+      if not role_id:
+        raise commands.BadArgument("Somehow the role could not be found")
+      role = ctx.guild.get_role(role_id) or [r for r in await ctx.guild.fetch_roles() if r.id == role_id][0]
       if not role:
         raise commands.BadArgument("This event has no role")
 

@@ -1,47 +1,54 @@
-import discord
+from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
+
+import asyncpg
+import discord
 from discord.ext import commands
-# from interactions import Context as SlashContext
-from . import exceptions, config
-from .custom_contexts import MyContext
+
+from . import config, exceptions
 
 if TYPE_CHECKING:
-  from discord.ext.commands.core import _CheckDecorator
+  from cogs.config import Config
+  from cogs.dbl import TopGG
+  from cogs.patreons import Patreons
+  from index import Friday
 
-  from index import Friday as Bot
+  from .custom_contexts import GuildContext, MyContext
 
 
-# def guild_is_tier(tier: str) -> "_CheckDecorator":
+# def guild_is_tier(tier: str):
 
 
-def user_is_tier(tier: str) -> "_CheckDecorator":
-  async def predicate(ctx: "MyContext") -> bool:
+def user_is_tier(tier: str):
+  async def predicate(ctx: MyContext) -> bool:
     return True
   return commands.check(predicate)
 
 
-def is_min_tier(tier: int = config.PremiumTiersNew.tier_1.value) -> "_CheckDecorator":
-  async def predicate(ctx: "MyContext") -> bool:
+def is_min_tier(tier: int = config.PremiumTiersNew.tier_1.value):
+  async def predicate(ctx: GuildContext) -> bool:
     if ctx.author.id == ctx.bot.owner_id:
       return True
     guild = ctx.bot.get_guild(config.support_server_id)
-    member = await ctx.bot.get_or_fetch_member(guild, ctx.author.id)
-    if member is None:
+    if not guild:
       raise exceptions.NotInSupportServer()
-    if await user_is_min_tier(ctx.bot, member, tier) or await guild_is_min_tier(ctx.bot, ctx.guild, tier):
+    member = await ctx.bot.get_or_fetch_member(guild, ctx.author.id)
+    if not member:
+      raise exceptions.NotInSupportServer()
+    if await (user_is_min_tier(tier)).predicate(ctx) or await (guild_is_min_tier(tier)).predicate(ctx):
       return True
     else:
       raise exceptions.RequiredTier()
   return commands.check(predicate)
 
 
-def guild_is_min_tier(tier: int = config.PremiumTiersNew.tier_1.value) -> "_CheckDecorator":
+def guild_is_min_tier(tier: int = config.PremiumTiersNew.tier_1.value):
   """ Checks if a guild has at least patreon 'tier' """
 
-  async def predicate(ctx: "MyContext") -> bool:
+  async def predicate(ctx: GuildContext) -> bool:
     if ctx.guild is None:
-      return commands.NoPrivateMessage()
+      raise commands.NoPrivateMessage()
     guild_tier = await ctx.db.fetchval("""SELECT tier FROM patrons WHERE $1 = ANY(patrons.guild_ids) LIMIT 1""", str(ctx.guild.id))
     if guild_tier is None:
       return False
@@ -49,11 +56,11 @@ def guild_is_min_tier(tier: int = config.PremiumTiersNew.tier_1.value) -> "_Chec
   return commands.check(predicate)
 
 
-def user_is_min_tier(tier: int = config.PremiumTiersNew.tier_1.value) -> "_CheckDecorator":
+def user_is_min_tier(tier: int = config.PremiumTiersNew.tier_1.value):
   """ Checks if a user has at least patreon 'tier' """
 
-  async def predicate(ctx: "MyContext") -> bool:
-    pat_cog = ctx.bot.get_cog("Patreons")
+  async def predicate(ctx: MyContext) -> bool:
+    pat_cog: Optional[Patreons] = ctx.bot.get_cog("Patreons")  # type: ignore
     if pat_cog is None:
       return False
 
@@ -65,12 +72,12 @@ def user_is_min_tier(tier: int = config.PremiumTiersNew.tier_1.value) -> "_Check
 
 
 # TODO: Remove this when moved to is_mod_and_min_tier
-def is_admin_and_min_tier(tier: int = config.PremiumTiersNew.tier_1.value) -> "_CheckDecorator":
+def is_admin_and_min_tier(tier: int = config.PremiumTiersNew.tier_1.value):
   guild_is_min_tier_ = guild_is_min_tier(tier).predicate
   is_admin_ = is_admin().predicate
   user_is_min_tier_ = user_is_min_tier(tier).predicate
 
-  async def predicate(ctx: "MyContext") -> bool:
+  async def predicate(ctx: GuildContext) -> bool:
     try:
       admin = await is_admin_(ctx)
     except Exception:
@@ -83,12 +90,12 @@ def is_admin_and_min_tier(tier: int = config.PremiumTiersNew.tier_1.value) -> "_
   return commands.check(predicate)
 
 
-def is_mod_and_min_tier(*, tier: int = config.PremiumTiersNew.tier_1.value, **perms) -> "_CheckDecorator":
+def is_mod_and_min_tier(*, tier: int = config.PremiumTiersNew.tier_1.value, **perms: bool):
   guild_is_min_tier_ = guild_is_min_tier(tier).predicate
   is_mod_or_guild_permissions_ = is_mod_or_guild_permissions(**perms).predicate
   user_is_min_tier_ = user_is_min_tier(tier).predicate
 
-  async def predicate(ctx: "MyContext") -> bool:
+  async def predicate(ctx: GuildContext) -> bool:
     try:
       mod = await is_mod_or_guild_permissions_(ctx)
     except Exception:
@@ -101,13 +108,15 @@ def is_mod_and_min_tier(*, tier: int = config.PremiumTiersNew.tier_1.value, **pe
   return commands.check(predicate)
 
 
-def is_supporter() -> "_CheckDecorator":
+def is_supporter():
   """" Checks if the user has the 'is supporting' role that ALL patrons get"""
 
-  async def predicate(ctx: "MyContext") -> bool:
+  async def predicate(ctx: MyContext) -> bool:
     if ctx.author.id == ctx.bot.owner_id:
       return True
     guild = ctx.bot.get_guild(config.support_server_id)
+    if not guild:
+      raise exceptions.NotInSupportServer()
     member = await ctx.bot.get_or_fetch_member(guild, ctx.author.id)
     if member is None:
       return False
@@ -118,7 +127,7 @@ def is_supporter() -> "_CheckDecorator":
   return commands.check(predicate)
 
 
-async def user_is_supporter(bot: "Bot", user: discord.User) -> bool:
+async def user_is_supporter(bot: Friday, user: discord.Member) -> bool:
   if user is None:
     raise exceptions.NotInSupportServer()
   roles = [role.id for role in user.roles]
@@ -127,9 +136,11 @@ async def user_is_supporter(bot: "Bot", user: discord.User) -> bool:
   return True
 
 
-def is_supporter_or_voted() -> "_CheckDecorator":
-  async def predicate(ctx: "MyContext") -> bool:
+def is_supporter_or_voted():
+  async def predicate(ctx: MyContext) -> bool:
     support_guild = ctx.bot.get_guild(config.support_server_id)
+    if support_guild is None:
+      raise exceptions.NotInSupportServer()
     member = await ctx.bot.get_or_fetch_member(support_guild, ctx.author.id)
     if member is None:
       return False
@@ -142,8 +153,8 @@ def is_supporter_or_voted() -> "_CheckDecorator":
   return commands.check(predicate)
 
 
-async def user_voted(bot: "Bot", user: discord.User, *, connection=None) -> bool:
-  dbl_cog = bot.get_cog("TopGG")
+async def user_voted(bot: Friday, user: discord.abc.User, *, connection: asyncpg.Pool | asyncpg.Connection = None) -> bool:
+  dbl_cog: Optional[TopGG] = bot.get_cog("TopGG")  # type: ignore
   if dbl_cog is None:
     query = """SELECT id
                 FROM reminders
@@ -152,26 +163,27 @@ async def user_voted(bot: "Bot", user: discord.User, *, connection=None) -> bool
                 ORDER BY expires
                 LIMIT 1;"""
     connection = connection or bot.pool
-    record = await connection.fetchrow(query, str(user.id))
+    record = await connection.fetchrow(query, str(user.id))  # type: ignore
     return True if record else False
   return await dbl_cog.user_has_voted(user.id, connection=connection)
 
 
-def is_admin() -> "_CheckDecorator":
+def is_admin():
   """Do you have permission to change the setting of the bot"""
-  async def predicate(ctx: "MyContext") -> bool:
+  async def predicate(ctx: GuildContext) -> bool:
     is_owner = await ctx.bot.is_owner(ctx.author)
     if is_owner:
       return True
 
     if ctx.author.guild_permissions.manage_guild or ctx.author.guild_permissions.administrator:
       return True
+    return False
   return commands.check(predicate)
 
 
-def is_mod_or_guild_permissions(**perms) -> "_CheckDecorator":
+def is_mod_or_guild_permissions(**perms: bool):
   """User has a mod role or has the following guild permissions"""
-  async def predicate(ctx: "MyContext") -> bool:
+  async def predicate(ctx: GuildContext) -> bool:
     if ctx.guild is None:
       raise commands.NoPrivateMessage()
 
@@ -179,7 +191,7 @@ def is_mod_or_guild_permissions(**perms) -> "_CheckDecorator":
     if is_owner:
       return True
 
-    config_cog = ctx.bot.get_cog("Config")
+    config_cog: Optional[Config] = ctx.bot.get_cog("Config")  # type: ignore
     if config_cog is not None:
       con = await config_cog.get_guild_config(ctx.guild.id)
       if con and any(arole in con.mod_roles for arole in ctx.author.roles):
@@ -193,7 +205,7 @@ def is_mod_or_guild_permissions(**perms) -> "_CheckDecorator":
   return commands.check(predicate)
 
 
-def slash(user: bool = False, private: bool = True) -> "_CheckDecorator":
+def slash(user: bool = False, private: bool = True):
   # async def predicate(ctx: SlashContext) -> bool:
   #   if user is True and ctx.guild_id and ctx.guild is None and ctx.channel is None:
   #     raise exceptions.OnlySlashCommands()

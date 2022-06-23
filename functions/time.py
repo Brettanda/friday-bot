@@ -1,32 +1,29 @@
+from __future__ import annotations
+
 import datetime
 import re
+from typing import TYPE_CHECKING, Any, Optional, Union
 
-import pytz
 import parsedatetime as pdt
-from . import fuzzy
-from .formats import human_join, plural
+import pytz
 from dateutil.relativedelta import relativedelta
 from discord.ext import commands
+
+from . import fuzzy
+from .formats import human_join, plural
 
 # Monkey patch mins and secs into the units
 units = pdt.pdtLocales['en_US'].units
 units['minutes'].append('mins')
 units['seconds'].append('secs')
 
-__all__ = (
-    "human_timedelta",
-    "ShortTime",
-    "HumanTime",
-    "TimeWithTimezone",
-    "Time",
-    "FutureTime",
-    "TimeoutTime",
-    "UserFriendlyTime",
-    "format_dt",
-)
+if TYPE_CHECKING:
+  from typing_extensions import Self
+
+  from .custom_contexts import MyContext
 
 
-def human_timedelta(dt, *, source=None, accuracy=3, brief=False, suffix=True):
+def human_timedelta(dt: datetime.datetime, *, source: Optional[datetime.datetime] = None, accuracy: Optional[int] = 3, brief: bool = False, suffix: bool = True) -> str:
   now = source or datetime.datetime.now(datetime.timezone.utc)
   if dt.tzinfo is None:
     dt = dt.replace(tzinfo=datetime.timezone.utc)
@@ -45,10 +42,10 @@ def human_timedelta(dt, *, source=None, accuracy=3, brief=False, suffix=True):
   # A query like "11 months" can be interpreted as "!1 months and 6 days"
   if dt > now:
     delta = relativedelta(dt, now)
-    suffix = ''
+    output_suffix = ''
   else:
     delta = relativedelta(now, dt)
-    suffix = ' ago' if suffix else ''
+    output_suffix = ' ago' if suffix else ''
 
   attrs = [
       ('year', 'y'),
@@ -89,9 +86,9 @@ def human_timedelta(dt, *, source=None, accuracy=3, brief=False, suffix=True):
     return 'now'
   else:
     if not brief:
-      return human_join(output, final='and') + suffix
+      return human_join(output, final='and') + output_suffix
     else:
-      return ' '.join(output) + suffix
+      return ' '.join(output) + output_suffix
 
 
 class ShortTime:
@@ -104,7 +101,7 @@ class ShortTime:
                              (?:(?P<seconds>[0-9]{1,5})(?:seconds?|s))?    # e.g. 15s
                           """, re.VERBOSE)
 
-  def __init__(self, argument, *, now=None):
+  def __init__(self, argument: str, *, now: Optional[datetime.datetime] = None):
     match = self.compiled.fullmatch(argument)
     if match is None or not match.group(0):
       raise commands.BadArgument('invalid time provided')
@@ -114,14 +111,14 @@ class ShortTime:
     self.dt = now + relativedelta(**data)
 
   @classmethod
-  async def convert(cls, ctx, argument):
+  async def convert(cls, ctx: MyContext, argument: str) -> Self:
     return cls(argument, now=ctx.message.created_at)
 
 
 class HumanTime:
   calendar = pdt.Calendar(version=pdt.VERSION_CONTEXT_STYLE)
 
-  def __init__(self, argument, *, now=None):
+  def __init__(self, argument: str, *, now: Optional[datetime.datetime] = None):
     now = now or datetime.datetime.utcnow()
     dt, status = self.calendar.parseDT(argument, sourceTime=now)
     if not status.hasDateOrTime:
@@ -135,7 +132,7 @@ class HumanTime:
     self._past = dt < now
 
   @classmethod
-  async def convert(cls, ctx, argument):
+  async def convert(cls, ctx: MyContext, argument: str) -> Self:
     return cls(argument, now=ctx.message.created_at)
 
 
@@ -176,7 +173,7 @@ class TimeWithTimezone(HumanTime):
 
 
 class Time(HumanTime):
-  def __init__(self, argument, *, now=None):
+  def __init__(self, argument: str, *, now: Optional[datetime.datetime] = None):
     try:
       o = ShortTime(argument, now=now)
     except Exception:
@@ -187,7 +184,7 @@ class Time(HumanTime):
 
 
 class FutureTime(Time):
-  def __init__(self, argument, *, now=None):
+  def __init__(self, argument: str, *, now: Optional[datetime.datetime] = None):
     super().__init__(argument, now=now)
 
     if self._past:
@@ -195,7 +192,7 @@ class FutureTime(Time):
 
 
 class TimeoutTime(FutureTime):
-  def __init__(self, argument, *, now=None):
+  def __init__(self, argument: str, *, now: Optional[datetime.datetime] = None):
     super().__init__(argument, now=now)
 
     now = now or datetime.datetime.now(datetime.timezone.utc)
@@ -204,43 +201,43 @@ class TimeoutTime(FutureTime):
       raise commands.BadArgument('This time is too far in the future. Must be sooner than 28 days.')
 
 
+class FriendlyTimeResult:
+  dt: datetime.datetime
+  arg: str
+
+  __slots__ = ('dt', 'arg')
+
+  def __init__(self, dt: datetime.datetime):
+    self.dt = dt
+    self.arg = ""
+
+  async def ensure_constraints(self, ctx: MyContext, uft: UserFriendlyTime, now: datetime.datetime, remaining: str) -> None:
+    if self.dt < now:
+      raise commands.BadArgument('This time is in the past.')
+
+    if not remaining:
+      if uft.default is None:
+        raise commands.BadArgument('Missing argument after the time.')
+      remaining = uft.default
+
+    if uft.converter is not None:
+      self.arg = await uft.converter.convert(ctx, remaining)
+    else:
+      self.arg = remaining
+
+
 class UserFriendlyTime(commands.Converter):
-  def __init__(self, converter=None, *, default=None):
+  def __init__(self, converter: Optional[Union[type[commands.Converter], commands.Converter]] = None, *, default: Any = None):
     if isinstance(converter, type) and issubclass(converter, commands.Converter):
       converter = converter()
 
     if converter is not None and not isinstance(converter, commands.Converter):
       raise TypeError("converter must be a subclass of Converter")
 
-    self.converter = converter
-    self.default = default
+    self.converter: commands.Converter = converter  # type: ignore  # It doesn't understand this narrowing
+    self.default: Any = default
 
-  async def check_constraints(self, ctx, now, remaining):
-    if self.dt < now:
-      raise commands.BadArgument("This time is in the past.")
-
-    if not remaining:
-      if self.default is None:
-        raise commands.BadArgument("Missing argument after the time.")
-      remaining = self.default
-
-    if self.converter is not None:
-      self.arg = await self.converter.convert(ctx, remaining)
-    else:
-      self.arg = remaining
-    return self
-
-  def copy(self):
-    cls = self.__class__
-    obj = cls.__new__(cls)
-    obj.converter = self.converter
-    obj.default = self.default
-    return obj
-
-  async def convert(self, ctx, argument):
-    # Create a copy of ourselves to prevent race conditions from two
-    # events modifying the same instance of a converter
-    result = self.copy()
+  async def convert(self, ctx: MyContext, argument: str) -> FriendlyTimeResult:
     try:
       calendar = HumanTime.calendar
       regex = ShortTime.compiled
@@ -250,8 +247,9 @@ class UserFriendlyTime(commands.Converter):
       if match is not None and match.group(0):
         data = {k: int(v) for k, v in match.groupdict(default=0).items()}
         remaining = argument[match.end():].strip()
-        result.dt = now + relativedelta(**data)
-        return await result.check_constraints(ctx, now, remaining)
+        result = FriendlyTimeResult(now + relativedelta(**data))
+        await result.ensure_constraints(ctx, self, now, remaining)
+        return result
 
       # apparently nlp does not like "from now"
       # it likes "from x" in other cases though so let me handle the 'now' case
@@ -279,9 +277,11 @@ class UserFriendlyTime(commands.Converter):
         raise commands.BadArgument('Invalid time provided, try e.g. "tomorrow" or "3 days".')
 
       if begin not in (0, 1) and end != len(argument):
-        raise commands.BadArgument('Time is either in an inappropriate location, which '
-                                   'must be either at the end or beginning of your input, '
-                                   'or I did not understand what you meant. Sorry.')
+        raise commands.BadArgument(
+            'Time is either in an inappropriate location, which '
+            'must be either at the end or beginning of your input, '
+            'or I just flat out did not understand what you meant. Sorry.'
+        )
 
       if not status.hasTime:
         # replace it with the current time
@@ -291,7 +291,8 @@ class UserFriendlyTime(commands.Converter):
       if status.accuracy == pdt.pdtContext.ACU_HALFDAY:
         dt = dt.replace(day=now.day + 1)
 
-      result.dt = dt.replace(tzinfo=datetime.timezone.utc)
+      result = FriendlyTimeResult(dt.replace(tzinfo=datetime.timezone.utc))
+      remaining = ''
 
       if begin in (0, 1):
         if begin == 1:
@@ -308,14 +309,16 @@ class UserFriendlyTime(commands.Converter):
       elif len(argument) == end:
         remaining = argument[:begin].strip()
 
-      return await result.check_constraints(ctx, now, remaining)
+      await result.ensure_constraints(ctx, self, now, remaining)
+      return result
     except BaseException:
       import traceback
+
       traceback.print_exc()
       raise
 
 
-def format_dt(dt, style=None):
+def format_dt(dt: datetime.datetime, style: Optional[str] = None) -> str:
   # The below if statement is the fix for my timezone
   if dt.tzinfo is None:
     dt = dt.replace(tzinfo=datetime.timezone.utc)

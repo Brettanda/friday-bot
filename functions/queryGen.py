@@ -6,8 +6,8 @@ import sys
 # import getopt
 # import random
 import numpy as np
-from tensorflow.keras.layers import LSTM, Dense, Input
-from tensorflow.keras.models import Model, load_model
+from tensorflow.keras.layers import LSTM, Dense, Input  # type: ignore
+from tensorflow.keras.models import Model, load_model  # type: ignore
 
 # import time
 

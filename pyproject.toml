@@ -1,0 +1,21 @@
+[tool.pyright]
+reportUnnecessaryTypeIgnoreComment = "warning"
+reportAssertAlwaysTrue = "warning"
+reportUnnecessaryIsInstance = "warning"
+pythonVersion = "3.8"
+typeCheckingMode = "basic"
+strictParameterNoneValue = false
+include = [
+    "cogs",
+    "functions"
+]
+exclude = [
+    "**/__pycache__",
+    "build",
+    "dist"
+]
+
+[tool.pytest.ini_options]
+testpaths = [
+    "tests",
+]

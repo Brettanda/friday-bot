@@ -19,21 +19,13 @@ class Dice(commands.Cog):
     if "bump" in roll.lower():
       raise commands.NotOwner()
 
-    return await self.dice(ctx, roll)
-
-  # @cog_ext.cog_slash(name="dice", description="D&D dice rolling")
-  # @checks.slash(user=False, private=True)
-  # async def slash_dice(self, ctx: "MyContext", *, roll: str):
-  #   return await self.dice(ctx, roll)
-
-  async def dice(self, ctx: "MyContext", roll):
     roll = roll.lower()
 
     result = None
     try:
       result = d20.roll(roll)
     except Exception as e:
-      return await ctx.send(embed=embed(title=f"{e}", color=MessageColors.ERROR))
+      return await ctx.send(embed=embed(title=f"{e}", color=MessageColors.error()))
     else:
       return await ctx.send(embed=embed(title=f"Your total: {str(result.total)}", description=f"Query: {str(result.ast)}\nResult: {str(result)}"))
 
