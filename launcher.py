@@ -40,6 +40,19 @@ FORMATS = {
 _ColourFormatter.FORMATS = FORMATS
 
 
+class _ColourFormatterFile(_ColourFormatter):
+  @property
+  def FORMATS(self):
+    return{
+        level: logging.Formatter(
+            '{asctime} {levelname:<8} {name:<16} {message}',
+            '%Y-%m-%d %H:%M:%S',
+            style="{"
+        )
+        for level, colour in self.LEVEL_COLOURS
+    }
+
+
 class _ColourFormatterShort(_ColourFormatter):
   @property
   def FORMATS(self):
@@ -89,7 +102,7 @@ def setup_logging(name: Optional[str] = ...):
     log.setLevel(logging.INFO)
 
     filehandler = RotatingFileHandler(filename="logging.log", encoding="utf-8", mode="w", maxBytes=max_bytes, backupCount=5)
-    filehandler.setFormatter(_ColourFormatter())
+    filehandler.setFormatter(_ColourFormatterFile())
 
     handler = logging.StreamHandler(sys.stdout)
     handler.setFormatter(_ColourFormatterShort())
