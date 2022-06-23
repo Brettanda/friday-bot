@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import datetime
-import json
 import re
 from typing import (TYPE_CHECKING, List, Optional, Sequence, Set,
                     TypedDict, Union)
@@ -15,6 +14,7 @@ from typing_extensions import Annotated
 
 from functions import (MessageColors, cache, checks, embed, exceptions,
                        relay_info, time)
+from functions.formats import plural
 
 # from .moderation import can_execute_action
 
@@ -179,15 +179,18 @@ class SpamChecker:
   __slots__ = ("bot", "_message_spam", "_mention_spam", "_content_spam",)
 
   bot: Friday
+  _message_spam: Optional[commands.CooldownMapping]
+  _mention_spam: Optional[commands.CooldownMapping]
+  _content_spam: Optional[commands.CooldownMapping]
 
   @classmethod
   def from_cooldowns(cls, *, bot: Friday, config: Config) -> Self:  # message_spam: Optional[commands.CooldownMapping], mention_spam: Optional[commands.CooldownMapping], content_spam: Optional[CooldownByContent]):
     self = cls()
 
     self.bot = bot
-    self._message_spam = config.max_messages and commands.CooldownMapping.from_cooldown(config.max_messages["rate"], config.max_messages["seconds"], commands.BucketType.user)
-    self._mention_spam = config.max_mentions and commands.CooldownMapping.from_cooldown(config.max_mentions["rate"], config.max_mentions["seconds"], commands.BucketType.user)
-    self._content_spam = config.max_content and CooldownByContent.from_cooldown(config.max_content["rate"], config.max_content["seconds"], commands.BucketType.member)
+    self._message_spam = config.max_messages is not None and commands.CooldownMapping.from_cooldown(config.max_messages["rate"], config.max_messages["seconds"], commands.BucketType.user) or None
+    self._mention_spam = config.max_mentions is not None and commands.CooldownMapping.from_cooldown(config.max_mentions["rate"], config.max_mentions["seconds"], commands.BucketType.user) or None
+    self._content_spam = config.max_content is not None and CooldownByContent.from_cooldown(config.max_content["rate"], config.max_content["seconds"], commands.BucketType.member) or None
 
     return self
 
@@ -202,7 +205,7 @@ class SpamChecker:
     current = message.created_at.timestamp()
 
     bucket = self._message_spam and self._message_spam.get_bucket(message)
-    if bucket.update_rate_limit(current):
+    if bucket and bucket.update_rate_limit(current):
       return True
 
     return False
@@ -214,7 +217,7 @@ class SpamChecker:
     current = message.created_at.timestamp()
 
     bucket = self._content_spam and self._content_spam.get_bucket(message)
-    if bucket.update_rate_limit(current):
+    if bucket and bucket.update_rate_limit(current):
       return True
 
     return False
@@ -226,7 +229,7 @@ class SpamChecker:
     current = message.created_at.timestamp()
 
     bucket = self._mention_spam and self._mention_spam.get_bucket(message)
-    if bucket.update_rate_limit(current):
+    if bucket and bucket.update_rate_limit(current):
       return True
 
     return False
@@ -268,6 +271,15 @@ class AutoMod(commands.Cog):
     blquery = "SELECT * FROM blacklist WHERE guild_id=$1 LIMIT 1;"
     conn = connection or self.bot.pool
     record = await conn.fetchrow(query, str(guild_id))
+    # REMOVE THIS AT SOME POINT
+    if record and record["max_mentions"] is not None:
+      try:
+        mm = record["max_mentions"]
+        mm["rate"]
+      except KeyError:
+        new: SpamType = {"rate": record["max_mentions"]["mentions"], "seconds": record["max_mentions"]["seconds"], "punishments": record["max_mentions"]["punishments"]}
+        record = await conn.fetchrow("UPDATE servers SET max_mentions=$1 WHERE id=$2 RETURNING *", new, str(guild_id))
+    # _________________________
     log.debug(f"PostgreSQL Query: \"{query}\" + {str(guild_id)}")
     blrecord = await conn.fetchrow(blquery, str(guild_id))
     log.debug(f"PostgreSQL Query: \"{blquery}\" + {str(guild_id)}")
@@ -322,6 +334,7 @@ class AutoMod(commands.Cog):
     except KeyError:
       self._spam_check.update({msg.guild.id: SpamChecker.from_cooldowns(bot=self.bot, config=config)})
       spam = self._spam_check[msg.guild.id]
+
     if spam.is_disabled:
       return
 
@@ -564,8 +577,9 @@ class AutoMod(commands.Cog):
     if current is None or current == "null":
       current = {"punishments": ["mute"]}
     punishments = current["punishments"]
-    await ctx.db.execute("UPDATE servers SET max_mentions=$1 WHERE id=$2", json.dumps({"mentions": mention_count, "seconds": seconds, "punishments": punishments}), str(ctx.guild.id))
-    await ctx.reply(embed=embed(title=f"I will now apply the punishments `{', '.join(punishments)}` to members that mention `>={mention_count}` within `{seconds}` seconds."))
+    data: SpamType = {"rate": mention_count, "seconds": seconds, "punishments": punishments}
+    await ctx.db.execute("UPDATE servers SET max_mentions=$1 WHERE id=$2", data, str(ctx.guild.id))
+    await ctx.reply(embed=embed(title=f"I will now apply the punishments `{', '.join(punishments)}` to members that mention `>={mention_count}` within `{plural(seconds):second}`."))
 
   @max_mentions.error
   async def max_mentions_error(self, ctx: GuildContext, error: commands.CommandError):
@@ -591,7 +605,7 @@ class AutoMod(commands.Cog):
     if current is None or current == "null":
       current = {}
     current.update({"punishments": new_punishments})
-    await ctx.db.execute("UPDATE servers SET max_mentions=$1 WHERE id=$2", json.dumps(current), str(ctx.guild.id))
+    await ctx.db.execute("UPDATE servers SET max_mentions=$1 WHERE id=$2", current, str(ctx.guild.id))
     await ctx.reply(embed=embed(title=f"New punishment for max amount of mentions in a single message is `{', '.join(new_punishments)}`"))
 
   @max_mentions.command(name="disable", help="Disable the max amount of mentions per message for this server.")
@@ -613,11 +627,11 @@ class AutoMod(commands.Cog):
     if current is None or current == "null":
       current = {"punishments": ["mute"]}
     punishments = current.get("punishments", ["mute"])
-    value = json.dumps({"rate": message_rate, "seconds": seconds, "punishments": punishments})
-    await ctx.db.execute("UPDATE servers SET max_messages=$1::json WHERE id=$2", value, str(ctx.guild.id))
+    value: SpamType = {"rate": message_rate, "seconds": seconds, "punishments": punishments}
+    await ctx.db.execute("UPDATE servers SET max_messages=$1 WHERE id=$2", value, str(ctx.guild.id))
     if value is None:
       return await ctx.reply(embed=embed(title="I will no longer delete messages"))
-    await ctx.reply(embed=embed(title=f"I will now `{', '.join(punishments)}` messages matching the same author that are sent more than the rate of `{message_rate}` message, for every `{seconds}` seconds."))
+    await ctx.reply(embed=embed(title=f"I will now apply `{', '.join(punishments)}` to messages matching the same author that are sent more than the rate of `{plural(message_rate):message}`, for every `{plural(seconds):second}`."))
 
   @max_spam.error
   async def max_spam_error(self, ctx: GuildContext, error: commands.CommandError):
@@ -643,11 +657,11 @@ class AutoMod(commands.Cog):
     if current is None or current == "null":
       current = {}
     current.update({"punishments": old_punishments})
-    await ctx.db.execute("UPDATE servers SET max_messages=$1 WHERE id=$2", json.dumps(current), str(ctx.guild.id))
+    await ctx.db.execute("UPDATE servers SET max_messages=$1 WHERE id=$2", current, str(ctx.guild.id))
     self.get_guild_config.invalidate(self, ctx.guild.id)
     await ctx.reply(embed=embed(title=f"New punishment(s) for spam is `{', '.join(old_punishments)}`"))
 
-  @max_spam.command(name="disable", help="Disable the max amount of messages per x seconds by the same member for this server.")
+  @max_spam.command(name="disable", aliases=["clear"], help="Disable the max amount of messages per x seconds by the same member for this server.")
   @commands.guild_only()
   @commands.has_guild_permissions(manage_messages=True, manage_roles=True)
   @commands.bot_has_guild_permissions(manage_messages=True, manage_roles=True)
@@ -666,9 +680,9 @@ class AutoMod(commands.Cog):
     if current is None or current == "null":
       current = {"punishments": ["mute"]}
     punishments = current["punishments"] if "punishments" in current else ["mute"]
-    value = json.dumps({"rate": message_rate, "seconds": seconds, "punishments": punishments})
+    value: SpamType = {"rate": message_rate, "seconds": seconds, "punishments": punishments}
     await ctx.db.execute("UPDATE servers SET max_content=$1 WHERE id=$2", value, str(ctx.guild.id))
-    await ctx.reply(embed=embed(title=f"I will now delete messages matching the same content that are sent more than the rate of `{message_rate}` message, for every `{seconds}` seconds."))
+    await ctx.reply(embed=embed(title=f"I will now apply `{', '.join(punishments)}` to messages matching the same content that are sent more than the rate of `{plural(message_rate):message}`, for every `{plural(seconds):second}`."))
 
   @max_content_spam.error
   async def max_content_spam_error(self, ctx: GuildContext, error: commands.CommandError):
@@ -694,7 +708,7 @@ class AutoMod(commands.Cog):
     if current is None or current == "null":
       current = {}
     current.update({"punishments": new_punishments})
-    await ctx.db.execute("UPDATE servers SET max_content=$1 WHERE id=$2", json.dumps(current), str(ctx.guild.id))
+    await ctx.db.execute("UPDATE servers SET max_content=$1 WHERE id=$2", current, str(ctx.guild.id))
     await ctx.reply(embed=embed(title=f"New punishment(s) for content spam is `{', '.join(new_punishments)}`"))
 
   @max_content_spam.command(name="disable", help="Disable the max amount of messages per x seconds with the same content for this server.")
