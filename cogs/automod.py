@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import datetime
-import json
 import re
 from typing import (TYPE_CHECKING, List, Optional, Sequence, Set,
                     TypedDict, Union)
