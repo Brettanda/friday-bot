@@ -9,6 +9,7 @@ from discord.ext import commands
 from functions import MessageColors, cache, embed
 
 if TYPE_CHECKING:
+  from functions.custom_contexts import GuildContext, MyContext
   from index import Friday
 
 log = logging.getLogger(__name__)

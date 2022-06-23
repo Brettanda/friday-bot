@@ -6,6 +6,7 @@ import re
 from typing import (TYPE_CHECKING, List, Optional, Sequence, Set,
                     TypedDict, Union)
 
+import logging
 import asyncpg
 import discord
 from discord.ext import commands
@@ -27,6 +28,8 @@ if TYPE_CHECKING:
     rate: float
     seconds: float
     punishments: List[str]
+
+log = logging.getLogger(__name__)
 
 INVITE_REG = re.compile(r"<?(https?:\/\/)?(www\.)?((discord\.(gg|io|me))|(discord(app|)\.(gg|com)\/invite))\/[a-zA-Z0-9\-]+>?", re.RegexFlag.MULTILINE + re.RegexFlag.IGNORECASE)
 
@@ -122,7 +125,7 @@ class Config:
         dur = now + duration
         reminder = self.bot.reminder
         if reminder is None:
-          return self.bot.logger.error("Reminder cog is not loaded.")
+          return log.error("Reminder cog is not loaded.")
         await reminder.create_timer(dur, "tempmute", member.guild.id, self.bot.user.id, member.id, self.mute_role_id, created=now)
 
   async def timeout(self, member: discord.Member, *, duration: time.TimeoutTime = None, reason: Optional[str] = "Auto-timeout for spamming.") -> None:
@@ -149,7 +152,7 @@ class Config:
       dur = now + duration
       reminder = self.bot.reminder
       if reminder is None:
-        return self.bot.logger.error("Reminder cog is not loaded.")
+        return log.error("Reminder cog is not loaded.")
       await reminder.create_timer(dur, "tempban", member.guild.id, self.bot.user.id, member.id, created=now)
 
   async def apply_punishment(self, guild: discord.Guild, msg: discord.Message, punishments: Sequence[str], *, member: Optional[discord.Member] = None, reason: Optional[str] = None) -> None:
@@ -246,7 +249,7 @@ class AutoMod(commands.Cog):
       return
     if isinstance(error, (commands.BadArgument, InvalidPunishments)):
       return await ctx.send(embed=embed(title=str(error), color=MessageColors.error()))
-    self.bot.logger.error(f"Error in {ctx.command.qualified_name}: {type(error).__name__}: {error}")
+    log.error(f"Error in {ctx.command.qualified_name}: {type(error).__name__}: {error}")
 
   async def cog_after_invoke(self, ctx: MyContext):
     if not ctx.guild:
@@ -265,9 +268,9 @@ class AutoMod(commands.Cog):
     blquery = "SELECT * FROM blacklist WHERE guild_id=$1 LIMIT 1;"
     conn = connection or self.bot.pool
     record = await conn.fetchrow(query, str(guild_id))
-    self.bot.logger.debug(f"PostgreSQL Query: \"{query}\" + {str(guild_id)}")
+    log.debug(f"PostgreSQL Query: \"{query}\" + {str(guild_id)}")
     blrecord = await conn.fetchrow(blquery, str(guild_id))
-    self.bot.logger.debug(f"PostgreSQL Query: \"{blquery}\" + {str(guild_id)}")
+    log.debug(f"PostgreSQL Query: \"{blquery}\" + {str(guild_id)}")
     if record is not None:
       return await Config.from_record(record, blrecord, self.bot)
     return None
