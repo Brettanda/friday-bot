@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import datetime
 import textwrap
+import logging
 from typing import TYPE_CHECKING, Any, Dict, Optional, Sequence
 
 import asyncpg
@@ -17,6 +18,8 @@ if TYPE_CHECKING:
 
   from functions.custom_contexts import MyContext
   from index import Friday
+
+log = logging.getLogger(__name__)
 
 
 class Timer:
@@ -98,7 +101,7 @@ class Reminder(commands.Cog):
     con = connection or self.bot.pool
 
     record = await con.fetchrow(query, datetime.timedelta(days=days))
-    self.bot.logger.debug(f"PostgreSQL Query: \"{query}\" + {datetime.timedelta(days=days)}")
+    log.debug(f"PostgreSQL Query: \"{query}\" + {datetime.timedelta(days=days)}")
     return Timer(record=record) if record else None
 
   async def wait_for_active_timer(self, *, connection: Optional[asyncpg.Connection] = None, days: int = 7) -> Timer:
@@ -166,7 +169,7 @@ class Reminder(commands.Cog):
               """
 
     row = await connection.fetchrow(query, event, {"args": args, "kwargs": kwargs}, when, now)
-    self.bot.logger.debug(f"PostgreSQL Query: \"{query}\" + {event, {'args': args, 'kwargs': kwargs}, when, now}")
+    log.debug(f"PostgreSQL Query: \"{query}\" + {event, {'args': args, 'kwargs': kwargs}, when, now}")
     timer.id = row[0]
 
     if delta <= (86400 * 40):  # 40 days

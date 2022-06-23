@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import datetime
 import enum
+import logging
 import re
 from typing import (TYPE_CHECKING, AsyncIterator, Callable, Literal, Optional,
                     Union)
@@ -23,6 +24,8 @@ if TYPE_CHECKING:
 
   class BannedUser(discord.User):
     reason: Optional[str]
+
+log = logging.getLogger(__name__)
 
 EVENT_TYPES = ["bans", "mutes", "unbans", "unmutes", "kicks"]
 REASON_REG = re.compile(r"\[[\w\s]+.+#\d{4}\s\(ID:\s(\d{18})\)\](?:\:\s(.+))?")

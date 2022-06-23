@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING, Optional, Union
 
 import discord
@@ -8,8 +9,10 @@ from discord.ext import commands
 from functions import MessageColors, cache, embed
 
 if TYPE_CHECKING:
+  from functions.custom_contexts import GuildContext, MyContext
   from index import Friday
-  from functions.custom_contexts import MyContext, GuildContext
+
+log = logging.getLogger(__name__)
 
 
 def format_message(content: str, user: discord.User | discord.Member, guild: discord.Guild) -> str:
@@ -77,7 +80,7 @@ class Welcome(commands.Cog):
 
     query = "SELECT * FROM welcome WHERE guild_id=$1 LIMIT 1"
     record = await conn.fetchrow(query, str(guild_id))
-    self.bot.logger.debug(f"PostgreSQL Query: \"{query}\" + {str(guild_id)}")
+    log.debug(f"PostgreSQL Query: \"{query}\" + {str(guild_id)}")
     if record is None:
       return None
     return Config.from_record(record, self.bot)

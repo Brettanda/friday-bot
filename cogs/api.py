@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime
+import logging
 # import hmac
 # import json
 import os
@@ -75,6 +76,8 @@ if TYPE_CHECKING:
     cogs: list
     config: dict
 
+log = logging.getLogger(__name__)
+
 
 class CogConfig(Protocol):
   async def get_guild_config(self, guild_id: int, *, connection: Optional[Union[asyncpg.Pool, asyncpg.Connection]] = None):
@@ -100,10 +103,10 @@ class HTTPBlocked(web.HTTPClientError):
 
 class API(commands.Cog):
   def __init__(self, bot: Friday):
-    self.app = web.Application(logger=bot.logger, debug=not bot.prod and not bot.canary)
+    self.app = web.Application(logger=log, debug=not bot.prod and not bot.canary)
     self.site = None
     self.bot: Friday = bot
-    self.log = bot.logger
+    self.log = log
 
     # TODO: Not sure how to choose which cluster to ping from API
     # Use something like port 4001 when clusters

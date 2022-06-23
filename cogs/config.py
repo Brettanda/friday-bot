@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING, Optional
 
 import asyncpg
@@ -16,6 +17,8 @@ if TYPE_CHECKING:
   from cogs.chat import Chat
   from functions.custom_contexts import GuildContext
   from index import Friday
+
+log = logging.getLogger(__name__)
 
 UPDATES_CHANNEL = 744652167142441020
 
@@ -114,7 +117,7 @@ class Config(commands.Cog, command_attrs=dict(extras={"permissions": ["manage_gu
     query = "SELECT * FROM servers WHERE id=$1 LIMIT 1;"
     conn = connection or self.bot.pool
     record = await conn.fetchrow(query, str(guild_id))
-    self.bot.logger.debug(f"PostgreSQL Query: \"{query}\" + {str(guild_id)}")
+    log.debug(f"PostgreSQL Query: \"{query}\" + {str(guild_id)}")
     if record is not None:
       return await ConfigConfig.from_record(record, self.bot)
     return None

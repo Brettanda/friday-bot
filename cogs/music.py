@@ -5,11 +5,11 @@ import collections
 import datetime
 import functools
 import itertools
+import logging
 import math
 import os
 import re
-from typing import TYPE_CHECKING, List, Literal, Optional, Union, Any
-from typing_extensions import Annotated
+from typing import TYPE_CHECKING, Any, List, Literal, Optional, Union
 
 import async_timeout
 import discord
@@ -17,6 +17,7 @@ import validators
 import wavelink
 from discord.ext import commands, menus
 from numpy import random
+from typing_extensions import Annotated
 from wavelink.ext import spotify
 
 from functions import (MessageColors, checks, config, embed, exceptions,
@@ -27,6 +28,8 @@ if TYPE_CHECKING:
 
   from functions.custom_contexts import GuildContext, MyContext
   from index import Friday
+
+log = logging.getLogger(__name__)
 
 MISSING = discord.utils.MISSING
 URL_REG = re.compile(r'https?://(?:www\.)?.+')
@@ -454,11 +457,11 @@ class Music(commands.Cog):
     elif isinstance(error, (exceptions.RequiredTier, exceptions.NotSupporter, exceptions.NotInSupportServer)):
       return await ctx.send(embed=embed(title=error, color=MessageColors.error()))
     else:
-      self.bot.logger.error(f"Error in {ctx.command.qualified_name}: {type(error).__name__}: {error}")
+      log.error(f"Error in {ctx.command.qualified_name}: {type(error).__name__}: {error}")
 
   @commands.Cog.listener()
   async def on_wavelink_node_ready(self, node: wavelink.Node):
-    self.bot.logger.info(f"Node {node.identifier} is ready!")
+    log.info(f"Node {node.identifier} is ready!")
 
   @commands.Cog.listener('on_wavelink_track_stuck')
   @commands.Cog.listener('on_wavelink_track_end')

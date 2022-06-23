@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from collections import defaultdict
 from typing import TYPE_CHECKING, List, Optional, Sequence, TypedDict, Union
 
@@ -17,10 +18,11 @@ if TYPE_CHECKING:
   from functions.custom_contexts import GuildContext
   from index import Friday
 
+  class EventsTyped(TypedDict):
+    role: int
+    subscribers: set[int]
 
-class EventsTyped(TypedDict):
-  role: int
-  subscribers: set[int]
+log = logging.getLogger(__name__)
 
 
 class Config:
@@ -133,7 +135,7 @@ class ScheduledEvents(commands.Cog):
         self.get_guild_config.invalidate(self, guild_id)
 
       await conn.execute(query, final_data)
-      self.bot.logger.info(f"Inserted {len(final_data)} scheduled events.")
+      log.info(f"Inserted {len(final_data)} scheduled events.")
       self._data_batch.clear()
 
   @tasks.loop(seconds=15.0)
@@ -161,7 +163,7 @@ class ScheduledEvents(commands.Cog):
       return
 
     query = """SELECT * FROM scheduledevents;"""
-    self.bot.logger.error("#Continue working on the events thing")
+    log.error("#Continue working on the events thing")
     records = await self.bot.pool.fetch(query)
     to_remove = []
     for record in records:
@@ -196,7 +198,7 @@ class ScheduledEvents(commands.Cog):
     if to_remove:
       query = """DELETE FROM scheduledevents WHERE event_id=ANY($1);"""
       await self.bot.pool.execute(query, to_remove)
-      self.bot.logger.info(f"Removed {len(to_remove)} scheduled events.")
+      log.info(f"Removed {len(to_remove)} scheduled events.")
 
   # @commands.Cog.listener()
   # async def on_scheduled_event_create(self, event: discord.ScheduledEvent):
@@ -291,7 +293,7 @@ class ScheduledEvents(commands.Cog):
               WHERE guild_id=$1 AND event_id=$2;"""
     await self.bot.pool.execute(query, after.guild.id, after.id)
     self.get_guild_config.invalidate(self, after.guild.id)
-    self.bot.logger.info(f"Event role ended and removed from {x} users in {after.guild.name} ({after.guild.id})")
+    log.info(f"Event role ended and removed from {x} users in {after.guild.name} ({after.guild.id})")
 
   @commands.Cog.listener()
   async def on_scheduled_event_delete(self, event: discord.ScheduledEvent):
@@ -327,7 +329,7 @@ class ScheduledEvents(commands.Cog):
               WHERE guild_id=$1 AND event_id=$2;"""
     await self.bot.pool.execute(query, event.guild.id, event.id)
     self.get_guild_config.invalidate(self, event.guild.id)
-    self.bot.logger.info(f"Event role deleted and removed from {x} users in {event.guild.name} ({event.guild.id})")
+    log.info(f"Event role deleted and removed from {x} users in {event.guild.name} ({event.guild.id})")
 
   @commands.Cog.listener()
   async def on_guild_role_delete(self, role: discord.Role):
@@ -450,7 +452,7 @@ class ScheduledEvents(commands.Cog):
   #                                  f"Took {delta:.2f} seconds"))
 
   #   stats = self.bot.get_cog("Stats")
-  #   self.bot.logger.info(f"Removed events roles from Guild: {ctx.guild.id} ({ctx.guild.name}) Members: {fetched} {updated}/{failed} Took: {delta:.2f}")
+  #   log.info(f"Removed events roles from Guild: {ctx.guild.id} ({ctx.guild.name}) Members: {fetched} {updated}/{failed} Took: {delta:.2f}")
   #   if not stats:
   #     return
   #   await stats.webhook.send(embed=embed(title="Removed events roles",

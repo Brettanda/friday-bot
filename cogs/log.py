@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import datetime
 import io
+import logging
 import os
 import sys
 import traceback
@@ -32,6 +33,7 @@ if TYPE_CHECKING:
 
 # import discord_slash
 
+log = logging.getLogger(__name__)
 
 # with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'config.json')) as f:
 #   config = json.load(f)
@@ -40,6 +42,7 @@ if TYPE_CHECKING:
 #   if not ctx.enabled:
 #     raise commands.CheckFailure("Currently I am disabled, my boss has been notified, please try again later :)")
 #   return True
+
 
 class Config:
   __slots__ = ("bot", "id", "chat_channel", "disabled_commands", "restricted_commands", "bot_channel", "tier", "lang",)
@@ -96,8 +99,6 @@ class Log(commands.Cog):
 
     self._auto_spam_count = Counter()
 
-    self.logger = self.bot.logger
-
     self.bot.process_commands = self.process_commands
     # self.bot.on_error = self.on_error
 
@@ -125,11 +126,11 @@ class Log(commands.Cog):
 
   @commands.Cog.listener()
   async def on_shard_connect(self, shard_id):
-    await relay_info(f"Shard #{shard_id} has connected", self.bot, logger=self.logger)
+    await relay_info(f"Shard #{shard_id} has connected", self.bot, logger=log)
 
   @commands.Cog.listener()
   async def on_connect(self):
-    self.logger.debug("Connected")
+    log.debug("Connected")
 
   @commands.Cog.listener()
   async def on_ready(self):
@@ -139,45 +140,45 @@ class Log(commands.Cog):
     if not hasattr(self.bot, "uptime"):
       self.bot.uptime = discord.utils.utcnow()
 
-    await relay_info(f"Apart of {len(self.bot.guilds)} guilds", self.bot, logger=self.logger)
+    await relay_info(f"Apart of {len(self.bot.guilds)} guilds", self.bot, logger=log)
     self.bot.ready = True
 
   @commands.Cog.listener()
   async def on_shard_ready(self, shard_id):
     shard = self.bot.get_shard(shard_id)
-    await relay_info(f"Logged on as #{shard_id} {self.bot.user}! - {shard and shard.latency*1000:,.0f} ms", self.bot, logger=self.logger)
+    await relay_info(f"Logged on as #{shard_id} {self.bot.user}! - {shard and shard.latency*1000:,.0f} ms", self.bot, logger=log)
 
   @commands.Cog.listener()
   async def on_disconnect(self):
-    self.logger.debug("Disconnected")
+    log.debug("Disconnected")
 
   @commands.Cog.listener()
   async def on_shard_disconnect(self, shard_id):
-    self.logger.info(f"Shard #{shard_id} has disconnected")
+    log.info(f"Shard #{shard_id} has disconnected")
 
   @commands.Cog.listener()
   async def on_shard_reconnect(self, shard_id):
-    self.logger.info(f"Shard #{shard_id} has reconnected")
+    log.info(f"Shard #{shard_id} has reconnected")
 
   @commands.Cog.listener()
   async def on_resumed(self):
-    self.logger.debug("Resumed")
+    log.debug("Resumed")
 
   @commands.Cog.listener()
   async def on_shard_resumed(self, shard_id):
-    self.logger.info(f"Shard #{shard_id} has resumed")
+    log.info(f"Shard #{shard_id} has resumed")
     self.bot.resumes[shard_id].append(discord.utils.utcnow())
 
   @commands.Cog.listener()
   async def on_guild_join(self, guild: discord.Guild):
     await self.bot.wait_until_ready()
     await self.bot.pool.execute(f"INSERT INTO servers (id,lang) VALUES ({str(guild.id)},'{guild.preferred_locale.value.split('-')[0]}') ON CONFLICT DO NOTHING")
-    await relay_info(f"I have joined a new guild, making the total **{len(self.bot.guilds)}**", self.bot, short=f"I have joined ({guild} [{guild.id}]), making the total {len(self.bot.guilds)}", webhook=self.log_join, logger=self.logger)
+    await relay_info(f"I have joined a new guild, making the total **{len(self.bot.guilds)}**", self.bot, short=f"I have joined ({guild} [{guild.id}]), making the total {len(self.bot.guilds)}", webhook=self.log_join, logger=log)
 
   @commands.Cog.listener()
   async def on_guild_remove(self, guild):
     await self.bot.wait_until_ready()
-    await relay_info(f"I have been removed from a guild, making the total **{len(self.bot.guilds)}**", self.bot, short=f"I have been removed from ({guild} [{guild.id}]), making the total {len(self.bot.guilds)}", webhook=self.log_join, logger=self.logger)
+    await relay_info(f"I have been removed from a guild, making the total **{len(self.bot.guilds)}**", self.bot, short=f"I have been removed from ({guild} [{guild.id}]), making the total {len(self.bot.guilds)}", webhook=self.log_join, logger=log)
 
   @commands.Cog.listener()
   async def on_message_edit(self, before, after):
@@ -187,11 +188,11 @@ class Log(commands.Cog):
 
   @commands.Cog.listener()
   async def on_command_completion(self, ctx: "MyContext"):
-    self.logger.debug(f"Finished Command: {ctx.message.clean_content.encode('unicode_escape')}")
+    log.debug(f"Finished Command: {ctx.message.clean_content.encode('unicode_escape')}")
 
   @commands.Cog.listener()
   async def on_slash_command(self, ctx):
-    self.logger.info(f"Slash Command: {ctx.command} {ctx.kwargs}")
+    log.info(f"Slash Command: {ctx.command} {ctx.kwargs}")
 
   # @commands.Cog.listener()
   # async def on_slash_command_error(self, ctx: SlashContext, ex):
@@ -219,7 +220,7 @@ class Log(commands.Cog):
   @commands.Cog.listener()
   async def on_interaction(self, interaction: discord.Interaction):
     if interaction.type != discord.InteractionType.application_command:
-      self.logger.info(f"Interaction: {interaction.data and interaction.data.get('custom_id','No ID')} {interaction.type}")
+      log.info(f"Interaction: {interaction.data and interaction.data.get('custom_id','No ID')} {interaction.type}")
 
     # if interaction.type == discord.InteractionType.application_command:
     #   command = self.bot.get_command(interaction.data["name"])
@@ -342,7 +343,7 @@ class Log(commands.Cog):
     query = "SELECT * FROM servers WHERE id=$1 LIMIT 1;"
     conn = connection or self.bot.pool
     record = await conn.fetchrow(query, str(guild_id))
-    self.bot.logger.debug(f"PostgreSQL Query: \"{query}\" + {str(guild_id)}")
+    log.debug(f"PostgreSQL Query: \"{query}\" + {str(guild_id)}")
     if not record:
       raise ValueError("Server not found.")
     return await Config.from_record(record, self.bot)
@@ -365,7 +366,7 @@ class Log(commands.Cog):
 
   async def log_spammer(self, ctx, message, retry_after, *, notify=False):
     guild_id = getattr(ctx.guild, "id", None)
-    self.logger.warning(f"Spamming: {{User: {message.author.id}, Guild: {guild_id}, Retry: {retry_after}}}")
+    log.warning(f"Spamming: {{User: {message.author.id}, Guild: {guild_id}, Retry: {retry_after}}}")
 
   # @commands.Cog.listener()
   # async def on_application_command_error(self, ctx: discord.ApplicationContext, error: Exception):
@@ -375,7 +376,7 @@ class Log(commands.Cog):
   #   #   return
 
   #   # if isinstance(error, just_send):
-  #   self.logger.error(f"{error}")
+  #   log.error(f"{error}")
   #   await ctx.respond(embed=embed(title=str(error) or "An error has occured, try again later.", color=MessageColors.error()), ephemeral=True)
 
   @commands.Cog.listener()
@@ -393,7 +394,7 @@ class Log(commands.Cog):
     error = getattr(error, 'original', error)
 
     if isinstance(error, (*ignored, *wave_errors)) or (hasattr(error, "log") and error and error.log is False):
-      self.logger.warning("Ignored error called: {}".format(error))
+      log.warning("Ignored error called: {}".format(error))
       return
 
     if isinstance(error, just_send):
@@ -408,7 +409,7 @@ class Log(commands.Cog):
     elif isinstance(error, (exceptions.RequiredTier, exceptions.NotInSupportServer)):
       await ctx.send(embed=embed(title=str(error), color=MessageColors.error()), ephemeral=True)
     elif isinstance(error, commands.CheckFailure):
-      self.logger.warn(f"{ctx.guild and ctx.guild.id or 'Private Message'} {ctx.channel} {ctx.author} {error}")
+      log.warn(f"{ctx.guild and ctx.guild.id or 'Private Message'} {ctx.channel} {ctx.author} {error}")
     elif isinstance(error, commands.NoPrivateMessage):
       await ctx.send(embed=embed(title="This command does not work in non-server text channels", color=MessageColors.error()), ephemeral=True)
     elif isinstance(error, OverflowError):
@@ -418,30 +419,30 @@ class Log(commands.Cog):
       if not isinstance(original, discord.HTTPException):
         print(f"In {ctx.command.qualified_name}:", file=sys.stderr)
         traceback.print_tb(original.__traceback__)
-        self.logger.error(f"{original.__class__.__name__}: {original}", sys.stderr.readline)
+        log.error(f"{original.__class__.__name__}: {original}", sys.stderr.readline)
     else:
       if error:
-        self.logger.error('Ignoring exception in command {}:'.format(ctx.command), exc_info=(type(error), error, error.__traceback__))
+        log.error('Ignoring exception in command {}:'.format(ctx.command), exc_info=(type(error), error, error.__traceback__))
       if not self.bot.prod and not self.bot.canary:
         return
       try:
         await self.log_errors.safe_send(username=self.bot.user.name, avatar_url=self.bot.user.display_avatar.url, content=f"Ignoring exception in command {ctx.command}:\n{''.join(traceback.format_exception(type(error), error, error.__traceback__))}")
       except Exception as e:
-        self.logger.error(f"ERROR while ignoring exception in command {ctx.command}: {e}")
+        log.error(f"ERROR while ignoring exception in command {ctx.command}: {e}")
       else:
-        self.logger.info("ERROR sent")
+        log.info("ERROR sent")
 
   async def on_error(self, event: str, *args, **kwargs):
     trace = traceback.format_exc()
-    self.logger.error(f"ERROR in {event}: ", exc_info=trace)  # type: ignore
+    log.error(f"ERROR in {event}: ", exc_info=trace)  # type: ignore
     if not self.bot.prod and not self.bot.canary:
       return
     try:
       await self.log_errors.safe_send(username=self.bot.user.name, avatar_url=self.bot.user.display_avatar.url, content=f"```\nERROR in {event}: \n{trace}\n```")
     except Exception as e:
-      self.logger.error(f"ERROR while logging {event}: {e}")
+      log.error(f"ERROR while logging {event}: {e}")
     else:
-      self.logger.info("ERROR sent")
+      log.info("ERROR sent")
 
 
 async def setup(bot):

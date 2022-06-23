@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import os
 import re
 from typing import TYPE_CHECKING, Optional
@@ -13,7 +14,7 @@ import youtube_dl
 from discord.ext import commands
 
 from functions import MessageColors, MyContext, cache, embed, exceptions
-
+log = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
   from functions.custom_contexts import GuildContext
@@ -110,7 +111,7 @@ class redditlink(commands.Cog):
     query = "SELECT * FROM servers WHERE id=$1 LIMIT 1;"
     conn = connection or self.bot.pool
     record = await conn.fetchrow(query, str(guild_id))
-    self.bot.logger.debug(f"PostgreSQL Query: \"{query}\" + {str(guild_id)}")
+    log.debug(f"PostgreSQL Query: \"{query}\" + {str(guild_id)}")
     if record is not None:
       return await Config.from_record(record, self.bot)
     return None

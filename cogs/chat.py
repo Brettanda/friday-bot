@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import datetime
 import functools
+import logging
 import os
 from collections import Counter, defaultdict
 from typing import TYPE_CHECKING, ClassVar, List, Optional, Union
@@ -28,6 +29,7 @@ if TYPE_CHECKING:
   from functions.custom_contexts import GuildContext
   from index import Friday
 
+log = logging.getLogger(__name__)
 
 openai.api_key = os.environ["OPENAI"]
 
@@ -255,7 +257,7 @@ class Chat(commands.Cog):
     except Exception as e:
       raise e
     else:
-      self.bot.logger.debug(f"PostgreSQL Query: \"{query}\" + {str(guild_id)}")
+      log.debug(f"PostgreSQL Query: \"{query}\" + {str(guild_id)}")
       if record is not None:
         return await Config.from_record(record, self.bot)
     return None
@@ -468,20 +470,19 @@ class Chat(commands.Cog):
 
     config = None
     if ctx.guild:
-      log = self.bot.log
-      if log:
-        conf = await log.get_guild_config(ctx.guild.id, connection=ctx.db)
+      if self.bot.log:
+        conf = await self.bot.log.get_guild_config(ctx.guild.id, connection=ctx.db)
         if not conf:
           await ctx.db.execute(f"INSERT INTO servers (id,lang) VALUES ({str(ctx.guild.id)},'{ctx.guild.preferred_locale.value.split('-')[0]}') ON CONFLICT DO NOTHING")
-          log.get_guild_config.invalidate(log, ctx.guild.id)
+          self.bot.log.get_guild_config.invalidate(log, ctx.guild.id)
           self.get_guild_config.invalidate(self, ctx.guild.id)
-          conf = await log.get_guild_config(ctx.guild.id, connection=ctx.db)
+          conf = await self.bot.log.get_guild_config(ctx.guild.id, connection=ctx.db)
         if "chat" in conf.disabled_commands:
           return
 
       config = await self.get_guild_config(ctx.guild.id, connection=ctx.db)
       if config is None:
-        self.bot.logger.error(f"Config was not available in chat for (guild: {ctx.guild.id if ctx.guild else None}) (channel type: {ctx.channel.type if ctx.channel else 'uhm'}) (user: {msg.author.id})")
+        log.error(f"Config was not available in chat for (guild: {ctx.guild.id if ctx.guild else None}) (channel type: {ctx.channel.type if ctx.channel else 'uhm'}) (user: {msg.author.id})")
         raise ChatError("Guild config not available, please contact developer.")
 
       if not ctx.command:
@@ -523,7 +524,7 @@ class Chat(commands.Cog):
       vote_advertise = bool(rate_name == "free" and not voted)
       patreon_advertise = bool(rate_name == "voted" and not (current_tier >= PremiumTiersNew.tier_1.value))
       retry_after = discord.utils.utcnow() + datetime.timedelta(seconds=rate_limiter.get_retry_after())
-      self.bot.logger.info(f"{msg.author} ({msg.author.id}) is being ratelimited at over {rate_limiter.rate} messages and can retry after {time.human_timedelta(retry_after, accuracy=2, brief=True)}")
+      log.info(f"{msg.author} ({msg.author.id}) is being ratelimited at over {rate_limiter.rate} messages and can retry after {time.human_timedelta(retry_after, accuracy=2, brief=True)}")
       ad_message = "If you would like to send me more messages you can get more by voting at https://top.gg/bot/476303446547365891/vote" if vote_advertise else "If you would like to send even more messages please support Friday on Patreon at https://patreon.com/join/fridaybot" if patreon_advertise else ""
       resp = await ctx.reply(embed=embed(title=f"You have sent me over `{rate_limiter.rate}` messages in that last `{rate_limiter.per} seconds` and are being rate limited, try again <t:{int(retry_after.timestamp())}:R>", description=ad_message, color=MessageColors.error()), mention_author=False)
       return
@@ -557,7 +558,7 @@ class Chat(commands.Cog):
       if chat_history.bot_repeating():
         self.chat_history.pop(ctx.channel.id)
         self.bot.chat_repeat_counter[msg.channel.id] += 1
-        self.bot.logger.info("Popped chat history for channel #{}".format(ctx.channel))
+        log.info("Popped chat history for channel #{}".format(ctx.channel))
 
   # async def check_for_answer_questions(self, msg: discord.Message, min_tiers: list) -> bool:
   #   if msg.author.bot:

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-
+import logging
 from typing import TYPE_CHECKING, Optional, Union
 
 import asyncpg
@@ -8,6 +8,9 @@ from discord.ext import commands
 
 if TYPE_CHECKING:
   from index import Friday as Bot
+
+
+log = logging.getLogger(__name__)
 
 
 class Database(commands.Cog):
@@ -161,7 +164,7 @@ class Database(commands.Cog):
       for index in self.indexes:
         query = query + index
       await conn.execute(query)
-      self.bot.logger.debug(f"PostgreSQL Query: {query}")
+      log.debug(f"PostgreSQL Query: {query}")
 
   async def sync_table_columns(self):
     # https://stackoverflow.com/questions/9991043/how-can-i-test-if-a-column-exists-in-a-table-using-an-sql-statement
@@ -180,7 +183,7 @@ class Database(commands.Cog):
       else:
         await mycursor.execute(query, *params)
     if hasattr(self.bot, "logger"):
-      self.bot.logger.debug(f"PostgreSQL Query: \"{query}\" + {params}")
+      log.debug(f"PostgreSQL Query: \"{query}\" + {params}")
     if "select" in query.lower():
       if isinstance(result, list) and len(result) == 1 and "limit 1" in query.lower():  # type: ignore
         result = [tuple(i) for i in result][0]
