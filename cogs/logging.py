@@ -252,11 +252,11 @@ class ModLogging(commands.Cog):
     self.get_guild_config.invalidate(self, ctx.guild.id)
     await ctx.send(embed=embed(title=f"Mod log channel has been set to `{channel}`"))
 
-  @mod_log.command(name="events", extras={"examples": [*EVENT_TYPES, "bans mutes kicks unbans unmutes", "bans unbans"], "params": EVENT_TYPES}, help="The events that will be logged in the mod log channel")
+  @mod_log.command(name="events", help="The events that will be logged in the mod log channel")
   @commands.guild_only()
   @commands.has_guild_permissions(administrator=True)
   @commands.bot_has_guild_permissions(view_audit_log=True)
-  async def mod_log_events(self, ctx: GuildContext, events: commands.Greedy[Literal["bans", "mutes", "unbans", "unmutes", "kicks"]]):
+  async def mod_log_events(self, ctx: GuildContext):
     config = await self.get_guild_config(ctx.guild.id, connection=ctx.db)
     current = config.mod_log_events
     new = await ctx.multi_select(

@@ -96,7 +96,8 @@ class MultiSelectView(discord.ui.View):
 
   @discord.ui.select(custom_id="prompt_select", options=[discord.SelectOption(label="Loading...")], min_values=0, max_values=0)
   async def select(self, interaction: discord.Interaction, select: discord.ui.Select):
-    self.values = select.data["values"]  # type: ignore
+    self.values = select.values
+    await interaction.response.defer()
     if self.delete_after:
       await interaction.delete_original_message()
     self.stop()
