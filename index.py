@@ -28,6 +28,8 @@ load_dotenv()
 
 TOKEN = os.environ.get('TOKENTEST')
 
+log = logging.getLogger(__name__)
+
 
 async def get_prefix(bot: Friday, message: discord.Message):
   if message.guild is not None:
@@ -55,7 +57,6 @@ class Friday(commands.AutoShardedBot):
     self.cluster_name = kwargs.pop("cluster_name", None)
     self.cluster_idx = kwargs.pop("cluster_idx", 0)
     self.should_start = kwargs.pop("start", False)
-    self._logger = kwargs.pop("logger")
 
     super().__init__(
         command_prefix=get_prefix,
@@ -79,7 +80,6 @@ class Friday(commands.AutoShardedBot):
         chunk_guilds_at_startup=False,
         allowed_mentions=discord.AllowedMentions(roles=False, everyone=False, users=True),
         enable_debug_events=True,
-        log_handler=None,
         **kwargs
     )
 
@@ -97,16 +97,12 @@ class Friday(commands.AutoShardedBot):
     self.resumes = defaultdict(list)
     self.identifies = defaultdict(list)
 
-    self.logger.info(f"Cluster Starting {kwargs.get('shard_ids', None)}, {kwargs.get('shard_count', 1)}")
+    log.info(f"Cluster Starting {kwargs.get('shard_ids', None)}, {kwargs.get('shard_count', 1)}")
     if self.should_start:
       self.run(kwargs["token"])
 
   def __repr__(self) -> str:
     return f"<Friday username=\"{self.user.display_name if self.user else None}\" id={self.user.id if self.user else None}>"
-
-  @property
-  def logger(self) -> logging.Logger:
-    return self._logger
 
   async def get_lang(self, msg: discord.Message):
     if msg.guild is None:
@@ -146,7 +142,7 @@ class Friday(commands.AutoShardedBot):
       try:
         await self.load_extension(f"{path}{cog}")
       except Exception as e:
-        self.logger.error(f"Failed to load extenstion {cog} with \n {e}")
+        log.error(f"Failed to load extenstion {cog} with \n {e}")
 
   async def on_ready(self):
     if not (self.prod or self.canary):
@@ -279,18 +275,17 @@ async def main(bot):
     await bot.start(TOKEN)
 
 if __name__ == "__main__":
-  from launcher import get_logger
+  from launcher import setup_logging
   print(f"Python version: {sys.version}")
-  log = get_logger("Friday")
 
-  bot = Friday(logger=log)
+  bot = Friday()
   if len(sys.argv) > 1:
     if sys.argv[1] == "--prod" or sys.argv[1] == "--production":
       TOKEN = os.environ.get("TOKEN")
     elif sys.argv[1] == "--canary":
       TOKEN = os.environ.get("TOKENCANARY")
   try:
-    asyncio.run(main(bot))
+    with setup_logging("Friday"):
+      asyncio.run(main(bot))
   except KeyboardInterrupt:
-    logging.info("STOPED")
     asyncio.run(bot.close())

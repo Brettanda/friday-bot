@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING, Optional
 
 import discord
@@ -13,6 +14,8 @@ if TYPE_CHECKING:
 
   from cogs.reminder import Timer
   from index import Friday
+
+log = logging.getLogger(__name__)
 
 
 class NaCl(commands.Cog):
@@ -37,9 +40,9 @@ class NaCl(commands.Cog):
       return
 
     if not random.random() < 0.069:
-      self.bot.logger.info(f"Failed the sexed check for {member} ({member.id})")
+      log.info(f"Failed the sexed check for {member} ({member.id})")
       return
-    self.bot.logger.info(f"Sexed {member} ({member.id})")
+    log.info(f"Sexed {member} ({member.id})")
 
     sex: Optional[VoiceChannel] = member.guild.get_channel(932111746620084224)  # type: ignore
     if sex is None:

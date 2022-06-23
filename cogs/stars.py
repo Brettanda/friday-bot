@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Optional, Union
 
 import asyncpg
 import discord
+import logging
 from discord.ext import commands, tasks
 from typing_extensions import Annotated
 
@@ -25,6 +26,8 @@ if TYPE_CHECKING:
   StarableChannel = Union[discord.TextChannel, discord.VoiceChannel, discord.Thread]
 
 # from .utils.paginator import SimplePages
+
+log = logging.getLogger(__name__)
 
 
 class StarError(commands.CheckFailure):
@@ -331,9 +334,8 @@ class Stars(commands.Cog):
     async with lock:
       async with self.bot.pool.acquire(timeout=300.0) as con:
         if verify:
-          log = self.bot.log
-          if log:
-            conf = await log.get_guild_config(guild_id, connection=con)
+          if self.bot.log:
+            conf = await self.bot.log.get_guild_config(guild_id, connection=con)
             if "star" in conf.disabled_commands:
               return
 
@@ -463,9 +465,8 @@ class Stars(commands.Cog):
     async with lock:
       async with self.bot.pool.acquire(timeout=300.0) as con:
         if verify:
-          log = self.bot.log
-          if log:
-            conf = await log.get_guild_config(guild_id, connection=con)
+          if self.bot.log:
+            conf = await self.bot.log.get_guild_config(guild_id, connection=con)
             if "star" in conf.disabled_commands:
               return
         await self._unstar_message(channel, message_id, starrer_id, connection=con)

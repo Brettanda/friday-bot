@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import datetime
 import io
+import logging
 import re
 import shlex
 from collections import defaultdict
@@ -26,6 +27,8 @@ if TYPE_CHECKING:
   class ModGuildContext(GuildContext):
     cog: Moderation
     guild_config: Config
+
+log = logging.getLogger(__name__)
 
 VoiceChannel = Union[discord.VoiceChannel, discord.StageChannel]
 
@@ -211,14 +214,14 @@ class Moderation(commands.Cog):
     elif isinstance(error, MissingMuteRole):
       await ctx.send(embed=embed(title=error, color=MessageColors.ERROR))
     else:
-      self.bot.logger.error(error)
+      log.error(error)
 
   @cache.cache()
   async def get_guild_config(self, guild_id: int) -> Config:
     query = "SELECT * FROM servers WHERE id=$1 LIMIT 1;"
     async with self.bot.pool.acquire(timeout=300.0) as conn:
       record = await conn.fetchrow(query, str(guild_id))
-      self.bot.logger.debug(f"PostgreSQL Query: \"{query}\" + {str(guild_id)}")
+      log.debug(f"PostgreSQL Query: \"{query}\" + {str(guild_id)}")
       if record is None:
         raise commands.CommandError("This server does not have a configuration set up. Please contact developer.")
       return await Config.from_record(record, self.bot)

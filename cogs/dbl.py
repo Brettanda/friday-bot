@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import os
 from typing import TYPE_CHECKING, Optional, Union
 
@@ -15,6 +16,8 @@ from .log import CustomWebhook
 if TYPE_CHECKING:
   from cogs.reminder import Timer
   from index import Friday
+
+log = logging.getLogger(__name__)
 
 VOTE_ROLE = 834347369998843904
 VOTE_URL = "https://top.gg/bot/476303446547365891/vote"
@@ -124,7 +127,7 @@ class TopGG(commands.Cog):
   async def update_stats(self):
     await self.bot.wait_until_ready()
     self._current_len_guilds = len(self.bot.guilds)
-    self.bot.logger.info("Updating DBL stats")
+    log.info("Updating DBL stats")
     try:
       tasks = []
       tasks += self.bot.session.post(
@@ -161,9 +164,9 @@ class TopGG(commands.Cog):
       )
       await asyncio.gather(*tasks)
     except Exception as e:
-      self.bot.logger.exception('Failed to post server count\n?: ?', type(e).__name__, e)
+      log.exception('Failed to post server count\n?: ?', type(e).__name__, e)
     else:
-      self.bot.logger.info("Server count posted successfully")
+      log.info("Server count posted successfully")
 
   @commands.Cog.listener()
   async def on_vote_timer_complete(self, timer: Timer):
@@ -192,11 +195,11 @@ class TopGG(commands.Cog):
     else:
       reminder_sent = True
 
-    self.bot.logger.info(f"Vote expired for {user_id}. Reminder sent: {reminder_sent}, role removed: {role_removed}")
+    log.info(f"Vote expired for {user_id}. Reminder sent: {reminder_sent}, role removed: {role_removed}")
 
   # @commands.Cog.listener()
   # async def on_dbl_test(self, data):
-  #   self.bot.logger.info(f"Testing received, {data}")
+  #   log.info(f"Testing received, {data}")
   #   time = datetime.datetime.now() - datetime.timedelta(hours=11, minutes=59)
   #   await self.on_dbl_vote(data, time)
 
@@ -204,7 +207,7 @@ class TopGG(commands.Cog):
   async def on_dbl_vote(self, data: dict):
     fut = time.FutureTime("12h", now=discord.utils.utcnow())
     _type, user = data.get("type", None), data.get("user", None)
-    self.bot.logger.info(f'Received an upvote, {data}')
+    log.info(f'Received an upvote, {data}')
     if _type == "test":
       fut = time.FutureTime("2m", now=discord.utils.utcnow())
     if user is None:
@@ -226,7 +229,7 @@ class TopGG(commands.Cog):
         except discord.HTTPException:
           pass
         else:
-          self.bot.logger.info(f"Added vote role to {member.id}")
+          log.info(f"Added vote role to {member.id}")
       await self.log_bumps.send(
           username=self.bot.user.display_name,
           avatar_url=self.bot.user.display_avatar.url,

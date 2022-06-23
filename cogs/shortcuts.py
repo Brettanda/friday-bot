@@ -1,16 +1,20 @@
 from __future__ import annotations
 
-import asyncpg
+import logging
 from typing import TYPE_CHECKING, Optional
 
+import asyncpg
 from discord.ext import commands
 
 from functions import cache
 
 if TYPE_CHECKING:
   from typing_extensions import Self
-  from index import Friday
+
   from functions.custom_contexts import MyContext
+  from index import Friday
+
+log = logging.getLogger(__name__)
 
 
 class Config:
@@ -53,7 +57,7 @@ class Shortcuts(commands.Cog):
     conn = connection or self.bot.pool
     query = "SELECT * FROM servers WHERE id=$1 LIMIT 1;"
     record = await conn.fetchrow(query, str(guild_id))
-    self.bot.logger.debug(f"PostgreSQL Query: \"{query}\" + {str(guild_id)}")
+    log.debug(f"PostgreSQL Query: \"{query}\" + {str(guild_id)}")
     if record is not None:
       return await Config.from_record(record, self.bot)
     return None

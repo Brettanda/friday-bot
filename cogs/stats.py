@@ -60,6 +60,8 @@ class DataChatsBatchEntry(TypedDict):
   persona: str
   prompt: Optional[str]
 
+log = logging.getLogger(__name__)
+
 
 class GatewayHandler(logging.Handler):
   def __init__(self, cog: Stats):
@@ -188,7 +190,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
       await self.bot.pool.execute(query, json.dumps(self._data_commands_batch))
       total = len(self._data_commands_batch)
       if total > 1:
-        self.bot.logger.info(f"Inserted {total} commands into the database")
+        log.info(f"Inserted {total} commands into the database")
       self._data_commands_batch.clear()
 
   async def bulk_insert_joins(self):
@@ -201,7 +203,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
       await self.bot.pool.execute(query, json.dumps(self._data_joins_batch))
       total = len(self._data_joins_batch)
       if total > 1:
-        self.bot.logger.info(f"Inserted {total} guild counts into the database")
+        log.info(f"Inserted {total} guild counts into the database")
       self._data_joins_batch.clear()
 
   async def bulk_insert_chats(self):
@@ -214,7 +216,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
       await self.bot.pool.execute(query, json.dumps(self._data_chats_batch))
       total = len(self._data_chats_batch)
       if total > 1:
-        self.bot.logger.info(f"Inserted {total} chats into the database")
+        log.info(f"Inserted {total} chats into the database")
       self._data_chats_batch.clear()
 
   def cog_unload(self):
@@ -264,7 +266,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
       guild_id = ctx.guild.id
 
     command_with_args = message.content or f"{ctx.clean_prefix}{command} {' '.join([a for a in ctx.args[2:] if a])}{' ' and ' '.join([str(k) for k in ctx.kwargs.values()])}"
-    self.bot.logger.info(f'{message.author} in {destination}: {command_with_args}')
+    log.info(f'{message.author} in {destination}: {command_with_args}')
     async with self._batch_commands_lock:
       self._data_commands_batch.append({
           'guild': str(guild_id),

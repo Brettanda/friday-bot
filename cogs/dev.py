@@ -4,6 +4,7 @@ import asyncio
 import copy
 import importlib
 import io
+import logging
 import os
 import re
 import shutil
@@ -12,12 +13,12 @@ import sys
 import textwrap
 import time as _time
 import traceback
-from typing import TYPE_CHECKING, Any, List, Optional, Union, Sequence
-from typing_extensions import Annotated
+from typing import TYPE_CHECKING, Any, List, Optional, Sequence, Union
 
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
+from typing_extensions import Annotated
 
 import cogs
 from cogs.help import syntax
@@ -28,6 +29,8 @@ if TYPE_CHECKING:
   from typing_extensions import Self
 
   from index import Friday
+
+log = logging.getLogger(__name__)
 
 
 class PerformanceMocker:
@@ -111,7 +114,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       return
 
     if isinstance(error, commands.CheckFailure):
-      self.bot.logger.warning("Someone found a dev command")
+      log.warning("Someone found a dev command")
     else:
       await ctx.send(f"```py\n{error}\n```")
 
@@ -300,7 +303,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     if confirm:
       pstdout, pstderr = await self.run_process("python -m pip install --upgrade pip && python -m pip install -r requirements.txt --upgrade --no-cache-dir")
       if pstderr:
-        self.bot.logger.error(pstderr)
+        log.error(pstderr)
       await ctx.safe_send(pstdout)
 
     modules = self.modules_from_git(stdout)
@@ -373,7 +376,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
   #   if not isinstance(error, commands.NotOwner):
   #     await ctx.reply(embed=embed(title=f"Failed to reload *{str(''.join(ctx.message.content.split(ctx.prefix+ctx.command.name+' ')))}*", color=MessageColors.error()))
   #     print(error)
-  #     self.bot.logger.error(error)
+  #     log.error(error)
 
   @norm_dev.command(name="block")
   async def block(self, ctx: MyContext, object_id: int):
