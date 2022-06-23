@@ -18,10 +18,9 @@ if TYPE_CHECKING:
   from functions.custom_contexts import GuildContext
   from index import Friday
 
-
-class EventsTyped(TypedDict):
-  role: int
-  subscribers: set[int]
+  class EventsTyped(TypedDict):
+    role: int
+    subscribers: set[int]
 
 log = logging.getLogger(__name__)
 

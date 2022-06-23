@@ -30,35 +30,32 @@ if TYPE_CHECKING:
 
   from .chat import Chat
 
+  class DataCommandsBatchEntry(TypedDict):
+    guild: Optional[str]
+    channel: str
+    author: str
+    used: str
+    prefix: str
+    command: str
+    failed: bool
 
-class DataCommandsBatchEntry(TypedDict):
-  guild: Optional[str]
-  channel: str
-  author: str
-  used: str
-  prefix: str
-  command: str
-  failed: bool
+  class DataJoinsBatchEntry(TypedDict):
+    guild: str
+    time: str
+    joined: Optional[bool]
+    current_count: int
 
-
-class DataJoinsBatchEntry(TypedDict):
-  guild: str
-  time: str
-  joined: Optional[bool]
-  current_count: int
-
-
-class DataChatsBatchEntry(TypedDict):
-  guild: Optional[str]
-  channel: str
-  author: str
-  used: str
-  user_msg: str
-  bot_msg: Optional[str]
-  failed: bool
-  filtered: Optional[int]
-  persona: str
-  prompt: Optional[str]
+  class DataChatsBatchEntry(TypedDict):
+    guild: Optional[str]
+    channel: str
+    author: str
+    used: str
+    user_msg: str
+    bot_msg: Optional[str]
+    failed: bool
+    filtered: Optional[int]
+    persona: str
+    prompt: Optional[str]
 
 log = logging.getLogger(__name__)
 
