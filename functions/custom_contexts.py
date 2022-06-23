@@ -357,7 +357,9 @@ class MyContext(commands.Context):
   async def send(self, *args, **kwargs) -> discord.Message:
     if not hasattr(kwargs, "mention_author") and not self.interaction:
       kwargs.update({"mention_author": False})
-    reference = self.replied_reference if self.command and self.replied_reference else self.message
+
+    reference = kwargs.pop("reference", self.replied_reference if self.command and self.replied_reference else self.message) if not self.interaction else None
+    reference = reference or self.message
     try:
       return await super().send(
           *args,
@@ -367,10 +369,9 @@ class MyContext(commands.Context):
     except (discord.Forbidden, discord.HTTPException) as e:
       if self.interaction:
         raise e
-      try:
-        return await self.message.channel.send(*args, **kwargs)
-      except (discord.Forbidden, discord.HTTPException):
-        raise e
+      return await super().send(
+          *args,
+          **kwargs)
 
   async def safe_send(self, content: str, *, escape_mentions=True, **kwargs) -> discord.Message:
     if escape_mentions:
