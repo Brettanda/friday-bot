@@ -381,8 +381,8 @@ class Log(commands.Cog):
 
   @commands.Cog.listener()
   async def on_command_error(self, ctx: MyContext, error: CommandError):
-    # if hasattr(ctx.command, 'on_error'):
-    #   return
+    if hasattr(ctx.command, 'on_error'):
+      return
 
     # if ctx.cog:
     #   if ctx.cog._get_overridden_method(ctx.cog.cog_command_error) is not None:
