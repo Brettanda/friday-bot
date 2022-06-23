@@ -34,6 +34,6 @@ async def relay_info(
     await webhook.safe_send(username=bot.user.name, avatar_url=avatar_url, content=msg, embed=embed if not filefirst else MISSING, file=discord.File(f"{thispath}{seperator}{file}", filename="Error.txt") if filefirst else MISSING)
 
   if short is not MISSING:
-    bot.logger.info(short)
+    logger.info(short)
   else:
-    bot.logger.info(msg)
+    logger.info(msg)

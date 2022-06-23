@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING, Optional
 
 import discord
@@ -9,6 +10,7 @@ if TYPE_CHECKING:
   from functions.custom_contexts import MyContext
   from index import Friday
 
+log = logging.getLogger(__name__)
 
 SUPPORT_SERVER_ID = 707441352367013899
 SUPPORT_SERVER_INVITE = "https://discord.gg/NTRuFjU"
@@ -87,7 +89,7 @@ class Support(commands.Cog):
 
     if not after_has:
       await self.bot.pool.execute("UPDATE servers SET patreon_user=NULL,tier=NULL WHERE patreon_user=$1", str(after.id))
-      self.bot.logger.info(f"Lost patreonage for guild {after.guild.id} with user {after.id} :(")
+      log.info(f"Lost patreonage for guild {after.guild.id} with user {after.id} :(")
     # else:
     #   welcome new patron
 
