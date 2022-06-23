@@ -133,14 +133,12 @@ CLUSER_NAMES = (
 
 NAMES = iter(CLUSER_NAMES)
 
-prod = len(sys.argv) > 1 and (sys.argv[1] == "--prod" or sys.argv[1] == "--production")
-canary = len(sys.argv) > 1 and (sys.argv[1] == "--canary")
 
 TOKEN = os.environ.get('TOKENTEST')
 if len(sys.argv) > 1:
-  if prod:
+  if PROD:
     TOKEN = os.environ.get("TOKEN")
-  elif canary:
+  elif CANARY:
     TOKEN = os.environ.get("TOKENCANARY")
 
 
@@ -156,8 +154,8 @@ class Launcher:
     self.keep_alive = None
     self.init = time.perf_counter()
 
-    self.prod = prod
-    self.canary = canary
+    self.prod = PROD
+    self.canary = CANARY
 
     self.log = logging.getLogger("Launcher")
 
