@@ -129,24 +129,23 @@ class TopGG(commands.Cog):
     self._current_len_guilds = len(self.bot.guilds)
     log.info("Updating DBL stats")
     try:
-      tasks = []
-      tasks += self.bot.session.post(
+      tasks = [self.bot.session.post(
           f"https://top.gg/api/bots/{self.bot.user.id}/stats",
           headers={"Authorization": os.environ["TOKENTOP"]},
           json={
               "server_count": len(self.bot.guilds),
               "shard_count": self.bot.shard_count,
           }
-      )
-      tasks += self.bot.session.post(
+      ),
+          self.bot.session.post(
           f"https://discord.bots.gg/api/v1/bots/{self.bot.user.id}/stats",
           headers={"Authorization": os.environ["TOKENDBOTSGG"]},
           json={
               "guildCount": len(self.bot.guilds),
               "shardCount": self.bot.shard_count,
           }
-      )
-      tasks += self.bot.session.post(
+      ),
+          self.bot.session.post(
           f"https://discordbotlist.com/api/v1/bots/{self.bot.user.id}/stats",
           headers={"Authorization": f'Bot {os.environ["TOKENDBL"]}'},
           json={
@@ -154,14 +153,14 @@ class TopGG(commands.Cog):
               "users": len(self.bot.users),
               "voice_connections": len(self.bot.voice_clients),
           }
-      )
-      tasks += self.bot.session.post(
+      ),
+          self.bot.session.post(
           f"https://api.discordlist.space/v2/bots/{self.bot.user.id}",
           headers={"Authorization": os.environ["TOKENDLS"], 'Content-Type': 'application/json'},
           json={
               "serverCount": len(self.bot.guilds)
           }
-      )
+      )]
       await asyncio.gather(*tasks)
     except Exception as e:
       log.exception('Failed to post server count\n?: ?', type(e).__name__, e)
