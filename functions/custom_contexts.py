@@ -352,10 +352,10 @@ class MyContext(commands.Context):
   #   await view.wait()
   #   return view.value
 
-  async def reply(self, *args: Any, **kwargs: Any) -> Optional[discord.Message]:
+  async def reply(self, *args: Any, **kwargs: Any) -> discord.Message:
     return await self.send(*args, **kwargs)
 
-  async def send(self, *args: Any, **kwargs: Any) -> Optional[discord.Message]:
+  async def send(self, *args: Any, **kwargs: Any) -> discord.Message:
     if not hasattr(kwargs, "mention_author") and not self.interaction:
       kwargs.update({"mention_author": False})
 
@@ -370,14 +370,11 @@ class MyContext(commands.Context):
     except (discord.Forbidden, discord.HTTPException) as e:
       if self.interaction:
         raise e
-      try:
-        return await super().send(
-            *args,
-            **kwargs)
-      except (discord.Forbidden, discord.HTTPException):
-        pass
+      return await super().send(
+          *args,
+          **kwargs)
 
-  async def safe_send(self, content: str, *, escape_mentions=True, **kwargs: Any) -> Optional[discord.Message]:
+  async def safe_send(self, content: str, *, escape_mentions=True, **kwargs: Any) -> discord.Message:
     if escape_mentions:
       content = discord.utils.escape_mentions(content)
 
