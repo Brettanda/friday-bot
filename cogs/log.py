@@ -105,24 +105,16 @@ class Log(commands.Cog):
   def __repr__(self) -> str:
     return f"<cogs.{self.__cog_name__}>"
 
-  async def bot_check(self, ctx: MyContext):
+  async def bot_check(self, ctx: MyContext) -> bool:
     if hasattr(ctx.channel, "type") and ctx.channel.type == discord.ChannelType.private:
       return True
 
-    is_owner = await self.bot.is_owner(ctx.author)
-    if is_owner:
-      return True
-
-    required_perms = [("send_messages", True), ("read_messages", True), ("embed_links", True), ("add_reactions", True)]
-    guild = ctx.guild
-    me = guild.me if guild is not None else ctx.bot.user
-    permissions = ctx.channel.permissions_for(me)  # type: ignore
-    missing = [perm for perm, value in required_perms if getattr(permissions, perm) != value]
-
-    if not missing:
-      return True
-
-    raise commands.BotMissingPermissions(missing)
+    return await commands.bot_has_permissions(
+        send_messages=True,
+        read_messages=True,
+        embed_links=True,
+        add_reactions=True,
+    ).predicate(ctx)
 
   @commands.Cog.listener()
   async def on_shard_connect(self, shard_id):
@@ -390,7 +382,7 @@ class Log(commands.Cog):
 
     ignored = (commands.CommandNotFound, commands.NotOwner, )
     wave_errors = (wavelink_errors.LoadTrackError, wavelink_errors.WavelinkError,)
-    just_send = (commands.DisabledCommand, commands.BotMissingPermissions, commands.MissingPermissions, commands.RoleNotFound, commands.MaxConcurrencyReached, asyncio.TimeoutError, commands.BadArgument, exceptions.RequiredTier)
+    just_send = (commands.DisabledCommand, commands.MissingPermissions, commands.RoleNotFound, commands.MaxConcurrencyReached, asyncio.TimeoutError, commands.BadArgument, exceptions.RequiredTier)
     error = getattr(error, 'original', error)
 
     if isinstance(error, (*ignored, *wave_errors)) or (hasattr(error, "log") and error and error.log is False):
@@ -399,6 +391,11 @@ class Log(commands.Cog):
 
     if isinstance(error, just_send):
       await ctx.send(embed=embed(title=str(error), color=MessageColors.error()), ephemeral=True)
+    elif isinstance(error, commands.BotMissingPermissions):
+      if "embed_links" in error.missing_permissions:
+        await ctx.send(str(error), ephemeral=True)
+      else:
+        await ctx.send(embed=embed(title=str(error), color=MessageColors.error()), ephemeral=True)
     elif isinstance(error, commands.BadUnionArgument) and "into Member or User." in str(error):
       await ctx.send(embed=embed(title="Invalid user. Please mention a user or provide a user ID.", color=MessageColors.error()))
     elif isinstance(error, (commands.MissingRequiredArgument, commands.TooManyArguments)):

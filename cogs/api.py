@@ -18,15 +18,21 @@ from discord.ext import commands
 # from functions import config
 
 if TYPE_CHECKING:
+  from cogs.automod import AutoMod
   from cogs.automod import Config as AutoModConfig
   from cogs.automod import SpamType
+  from cogs.chat import Chat
   from cogs.chat import Config as ChatConfig
   from cogs.general import General
   from cogs.log import Config as LogConfig
+  from cogs.log import Log
   from cogs.logging import ModConfig as LoggingConfig
+  from cogs.logging import ModLogging
   # from cogs.patreons import Patreons
   from cogs.redditlink import Config as RedditLinkConfig
+  from cogs.redditlink import redditlink
   from cogs.welcome import Config as WelcomeConfig
+  from cogs.welcome import Welcome
   from index import Friday
 
   class StatsClusterType(TypedDict):
@@ -106,7 +112,6 @@ class API(commands.Cog):
     self.app = web.Application(logger=log, debug=not bot.prod and not bot.canary)
     self.site = None
     self.bot: Friday = bot
-    self.log = log
 
     # TODO: Not sure how to choose which cluster to ping from API
     # Use something like port 4001 when clusters
@@ -116,12 +121,13 @@ class API(commands.Cog):
     else:
       self.port = 4001
 
-    self.bot.loop.create_task(self.run(), name="Web")
-
   def __repr__(self) -> str:
     return f"<cogs.{self.__cog_name__}>"
 
-  def cog_unload(self):
+  async def cog_load(self):
+    self.bot.loop.create_task(self.run(), name="Web")
+
+  async def cog_unload(self):
     self.bot.loop.create_task(self.runner.cleanup())
 
   async def get_guild_config(self, cog_name: str, guild_id: int) -> Any:
@@ -237,8 +243,10 @@ class API(commands.Cog):
           "parent_id": i.category.id if i.category is not None else None,
       } for i in guild.channels if i.type in (discord.ChannelType.text, discord.ChannelType.category)]
 
-      chat_config: Optional[ChatConfig] = await self.get_guild_config("Chat", int(gid, base=10))
-      reddit_config: Optional[RedditLinkConfig] = await self.get_guild_config("redditlink", int(gid, base=10))
+      chat_cog: Optional[Chat] = self.bot.get_cog("Chat")  # type: ignore
+      chat_config: Optional[ChatConfig] = chat_cog and await chat_cog.get_guild_config(int(gid, base=10))
+      reddit_cog: Optional[redditlink] = self.bot.get_cog("redditlink")  # type: ignore
+      reddit_config: Optional[RedditLinkConfig] = reddit_cog and await reddit_cog.get_guild_config(int(gid, base=10))
       # reddit_extract = await self.bot.db.query("SELECT reddit_extract FROM servers WHERE id=$1 LIMIT 1", str(gid))
 
       response: GetGuildType = {
@@ -289,9 +297,12 @@ class API(commands.Cog):
 
       top_role = {"name": guild.me.top_role.name, "id": str(guild.me.top_role.id), "position": guild.me.top_role.position}
 
-      automod_config: Optional[AutoModConfig] = await self.get_guild_config("AutoMod", int(gid, base=10))
-      welcome_config: Optional[WelcomeConfig] = await self.get_guild_config("Welcome", int(gid, base=10))
-      logging_config: Optional[LoggingConfig] = await self.get_guild_config("Logging", int(gid, base=10))
+      automod_cog: Optional[AutoMod] = self.bot.get_cog("AutoMod")  # type: ignore
+      automod_config: Optional[AutoModConfig] = automod_cog and await automod_cog.get_guild_config(int(gid, base=10))
+      welcome_cog: Optional[Welcome] = self.bot.get_cog("Welcome")  # type: ignore
+      welcome_config: Optional[WelcomeConfig] = welcome_cog and await welcome_cog.get_guild_config(int(gid, base=10))
+      mod_logging_cog: Optional[ModLogging] = self.bot.get_cog("ModLogging")  # type: ignore
+      mod_logging_config: Optional[LoggingConfig] = mod_logging_cog and await mod_logging_cog.get_guild_config(int(gid, base=10))
 
       response: GetModerationType = {
           "remove_invites": automod_config.remove_invites if automod_config is not None else None,
@@ -304,8 +315,8 @@ class API(commands.Cog):
           "tier": 0,
           "mute_role": str(automod_config.mute_role_id) if automod_config is not None else None,
           "whitelist": list(automod_config.automod_whitelist) if automod_config is not None else None,
-          "mod_log_events": list(logging_config.mod_log_events) if logging_config is not None else None,
-          "mod_log_channel_id": logging_config.mod_log_channel_id if logging_config is not None else None,
+          "mod_log_events": list(mod_logging_config.mod_log_events) if mod_logging_config is not None else None,
+          "mod_log_channel_id": mod_logging_config.mod_log_channel_id if mod_logging_config is not None else None,
           "welcome": dict(
               channel_id=welcome_config.channel_id if welcome_config is not None and welcome_config.channel_id is not None else None,
               role_id=welcome_config.role_id if welcome_config is not None and welcome_config.role_id is not None else None,
@@ -365,7 +376,8 @@ class API(commands.Cog):
       if gid in self.bot.blacklist:
         return HTTPBlocked(reason="This server is blacklisted from the bot.")
 
-      log_config: LogConfig = await self.get_guild_config("Log", int(gid, base=10))
+      log_cog: Log = self.bot.get_cog("Log")  # type: ignore
+      log_config: LogConfig = await log_cog.get_guild_config(int(gid, base=10))
 
       channels = [{
           "name": i.name,
@@ -532,9 +544,9 @@ class API(commands.Cog):
       self.site = web.TCPSite(self.runner, "0.0.0.0", self.port, ssl_context=ssl_ctx)
       await self.site.start()
     except Exception as e:
-      self.log.exception(f"Failed to start aiohttp.web: {e}")
+      log.exception(f"Failed to start aiohttp.web: {e}")
     else:
-      self.log.info(f"aiohttp.web started on port {self.port}")
+      log.info(f"aiohttp.web started on port {self.port}")
 
 
 async def setup(bot):

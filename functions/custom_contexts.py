@@ -352,10 +352,10 @@ class MyContext(commands.Context):
   #   await view.wait()
   #   return view.value
 
-  async def reply(self, *args, **kwargs) -> discord.Message:
+  async def reply(self, *args: Any, **kwargs: Any) -> discord.Message:
     return await self.send(*args, **kwargs)
 
-  async def send(self, *args, **kwargs) -> discord.Message:
+  async def send(self, *args: Any, **kwargs: Any) -> discord.Message:
     if not hasattr(kwargs, "mention_author") and not self.interaction:
       kwargs.update({"mention_author": False})
 
@@ -374,7 +374,7 @@ class MyContext(commands.Context):
           *args,
           **kwargs)
 
-  async def safe_send(self, content: str, *, escape_mentions=True, **kwargs) -> discord.Message:
+  async def safe_send(self, content: str, *, escape_mentions=True, **kwargs: Any) -> discord.Message:
     if escape_mentions:
       content = discord.utils.escape_mentions(content)
 

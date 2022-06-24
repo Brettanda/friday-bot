@@ -38,6 +38,8 @@ POSSIBLE_OFFENSIVE_MESSAGE = "**I failed to respond because my message might hav
 
 PERSONAS = [("🥰", "default", "Fridays default persona"), ("🏴‍☠️", "pirate", "Friday becomes one with the sea")]
 
+logging.getLogger("openai").setLevel(logging.WARNING)
+
 
 class ChatError(commands.CheckFailure):
   pass
@@ -139,8 +141,8 @@ class ChatHistory:
   _limit: ClassVar[int] = 3
   _messages_per_group: ClassVar[int] = 2
 
-  def __init__(self):
-    self.lock = asyncio.Lock()
+  def __init__(self, *, loop: Optional[asyncio.AbstractEventLoop] = ...):
+    self.lock = asyncio.Lock(loop=loop)
     self._history: List[str] = []
     self._bot_name: str = "Friday"
 
@@ -233,13 +235,13 @@ class Chat(commands.Cog):
     self.translate_client = translate.Client()  # _http=self.bot.http)
     self.h = HTMLParser()
 
-    self.api_lock = asyncio.Semaphore(3)
+    self.api_lock = asyncio.Semaphore(3, loop=bot.loop)
 
     self._spam_check = SpamChecker()
     self._repeating_spam = CooldownByRepeating.from_cooldown(3, 60 * 3, commands.BucketType.channel)
 
     # channel_id: list
-    self.chat_history: defaultdict[int, ChatHistory] = defaultdict(lambda: ChatHistory())
+    self.chat_history: defaultdict[int, ChatHistory] = defaultdict(lambda: ChatHistory(loop=bot.loop))
 
   def __repr__(self) -> str:
     return f"<cogs.{self.__cog_name__}>"
@@ -463,7 +465,7 @@ class Chat(commands.Cog):
     finally:
       await ctx.release()
 
-  async def chat_message(self, ctx: MyContext | GuildContext, *, content: str = None):
+  async def chat_message(self, ctx: MyContext | GuildContext, *, content: str = None) -> None:
     msg = ctx.message
     content = content or msg.clean_content
     current_tier = PremiumTiersNew.free.value
@@ -536,7 +538,9 @@ class Chat(commands.Cog):
       except Exception as e:
         # resp = await ctx.send(embed=embed(title="", color=MessageColors.error()))
         self.bot.dispatch("chat_completion", msg, resp, True, filtered=None, prompt="\n".join(chat_history.history(limit=5 if current_tier >= PremiumTiersNew.tier_1.value else 3)))
-        raise ChatError("Something went wrong, please try again later") from e
+        log.error(f"OpenAI error: {e}")
+        await ctx.reply(embed=embed(title="Something went wrong, please try again later", colour=MessageColors.error()))
+        return
       if response is None or response == "":
         raise ChatError("Somehow, I don't know what to say.")
       await chat_history.add_message(msg, response, user_content=content)
