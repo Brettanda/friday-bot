@@ -390,7 +390,7 @@ class Log(commands.Cog):
       return
 
     if isinstance(error, just_send):
-      await ctx.send(embed=embed(title=str(error), color=MessageColors.error()), ephemeral=True)      
+      await ctx.send(embed=embed(title=str(error), color=MessageColors.error()), ephemeral=True)
     elif isinstance(error, commands.BotMissingPermissions):
       if "embed_links" in error.missing_permissions:
         await ctx.send(str(error), ephemeral=True)
