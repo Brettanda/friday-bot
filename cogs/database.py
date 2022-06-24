@@ -40,6 +40,7 @@ class Database(commands.Cog):
             "disabled_commands text[] DEFAULT array[]::text[]",
             "restricted_commands text[] DEFAULT array[]::text[]",
             "mute_role text NULL DEFAULT NULL",
+            "mod_roles text[] NOT NULL DEFAULT array[]::text[]",
             "automod_whitelist text[] DEFAULT array[]::text[]",
             "mod_log_channel text NULL DEFAULT NULL",
             "mod_log_events text[] DEFAULT array['bans', 'mutes', 'unbans', 'unmutes', 'kicks']::text[]",
