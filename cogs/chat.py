@@ -274,6 +274,14 @@ class Chat(commands.Cog):
       return await ctx.reply("yeah we know", allowed_mentions=discord.AllowedMentions.none())
     await ctx.reply(content, allowed_mentions=discord.AllowedMentions.none())
 
+  @commands.command(name="silentsay", aliases=["saysilent"])
+  @commands.bot_has_permissions(manage_messages=True)
+  async def silent_say(self, ctx: MyContext, *, content: str):
+    if content in ("im stupid", "i'm stupid", "i am dumb", "im dumb"):
+      return await ctx.reply("yeah we know", allowed_mentions=discord.AllowedMentions.none())
+    await ctx.message.delete()
+    await ctx.send(content, allowed_mentions=discord.AllowedMentions.none())
+
   @commands.group("chat", invoke_without_command=True, case_insensitive=True)
   async def chat(self, ctx: MyContext, *, message: str):
     """Chat with Friday powered by GPT-3 and get a response."""
