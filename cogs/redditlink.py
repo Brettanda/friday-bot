@@ -10,15 +10,23 @@ from typing import TYPE_CHECKING, Optional
 import asyncpg
 import asyncpraw
 import discord
+import yarl
 import youtube_dl
 from discord.ext import commands
 
 from functions import MessageColors, MyContext, cache, embed, exceptions
-log = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
+  from typing_extensions import Self
+
   from functions.custom_contexts import GuildContext
   from index import Friday
+
+log = logging.getLogger(__name__)
+
+
+class ExtractionError(commands.CommandError):
+  pass
 
 
 ytdl_format_options = {
@@ -80,6 +88,70 @@ class Config:
     return self
 
 
+class RedditMedia:
+  def __init__(self, url: yarl.URL, submission: asyncpraw.models.Submission):
+    self.url: yarl.URL = url
+    self.submission: asyncpraw.models.Submission = submission
+    self.needs_extraction: bool = False
+
+  @classmethod
+  async def no_context(cls, bot: Friday, argument: str) -> Self:
+    try:
+      url = yarl.URL(argument)
+    except Exception:
+      raise commands.BadArgument("The argument must be a valid Reddit URL")
+    headers = {
+            'User-Agent': 'Discord:Friday:v1.0 (by /u/Motostar19)',
+    }
+
+    if url.host == 'v.redd.it':
+      # have to do a request to fetch the 'main' URL.
+      async with bot.session.get(url, headers=headers) as resp:
+        url = resp.url
+
+    is_valid_path = url.host and url.host.endswith('reddit.com')
+    if not is_valid_path:
+      raise commands.BadArgument('Not a reddit URL.')
+
+    redditlink_cog: redditlink = bot.get_cog("redditlink")  # type: ignore
+    submission = await redditlink_cog.reddit.submission(url=str(url))
+    media = None
+    needs_extraction = False
+    try:
+      if submission.media is not None:
+        media = submission.media["reddit_video"]["hls_url"]
+        needs_extraction = True
+    except Exception:
+      pass
+
+    try:
+      media = submission.media["oembed"]
+    except Exception:
+      pass
+    if "i.redd.it" in submission.url:
+      media = submission.url
+
+    if str(url) in submission.url:
+      raise commands.BadArgument("Nothing to extract from this URL")
+
+    'https://www.reddit.com/r/GPT3/comments/q2gr84/how_to_get_multiple_outputs_from_the_same_prompt/'
+    'https://www.reddit.com/r/GPT3/comments/q2gr84/how_to_get_multiple_outputs_from_the_same_prompt'
+    if submission.url.endswith(".html"):
+      raise commands.BadArgument("Can't extract from this URL")
+
+    if media is None:
+      raise commands.BadArgument('Could not fetch media information.')
+    self = cls(media, submission)
+    self.needs_extraction = needs_extraction
+    return self
+
+  @classmethod
+  async def convert(cls, ctx: MyContext, argument: str) -> Self:
+    async with ctx.typing():
+      cog: redditlink = ctx.bot.get_cog("redditlink")  # type: ignore
+      return await cog.get_reddit_post(argument)
+
+
 class redditlink(commands.Cog):
   """Extract the media from Reddit posts with Friday's Reddit command and more.
 
@@ -93,10 +165,9 @@ class redditlink(commands.Cog):
     self.bot: Friday = bot
 
     self.emoji = "🔗"
-    self.loop = bot.loop
 
-    self.session_lock = asyncio.Lock()
-    self.extract_lock = asyncio.Lock()
+    self.session_lock = asyncio.Lock(loop=bot.loop)
+    self.extract_lock = asyncio.Lock(loop=bot.loop)
     self.reddit = asyncpraw.Reddit(
         client_id=REDDIT_CLIENT_ID,
         client_secret=REDDIT_CLIENT_SECRET,
@@ -116,6 +187,10 @@ class redditlink(commands.Cog):
       return await Config.from_record(record, self.bot)
     return None
 
+  @cache.cache()
+  async def get_reddit_post(self, query: str) -> RedditMedia:
+    return await RedditMedia.no_context(self.bot, query)
+
   async def cog_command_error(self, ctx: MyContext, error: commands.CommandError):
     just_send = (MustBeAuthor, NotRedditLink,)
     error = getattr(error, 'original', error)
@@ -127,7 +202,7 @@ class redditlink(commands.Cog):
 
   @commands.Cog.listener()
   async def on_message(self, message: discord.Message):
-    if message.author.bot:
+    if message.author.bot and message.author.id != 892865928520413245:
       return
     # required_perms = [("add_reactions",True)]
     # guild = ctx.guild
@@ -155,30 +230,9 @@ class redditlink(commands.Cog):
     if config is None or not config.enabled:
       return
 
-    body = await self.reddit.submission(url=reg[0])
-
-    data, video, embeded, image = body, None, None, None
-
     try:
-      if data.media is not None:
-        video = data.media["reddit_video"]["hls_url"]
-    except Exception:
-      pass
-
-    try:
-      embeded = data.media["oembed"]
-    except Exception:
-      pass
-    if "i.redd.it" in data.url:
-      image = data.url
-
-    if data.url in message.content:
-      return
-
-    if data.url.endswith(".html"):
-      return
-
-    if data is None and video is None and embeded is None and image is None:
+      assert await self.get_reddit_post(reg[0])
+    except BaseException:
       return
 
     try:
@@ -206,10 +260,12 @@ class redditlink(commands.Cog):
       await message.clear_reaction(self.emoji)
     except BaseException:
       pass
-    guild = self.bot.get_guild(payload.guild_id)
+    # guild = self.bot.get_guild(payload.guild_id)
     async with channel.typing():
       try:
-        thing = await self.extract(message.content, payload=payload, guild=guild, channel=channel, message=message)
+        redditlinkmedia = await self.get_reddit_post(message.content)
+        thing = await self.extract(message.channel, redditlinkmedia)
+        # thing = await self.extract(message.content, payload=payload, guild=guild, channel=channel, message=message)
         await message.reply(**thing, mention_author=False)
       except discord.HTTPException:
         try:
@@ -220,37 +276,15 @@ class redditlink(commands.Cog):
         await message.reply(embed=embed(title="Something went wrong", description="Please try again later. I have notified my boss of this error", color=MessageColors.error()), mention_author=False)
         raise e
 
-  # @discord.slash_command(name="redditextract")
-  # async def slash_extract(self, ctx, link: str):
-  #   ...
-
-  # @discord.message_command(name="Reddit Extract")
-  # async def context_extract(self, ctx: discord.commands.ApplicationContext, msg: discord.Message):
-  #   if ctx.author.id != msg.author.id:
-  #     raise MustBeAuthor()
-  #   await ctx.defer()
-  #   await ctx.respond(**await self.extract(query=msg.content, message=msg, ctx=ctx, guild=ctx.guild, channel=ctx.channel))
-
   @commands.group(name="redditextract", help="Extracts the media from the reddit post", invoke_without_command=True, case_insensitive=True)
-  async def norm_extract(self, ctx: MyContext, link: str):
+  async def norm_extract(self, ctx: MyContext, link: RedditMedia):
     await ctx.release()
     if ctx.interaction:
       await ctx.defer()
-    try:
-      async with ctx.typing():
-        extracted = await self.extract(query=link, command=True, ctx=ctx, guild=ctx.guild, channel=ctx.channel)
-    except discord.Forbidden:
-      extracted = await self.extract(query=link, command=True, ctx=ctx, guild=ctx.guild, channel=ctx.channel)
+    async with ctx.typing():
+      extracted = await self.extract(ctx.channel, link)
 
     await ctx.send(**extracted)
-
-  # @discord.app_commands.context_menu(name="extract")
-  # @discord.app_commands.guilds(discord.Object(id=243159711237537802))
-  # async def context_extract(self, interaction: discord.Interaction, message: discord.Message):
-  #   if interaction.author.id != message.author.id:
-  #     raise MustBeAuthor()
-  #   await interaction.defer()
-  #   await interaction.respond(**await self.extract(query=message.content, message=message, ctx=interaction, guild=interaction.guild, channel=interaction.channel))
 
   @norm_extract.command("enable", help="Enable or disabled Friday's reddit link extraction. (When disabled Friday won't react to reddit links.)")
   @commands.guild_only()
@@ -262,75 +296,33 @@ class redditlink(commands.Cog):
       return await ctx.send(embed=embed(title="I will now react to Reddit links", description="For me to then extract a reddit link the author of the message must react with the same emoji Friday did.\nFriday also requires add_reaction permissions (if not already) for this to work."))
     await ctx.send(embed=embed(title="I will no longer react to Reddit links.", description="The Reddit extract commands will still work."))
 
-  # @cog_ext.cog_slash(name="redditextract", description="Extracts the file from the reddit post")
-  # async def slash_extract(self, ctx, link: str):
-  #   await ctx.defer()
-  #   await self.extract(query=link, command=True, ctx=ctx, guild=ctx.guild, channel=ctx.channel)
+  async def extract(self, channel: discord.abc.MessageableChannel, reddit: RedditMedia) -> dict:
+    filesize = 8388608
+    if channel.guild is not None:
+      filesize = channel.guild and channel.guild.filesize_limit or filesize
 
-  async def extract(self, query: str, command: bool = False, payload: discord.RawReactionActionEvent = None, ctx: MyContext = None, guild=None, channel: discord.abc.MessageableChannel = None, message: discord.Message = None):
-    if ctx is None and message is not None:
-      ctx = await self.bot.get_context(message, cls=type(ctx))
-    if message is None and not command:
-      raise commands.ArgumentParsingError()
-    # TODO: check the max file size of the server and change the quality of the video to match
-    reg = re.findall(PATTERN, query)
+    nsfw = channel.nsfw if channel is not None and not isinstance(channel, discord.Thread) else channel.parent.nsfw if channel is not None else False  # type: ignore
+    spoiler = not ((nsfw is True and reddit.submission.over_18 is True) or (nsfw is False and reddit.submission.over_18 is False) or (nsfw is True and reddit.submission.over_18 is False))
 
-    if len(reg) != 1:
-      raise NotRedditLink()
-
-    data = await self.reddit.submission(url=reg[0])
-
-    link, linkdata, video = None, None, None
-    # try:
-    if data.media is not None and "reddit_video" in data.media:
-      link = data.media["reddit_video"]["hls_url"]
-      content_length = 0
-      async with self.session_lock:
-        async with self.bot.session.get(
-                link,
-                headers={
-                    'User-Agent':
-                    'Friday Discord bot v1.0.0  (by /u/Motostar19)'
-                }) as r:
-          if r.status == 200:
-            content_length = r.content_length
-      async with self.extract_lock:
-        loop = asyncio.get_event_loop()
-        linkdata = await loop.run_in_executor(None, lambda: ytdl.extract_info(link, content_length))
-        ext = "webm"  # linkdata['ext']
-        video = True
-        # linkdata = await ytdl.extract_info(link, download=True)
-
+    if reddit.needs_extraction:
+      try:
+        async with self.extract_lock:
+          linkdata = await self.bot.loop.run_in_executor(None, ytdl.extract_info, reddit.url)
+      except youtube_dl.DownloadError as e:
+        raise commands.BadArgument(f"Could not extract the link: {e}")
       if 'entries' in linkdata:
         # take first item from a playlist
         linkdata = linkdata['entries'][0]
-      # link = linkdata["url"]
-      # pprint.pprint(linkdata)
-      # print(f'{linkdata["extractor"]}-{linkdata["id"]}-{linkdata["title"]}.{linkdata["ext"]}')
-      # link = data["media"]["reddit_video"]["fallback_url"]
-    else:
-      link = data.url
-    # except:
-    #   raise
 
-    # TODO: Does not get url for videos atm
-    channel = message and message.channel or ctx and ctx.channel
-    nsfw = channel.nsfw if channel is not None and not isinstance(channel, discord.Thread) else channel.parent.nsfw if channel is not None else False  # type: ignore
-    if (nsfw is True and data.over_18 is True) or (nsfw is False and data.over_18 is False) or (nsfw is True and data.over_18 is False):
-      spoiler = False
-    else:
-      spoiler = True
-
-    if video is True:
       thispath = os.getcwd()
       if "\\" in thispath:
         seperator = "\\\\"
       else:
         seperator = "/"
-      mp4file = f'{thispath}{seperator}{linkdata["extractor"]}-{linkdata["id"]}-{linkdata["title"]}.{ext}'  # type: ignore
+      mp4file = f'{thispath}{seperator}{linkdata["extractor"]}-{linkdata["id"]}-{linkdata["title"]}.webm'
       try:
         # name = f'{linkdata["extractor"]}-{linkdata["id"]}-{linkdata["title"]}.{linkdata["ext"]}'
-        name = data.title.split()
+        name = reddit.submission.title.split()
         return dict(file=discord.File(fp=mp4file, filename=f'friday-bot.com_{"_".join(name)}.mp4', spoiler=spoiler))
       except discord.HTTPException:
         return dict(embed=embed(title="This file is too powerful to be uploaded", description="You will have to open reddit to view this", color=MessageColors.error()))
@@ -341,17 +333,9 @@ class redditlink(commands.Cog):
           pass
     else:
       if spoiler is True:
-        return dict(content="||" + link + "||")
+        return dict(content=f"||{reddit.url}||")
       else:
-        return dict(content=link)
-    # elif reaction.message.channel.nsfw == False and data["over_18"] == False:
-
-    # print(len(body))
-    # if ctx.channel.nsfw and body["data"]["over_18"]:
-
-    # await ctx.reply(embed=embed(title="Meme"))
-    # return embed(title="Meme")
-    # if self.bot.user == reaction.message.reactions
+        return dict(content=reddit.url)
 
 
 async def setup(bot):
