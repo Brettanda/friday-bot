@@ -150,21 +150,17 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
   def __init__(self, bot: Friday):
     self.bot: Friday = bot
     self.process = psutil.Process()
-    self._batch_commands_lock, self._batch_chats_lock, self._batch_joins_lock = asyncio.Lock(), asyncio.Lock(), asyncio.Lock()
+    self._batch_commands_lock, self._batch_chats_lock, self._batch_joins_lock = asyncio.Lock(loop=bot.loop), asyncio.Lock(loop=bot.loop), asyncio.Lock(loop=bot.loop)
     self._data_commands_batch: list[DataCommandsBatchEntry] = []
     self._data_chats_batch: list[DataChatsBatchEntry] = []
     self._data_joins_batch: list[DataJoinsBatchEntry] = []
     self.bulk_insert_commands_loop.add_exception_type(asyncpg.PostgresConnectionError)
-    self.bulk_insert_commands_loop.start()
 
     self.bulk_insert_chats_loop.add_exception_type(asyncpg.PostgresConnectionError)
-    self.bulk_insert_chats_loop.start()
 
     self.bulk_insert_joins_loop.add_exception_type(asyncpg.PostgresConnectionError)
-    self.bulk_insert_joins_loop.start()
 
     self._gateway_queue = asyncio.Queue()
-    self.gateway_worker.start()
 
   def __repr__(self) -> str:
     return f"<cogs.{self.__cog_name__}>"
@@ -216,7 +212,13 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
         log.info(f"Inserted {total} chats into the database")
       self._data_chats_batch.clear()
 
-  def cog_unload(self):
+  async def cog_load(self):
+    self.bulk_insert_commands_loop.start()
+    self.bulk_insert_chats_loop.start()
+    self.bulk_insert_joins_loop.start()
+    self.gateway_worker.start()
+
+  async def cog_unload(self):
     self.bulk_insert_commands_loop.stop()
     self.bulk_insert_chats_loop.stop()
     self.bulk_insert_joins_loop.stop()
