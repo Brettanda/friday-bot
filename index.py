@@ -94,8 +94,8 @@ class Friday(commands.AutoShardedBot):
 
     # shard_id: List[datetime.datetime]
     # shows the last attempted IDENTIFYs and RESUMEs
-    self.resumes = defaultdict(list)
-    self.identifies = defaultdict(list)
+    self.resumes: defaultdict[int, list[datetime.datetime]] = defaultdict(list)
+    self.identifies: defaultdict[int, list[datetime.datetime]] = defaultdict(list)
 
     log.info(f"Cluster Starting {kwargs.get('shard_ids', None)}, {kwargs.get('shard_count', 1)}")
     if self.should_start:
