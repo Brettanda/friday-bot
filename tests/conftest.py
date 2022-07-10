@@ -12,7 +12,7 @@ from discord.ext import commands
 from dotenv import load_dotenv
 
 import index
-from launcher import get_logger
+from launcher import setup_logging
 
 load_dotenv()
 
@@ -96,10 +96,11 @@ async def bot(event_loop: asyncio.AbstractEventLoop) -> UnitTester:
 @pytest.fixture(scope="session")
 async def friday(event_loop_friday: asyncio.AbstractEventLoop) -> Friday:
   async def main(bot):
-    async with bot:
-      await bot.start(FRIDAYTOKEN, reconnect=True)
-  log = get_logger("Friday")
-  bot = Friday(logger=log)
+    with setup_logging():
+      async with bot:
+        await bot.start(FRIDAYTOKEN, reconnect=True)
+
+  bot = Friday()
   asyncio.create_task(main(bot))
   return bot
 
@@ -114,12 +115,12 @@ async def bot_user(event_loop: asyncio.AbstractEventLoop) -> UnitTesterUser:
 @pytest.fixture(scope="session", autouse=True)
 async def cleanup(request, bot: UnitTester, friday: Friday, bot_user: UnitTesterUser, event_loop: asyncio.AbstractEventLoop, event_loop_friday: asyncio.AbstractEventLoop, event_loop_user: asyncio.AbstractEventLoop):  # bot, bot_user, channel):
   def close():
-    try:
-      event_loop.close()
-      event_loop_friday.close()
-      event_loop_user.close()
-    except (RuntimeError, StopAsyncIteration):
-      pass
+    # try:
+    #   event_loop.close()
+    #   event_loop_friday.close()
+    #   event_loop_user.close()
+    # except (RuntimeError, StopAsyncIteration):
+    #   pass
     try:
       asyncio.get_event_loop().run_until_complete(bot.close())
     except (RuntimeError, StopAsyncIteration):
@@ -238,14 +239,13 @@ async def user_friday(friday: Friday, guild_friday: discord.Guild) -> discord.Me
 
 
 async def send_command(bot: Friday | UnitTester | UnitTesterUser, channel: discord.TextChannel, command: str) -> discord.Message:
-  await bot.wait_until_ready()
   com = await channel.send(command)
   assert com
   return com
 
 
 def msg_check(new_msg: discord.Message, command_message: discord.Message) -> bool:
-  return new_msg.author != command_message.author and \
+  return new_msg.author.id != command_message.author.id and \
       new_msg.reference is not None and \
       new_msg.reference.message_id == command_message.id
 
@@ -260,6 +260,6 @@ def pytest_configure() -> None:
   # setattr(pytest, "raw_message_delete_check", raw_message_delete_check)
 
   pytest.timeout: float = 8.0  # type: ignore
-  pytest.send_command: Callable = send_command  # type: ignore
-  pytest.msg_check: Callable = msg_check  # type: ignore
+  # pytest.send_command: Callable = send_command  # type: ignore
+  # pytest.msg_check: Callable = msg_check  # type: ignore
   pytest.raw_message_delete_check: Callable = raw_message_delete_check  # type: ignore

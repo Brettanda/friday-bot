@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from .conftest import send_command
+from .conftest import send_command, msg_check
 
 if TYPE_CHECKING:
   from discord import TextChannel
@@ -24,5 +24,5 @@ async def test_vote(bot: UnitTester, channel: TextChannel):
   content = "!vote"
   com = await send_command(bot, channel, content)
 
-  msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+  msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
   assert msg.embeds[0].title == "Voting"

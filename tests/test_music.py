@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Optional
 import discord
 import pytest
 
-from .conftest import send_command
+from .conftest import send_command, msg_check
 
 if TYPE_CHECKING:
   from discord import Guild
@@ -45,6 +45,7 @@ async def music_is_working(friday: Friday, channel: TextChannel, guild_friday: G
   player = music_cog.get_player(guild_friday)
   assert player is not None
   player.queue.reset()
+  assert len(player.queue) == 0
   await player.stop()
   return True
 
@@ -70,36 +71,41 @@ async def voice_user(bot_user: discord.Client, voice_channel_user: VoiceChannel,
 # @pytest.mark.parametrize("bot,voice_channel,channel", [bot, voice_channel, channel])
 @pytest.mark.parametrize("url", [
     "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-    "https://www.youtube.com/watch?v=OPf0YbXqDm0",
-    "https://youtu.be/RojReJ7bzCw"])
+    "https://www.youtube.com/watch?v=OPf0YbXqDm0"])
 async def test_play_youtube(bot: UnitTester, friday: Friday, channel: TextChannel, guild_friday: Guild, url: str):
   content = f"!p {url}"
   com = await send_command(bot, channel, content)
 
-  msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, com), timeout=pytest.timeout)  # type: ignore
-  assert "Now playing: **" in msg.embeds[0].title or "Added " in msg.embeds[0].title or "Added the playlist" in msg.embeds[0].title
+  msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+  # with pytest.raises(asyncio.TimeoutError):
+  #   await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=2)  # type: ignore
 
   assert await music_is_working(friday, channel, guild_friday)
+  assert "Now playing: **" in msg.embeds[0].title or "Added " in msg.embeds[0].title or "Added the playlist" in msg.embeds[0].title
 
 
 async def test_play_spotify(bot: UnitTester, friday: Friday, channel: TextChannel, guild_friday: Guild):
   content = "!p https://open.spotify.com/track/0tyR7Bu9P086aWBFZ4QJoo?si=0f0ce5c3b5ee4b6b"
   com = await send_command(bot, channel, content)
 
-  msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, com), timeout=pytest.timeout)  # type: ignore
-  assert "Now playing: **" in msg.embeds[0].title or "Added " in msg.embeds[0].title or "Added the playlist" in msg.embeds[0].title
+  msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+  # with pytest.raises(asyncio.TimeoutError):
+  #   await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=2)  # type: ignore
 
   assert await music_is_working(friday, channel, guild_friday)
+  assert "Now playing: **" in msg.embeds[0].title or "Added " in msg.embeds[0].title or "Added the playlist" in msg.embeds[0].title
 
 
 async def test_play_spotify_playlist(bot: UnitTester, friday: Friday, channel: TextChannel, guild_friday: Guild):
   content = "!p https://open.spotify.com/playlist/2Z7q0uwOuJlpZ4CBeHXyeT?si=e400ddae1880457a"
-  com = await send_command(bot, channel, content)
+  await send_command(bot, channel, content)
 
-  msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, com), timeout=pytest.timeout * 2)  # type: ignore
-  assert "Now playing: **" in msg.embeds[0].title or "Added " in msg.embeds[0].title or "Added the playlist" in msg.embeds[0].title
+  await bot.wait_for("message", check=lambda message: message.author.id == friday.user.id, timeout=pytest.timeout * 2)  # type: ignore
+  # with pytest.raises(asyncio.TimeoutError):
+  #   await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=2)  # type: ignore
 
   assert await music_is_working(friday, channel, guild_friday)
+  # assert "Now playing: **" in msg.embeds[0].title or "Added " in msg.embeds[0].title or "Added the playlist" in msg.embeds[0].title
 
 
 @pytest.mark.dependency(name="test_play_playlist")
@@ -107,45 +113,55 @@ async def test_play_playlist(bot: UnitTester, friday: Friday, channel: TextChann
   content = "!p https://www.youtube.com/watch?v=jCQd6YqTnOk&list=PLQSoWXSpjA3_FFnFo4yWTtVbZrMkbm-h7"
   com = await send_command(bot, channel, content)
 
-  msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, com), timeout=pytest.timeout)  # type: ignore
-  assert "Now playing: **" in msg.embeds[0].title or "Added " in msg.embeds[0].title or "Added the playlist" in msg.embeds[0].title
+  msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+  # with pytest.raises(asyncio.TimeoutError):
+  #   await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=2)  # type: ignore
 
   assert await music_is_working(friday, channel, guild_friday)
+  assert "Now playing: **" in msg.embeds[0].title or "Added " in msg.embeds[0].title or "Added the playlist" in msg.embeds[0].title
 
 
 async def test_play_soundcloud(bot: UnitTester, friday: Friday, channel: TextChannel, guild_friday: Guild):
   content = "!p https://soundcloud.com/doughboyhen/anybodyk"
   com = await send_command(bot, channel, content)
 
-  msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, com), timeout=pytest.timeout)  # type: ignore
-  assert "Now playing: **" in msg.embeds[0].title or "Added " in msg.embeds[0].title or "Added the playlist" in msg.embeds[0].title
+  msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+  # with pytest.raises(asyncio.TimeoutError):
+  #   await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=2)  # type: ignore
 
   assert await music_is_working(friday, channel, guild_friday)
+  assert "Now playing: **" in msg.embeds[0].title or "Added " in msg.embeds[0].title or "Added the playlist" in msg.embeds[0].title
 
 
 async def test_play_not_url(bot: UnitTester, friday: Friday, channel: TextChannel, guild_friday: Guild):
   content = "!p some kind of magic"
   com = await send_command(bot, channel, content)
 
-  msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, com), timeout=pytest.timeout)  # type: ignore
-  assert "Now playing: **" in msg.embeds[0].title or "Added " in msg.embeds[0].title or "Added the playlist" in msg.embeds[0].title
+  msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+  # with pytest.raises(asyncio.TimeoutError):
+  #   await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=2)  # type: ignore
 
   assert await music_is_working(friday, channel, guild_friday)
+  assert "Now playing: **" in msg.embeds[0].title or "Added " in msg.embeds[0].title or "Added the playlist" in msg.embeds[0].title
 
 
 async def test_play_playlist_to_queue(bot: UnitTester, friday: Friday, channel: TextChannel, guild_friday: Guild):
   content = "!p https://www.youtube.com/watch?v=jCQd6YqTnOk&list=PLQSoWXSpjA3_FFnFo4yWTtVbZrMkbm-h7"
   com = await send_command(bot, channel, content)
 
-  msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, com), timeout=pytest.timeout)  # type: ignore
-  assert "Now playing: **" in msg.embeds[0].title or "Added the playlist" in msg.embeds[0].title
+  msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+  # with pytest.raises(asyncio.TimeoutError):
+  #   await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=2)  # type: ignore
 
   com = await send_command(bot, channel, content)
 
-  msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, com), timeout=pytest.timeout)  # type: ignore
-  assert "Added the playlist" in msg.embeds[0].title
+  msg2 = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+  # with pytest.raises(asyncio.TimeoutError):
+  #   await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=2)  # type: ignore
 
   assert await music_is_working(friday, channel, guild_friday)
+  assert "Now playing: **" in msg.embeds[0].title or "Added the playlist" in msg.embeds[0].title
+  assert "Added the playlist" in msg2.embeds[0].title
 
 
 # # async def test_play_after_force_dc(bot: UnitTester, voice_channel: VoiceChannel, channel: TextChannel):
@@ -157,7 +173,7 @@ async def test_play_playlist_to_queue(bot: UnitTester, friday: Friday, channel: 
 #   com = await channel.send(content)
 #   assert com
 
-#   msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+#   msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
 #   assert "Now playing: **" in msg.embeds[0].title or "Added **" in msg.embeds[0].title or "Added the playlist" in msg.embeds[0].title
 
 #   await msg.author.move_to(None)
@@ -166,7 +182,7 @@ async def test_play_playlist_to_queue(bot: UnitTester, friday: Friday, channel: 
 #   com = await channel.send(content)
 #   assert com
 
-#   msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+#   msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
 #   assert "Now playing: **" in msg.embeds[0].title or "Added **" in msg.embeds[0].title or "Added the playlist" in msg.embeds[0].title
 
 #   await channel.send("!stop")
@@ -184,7 +200,7 @@ async def test_play_playlist_to_queue(bot: UnitTester, friday: Friday, channel: 
 #   com = await channel.send(content)
 #   assert com
 
-#   msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+#   msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
 #   assert "Now playing: **" in msg.embeds[0].title or "Added **" in msg.embeds[0].title or "Added the playlist" in msg.embeds[0].title
 
 #   await channel.send("!stop")
@@ -196,7 +212,7 @@ async def test_play_playlist_to_queue(bot: UnitTester, friday: Friday, channel: 
 #   com = await channel.send(content)
 #   assert com
 
-#   msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+#   msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
 #   assert "Now playing: **" in msg.embeds[0].title or "Added **" in msg.embeds[0].title or "Added the playlist" in msg.embeds[0].title
 
 #   await channel.send("!stop")
@@ -206,12 +222,28 @@ async def test_play_playlist_to_queue(bot: UnitTester, friday: Friday, channel: 
 
 
 @pytest.mark.dependency(depends=["test_play_playlist"])
-async def test_queue(bot: UnitTester, voice_channel: VoiceChannel, channel: TextChannel):
+async def test_queue_no_songs(bot: UnitTester, voice_channel: VoiceChannel, channel: TextChannel):
   content = "!queue"
   com = await send_command(bot, channel, content)
 
-  msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+  msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+  assert "There are no more songs in the queue." in msg.embeds[0].title
+
+
+@pytest.mark.dependency(depends=["test_play_playlist"])
+async def test_queue(bot: UnitTester, friday: Friday, guild_friday: Guild, voice_channel: VoiceChannel, channel: TextChannel):
+  content = "!p https://www.youtube.com/watch?v=jCQd6YqTnOk&list=PLQSoWXSpjA3_FFnFo4yWTtVbZrMkbm-h7"
+  com = await send_command(bot, channel, content)
+
+  msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+  assert "Now playing: **" in msg.embeds[0].title or "Added " in msg.embeds[0].title or "Added the playlist" in msg.embeds[0].title
+
+  content = "!queue"
+  com = await send_command(bot, channel, content)
+
+  msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
   assert "Coming up..." in msg.embeds[0].title or msg.embeds[0].title == "You must be in a voice channel or provide one to connect to."
+  assert await music_is_working(friday, channel, guild_friday)
 
 
 @pytest.mark.parametrize("vol", ["200", "100", "1"])
@@ -220,26 +252,57 @@ async def test_volume(bot: UnitTester, voice_channel: VoiceChannel, channel: Tex
   content = f"!volume {vol}"
   com = await send_command(bot, channel, content)
 
-  msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+  msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
   assert "Set the volume to " in msg.embeds[0].title or "Please enter a value between 1 and 100." in msg.embeds[0].title
 
 
 @pytest.mark.dependency(depends=["test_play_playlist"])
-async def test_nowplaying(bot: UnitTester, voice_channel: VoiceChannel, channel: TextChannel):
+async def test_nowplaying_no_songs(bot: UnitTester, voice_channel: VoiceChannel, channel: TextChannel):
   content = "!nowplaying"
   com = await send_command(bot, channel, content)
 
-  msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, com), timeout=pytest.timeout)  # type: ignore
-  assert "Now playing: **" in msg.embeds[0].title
+  msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+  assert "Nothing is playing right now." in msg.embeds[0].title
 
 
 @pytest.mark.dependency(depends=["test_play_playlist"])
+async def test_nowplaying(bot: UnitTester, friday: Friday, guild_friday: Guild, voice_channel: VoiceChannel, channel: TextChannel):
+  content = "!p https://www.youtube.com/watch?v=jCQd6YqTnOk&list=PLQSoWXSpjA3_FFnFo4yWTtVbZrMkbm-h7"
+  com = await send_command(bot, channel, content)
+
+  msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+  assert "Now playing: **" in msg.embeds[0].title or "Added " in msg.embeds[0].title or "Added the playlist" in msg.embeds[0].title
+
+  content = "!nowplaying"
+  com = await send_command(bot, channel, content)
+
+  msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+  assert "Now playing: **" in msg.embeds[0].title
+  assert await music_is_working(friday, channel, guild_friday)
+
+
+@pytest.mark.dependency(depends=["test_play_playlist"])
+async def test_shuffle_no_songs(bot: UnitTester, friday: Friday, guild_friday: Guild, voice_channel: VoiceChannel, channel: TextChannel):
+  content = "!p https://www.youtube.com/watch?v=jCQd6YqTnOk&list=PLQSoWXSpjA3_FFnFo4yWTtVbZrMkbm-h7"
+  com = await send_command(bot, channel, content)
+
+  msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+  assert "Now playing: **" in msg.embeds[0].title or "Added " in msg.embeds[0].title or "Added the playlist" in msg.embeds[0].title
+  assert await music_is_working(friday, channel, guild_friday)
+
+  content = "!shuffle"
+  com = await send_command(bot, channel, content)
+
+  msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+  assert "Add more songs to the queue before shuffling." in msg.embeds[0].title
+
+
 async def test_shuffle(bot: UnitTester, voice_channel: VoiceChannel, channel: TextChannel):
   content = "!shuffle"
   com = await send_command(bot, channel, content)
 
-  msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, com), timeout=pytest.timeout)  # type: ignore
-  assert "An admin or DJ has shuffled the playlist." in msg.embeds[0].title
+  msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+  assert "An admin or DJ has shuffled the playlist." in msg.embeds[0].title or "Add more songs to the queue before shuffling." in msg.embeds[0].title
 
 
 @pytest.mark.dependency(depends=["test_play_playlist"])
@@ -247,7 +310,7 @@ async def test_swap_dj(bot: UnitTester, bot_user: UnitTesterUser, guild_user: Gu
   content = f"!swap_dj {bot_user.user.id}"
   com = await send_command(bot, channel, content)
 
-  msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+  msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
   assert msg.embeds[0].title == f"{guild_user.me.display_name} is now the DJ."
 
 
@@ -256,7 +319,7 @@ async def test_equilizer(bot: UnitTester, voice_channel: VoiceChannel, channel: 
   content = "!dev sudo 215227961048170496 eq flat"
   com = await send_command(bot, channel, content)
 
-  msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+  msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
   assert "You do not have the required Patreon tier for this command." in msg.embeds[0].title or "Successfully changed equalizer to" in msg.embeds[0].title
 
 
@@ -265,7 +328,7 @@ async def test_stop(bot: UnitTester, channel: TextChannel):
   content = "!stop"
   com = await send_command(bot, channel, content)
 
-  msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+  msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
   assert "stop" in msg.embeds[0].title or msg.embeds[0].title == "I am not playing anything."
 
 
@@ -274,7 +337,7 @@ class TestCustomSounds:
     content = "!c"
     com = await send_command(bot, channel, content)
 
-    msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+    msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
     assert msg.embeds[0].title == "The list of custom sounds" or "Now playing:" in msg.embeds[0].title or "Added" in msg.embeds[0].title or msg.embeds[0].title == "You must be in a voice channel to use this command"
 
   @pytest.mark.dependency(name="test_add", scope="class")
@@ -283,7 +346,7 @@ class TestCustomSounds:
     content = f"!c add {name} {url}"
     com = await send_command(bot, channel, content)
 
-    msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+    msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
     assert msg.embeds[0].title == f"I will now play `{url}` for the command `!custom {name}`"
 
   @pytest.mark.dependency(depends=["test_add"], scope="class")
@@ -291,14 +354,14 @@ class TestCustomSounds:
     content = "!c bruh"
     com = await send_command(bot, channel, content)
 
-    msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+    msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
     assert "Now playing: **" in msg.embeds[0].title
 
   async def test_list(self, bot: UnitTester, voice_channel: VoiceChannel, channel: TextChannel):
     content = "!c list"
     com = await send_command(bot, channel, content)
 
-    msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+    msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
     assert msg.embeds[0].title == "The list of custom sounds"
 
   @pytest.mark.dependency(depends=["test_add"], scope="class")
@@ -307,7 +370,7 @@ class TestCustomSounds:
     content = f"!c remove {name}"
     com = await send_command(bot, channel, content)
 
-    msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+    msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
     assert msg.embeds[0].title == f"Removed the custom sound `{name}`" or msg.embeds[0].title == "Could not find the custom command"
 
   @pytest.mark.depenency(depends=["test_add"], scope="class")
@@ -315,5 +378,5 @@ class TestCustomSounds:
     content = "!c clear"
     com = await send_command(bot, channel, content)
 
-    msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+    msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
     assert msg.embeds[0].title == "Cleared this servers custom commands"
