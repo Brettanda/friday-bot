@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING, Optional
 
 import asyncpg
 import discord
-import pycountry
 from discord.ext import commands
 from typing_extensions import Annotated
 
@@ -13,9 +12,6 @@ from functions import MessageColors, cache, config, embed
 from functions.custom_contexts import MyContext
 
 if TYPE_CHECKING:
-  from typing_extensions import Self
-
-  from cogs.chat import Chat
   from functions.custom_contexts import GuildContext
   from index import Friday
 

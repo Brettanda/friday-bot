@@ -8,8 +8,7 @@ from functions.checks import (guild_is_min_tier, is_admin,
                               is_admin_and_min_tier, is_min_tier,
                               is_mod_and_min_tier, is_mod_or_guild_permissions,
                               is_supporter, is_supporter_or_voted,
-                              user_is_min_tier, user_is_supporter,
-                              user_is_tier, user_voted)
+                              user_is_min_tier)
 from functions.config import PremiumTiersNew
 
 from functions.exceptions import NotInSupportServer, RequiredTier
