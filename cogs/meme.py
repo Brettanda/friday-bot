@@ -23,7 +23,7 @@ class Meme(commands.Cog):
     self.bot: Friday = bot
     self.subs = ("dankmemes", "memes", "wholesomememes")
     self.posted = ExpiringDict(max_len=1000, max_age_seconds=18000.0)
-    self.reddit_lock = asyncio.Lock()
+    self.reddit_lock = asyncio.Lock(loop=bot.loop)
     self.reddit = asyncpraw.Reddit(
         client_id=os.environ.get('REDDITCLIENTID'),
         client_secret=os.environ.get('REDDITCLIENTSECRET'),
