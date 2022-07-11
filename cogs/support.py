@@ -59,12 +59,14 @@ class Support(commands.Cog):
   def __init__(self, bot: Friday):
     self.bot: Friday = bot
 
-  @commands.command(name="support", help="Get an invite link to my support server")
+  @commands.hybrid_command(name="support")
   async def _support(self, ctx: MyContext):
+    """Get an invite link to my support server"""
     await ctx.reply(SUPPORT_SERVER_INVITE)
 
-  @commands.command(name="donate", help="Get the Patreon link for Friday")
+  @commands.hybrid_command(name="donate")
   async def _donate(self, ctx: MyContext):
+    """Get the Patreon link for Friday"""
     await ctx.reply(PATREON_LINK)
 
   @commands.Cog.listener()
