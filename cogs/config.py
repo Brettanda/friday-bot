@@ -10,6 +10,7 @@ from discord.ext import commands
 from typing_extensions import Annotated
 
 from functions import MessageColors, cache, config, embed
+from functions.custom_contexts import MyContext
 
 if TYPE_CHECKING:
   from typing_extensions import Self
