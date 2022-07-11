@@ -214,7 +214,7 @@ class Moderation(commands.Cog):
       log.debug(f"PostgreSQL Query: \"{query}\" + {str(guild_id)}")
       if record is None:
         raise commands.CommandError("This server does not have a configuration set up. Please contact developer.")
-      return await Config.from_record(record, self.bot)
+      return Config(record=record, bot=self.bot)
 
   @commands.Cog.listener()
   async def on_invalidate_mod(self, guild_id: int):

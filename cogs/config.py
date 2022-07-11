@@ -72,6 +72,18 @@ class Command(commands.Converter):
     return ctx.bot.get_command(lowered)  # type: ignore
 
 
+class LanguageConverter(commands.Converter, discord.app_commands.Transformer):
+  async def convert(self, ctx: MyContext, argument: str):
+    lowered = argument.lower()
+
+    for code, _file in ctx.bot.language_files.items():
+      if lowered == code.lower():
+        return code
+      if lowered == _file["_lang_name"].lower():
+        return code
+    raise commands.BadArgument(f"Language {lowered!r} does not exist, or is not supported.")
+
+
 class ConfigConfig:
   __slots__ = ("bot", "id", "mod_role_ids")
 
