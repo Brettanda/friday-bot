@@ -100,7 +100,7 @@ class Config(commands.Cog, command_attrs=dict(extras={"permissions": ["manage_gu
     if await ctx.bot.is_owner(ctx.author):
       return True
 
-    if not ctx.author.guild_permissions.manage_guild:
+    if not ctx.permissions.manage_guild:
       raise commands.MissingPermissions(["manage_guild"])
     return True
 

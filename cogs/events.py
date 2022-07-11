@@ -68,7 +68,7 @@ class ScheduledEvents(commands.Cog):
     if await ctx.bot.is_owner(ctx.author):
       return True
 
-    if not ctx.author.guild_permissions.manage_guild:
+    if not ctx.permissions.manage_guild:
       raise commands.MissingPermissions(["manage_guild"])
 
     if self.bot.prod and ctx.guild.id != 215346091321720832:

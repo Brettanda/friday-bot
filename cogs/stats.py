@@ -169,7 +169,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
     is_owner = await self.bot.is_owner(ctx.author)
     if ctx.author.id != 892865928520413245 and not is_owner:
       raise commands.NotOwner()
-    if ctx.guild and not ctx.channel.permissions_for(ctx.guild.me).attach_files:
+    if ctx.guild and not ctx.bot_permissions.attach_files:
       raise commands.BotMissingPermissions(["attach_files"])
     return True
 
