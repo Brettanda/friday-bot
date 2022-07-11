@@ -141,54 +141,24 @@ class Config(commands.Cog, command_attrs=dict(extras={"permissions": ["manage_gu
   # TODO: Add the cooldown back to the below command but check if the command fails then reset the cooldown
   #
 
-  @commands.command(name="language", extras={"examples": ["en", "es", "english", "spanish"]}, aliases=["lang"], help="Change the language that I will speak. This currently only applies to the chatbot messages not the commands.")
-  # @commands.cooldown(1, 3600, commands.BucketType.guild)
-  @commands.has_guild_permissions(administrator=True)
-  async def language(self, ctx: GuildContext, language: Optional[str] = None):
-    lang = ctx.guild.preferred_locale.value.split("-")[0]
-    new_language = language or lang
+  @commands.command(name="userlanguage", extras={"examples": ["en", "es", "english", "Español"]}, aliases=["userlang"])
+  async def user_language(self, ctx: MyContext, language: Annotated[Optional[str], LanguageConverter] = None):
+    """Change the language that I will speak to you as a user"""
+    if language is None:
+      return await ctx.reply(embed=embed(title=ctx.lang["config"]["lang"]["current_lang"].format(ctx.lang['_lang_name'])))
 
-    new_lang = pycountry.languages.get(alpha_2=language) if len(new_language) <= 2 else pycountry.languages.get(name=new_language)
-    if new_lang is None:
-      return await ctx.reply(embed=embed(title=f"Failed to find language: `{language}`", color=MessageColors.ERROR))
+    await self.bot.languages.put(ctx.author.id, language)
+    await ctx.reply(embed=embed(title=ctx.lang["config"]["lang"]["new_lang"].format(ctx.lang['_lang_name']), description=ctx.lang["config"]["lang"]["new_lang_desc"]))
 
-    final_lang = new_lang.alpha_2 if new_lang is not None else lang
-    final_lang_name = new_lang.name if new_lang is not None else lang
-    await ctx.db.execute("UPDATE servers SET lang=$1 WHERE id=$2", final_lang, str(ctx.guild.id))
-    await ctx.reply(embed=embed(title=f"New language set to: `{final_lang_name}`"))
-    chat: Optional[Chat] = self.bot.get_cog("Chat")  # type: ignore
+  @commands.command(name="serverlanguage", extras={"examples": ["en", "es", "english", "Español"]}, aliases=["serverlang", "guildlang", "guildlanguage"])
+  @commands.has_guild_permissions(manage_guild=True)
+  async def guild_language(self, ctx: GuildContext, language: Annotated[Optional[str], LanguageConverter] = None):
+    """Change the language that I will speak in a server"""
+    if language is None:
+      return await ctx.reply(embed=embed(title=ctx.lang["config"]["lang"]["current_lang"].format(ctx.lang['_lang_name'])))
 
-    if chat is not None:
-      chat.get_guild_config.invalidate(chat, ctx.guild.id)
-  # @commands.command(name="language", extras={"examples": ["en", "es", "english", "spanish"]}, aliases=["lang"], help="Change the language that I will speak. This currently only applies to the chatbot messages not the commands.")
-  # # @commands.cooldown(1, 3600, commands.BucketType.guild)
-  # @commands.has_guild_permissions(administrator=True)
-  # async def new_language(self, ctx: GuildContext):
-  #   langs = self.bot.languages.items()
-
-  #   confirm = await ctx.multi_select(
-  #       "Select the language you would like me to speak in",
-  #       options=[{
-  #           "label": la[1]["_lang_name"],
-  #           "value": la[0],
-  #           "emoji": la[1]["_lang_emoji"],
-  #           "default": la[0] == ctx.lang[0],
-  #       } for la in langs],
-  #       placeholder=ctx.lang[1]["_lang_name"]
-  #   )
-  #   if not confirm:
-  #     return await ctx.reply(embed=embed(title="Cancelled"))
-
-  #   await ctx.db.execute("UPDATE servers SET lang=$1 WHERE id=$2", confirm[0], str(ctx.guild.id))
-
-  #   chat: Optional[Chat] = self.bot.get_cog("Chat")  # type: ignore
-  #   if chat is not None:
-  #     chat.get_guild_config.invalidate(chat, ctx.guild.id)
-  #   log = self.bot.log
-  #   if log is not None:
-  #     log.get_guild_config.invalidate(log, ctx.guild.id)
-  #   ctx._lang = confirm[0], self.bot.languages[confirm[0]]
-  #   await ctx.reply(embed=embed(title=f"{ctx.lang[1]['config']['lang']['new_lang']}`{self.bot.languages[confirm[0]]['_lang_name']}`"))
+    await self.bot.languages.put(ctx.guild.id, language)
+    await ctx.reply(embed=embed(title=ctx.lang["config"]["lang"]["new_lang"].format(ctx.lang['_lang_name']), description=ctx.lang["config"]["lang"]["new_lang_desc"]))
 
   @commands.group("botchannel", invoke_without_command=True, case_insensitive=True, extras={"examples": ["#botspam"]}, help="The channel where bot commands live.")
   async def botchannel(self, ctx: GuildContext, *, channel: discord.TextChannel = None):

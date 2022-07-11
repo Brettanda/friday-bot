@@ -461,7 +461,7 @@ class Chat(commands.Cog):
       if self.bot.log:
         conf = await self.bot.log.get_guild_config(ctx.guild.id, connection=ctx.db)
         if not conf:
-          await ctx.db.execute(f"INSERT INTO servers (id,lang) VALUES ({str(ctx.guild.id)},'{ctx.guild.preferred_locale.value.split('-')[0]}') ON CONFLICT DO NOTHING")
+          await ctx.db.execute(f"INSERT INTO servers (id) VALUES ({str(ctx.guild.id)}) ON CONFLICT DO NOTHING")
           self.bot.log.get_guild_config.invalidate(log, ctx.guild.id)
           self.get_guild_config.invalidate(self, ctx.guild.id)
           conf = await self.bot.log.get_guild_config(ctx.guild.id, connection=ctx.db)
@@ -483,8 +483,6 @@ class Chat(commands.Cog):
 
       if config.tier:
         current_tier = config.tier
-    lang = ctx.guild and config and config.lang or "en"
-
     voted = await checks.user_voted(self.bot, ctx.author, connection=ctx.db)
 
     if voted and not current_tier > PremiumTiersNew.voted.value:
@@ -518,7 +516,7 @@ class Chat(commands.Cog):
       return
     chat_history = self.chat_history[msg.channel.id]
     async with ctx.typing():
-      translation = await Translation.from_text(content, from_lang=lang, parent=self)
+      translation = await Translation.from_text(content, from_lang=ctx.lang_code, parent=self)
       try:
         response = await self.openai_req(msg, current_tier, config and config.persona, content=str(translation).strip('\n'))
       except Exception as e:

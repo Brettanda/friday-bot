@@ -6,7 +6,7 @@ import logging
 import os
 import sys
 from collections import Counter, defaultdict
-from typing import TYPE_CHECKING, Any, AsyncIterator, Dict, Iterable, Optional
+from typing import TYPE_CHECKING, Any, AsyncIterator, Iterable, Optional
 
 import aiohttp
 import asyncpg
@@ -23,6 +23,7 @@ if TYPE_CHECKING:
   from .cogs.database import Database
   from .cogs.log import Log
   from .cogs.reminder import Reminder
+  from i18n import I18n
 
 load_dotenv()
 
@@ -104,13 +105,6 @@ class Friday(commands.AutoShardedBot):
   def __repr__(self) -> str:
     return f"<Friday username=\"{self.user.display_name if self.user else None}\" id={self.user.id if self.user else None}>"
 
-  async def get_lang(self, msg: discord.Message):
-    if msg.guild is None:
-      return self.langs["en"]
-    if not self.log:
-      return self.langs.get(msg.guild.preferred_locale.value[:2], "en")
-    return self.langs.get((await self.log.get_guild_config(msg.guild.id)).lang)
-
   async def get_context(self, origin: discord.Message | discord.Interaction, /, *, cls=None) -> functions.MyContext:
     return await super().get_context(origin, cls=cls or functions.MyContext)
 
@@ -119,11 +113,11 @@ class Friday(commands.AutoShardedBot):
 
     self.blacklist: Config[bool] = Config("blacklist.json", loop=self.loop)
 
-    self.langs: Dict[str, ReadOnly[dict[str, Any]]] = {
+    self.language_files: dict[str, I18n] = {  # type: ignore
         "en": ReadOnly("i18n/source/commands.json", loop=self.loop),
         **{name: ReadOnly(f"i18n/translations/{name}/commands.json", loop=self.loop) for name in os.listdir("./i18n/translations")}
     }
-    self.languages = self.langs
+    self.languages = Config("languages.json", loop=self.loop)
 
     self.pool = await functions.db.Table.create_pool(prod=self.prod, canary=self.canary)
     await self.load_extension("cogs.database")
