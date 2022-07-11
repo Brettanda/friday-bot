@@ -9,8 +9,6 @@ from discord.ext import commands
 from functions import cache
 
 if TYPE_CHECKING:
-  from typing_extensions import Self
-
   from functions.custom_contexts import MyContext
   from index import Friday
 
@@ -20,18 +18,10 @@ log = logging.getLogger(__name__)
 class Config:
   __slots__ = ("bot", "id", "shortcuts", )
 
-  bot: Friday
-  id: int
-  shortcuts: dict
-
-  @classmethod
-  async def from_record(cls, record: asyncpg.Record, bot: Friday) -> Self:
-    self = cls()
-
-    self.bot = bot
-    self.id = int(record["id"], base=10)
-    self.shortcuts = record["shortcuts"]
-    return self
+  def __init__(self, *, record: asyncpg.Record, bot: Friday):
+    self.bot: Friday = bot
+    self.id: int = int(record["id"], base=10)
+    self.shortcuts: dict = record["shortcuts"]
 
 
 class Shortcuts(commands.Cog):
@@ -59,7 +49,7 @@ class Shortcuts(commands.Cog):
     record = await conn.fetchrow(query, str(guild_id))
     log.debug(f"PostgreSQL Query: \"{query}\" + {str(guild_id)}")
     if record is not None:
-      return await Config.from_record(record, self.bot)
+      return Config(record=record, bot=self.bot)
     return None
 
   @commands.group(name="shortcuts", aliases=["sc"], help="Setup shortcuts for your favourite commands and arguments")

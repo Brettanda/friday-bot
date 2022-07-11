@@ -14,8 +14,6 @@ from discord.ext import commands  # , tasks
 from functions import MessageColors, MyContext, cache, embed, formats
 
 if TYPE_CHECKING:
-  from typing_extensions import Self
-
   from functions.custom_contexts import GuildContext
   from index import Friday
 
@@ -42,22 +40,12 @@ def create_command_reason(moderator: Union[discord.Member, discord.User], reason
 class ModConfig:
   __slots__ = ("bot", "id", "mod_log_channel_id", "mod_log_events", "mute_role_id", )
 
-  bot: Friday
-  id: int
-  mute_role_id: Optional[int]
-  mod_log_channel_id: Optional[int]
-  mod_log_events: list[str]
-
-  @classmethod
-  def from_record(cls, record: asyncpg.Record, bot: Friday) -> Self:
-    self = cls()
-
-    self.bot = bot
-    self.id = int(record["id"], base=10)
-    self.mute_role_id = int(record["mute_role"], base=10) if record["mute_role"] else None
-    self.mod_log_events = list(record["mod_log_events"] or [])
-    self.mod_log_channel_id = int(record["mod_log_channel"], base=10) if record["mod_log_channel"] else None
-    return self
+  def __init__(self, *, record: asyncpg.Record, bot: Friday):
+    self.bot: Friday = bot
+    self.id: int = int(record["id"], base=10)
+    self.mute_role_id: Optional[int] = int(record["mute_role"], base=10) if record["mute_role"] else None
+    self.mod_log_channel_id: Optional[int] = int(record["mod_log_channel"], base=10) if record["mod_log_channel"] else None
+    self.mod_log_events: list[str] = list(record["mod_log_events"] or [])
 
   @property
   def mod_log_channel(self) -> Optional[discord.TextChannel]:
@@ -87,7 +75,7 @@ class ModLogging(commands.Cog):
     record = await conn.fetchrow(query, str(guild_id))
     if not record:
       raise ValueError("Server not found.")
-    return ModConfig.from_record(record, self.bot)
+    return ModConfig(record=record, bot=self.bot)
 
   @commands.Cog.listener()
   async def on_invalidate_mod(self, guild_id: int):

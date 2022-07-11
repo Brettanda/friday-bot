@@ -75,18 +75,10 @@ class Command(commands.Converter):
 class ConfigConfig:
   __slots__ = ("bot", "id", "mod_role_ids")
 
-  bot: Friday
-  id: int
-  mod_role_ids: list
-
-  @classmethod
-  async def from_record(cls, record: asyncpg.Record, bot: Friday) -> Self:
-    self = cls()
-    self.bot = bot
-    self.id = int(record["id"], base=10)
-    self.mod_role_ids = record["mod_roles"]
-
-    return self
+  def __init__(self, *, record: asyncpg.Record, bot: Friday):
+    self.bot: Friday = bot
+    self.id: int = int(record["id"], base=10)
+    self.mod_role_ids: list = record["mod_roles"]
 
   @property
   def mod_roles(self) -> list:
@@ -119,7 +111,7 @@ class Config(commands.Cog, command_attrs=dict(extras={"permissions": ["manage_gu
     record = await conn.fetchrow(query, str(guild_id))
     log.debug(f"PostgreSQL Query: \"{query}\" + {str(guild_id)}")
     if record is not None:
-      return await ConfigConfig.from_record(record, self.bot)
+      return ConfigConfig(record=record, bot=self.bot)
     return None
 
   @commands.command(name="prefix", extras={"examples": ["?", "f!"]}, help="Sets the prefix for Fridays commands")

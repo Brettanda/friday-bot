@@ -74,18 +74,10 @@ class NotRedditLink(exceptions.Base):
 class Config:
   __slots__ = ("bot", "id", "enabled", )
 
-  bot: Friday
-  id: int
-  enabled: bool
-
-  @classmethod
-  async def from_record(cls, record: asyncpg.Record, bot: Friday):
-    self = cls()
-
-    self.bot = bot
-    self.id = int(record["id"], base=10)
-    self.enabled = bool(record["reddit_extract"])
-    return self
+  def __init__(self, *, record: asyncpg.Record, bot: Friday):
+    self.bot: Friday = bot
+    self.id: int = int(record["id"], base=10)
+    self.enabled: bool = bool(record["reddit_extract"])
 
 
 class RedditMedia:
@@ -184,7 +176,7 @@ class redditlink(commands.Cog):
     record = await conn.fetchrow(query, str(guild_id))
     log.debug(f"PostgreSQL Query: \"{query}\" + {str(guild_id)}")
     if record is not None:
-      return await Config.from_record(record, self.bot)
+      return Config(record=record, bot=self.bot)
     return None
 
   @cache.cache()

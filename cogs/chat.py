@@ -46,29 +46,16 @@ class ChatError(commands.CheckFailure):
 
 
 class Config:
-  __slots__ = ("bot", "id", "chat_channel_id", "persona", "lang", "tier", "puser",
-               )
+  __slots__ = ("bot", "id", "chat_channel_id", "persona", "lang", "tier", "puser",)
 
-  bot: Friday
-  id: int
-  chat_channel_id: Optional[int]
-  tier: int
-  puser: Optional[int]
-  persona: Optional[str]
-  lang: str
-
-  @classmethod
-  async def from_record(cls, record: asyncpg.Record, bot: Friday) -> Self:
-    self = cls()
-
-    self.bot = bot
-    self.id = int(record["id"], base=10)
-    self.chat_channel_id = record.get("chatchannel") and int(record["chatchannel"], base=10)
-    self.tier = record["tier"] if record else 0
-    self.puser = record["user_id"] if record else None
-    self.persona = record["persona"]
-    self.lang = record["lang"] or "en"
-    return self
+  def __init__(self, *, record: asyncpg.Record, bot: Friday):
+    self.bot: Friday = bot
+    self.id: int = int(record["id"], base=10)
+    self.chat_channel_id: Optional[int] = record.get("chatchannel") and int(record["chatchannel"], base=10)
+    self.tier: int = record["tier"] if record else 0
+    self.puser: Optional[int] = record["user_id"] if record else None
+    self.persona: Optional[str] = record["persona"]
+    self.lang: str = record["lang"] or "en"
 
   @property
   def chat_channel(self) -> Optional[Union[discord.TextChannel, discord.VoiceChannel, discord.Thread]]:
@@ -80,20 +67,11 @@ class Config:
 class UserConfig:
   __slots__ = ("bot", "user_id", "tier", "guild_ids",)
 
-  bot: Friday
-  user_id: int
-  tier: int
-  guild_ids: List[int]
-
-  @classmethod
-  async def from_record(cls, record: asyncpg.Record, bot: Friday) -> Self:
-    self = cls()
-
-    self.bot = bot
-    self.user_id = int(record["user_id"], base=10)
-    self.tier = record["tier"] if record else 0
-    self.guild_ids = record["guild_ids"] or []
-    return self
+  def __init__(self, *, record: asyncpg.Record, bot: Friday):
+    self.bot: Friday = bot
+    self.user_id: int = int(record["user_id"], base=10)
+    self.tier: int = record["tier"] if record else 0
+    self.guild_ids: List[int] = record["guild_ids"] or []
 
 
 class SpamChecker:
@@ -261,7 +239,7 @@ class Chat(commands.Cog):
     else:
       log.debug(f"PostgreSQL Query: \"{query}\" + {str(guild_id)}")
       if record is not None:
-        return await Config.from_record(record, self.bot)
+        return Config(record=record, bot=self.bot)
     return None
 
   @commands.Cog.listener()
