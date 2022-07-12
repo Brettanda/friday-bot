@@ -18,4 +18,5 @@ exclude = [
 [tool.pytest.ini_options]
 testpaths = [
     "tests",
+    "tests_offline"
 ]

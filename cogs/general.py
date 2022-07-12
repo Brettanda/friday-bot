@@ -114,7 +114,7 @@ class General(commands.Cog):
   def link(self):
     return oauth_url(self.bot.user.id, permissions=INVITE_PERMISSIONS, scopes=["bot", "applications.commands"])
 
-  @commands.command("invite", help="Get the invite link to add me to your server")
+  @commands.hybrid_command("invite", help="Get the invite link to add me to your server")
   async def _invite(self, ctx: MyContext):
     await ctx.send(embed=embed(title="Invite me :)"), view=InviteButtons(self.link))
 

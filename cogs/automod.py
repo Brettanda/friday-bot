@@ -60,34 +60,18 @@ class Config:
   __slots__ = ("bot", "id", "max_mentions", "max_messages", "max_content", "remove_invites", "automod_whitelist", "blacklisted_words", "blacklist_punishments", "muted_members", "mute_role_id",
                )
 
-  bot: Friday
-  id: int
-  max_mentions: Optional[SpamType]
-  max_messages: Optional[SpamType]
-  max_content: Optional[SpamType]
-  remove_invites: bool
-  automod_whitelist: Set[str]
-  blacklisted_words: List[str]
-  blacklist_punishments: List[str]
-  muted_members: Set[str]
-  mute_role_id: Optional[int]
-
-  @classmethod
-  async def from_record(cls, record: asyncpg.Record, blacklist: asyncpg.Record, bot: Friday) -> Self:
-    self = cls()
-
-    self.bot = bot
-    self.id = int(record["id"], base=10)
-    self.max_mentions = record["max_mentions"] if record["max_mentions"] else None
-    self.max_messages = record["max_messages"] if record["max_messages"] else None
-    self.max_content = record["max_content"] if record["max_content"] else None
-    self.remove_invites = record["remove_invites"]
-    self.automod_whitelist = set(record["automod_whitelist"] or [])
-    self.blacklisted_words = blacklist["words"] if blacklist else []
-    self.blacklist_punishments = blacklist["punishments"] if blacklist else []
-    self.muted_members = set(record["muted_members"] or [])
-    self.mute_role_id = int(record["mute_role"], base=10) if record["mute_role"] else None
-    return self
+  def __init__(self, *, record: asyncpg.Record, blacklist: asyncpg.Record, bot: Friday):
+    self.bot: Friday = bot
+    self.id: int = int(record["id"], base=10)
+    self.max_mentions: Optional[SpamType] = record["max_mentions"] if record["max_mentions"] else None
+    self.max_messages: Optional[SpamType] = record["max_messages"] if record["max_messages"] else None
+    self.max_content: Optional[SpamType] = record["max_content"] if record["max_content"] else None
+    self.remove_invites: bool = record["remove_invites"]
+    self.automod_whitelist: Set[str] = set(record["automod_whitelist"] or [])
+    self.blacklisted_words: List[str] = blacklist["words"] if blacklist else []
+    self.blacklist_punishments: List[str] = blacklist["punishments"] if blacklist else []
+    self.muted_members: Set[str] = set(record["muted_members"] or [])
+    self.mute_role_id: Optional[int] = int(record["mute_role"], base=10) if record["mute_role"] else None
 
   @property
   def mute_role(self) -> Optional[discord.Role]:
@@ -284,7 +268,7 @@ class AutoMod(commands.Cog):
     blrecord = await conn.fetchrow(blquery, str(guild_id))
     log.debug(f"PostgreSQL Query: \"{blquery}\" + {str(guild_id)}")
     if record is not None:
-      return await Config.from_record(record, blrecord, self.bot)
+      return Config(record=record, blacklist=blrecord, bot=self.bot)
     return None
 
   @commands.Cog.listener()

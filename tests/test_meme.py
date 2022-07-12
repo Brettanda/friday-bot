@@ -6,7 +6,7 @@ import pytest
 
 from functions.messagecolors import MessageColors
 
-from .conftest import send_command
+from .conftest import send_command, msg_check
 
 if TYPE_CHECKING:
   from discord import TextChannel
@@ -26,5 +26,5 @@ async def test_meme(bot: UnitTester, channel: TextChannel):
   content = "!meme"
   com = await send_command(bot, channel, content)
 
-  msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+  msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
   assert msg.embeds[0].color.value == MessageColors.meme().value

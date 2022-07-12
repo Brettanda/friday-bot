@@ -8,7 +8,7 @@ if TYPE_CHECKING:
   from .conftest import UnitTester, Friday
   from discord import TextChannel
 
-from .conftest import send_command
+from .conftest import send_command, msg_check
 
 pytestmark = pytest.mark.asyncio
 
@@ -23,7 +23,7 @@ async def test_welcome(bot: UnitTester, channel: TextChannel):
   content = "!welcome"
   com = await send_command(bot, channel, content)
 
-  msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+  msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
   assert "Current Welcome Settings" == msg.embeds[0].title
 
 
@@ -32,7 +32,7 @@ async def test_display(bot: UnitTester, channel: TextChannel):
   content = "!welcome display"
   com = await send_command(bot, channel, content)
 
-  msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+  msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
   assert "Current Welcome Settings" in msg.embeds[0].title
 
 
@@ -41,10 +41,10 @@ async def test_role(bot: UnitTester, channel: TextChannel):
   content = "!welcome role 895463648326221854"
   com = await send_command(bot, channel, content)
 
-  msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+  msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
   content = "!welcome role"
   com = await send_command(bot, channel, content)
-  await bot.wait_for("message", check=lambda message: pytest.msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+  await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
   assert "New members will now receive the role " in msg.embeds[0].title
 
 
@@ -53,10 +53,10 @@ async def test_channel(bot: UnitTester, channel: TextChannel):
   content = f"!welcome channel {channel.id}"
   com = await send_command(bot, channel, content)
 
-  msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+  msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
   content = "!welcome channel"
   com = await send_command(bot, channel, content)
-  await bot.wait_for("message", check=lambda message: pytest.msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+  await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
   assert "Welcome message will be sent to" in msg.embeds[0].title
 
 
@@ -66,7 +66,7 @@ async def test_message(bot: UnitTester, channel: TextChannel, args: str):
   content = f'!welcome message {args}'
   com = await send_command(bot, channel, content)
 
-  msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+  msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
   assert msg.embeds[0].title == "This servers welcome message is now" or msg.embeds[0].title == "Welcome message removed"
 
 

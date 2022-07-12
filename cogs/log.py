@@ -24,8 +24,6 @@ from functions import (MessageColors, MyContext,  # , FakeInteractionMessage
 
 
 if TYPE_CHECKING:
-  from typing_extensions import Self
-
   from index import Friday
 
   class CommandError(commands.CommandError):
@@ -47,28 +45,15 @@ log = logging.getLogger(__name__)
 class Config:
   __slots__ = ("bot", "id", "chat_channel", "disabled_commands", "restricted_commands", "bot_channel", "tier", "lang",)
 
-  bot: Friday
-  id: int
-  chat_channel: discord.TextChannel
-  disabled_commands: Set[str]
-  restricted_commands: Set[str]
-  bot_channel: Optional[int]
-  tier: str
-  lang: str
-
-  @classmethod
-  async def from_record(cls, record: asyncpg.Record, bot: Friday) -> Self:
-    self = cls()
-
-    self.bot = bot
-    self.id = int(record["id"], base=10)
-    self.chat_channel = record["chatchannel"]
-    self.disabled_commands = set(record["disabled_commands"] or [])
-    self.restricted_commands = set(record["restricted_commands"] or [])
-    self.bot_channel = int(record["botchannel"], base=10) if record["botchannel"] else None
-    self.tier = record["tier"]
-    self.lang = record["lang"]
-    return self
+  def __init__(self, *, record: asyncpg.Record, bot: Friday):
+    self.bot: Friday = bot
+    self.id: int = int(record["id"], base=10)
+    self.chat_channel: discord.TextChannel = record["chatchannel"]
+    self.disabled_commands: Set[str] = set(record["disabled_commands"] or [])
+    self.restricted_commands: Set[str] = set(record["restricted_commands"] or [])
+    self.bot_channel: Optional[int] = int(record["botchannel"], base=10) if record["botchannel"] else None
+    self.tier: str = record["tier"]
+    self.lang: str = record["lang"]
 
 
 class CustomWebhook(discord.Webhook):
@@ -115,6 +100,20 @@ class Log(commands.Cog):
         embed_links=True,
         add_reactions=True,
     ).predicate(ctx)
+
+  async def cog_load(self) -> None:
+    query = "SELECT id,lang FROM servers WHERE lang IS NOT NULL;"
+    records = await self.bot.pool.fetch(query)
+    new_query = ""
+    total = len(records)
+    completed = 0
+    for r in records:
+      await self.bot.languages.put(r["id"], r["lang"])
+      new_query += f"UPDATE servers SET lang = NULL WHERE id = {r['id']}::text;"
+      completed += 1
+    if new_query:
+      await self.bot.pool.execute(new_query)
+    log.info(f"Moved {completed}/{total} languages to new system")
 
   @commands.Cog.listener()
   async def on_shard_connect(self, shard_id):
@@ -280,7 +279,6 @@ class Log(commands.Cog):
           await ctx.db.execute(f"INSERT INTO servers (id,lang) VALUES ({str(ctx.guild.id)},'{ctx.guild.preferred_locale.value.split('-')[0]}') ON CONFLICT DO NOTHING")
           self.get_guild_config.invalidate(self, ctx.guild.id)
           config = await self.get_guild_config(ctx.guild.id, connection=ctx.db)
-          # await ctx.get_lang()
         if config is not None:
           if ctx.command.name in config.disabled_commands:
             return False
@@ -338,7 +336,7 @@ class Log(commands.Cog):
     log.debug(f"PostgreSQL Query: \"{query}\" + {str(guild_id)}")
     if not record:
       raise ValueError("Server not found.")
-    return await Config.from_record(record, self.bot)
+    return Config(record=record, bot=self.bot)
 
   @discord.utils.cached_property
   def log_chat(self) -> CustomWebhook:

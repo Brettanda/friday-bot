@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import io
-from typing import TYPE_CHECKING, Any, Generator, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Generator, List, Optional, Union
 
 import discord
 from discord.context_managers import Typing as TypingOld
@@ -13,7 +13,6 @@ if TYPE_CHECKING:
   from aiohttp import ClientSession
   from asyncpg import Connection, Pool
 
-  from functions.config import ReadOnly
   from index import Friday
 
 
@@ -191,9 +190,6 @@ class MyContext(commands.Context):
     super().__init__(**kwargs)
     self.pool: Pool = self.bot.pool
     self._db: Optional[Union[Pool, Connection]] = None
-    name: str = "en"
-    self._lang: Tuple[str, ReadOnly[dict[str, Any]]] = (name, self.bot.langs["en"])
-    self._lang_default = self._lang
 
   def __repr__(self) -> str:
     return "<Context>"
@@ -250,21 +246,17 @@ class MyContext(commands.Context):
     return super().typing(**kwargs)
 
   @property
+  def lang_code(self) -> str:
+    if self.interaction:
+      if self.interaction.guild_locale is not None:
+        return self.interaction.guild_locale.value.split("-")[0]
+      return self.interaction.locale.value.split("-")[0]
+    guild = self.guild and self.bot.languages.get(self.guild.id, None)
+    return guild or self.bot.languages.get(self.author.id, "en")
+
+  @property
   def lang(self):
-    return self._lang
-
-  async def get_lang(self):
-    if not self.guild:
-      return ("en", self.bot.langs["en"])
-    conf = await self.bot.log.get_guild_config(self.guild.id, connection=self.db)
-    self._lang = (conf.lang, self.bot.langs.get(conf.lang, "en"))  # type: ignore
-    return self._lang
-
-    # if msg.guild is None:
-    #   return self.langs["en"]
-    # if not self.log:
-    #   return self.langs.get(msg.guild.preferred_locale[:2], "en")
-    # return self.langs.get((await self.log.get_guild_config(msg.guild.id)).lang)
+    return self.bot.language_files.get(self.lang_code, self.bot.language_files["en"])
 
   async def prompt(
           self,
