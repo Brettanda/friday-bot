@@ -114,8 +114,7 @@ class Friday(commands.AutoShardedBot):
     self.blacklist: Config[bool] = Config("blacklist.json", loop=self.loop)
 
     self.language_files: dict[str, I18n] = {  # type: ignore
-        "en": ReadOnly("i18n/source/commands.json", loop=self.loop),
-        **{name: ReadOnly(f"i18n/translations/{name}/commands.json", loop=self.loop) for name in os.listdir("./i18n/translations")}
+        **{name: ReadOnly(f"i18n/locales/{name}/commands.json", loop=self.loop) for name in os.listdir("./i18n/locales")}
     }
     self.languages = Config("languages.json", loop=self.loop)
 
