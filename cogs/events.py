@@ -13,8 +13,6 @@ from discord.ext import commands, tasks
 from functions import MessageColors, cache, embed, formats
 
 if TYPE_CHECKING:
-  from typing_extensions import Self
-
   from functions.custom_contexts import GuildContext
   from index import Friday
 
@@ -28,25 +26,14 @@ log = logging.getLogger(__name__)
 class Config:
   __slots__ = ("bot", "guild_id", "events")  # , "default_event_role_id")
 
-  bot: Friday
-  guild_id: int
-  events: dict[int, EventsTyped]
-
-  @classmethod
-  async def from_records(cls, records: Sequence[Record], bot: Friday) -> Self:
-    self = cls()
-
-    self.bot = bot
-    self.guild_id = records[0]["guild_id"]
-
-    # self.default_event_role_id: Optional[int] = records[0]["default_event_role_id"]
-    self.events = {
+  def __init__(self, *, records: Sequence[Record], bot: Friday):
+    self.bot: Friday = bot
+    self.guild_id: int = records[0]["guild_id"]
+    self.events: dict[int, EventsTyped] = {
         r["event_id"]: {
             "role": r["role_id"],
             "subscribers": set(r["subscribers"] or [])
         } for r in records}
-
-    return self
 
   @property
   def roles(self) -> List[int]:
@@ -58,7 +45,7 @@ class Config:
   # def get_role(self, event_id: int) -> int:
   #   return self._get_role(event_id) or self.default_event_role_id
 
-  def get_subsribers(self, event_id: int) -> List[int]:
+  def get_subsribers(self, event_id: int) -> set[int]:
     return self.events.get(event_id, {}).get("subscribers", [])
 
 
@@ -81,7 +68,7 @@ class ScheduledEvents(commands.Cog):
     if await ctx.bot.is_owner(ctx.author):
       return True
 
-    if not ctx.author.guild_permissions.manage_guild:
+    if not ctx.permissions.manage_guild:
       raise commands.MissingPermissions(["manage_guild"])
 
     if self.bot.prod and ctx.guild.id != 215346091321720832:
@@ -155,7 +142,7 @@ class ScheduledEvents(commands.Cog):
               LEFT OUTER JOIN scheduledevents e ON s.id::bigint = e.guild_id
               WHERE s.id::bigint=$1;"""
     records = await conn.fetch(query, guild_id)
-    return records and await Config.from_records(records, self.bot)
+    return records and Config(records=records, bot=self.bot)
 
   @commands.Cog.listener()
   async def on_ready(self):

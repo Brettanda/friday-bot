@@ -49,7 +49,7 @@ async def test_all_properties(friday: Friday, context: MyContext):
 # async def test_prompt(friday: friday, bot: UnitTester, context: context, channel: TextChannel):
 
 #   asyncio.create_task(ctx.prompt("this is a prompt"))
-#   msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+#   msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
 
 
 async def test_delete_message_before_response(bot: UnitTester, friday: Friday, channel: TextChannel):

@@ -140,5 +140,6 @@ friday-trans-key.json
 *.zip
 
 blacklist.json
+languages.json
 crowdin.yml
 wandb/

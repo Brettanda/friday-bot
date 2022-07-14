@@ -51,13 +51,11 @@ class Fun(commands.Cog):
     self.rpsoptions = ["rock", "paper", "scissors"]
     self.countdown_messages = []
     self.loop_countdown.add_exception_type(discord.NotFound)
-    self.loop_countdown.start()
     # self.timeouter = None
     # self.timeoutCh = None
 
     self.poll_edit_batch = defaultdict(None)
-    self.poll_edit_lock = asyncio.Lock()
-    self.poll_loop.start()
+    self.poll_edit_lock = asyncio.Lock(loop=bot.loop)
 
     self.callroulette_batch: List[Tuple[discord.Member, Sequence[discord.VoiceChannel]]] = []
 
@@ -65,6 +63,8 @@ class Fun(commands.Cog):
     return f"<cogs.{self.__cog_name__}>"
 
   async def cog_load(self) -> None:
+    self.loop_countdown.start()
+    self.poll_loop.start()
     countdowns = await self.bot.pool.fetch("SELECT guild,channel,message,title,time FROM countdowns")
     for countdown in countdowns:
       self.countdowns.append(tuple(c for c in countdown))
@@ -295,7 +295,7 @@ class Fun(commands.Cog):
     bar = fill * filledLength + '░' * (length - filledLength)
     return f"\r |{bar}| {percent}% ({iteration}/{total})"
 
-  async def poll(self, ctx: MyContext, title: str, options: Sequence[str]):
+  async def poll(self, ctx: MyContext, title: str, options: Sequence[str]) -> None:
     x = 0
     titles = []
     vals = []

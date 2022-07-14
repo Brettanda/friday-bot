@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Optional
 
 import pytest
 
-from .conftest import send_command
+from .conftest import send_command, msg_check
 
 if TYPE_CHECKING:
   from discord import TextChannel, VoiceChannel
@@ -30,7 +30,7 @@ async def test_say(bot: UnitTester, channel: TextChannel, words: str):
   content = f"!say {words}"
   com = await send_command(bot, channel, content)
 
-  msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+  msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
   assert msg.content == words
 
 
@@ -38,7 +38,7 @@ async def test_say_no_argument(bot: UnitTester, channel: TextChannel):
   content = "!say"
   com = await send_command(bot, channel, content)
 
-  msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+  msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
   assert msg.embeds[0].title == "!say"
 
 
@@ -47,8 +47,17 @@ async def test_chat(bot: UnitTester, friday: Friday, channel: TextChannel):
   content = f"{friday.user.mention} hey how are you?"
   com = await send_command(bot, channel, content)
 
-  msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+  msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
   assert msg.clean_content == "This message is a test"
+
+
+async def test_chat_info(bot: UnitTester, channel: TextChannel):
+  content = "!chat info"
+  com = await send_command(bot, channel, content)
+
+  msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+  assert msg.embeds[0].title == "Chat Info"
+  assert len(msg.embeds[0].fields) == 5
 
 
 async def test_chat_added_to_history(bot: UnitTester, friday: Friday, channel: TextChannel, get_cog: ChatCog):
@@ -56,13 +65,13 @@ async def test_chat_added_to_history(bot: UnitTester, friday: Friday, channel: T
   content = "!reset"
   com = await send_command(bot, channel, content)
 
-  msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+  msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
   assert msg.embeds[0].title == "My chat history has been reset"
 
   content = f"{friday.user.mention} hey how are you?"
   com = await send_command(bot, channel, content)
 
-  msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+  msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
   assert msg.clean_content == "This message is a test"
 
   chat_history = get_cog.chat_history[msg.channel.id]
@@ -74,7 +83,7 @@ async def test_chat_command(bot: UnitTester, friday: Friday, channel: TextChanne
   content = "!chat hey how are you?"
   com = await send_command(bot, channel, content)
 
-  msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+  msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
   assert msg.clean_content == "This message is a test"
 
 
@@ -85,27 +94,27 @@ async def test_chat_command_after_disabled(bot: UnitTester, friday: Friday, chan
   content = "!disable chat"
   com = await send_command(bot, channel, content)
 
-  msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+  msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
   assert msg.embeds[0].title == "**chat** has been disabled."
 
   content = f"{friday.user.mention} hey how are you?"
   com = await send_command(bot, channel, content)
 
   with pytest.raises(asyncio.TimeoutError):
-    msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+    msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
     assert msg.clean_content == "This message is a test"
 
   content = "!chat hey how are you?"
   com = await send_command(bot, channel, content)
 
   with pytest.raises(asyncio.TimeoutError):
-    msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+    msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
     assert msg.clean_content == "This message is a test"
 
   content = "!enable chat"
   com = await send_command(bot, channel, content)
 
-  msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+  msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
   assert msg.embeds[0].title == "**chat** has been enabled."
 
 
@@ -113,7 +122,7 @@ async def test_chatchannel(bot: UnitTester, channel: TextChannel):
   content = "!chatchannel"
   com = await send_command(bot, channel, content)
 
-  msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+  msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
   assert msg.embeds[0].title == "Current chat channel"
   assert msg.embeds[0].description
 
@@ -123,7 +132,7 @@ async def test_chatchannel_set(bot: UnitTester, channel: TextChannel):
   content = f"!chatchannel {channel.id}"
   com = await send_command(bot, channel, content)
 
-  msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+  msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
   assert msg.embeds[0].title == "Chat channel set"
 
 
@@ -132,7 +141,7 @@ async def test_chatchannel_chat(bot: UnitTester, channel: TextChannel):
   content = "hey how are you?"
   com = await send_command(bot, channel, content)
 
-  msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+  msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
   assert msg.clean_content == "This message is a test"
 
 
@@ -140,7 +149,7 @@ async def test_chatchannel_voice_channel(bot: UnitTester, voice_channel: VoiceCh
   content = f"!chatchannel {voice_channel.id}"
   com = await send_command(bot, channel, content)
 
-  msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+  msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
   assert msg.embeds[0].title == f"Channel \"{voice_channel.id}\" not found."
 
 
@@ -148,7 +157,7 @@ async def test_chatchannel_clear(bot: UnitTester, channel: TextChannel):
   content = "!chatchannel clear"
   com = await send_command(bot, channel, content)
 
-  msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+  msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
   assert msg.embeds[0].title == "Chat channel cleared"
 
 
@@ -158,14 +167,14 @@ async def test_chatchannel_clear(bot: UnitTester, channel: TextChannel):
 #   com = await channel.send(content)
 #   assert com
 
-#   msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+#   msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
 #   assert msg.content
 
 async def test_chat_reset(bot: UnitTester, channel: TextChannel, get_cog: ChatCog):
   content = "!reset"
   com = await send_command(bot, channel, content)
 
-  msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+  msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
   assert msg.embeds[0].title == "No history to delete" or msg.embeds[0].title == "My chat history has been reset"
 
   chat_history = get_cog.chat_history[channel.id]
@@ -176,11 +185,11 @@ async def test_persona(bot: UnitTester, channel: TextChannel):
   content = "!patreon server deactivate"
   com = await send_command(bot, channel, content)
 
-  msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+  msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
   # assert msg.embeds[0].title == "This command requires a premium server and a patron or a mod."
 
   content = "!persona"
   com = await send_command(bot, channel, content)
 
-  msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+  msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
   assert msg.embeds[0].title == "This command requires a premium server and a patron or a mod."

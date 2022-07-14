@@ -4,6 +4,7 @@ import logging
 from typing import TYPE_CHECKING, Optional, Union
 
 import discord
+import asyncpg
 from discord.ext import commands
 
 from functions import MessageColors, cache, embed
@@ -30,22 +31,12 @@ class Config:
   __slots__ = ("bot", "id", "channel_id", "role_id", "message",
                )
 
-  bot: Friday
-  id: int
-  channel_id: Optional[int]
-  role_id: Optional[int]
-  message: str
-
-  @classmethod
-  def from_record(cls, record, bot: Friday):
-    self = cls()
-
-    self.bot = bot
-    self.id = int(record["guild_id"], base=10)
-    self.channel_id = int(record["channel_id"], base=10) if record["channel_id"] is not None else None
-    self.role_id = int(record["role_id"], base=10) if record["role_id"] is not None else None
-    self.message = record["message"]
-    return self
+  def __init__(self, *, record: asyncpg.Record, bot: Friday):
+    self.bot: Friday = bot
+    self.id: int = int(record["guild_id"], base=10)
+    self.channel_id: Optional[int] = int(record["channel_id"], base=10) if record["channel_id"] is not None else None
+    self.role_id: Optional[int] = int(record["role_id"], base=10) if record["role_id"] is not None else None
+    self.message: str = record["message"]
 
   @property
   def channel(self) -> Optional[Union[discord.TextChannel, discord.VoiceChannel, discord.Thread]]:
@@ -83,7 +74,7 @@ class Welcome(commands.Cog):
     log.debug(f"PostgreSQL Query: \"{query}\" + {str(guild_id)}")
     if record is None:
       return None
-    return Config.from_record(record, self.bot)
+    return Config(record=record, bot=self.bot)
 
   @commands.Cog.listener()
   async def on_member_join(self, member: discord.Member):

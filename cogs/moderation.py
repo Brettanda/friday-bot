@@ -19,7 +19,6 @@ from functions import (MessageColors, cache, checks, embed, exceptions, plural,
 
 if TYPE_CHECKING:
   from reminder import Timer
-  from typing_extensions import Self
 
   from functions.custom_contexts import GuildContext, MyContext
   from index import Friday
@@ -155,22 +154,13 @@ def can_timeout():
 
 
 class Config:
-  __slots__ = ("bot", "id", "muted_members", "mute_role_id",
-               )
-  bot: Friday
-  id: int
-  muted_members: Set[int]
-  mute_role_id: Optional[int]
+  __slots__ = ("bot", "id", "muted_members", "mute_role_id",)
 
-  @classmethod
-  async def from_record(cls, record: asyncpg.Record, bot: Friday) -> Self:
-    self = cls()
-
-    self.bot = bot
-    self.id = int(record["id"], base=10)
-    self.muted_members = set(record["muted_members"] or [])
-    self.mute_role_id = int(record["mute_role"], base=10) if record["mute_role"] else None
-    return self
+  def __init__(self, *, record: asyncpg.Record, bot: Friday):
+    self.bot: Friday = bot
+    self.id: int = int(record["id"], base=10)
+    self.muted_members: Set[int] = set(record["muted_members"] or [])
+    self.mute_role_id: Optional[int] = int(record["mute_role"], base=10) if record["mute_role"] else None
 
   @property
   def mute_role(self) -> Optional[discord.Role]:
@@ -224,7 +214,7 @@ class Moderation(commands.Cog):
       log.debug(f"PostgreSQL Query: \"{query}\" + {str(guild_id)}")
       if record is None:
         raise commands.CommandError("This server does not have a configuration set up. Please contact developer.")
-      return await Config.from_record(record, self.bot)
+      return Config(record=record, bot=self.bot)
 
   @commands.Cog.listener()
   async def on_invalidate_mod(self, guild_id: int):
