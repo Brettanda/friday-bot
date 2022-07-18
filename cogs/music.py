@@ -402,8 +402,9 @@ class PaginatorSource(menus.ListPageSource):
 class Music(commands.Cog):
   """Listen to your favourite music and audio clips with Friday's music commands"""
 
-  def __init__(self, bot):
-    self.bot = bot
+  def __init__(self, bot: Friday):
+    self.bot: Friday = bot
+    self._nodes_ready = asyncio.Event()
 
   def __repr__(self) -> str:
     return f"<cogs.{self.__cog_name__}>"
@@ -462,6 +463,7 @@ class Music(commands.Cog):
   @commands.Cog.listener()
   async def on_wavelink_node_ready(self, node: wavelink.Node):
     log.info(f"Node {node.identifier} is ready!")
+    self._nodes_ready.set()
 
   @commands.Cog.listener('on_wavelink_track_stuck')
   @commands.Cog.listener('on_wavelink_track_end')
@@ -476,6 +478,7 @@ class Music(commands.Cog):
   @commands.Cog.listener()
   async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
     await self.bot.wait_until_ready()
+    await self._nodes_ready.wait()
     # TODO: when moved to another voice channel, Friday will some times just stop playing music until !pause and !resume are executed
     if member == self.bot.user:
       if before.channel and not after.channel:
@@ -909,7 +912,7 @@ class Music(commands.Cog):
       return await ctx.invoke(self.custom_list)  # type: ignore
     try:
       async with ctx.typing():
-        sounds = await self.bot.db.query("SELECT customSounds FROM servers WHERE id=$1 LIMIT 1", str(ctx.guild.id))
+        sounds = await ctx.db.fetchval("SELECT customSounds FROM servers WHERE id=$1 LIMIT 1", str(ctx.guild.id))
     except Exception:
       await ctx.reply(embed=embed(title=f"The custom sound `{name}` has not been set, please add it with `{ctx.prefix}custom|c add <name> <url>`", color=MessageColors.error()))
     else:
