@@ -60,6 +60,14 @@ class Database(commands.Cog):
             "joined boolean DEFAULT NULL",
             "current_count bigint DEFAULT NULL",
         ],
+        "voting_streaks": [
+          "id bigserial PRIMARY KEY NOT NULL",
+          "user_id bigint UNIQUE NOT NULL",
+          "created timestamp NOT NULL DEFAULT (now() at time zone 'utc')",
+          "last_vote timestamp NOT NULL DEFAULT (now() at time zone 'utc')",
+          "streak bigint NOT NULL DEFAULT 0",
+          "expires timestamp NOT NULL",
+        ],
         "reminders": [
             "id bigserial PRIMARY KEY NOT NULL",
             "expires timestamp NOT NULL",
