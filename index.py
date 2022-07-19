@@ -23,6 +23,8 @@ if TYPE_CHECKING:
   from .cogs.database import Database
   from .cogs.log import Log
   from .cogs.reminder import Reminder
+  from .cogs.dbl import TopGG
+  from .cogs.patreons import Patreons
   from i18n import I18n
 
 load_dotenv()
@@ -265,6 +267,10 @@ class Friday(commands.AutoShardedBot):
   @property
   def dbl(self) -> Optional[TopGG]:
     return self.get_cog("TopGG")  # type: ignore
+
+  @property
+  def patreon(self) -> Optional[Patreons]:
+    return self.get_cog("Patreons")  # type: ignore
 
 
 async def main(bot):

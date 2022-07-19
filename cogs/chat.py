@@ -25,7 +25,6 @@ from functions.config import PremiumPerks, PremiumTiersNew
 if TYPE_CHECKING:
   from typing_extensions import Self
 
-  from cogs.patreons import Patreons
   from functions.custom_contexts import GuildContext
   from index import Friday
 
@@ -149,7 +148,7 @@ class ChatHistory:
     return bool(repeats and len(repeats) >= 3)
 
   def banned_nickname(self, name: str) -> str:
-    banned = ["nigger", "nigg"]
+    banned = ["nigger", "nigg", "niger", "nig"]
     string = slugify(name).replace("-", "")
     for old, new in (("4", "a"), ("@", "a"), ("3", "e"), ("1", "i"), ("0", "o"), ("7", "t"), ("5", "s")):
       string = string.replace(old, new)
@@ -498,7 +497,7 @@ class Chat(commands.Cog):
     if vote_streak and not current_tier > PremiumTiersNew.voted:
       current_tier = PremiumTiersNew.voted
 
-    patron_cog: Optional[Patreons] = self.bot.get_cog("Patreons")  # type: ignore
+    patron_cog = self.bot.patreon
     if patron_cog is not None:
       patrons = await patron_cog.get_patrons(connection=ctx.db)
 

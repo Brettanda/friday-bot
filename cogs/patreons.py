@@ -74,16 +74,6 @@ class PatreonConfig:
   def guilds_remaining(self) -> int:
     return self.max_guilds - len(self.guild_ids)
 
-  @property
-  def max_chat_characters(self) -> int:
-    # TODO: Make this dynamic with the tiers
-    return 200
-
-  @property
-  def max_chat_history(self) -> int:
-    # TODO: Make this dynamic with the tiers
-    return 6
-
 
 class Patreons(commands.Cog):
   """Exlusive commands for Friday's Patrons"""
@@ -203,7 +193,7 @@ class Patreons(commands.Cog):
     await ctx.db.execute(query, str(ctx.author.id), str(ctx.guild.id))
     await ctx.send(embed=embed(title="You have upgraded this server to premium"))
 
-  @norm_patreon_server.command("deactivate", aliases=["de-activate"])
+  @norm_patreon_server.command("deactivate")
   @commands.guild_only()
   @checks.is_mod_and_min_tier(tier=config.PremiumTiersNew.tier_1.value, manage_guild=True)
   async def norm_patreon_server_false(self, ctx: GuildContext):
