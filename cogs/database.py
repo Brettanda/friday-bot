@@ -31,7 +31,7 @@ class Database(commands.Cog):
             "max_content jsonb NULL DEFAULT NULL",
             "remove_invites boolean DEFAULT false",
             "bot_manager text DEFAULT NULL",
-            "persona text DEFAULT 'friday'",
+            "persona text DEFAULT 'default'",
             "customjoinleave text NULL",
             "chatchannel text NULL DEFAULT NULL",
             "chatstoprepeating boolean DEFAULT true",
