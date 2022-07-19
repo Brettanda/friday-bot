@@ -580,10 +580,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     else:
       value = stdout.getvalue()
       if ctx.bot_permissions.add_reactions:
-        try:
-          await ctx.message.add_reaction('\u2705')
-        except BaseException:
-          pass
+        await ctx.message.add_reaction('\u2705')
 
       if ret is None:
         if value:
