@@ -281,6 +281,7 @@ class redditlink(commands.Cog):
   @norm_extract.command("enable", help="Enable or disabled Friday's reddit link extraction. (When disabled Friday won't react to reddit links.)")
   @commands.guild_only()
   @commands.has_guild_permissions(manage_messages=True)
+  @commands.bot_has_permissions(add_reactions=True)
   async def extract_toggle(self, ctx: GuildContext, enable: bool):
     await ctx.db.execute("UPDATE servers SET reddit_extract=$1 WHERE id=$2", enable, str(ctx.guild.id))
     self.get_guild_config.invalidate(self, ctx.guild.id)

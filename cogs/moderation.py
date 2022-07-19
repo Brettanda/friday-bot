@@ -129,7 +129,7 @@ def can_mute():
       return False
 
     is_owner = await ctx.bot.is_owner(ctx.author)
-    if not ctx.author.guild_permissions.manage_roles and not is_owner:
+    if not ctx.permissions.manage_roles and not is_owner:
       return False
 
     # This will only be used within this cog.
@@ -138,7 +138,7 @@ def can_mute():
     if role is None:
       raise MissingMuteRole()
 
-    return ctx.author.top_role > role or ctx.author.guild_permissions.manage_roles or is_owner
+    return ctx.author.top_role > role or ctx.permissions.manage_roles or is_owner
   return commands.check(predicate)
 
 
@@ -149,7 +149,7 @@ def can_timeout():
 
     is_owner = await ctx.bot.is_owner(ctx.author)
 
-    return ctx.author.guild_permissions.moderate_members or is_owner
+    return ctx.permissions.moderate_members or is_owner
   return commands.check(predicate)
 
 

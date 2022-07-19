@@ -224,7 +224,7 @@ class AutoRole(commands.Cog):
   @commands.is_owner()
   @commands.has_guild_permissions(manage_roles=True)
   @commands.bot_has_guild_permissions(manage_roles=True)
-  @commands.bot_has_permissions(manage_messages=True)
+  @commands.bot_has_permissions(manage_messages=True, add_reactions=True)
   async def reaction_role(self, ctx, message: discord.Message, *, reaction_roles: str):
     new_reaction_roles = reaction_roles.split(" ")
     x = 0

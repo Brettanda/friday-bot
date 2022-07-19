@@ -98,7 +98,6 @@ class Log(commands.Cog):
         send_messages=True,
         read_messages=True,
         embed_links=True,
-        add_reactions=True,
     ).predicate(ctx)
 
   async def cog_load(self) -> None:
@@ -284,7 +283,7 @@ class Log(commands.Cog):
             return False
 
           if config.bot_channel is not None and ctx.channel.id != config.bot_channel:
-            if ctx.command.name in config.restricted_commands and not ctx.author.guild_permissions.manage_guild:  # type: ignore
+            if ctx.command.name in config.restricted_commands and not ctx.permissions.manage_guild:
               await ctx.send(f"<#{config.bot_channel}>", embed=embed(title="This command is restricted to the bot channel.", color=MessageColors.error()), delete_after=30, ephemeral=True)
               return False
     return True
@@ -294,6 +293,9 @@ class Log(commands.Cog):
 
     if ctx.command is None:
       return
+
+    if not ctx.bot_permissions.send_messages:
+      return log.error(f"Bot is missing the Send Messages permission. [#{ctx.channel} ({ctx.channel.id})]")
 
     current = message.created_at.replace(tzinfo=datetime.timezone.utc).timestamp()
     bucket = self.spam_control.get_bucket(message, current)
@@ -390,7 +392,9 @@ class Log(commands.Cog):
     if isinstance(error, just_send):
       await ctx.send(embed=embed(title=str(error), color=MessageColors.error()), ephemeral=True)
     elif isinstance(error, commands.BotMissingPermissions):
-      if "embed_links" in error.missing_permissions:
+      if "send_messages" in error.missing_permissions:
+        log.error("Failed to respond to command. Missing send_messages permission.")
+      elif "embed_links" in error.missing_permissions:
         await ctx.send(str(error), ephemeral=True)
       else:
         await ctx.send(embed=embed(title=str(error), color=MessageColors.error()), ephemeral=True)
