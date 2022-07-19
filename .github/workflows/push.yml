@@ -144,4 +144,4 @@ jobs:
       run: |
         . ~/venv/bin/activate
         if [ -f friday-trans-key.json ]; then printf "Google file here"; fi
-        pytest test_will_it_blend.py
+        pytest test_will_it_blend.py tests_offline/
