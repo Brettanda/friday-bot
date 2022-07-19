@@ -31,7 +31,7 @@ class Database(commands.Cog):
             "max_content jsonb NULL DEFAULT NULL",
             "remove_invites boolean DEFAULT false",
             "bot_manager text DEFAULT NULL",
-            "persona text DEFAULT 'friday'",
+            "persona text DEFAULT 'default'",
             "customjoinleave text NULL",
             "chatchannel text NULL DEFAULT NULL",
             "chatstoprepeating boolean DEFAULT true",
@@ -61,11 +61,10 @@ class Database(commands.Cog):
             "current_count bigint DEFAULT NULL",
         ],
         "voting_streaks": [
-          "id bigserial PRIMARY KEY NOT NULL",
-          "user_id bigint UNIQUE NOT NULL",
+          "user_id bigint PRIMARY KEY NOT NULL",
           "created timestamp NOT NULL DEFAULT (now() at time zone 'utc')",
           "last_vote timestamp NOT NULL DEFAULT (now() at time zone 'utc')",
-          "streak bigint NOT NULL DEFAULT 0",
+          "days bigint NOT NULL DEFAULT 1",
           "expires timestamp NOT NULL",
         ],
         "reminders": [

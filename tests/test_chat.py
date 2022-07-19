@@ -57,7 +57,7 @@ async def test_chat_info(bot: UnitTester, channel: TextChannel):
 
   msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
   assert msg.embeds[0].title == "Chat Info"
-  assert len(msg.embeds[0].fields) == 5
+  assert len(msg.embeds[0].fields) == 6
 
 
 async def test_chat_added_to_history(bot: UnitTester, friday: Friday, channel: TextChannel, get_cog: ChatCog):

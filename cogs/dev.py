@@ -144,7 +144,8 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
   @norm_dev.command("chain")
   async def norm_dev_chain(self, ctx: MyContext, *, commands: str):
     commandlist = commands.split("&&")
-    await ctx.message.add_reaction("\N{OK HAND SIGN}")
+    if ctx.bot_permissions.add_reactions:
+      await ctx.message.add_reaction("\N{OK HAND SIGN}")
 
     for command in commandlist:
       msg = copy.copy(ctx.message)
@@ -176,6 +177,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     await message.edit(content=edit)
 
   @norm_dev.command(name="react")
+  @commands.bot_has_permissions(add_reactions=True)
   async def react(self, ctx: MyContext, messages: commands.Greedy[discord.Message], reactions: Annotated[Sequence[discord.Emoji], commands.Greedy[RawEmoji]]):
     try:
       await ctx.message.delete()
@@ -577,10 +579,11 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       await ctx.send(f'```py\n{value}{traceback.format_exc()}\n```')
     else:
       value = stdout.getvalue()
-      try:
-        await ctx.message.add_reaction('\u2705')
-      except BaseException:
-        pass
+      if ctx.bot_permissions.add_reactions:
+        try:
+          await ctx.message.add_reaction('\u2705')
+        except BaseException:
+          pass
 
       if ret is None:
         if value:
