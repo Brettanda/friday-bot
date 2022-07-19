@@ -262,6 +262,10 @@ class Friday(commands.AutoShardedBot):
   def reminder(self) -> Optional[Reminder]:
     return self.get_cog("Reminder")  # type: ignore
 
+  @property
+  def dbl(self) -> Optional[TopGG]:
+    return self.get_cog("TopGG")  # type: ignore
+
 
 async def main(bot):
   async with bot:

@@ -76,25 +76,28 @@ class UserConfig:
 
 class SpamChecker:
   def __init__(self):
-    self._absolute_minute = commands.CooldownMapping.from_cooldown(6, 30, commands.BucketType.user)
-    self._absolute_hour = commands.CooldownMapping.from_cooldown(180, 3600, commands.BucketType.user)
-    self._free = commands.CooldownMapping.from_cooldown(30, 43200, commands.BucketType.user)
-    self._voted = commands.CooldownMapping.from_cooldown(60, 43200, commands.BucketType.user)
-    self._patron = commands.CooldownMapping.from_cooldown(100, 43200, commands.BucketType.user)
+    self.absolute_minute = commands.CooldownMapping.from_cooldown(6, 30, commands.BucketType.user)
+    self.absolute_hour = commands.CooldownMapping.from_cooldown(180, 3600, commands.BucketType.user)
+    self.free = commands.CooldownMapping.from_cooldown(30, 43200, commands.BucketType.user)
+    self.voted = commands.CooldownMapping.from_cooldown(60, 43200, commands.BucketType.user)
+    self.streaked = commands.CooldownMapping.from_cooldown(75, 43200, commands.BucketType.user)
+    self.patron = commands.CooldownMapping.from_cooldown(100, 43200, commands.BucketType.user)
 
-  def is_spamming(self, msg: discord.Message, tier: int, voted: bool) -> tuple[bool, Optional[Cooldown], Optional[str]]:
+  def is_spamming(self, msg: discord.Message, tier: PremiumTiersNew, vote_count: int) -> tuple[bool, Optional[Cooldown], Optional[Literal["free", "voted", "streaked", "patron"]]]:
     current = msg.created_at.timestamp()
 
-    min_bucket = self._absolute_minute.get_bucket(msg, current)
-    hour_bucket = self._absolute_hour.get_bucket(msg, current)
-    free_bucket = self._free.get_bucket(msg, current)
-    voted_bucket = self._voted.get_bucket(msg, current)
-    patron_bucket = self._patron.get_bucket(msg, current)
+    min_bucket = self.absolute_minute.get_bucket(msg, current)
+    hour_bucket = self.absolute_hour.get_bucket(msg, current)
+    free_bucket = self.free.get_bucket(msg, current)
+    voted_bucket = self.voted.get_bucket(msg, current)
+    streaked_bucket = self.streaked.get_bucket(msg, current)
+    patron_bucket = self.patron.get_bucket(msg, current)
 
     min_rate = min_bucket and min_bucket.update_rate_limit(current)
     hour_rate = hour_bucket and hour_bucket.update_rate_limit(current)
     free_rate = free_bucket and free_bucket.update_rate_limit(current)
     voted_rate = voted_bucket and voted_bucket.update_rate_limit(current)
+    streaked_rate = streaked_bucket and streaked_bucket.update_rate_limit(current)
     patron_rate = patron_bucket and patron_bucket.update_rate_limit(current)
 
     if min_rate:
@@ -103,13 +106,16 @@ class SpamChecker:
     if hour_rate:
       return True, hour_bucket, None
 
-    if free_rate and not voted and not tier >= PremiumTiersNew.tier_1.value:
+    if free_rate and vote_count == 0 and tier < PremiumTiersNew.tier_1:
       return True, free_bucket, "free"
 
-    if voted_rate and voted and tier < PremiumTiersNew.tier_1.value:
+    if voted_rate and 2 > vote_count > 0 and tier < PremiumTiersNew.tier_1:
       return True, voted_bucket, "voted"
 
-    if patron_rate and tier >= PremiumTiersNew.tier_1.value:
+    if streaked_rate and vote_count >= 2 and tier < PremiumTiersNew.tier_1:
+      return True, streaked_bucket, "streaked"
+
+    if patron_rate and tier >= PremiumTiersNew.tier_1:
       return True, patron_bucket, "patron"
 
     return False, None, None
@@ -274,19 +280,21 @@ class Chat(commands.Cog):
   async def chat_info(self, ctx: MyContext):
     """Displays information about the current conversation."""
     current = ctx.message.created_at.timestamp()
-    free_rate = self._spam_check._free.get_bucket(ctx.message, current)
-    free_rate = free_rate and free_rate.get_tokens(ctx.message.created_at.timestamp())
-    voted_rate = self._spam_check._voted.get_bucket(ctx.message, current)
-    voted_rate = voted_rate and voted_rate.get_tokens(ctx.message.created_at.timestamp())
-    patroned_rate = self._spam_check._patron.get_bucket(ctx.message, current)
-    patroned_rate = patroned_rate and patroned_rate.get_tokens(ctx.message.created_at.timestamp())
+
+    def get_tokens(_type: commands.CooldownMapping):
+      r = _type.get_bucket(ctx.message, current)
+      return r and r.get_tokens(ctx.message.created_at.timestamp())
+    free_rate = get_tokens(self._spam_check.free)
+    voted_rate = get_tokens(self._spam_check.voted)
+    streaked_rate = get_tokens(self._spam_check.streaked)
+    patroned_rate = get_tokens(self._spam_check.patron)
     history = self.chat_history[ctx.channel.id]
     content = history and str(history) or "No history"
     await ctx.send(embed=embed(
         title="Chat Info",
-        fieldstitle=["Messages", "Voted messages", "Patroned messages", "Recent history resets", "Message History"],
-        fieldsval=[f"{free_rate} remaining", f"{voted_rate} remaining", f"{patroned_rate} remaining", str(self.bot.chat_repeat_counter[ctx.channel.id]), f"```\n{content}\n```"],
-        fieldsin=[True, True, True, False, False]
+        fieldstitle=["Messages", "Voted messages", "Voting Streak messages", "Patroned messages", "Recent history resets", "Message History"],
+        fieldsval=[f"{free_rate} remaining", f"{voted_rate} remaining", f"{streaked_rate} remaining", f"{patroned_rate} remaining", str(self.bot.chat_repeat_counter[ctx.channel.id]), f"```\n{content}\n```"],
+        fieldsin=[True, True, True, True, False, False]
     ))
 
   @commands.command(name="reset", help="Resets Friday's chat history. Helps if Friday is repeating messages")
@@ -484,8 +492,11 @@ class Chat(commands.Cog):
       if config.tier:
         current_tier = PremiumTiersNew(config.tier)
 
-    if voted and not current_tier > PremiumTiersNew.voted.value:
-      current_tier = PremiumTiersNew.voted.value
+    dbl = self.bot.dbl
+    vote_streak = dbl and await dbl.user_streak(ctx.author.id, connection=ctx.db)
+
+    if vote_streak and not current_tier > PremiumTiersNew.voted:
+      current_tier = PremiumTiersNew.voted
 
     patron_cog: Optional[Patreons] = self.bot.get_cog("Patreons")  # type: ignore
     if patron_cog is not None:
@@ -503,15 +514,23 @@ class Chat(commands.Cog):
 
     # Anything to do with sending messages needs to be below the above check
     response = None
-    is_spamming, rate_limiter, rate_name = self._spam_check.is_spamming(msg, current_tier, voted)
+    is_spamming, rate_limiter, rate_name = self._spam_check.is_spamming(msg, current_tier, vote_streak and vote_streak.days or 0)
     resp = None
     if is_spamming and rate_limiter:
-      vote_advertise = bool(rate_name == "free" and not voted)
-      patreon_advertise = bool(rate_name == "voted" and not (current_tier >= PremiumTiersNew.tier_1.value))
-      retry_after = discord.utils.utcnow() + datetime.timedelta(seconds=rate_limiter.get_retry_after())
-      log.info(f"{msg.author} ({msg.author.id}) is being ratelimited at over {rate_limiter.rate} messages and can retry after {time.human_timedelta(retry_after, accuracy=2, brief=True)}")
-      ad_message = "If you would like to send me more messages you can get more by voting at https://top.gg/bot/476303446547365891/vote" if vote_advertise else "If you would like to send even more messages please support Friday on Patreon at https://patreon.com/join/fridaybot" if patreon_advertise else ""
-      resp = await ctx.reply(embed=embed(title=f"You have sent me over `{rate_limiter.rate}` messages in that last `{rate_limiter.per} seconds` and are being rate limited, try again <t:{int(retry_after.timestamp())}:R>", description=ad_message, color=MessageColors.error()), mention_author=False)
+      retry_after = ctx.message.created_at + datetime.timedelta(seconds=rate_limiter.get_retry_after())
+
+      log.info(f"{msg.author} ({msg.author.id}) is being ratelimited at over {rate_limiter.rate} messages and can retry after {human_timedelta(retry_after, source=ctx.message.created_at, accuracy=2, brief=True)}")
+
+      ad_message = ""
+      if not current_tier >= PremiumTiersNew.tier_1:
+        if not rate_name == "streaked":
+          if not rate_name == "voted":
+            ad_message += "Get a higher message cap by voting on [Top.gg](https://top.gg/bot/476303446547365891/vote).\n"
+          ad_message += "Get an even higher cap by keeping a voting streak of at least 2 days.\n"
+        ad_message += "Get the most powerful message cap by becoming a [Patron](https://patreon.com/join/fridaybot)."
+      now = discord.utils.utcnow()
+      retry_dt = now + datetime.timedelta(seconds=rate_limiter.per)
+      resp = await ctx.reply(embed=embed(title=f"You have sent me over `{formats.plural(rate_limiter.rate):message}` in that last `{human_timedelta(retry_dt, source=now, accuracy=2)}` and are being rate limited, try again <t:{int(retry_after.timestamp())}:R>", description=ad_message, color=MessageColors.error()), mention_author=False)
       return
     chat_history = self.chat_history[msg.channel.id]
     async with ctx.typing():

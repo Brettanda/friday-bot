@@ -26,16 +26,19 @@ VOTE_URL = "https://top.gg/bot/476303446547365891/vote"
 
 
 class StreakConfig:
-  __slots__ = ("id", "user_id", "created", "last_vote", "streak", "expires",)
+  __slots__ = ("user_id", "created", "last_vote", "days", "expires",)
 
   def __init__(self, *, record: asyncpg.Record):
-    self.id: int = record["id"]
     self.user_id: int = record["user_id"]
     self.created: datetime.datetime = record["created"]
     self.last_vote: datetime.datetime = record["last_vote"]
-    self.streak: int = record["streak"]
+    self.days: int = record["days"]
     self.expires: datetime.datetime = record["expires"]
 
+  @property
+  def gets_perks(self) -> bool:
+    """Whether or not the user gets perks from their current vote streak."""
+    return self.days >= 2
 
 # TODO: Add support for voting on discords.com and discordbotlist.com https://cdn.discordapp.com/attachments/892840236781015120/947203621358010428/unknown.png
 
@@ -86,6 +89,15 @@ class TopGG(commands.Cog):
     record = await conn.fetchrow(query, str(user_id))
     return True if record else False
 
+  @cache.cache()
+  async def user_streak(self, user_id: int, *, connection: Optional[asyncpg.Connection] = None) -> Optional[StreakConfig]:
+    query = """SELECT *
+              FROM voting_streaks
+              WHERE user_id = $1;"""
+    conn = connection or self.bot.pool
+    record = await conn.fetchrow(query, user_id)
+    return record and StreakConfig(record=record)
+
   @tasks.loop(minutes=10.0)
   async def _update_stats_loop(self):
     if self.bot.prod and self._current_len_guilds != len(self.bot.guilds):
@@ -93,6 +105,7 @@ class TopGG(commands.Cog):
 
   @commands.command(help="Get the link to vote for me on Top.gg", case_insensitive=True)
   async def vote(self, ctx: MyContext):
+    self.user_streak.invalidate(self, ctx.author.id)
     async with ctx.acquire():
       query = """SELECT id,expires
                 FROM reminders
@@ -102,7 +115,7 @@ class TopGG(commands.Cog):
                 LIMIT 1;"""
       record = await ctx.db.fetchrow(query, str(ctx.author.id))
       expires = record["expires"] if record else None
-      query = """SELECT expires, streak
+      query = """SELECT expires, days
                 FROM voting_streaks
                 WHERE user_id = $1::bigint;"""
       record_streak = await ctx.db.fetchrow(query, ctx.author.id)
@@ -110,12 +123,21 @@ class TopGG(commands.Cog):
     streak_expiration = time.format_dt(record_streak['expires'], style="R") if record_streak else "some time ago"
     view = discord.ui.View()
     view.add_item(discord.ui.Button(label="Vote", url=VOTE_URL, style=discord.ButtonStyle.url))
-    await ctx.reply(embed=embed(author_name=f"Voting streak - {formats.plural(record_streak and record_streak['streak'] or 0):day}", title="Voting", description=f"{vote_message}\nYour voting streak is currently `{record_streak and record_streak['streak'] or '0'}` and expires {streak_expiration}. **To increase your streak, you need to vote at least once per day**. You can vote every 12 hours.\n\nWhen you vote you get:", fieldstitle=["Better rate limiting"], fieldsval=["60 messages/12 hours instead of 30 messages/12 hours."]), view=view)
+    await ctx.reply(embed=embed(
+        author_name=f"Voting streak - {formats.plural(record_streak and record_streak['days'] or 0):day}",
+        title="Voting",
+        description=f"{vote_message}\n"
+        f"Your voting streak is currently `{record_streak and record_streak['days'] or '0'}` and expires {streak_expiration}. "
+        f"**To increase your streak, you need to vote at least once per day**. You can vote every 12 hours.\n\nWhen you vote you get:",
+        fieldstitle=["Better rate limiting"],
+        fieldsval=["60 messages/12 hours instead of 30 messages/12 hours."]
+    ), view=view)
 
   @commands.command(extras={"examples": ["test", "upvote"]}, hidden=True)
   @commands.is_owner()
   async def vote_fake(self, ctx: MyContext, user: Optional[Union[discord.User, discord.Member]] = None, _type: Optional[str] = "test"):
     user = user or ctx.author
+    self.user_streak.invalidate(self, user.id)
     data = {
         "type": _type,
         "user": str(user.id),
@@ -174,9 +196,10 @@ class TopGG(commands.Cog):
     user_id = timer.args[0]
     await self.bot.wait_until_ready()
 
-    query = "DELETE FROM voting_streaks WHERE user_id = $1::bigint RETURNING streak;"
-    streak = await self.bot.pool.fetchval(query, int(user_id, base=10))
-    log.info(f"User {user_id}'s voting streak expired, streak: {streak}")
+    query = "DELETE FROM voting_streaks WHERE user_id = $1::bigint RETURNING days;"
+    days = await self.bot.pool.fetchval(query, int(user_id, base=10))
+    self.user_streak.invalidate(self, int(user_id, base=10))
+    log.info(f"User {user_id}'s voting streak expired, days: {days}")
 
   @commands.Cog.listener()
   async def on_vote_timer_complete(self, timer: Timer):
@@ -186,8 +209,8 @@ class TopGG(commands.Cog):
     self.user_has_voted.invalidate(self, user_id)
 
     support_server = self.bot.get_guild(config.support_server_id)
-    query = "SELECT streak FROM voting_streaks WHERE user_id = $1"
-    streak = await self.bot.pool.fetchval(query, int(user_id, base=10))
+    query = "SELECT days FROM voting_streaks WHERE user_id = $1"
+    days = await self.bot.pool.fetchval(query, int(user_id, base=10))
     role_removed = False
     if support_server:
       member = await self.bot.get_or_fetch_member(support_server, user_id)
@@ -203,7 +226,7 @@ class TopGG(commands.Cog):
       private = self.bot.get_user(user_id) or (await self.bot.fetch_user(user_id))
       view = discord.ui.View()
       view.add_item(discord.ui.Button(label="Vote", style=discord.ButtonStyle.url, url=VOTE_URL))
-      await private.send(embed=embed(title="Your vote has expired.", description=f"Vote again to keep your perks and to keep your streak of `{formats.plural(streak):day}` going!"), view=view)
+      await private.send(embed=embed(title="Your vote has expired.", description=f"Vote again to keep your perks and to keep your streak of `{formats.plural(days):day}` going!"), view=view)
     except discord.HTTPException:
       pass
     else:
@@ -215,12 +238,12 @@ class TopGG(commands.Cog):
   async def on_dbl_vote(self, data: dict):
     now = discord.utils.utcnow()
     fut = now + datetime.timedelta(hours=12)
-    expires = now + datetime.timedelta(days=1)
+    expires = fut + datetime.timedelta(days=1)
     _type, user = data.get("type", None), data.get("user", None)
     log.info(f'Received an upvote, {data}')
     if _type == "test":
       fut = now + datetime.timedelta(minutes=1, seconds=10)
-      expires = now + datetime.timedelta(minutes=2)
+      expires = fut + datetime.timedelta(minutes=1)
     if user is None:
       return
     reminder = self.bot.reminder
@@ -235,9 +258,10 @@ class TopGG(commands.Cog):
           reminder._task.cancel()
           reminder._task = self.bot.loop.create_task(reminder.dispatch_timers())
 
-      query = "INSERT INTO voting_streaks (user_id, last_vote, expires) VALUES ($1, $2, $3) ON CONFLICT (user_id) DO UPDATE SET streak = voting_streaks.streak + 1, last_vote = $2, expires = $3;"
+      query = "INSERT INTO voting_streaks (user_id, last_vote, expires) VALUES ($1, $2, $3) ON CONFLICT (user_id) DO UPDATE SET days = voting_streaks.days + 1, last_vote = $2, expires = $3;"
       await conn.execute(query, int(user, base=10), now.replace(tzinfo=None), expires.replace(tzinfo=None))
       await reminder.create_timer(expires, "vote_streak", user, created=now, connection=conn)
+    self.user_streak.invalidate(self, int(user, base=10))
     self.user_has_voted.invalidate(self, int(user, base=10))
     if _type == "test" or int(user, base=10) not in (215227961048170496, 813618591878086707):
       support_server = self.bot.get_guild(config.support_server_id)
