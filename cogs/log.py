@@ -43,7 +43,7 @@ log = logging.getLogger(__name__)
 
 
 class Config:
-  __slots__ = ("bot", "id", "chat_channel", "disabled_commands", "restricted_commands", "bot_channel", "tier", "lang",)
+  __slots__ = ("bot", "id", "chat_channel", "disabled_commands", "restricted_commands", "bot_channel", "lang",)
 
   def __init__(self, *, record: asyncpg.Record, bot: Friday):
     self.bot: Friday = bot
@@ -52,7 +52,6 @@ class Config:
     self.disabled_commands: Set[str] = set(record["disabled_commands"] or [])
     self.restricted_commands: Set[str] = set(record["restricted_commands"] or [])
     self.bot_channel: Optional[int] = int(record["botchannel"], base=10) if record["botchannel"] else None
-    self.tier: str = record["tier"]
     self.lang: str = record["lang"]
 
 
@@ -275,7 +274,7 @@ class Log(commands.Cog):
       if ctx.guild:
         config = await self.get_guild_config(ctx.guild.id, connection=ctx.db)
         if not config:
-          await ctx.db.execute(f"INSERT INTO servers (id,lang) VALUES ({str(ctx.guild.id)},'{ctx.guild.preferred_locale.value.split('-')[0]}') ON CONFLICT DO NOTHING")
+          await ctx.db.execute(f"INSERT INTO servers (id) VALUES ({str(ctx.guild.id)}) ON CONFLICT DO NOTHING")
           self.get_guild_config.invalidate(self, ctx.guild.id)
           config = await self.get_guild_config(ctx.guild.id, connection=ctx.db)
         if config is not None:

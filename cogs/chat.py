@@ -20,7 +20,7 @@ from slugify import slugify
 
 from functions import (MessageColors, MyContext, cache, checks, embed,
                        relay_info, time)
-from functions.config import PremiumTiersNew
+from functions.config import PremiumPerks, PremiumTiersNew
 
 if TYPE_CHECKING:
   from typing_extensions import Self
@@ -386,7 +386,7 @@ class Chat(commands.Cog):
     content = content or msg.clean_content
     author_prompt_name, my_prompt_name = msg.author.display_name, "Friday"
     my_prompt_name = msg.guild.me.display_name if msg.guild else self.bot.user.name
-    prompt = await self.chat_history[msg.channel.id].prompt(content, author_prompt_name, my_prompt_name, limit=5 if current_tier >= PremiumTiersNew.tier_1.value else 3)
+    prompt = await self.chat_history[msg.channel.id].prompt(content, author_prompt_name, my_prompt_name, limit=PremiumPerks(current_tier).max_chat_history)
     engine = os.environ["OPENAIMODEL"]
     if persona and persona == "pirate":
       engine = os.environ["OPENAIMODELPIRATE"]
@@ -454,7 +454,7 @@ class Chat(commands.Cog):
   async def chat_message(self, ctx: MyContext | GuildContext, *, content: str = None) -> None:
     msg = ctx.message
     content = content or msg.clean_content
-    current_tier = PremiumTiersNew.free.value
+    current_tier: PremiumTiersNew = PremiumTiersNew.free
 
     config = None
     if ctx.guild:
@@ -482,8 +482,7 @@ class Chat(commands.Cog):
           return
 
       if config.tier:
-        current_tier = config.tier
-    voted = await checks.user_voted(self.bot, ctx.author, connection=ctx.db)
+        current_tier = PremiumTiersNew(config.tier)
 
     if voted and not current_tier > PremiumTiersNew.voted.value:
       current_tier = PremiumTiersNew.voted.value
@@ -495,10 +494,10 @@ class Chat(commands.Cog):
       patron = next((p for p in patrons if p.id == ctx.author.id), None)
 
       if patron is not None:
-        current_tier = patron.tier if patron.tier > current_tier else current_tier
+        current_tier = PremiumTiersNew(patron.tier) if patron.tier > current_tier.value else current_tier
 
     char_count = len(content)
-    max_content = 100 if current_tier == PremiumTiersNew.free.value else 200
+    max_content = PremiumPerks(PremiumTiersNew(current_tier)).max_chat_characters
     if char_count > max_content:
       raise ChatError(f"Message is too long. Max length is {max_content} characters.")
 
