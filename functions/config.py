@@ -193,6 +193,7 @@ patreon_supporting_role = 843941723041300480
 class PremiumTiersNew(enum.Enum):
   free = 0
   voted = 1
+  streaked = 1.5
   tier_1 = 2
   tier_2 = 3
   tier_3 = 4
@@ -241,6 +242,8 @@ class PremiumPerks:
     elif self.tier == PremiumTiersNew.voted:
       return SpamChecker().voted
     elif self.tier == PremiumTiersNew.streaked:
+      return SpamChecker().streaked
+    elif self.tier >= PremiumTiersNew.tier_1:
       return SpamChecker().patron
     return SpamChecker().free
 
