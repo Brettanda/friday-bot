@@ -249,10 +249,12 @@ class API(commands.Cog):
       reddit_config: Optional[RedditLinkConfig] = reddit_cog and await reddit_cog.get_guild_config(int(gid, base=10))
       # reddit_extract = await self.bot.db.query("SELECT reddit_extract FROM servers WHERE id=$1 LIMIT 1", str(gid))
 
+      lang_code = self.bot.languages.get(guild.id, "en")
+
       response: GetGuildType = {
           "prefix": bot.prefixes[guild.id],
           "chatchannel": chat_config.chat_channel_id if chat_config is not None else None,
-          "lang": chat_config.lang if chat_config is not None else None,
+          "lang": lang_code,
           "persona": chat_config.persona if chat_config is not None else None,
           "name": guild.name,
           "tier": 0,

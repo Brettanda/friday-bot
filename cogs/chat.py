@@ -6,7 +6,7 @@ import functools
 import logging
 import os
 from collections import Counter, defaultdict
-from typing import TYPE_CHECKING, ClassVar, List, Optional, Union
+from typing import TYPE_CHECKING, ClassVar, List, Literal, Optional, Union
 
 import asyncpg
 import discord

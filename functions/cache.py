@@ -88,7 +88,7 @@ def cache(
   def decorator(func: Callable[..., R]) -> CacheProtocol[R]:
     if strategy is Strategy.lru:
       _internal_cache = LRU(maxsize)
-      _stats = _internal_cache.get_stats  # type: ignore
+      _stats = _internal_cache.get_stats
     elif strategy is Strategy.raw:
       _internal_cache = {}
 
