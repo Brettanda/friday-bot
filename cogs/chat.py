@@ -531,13 +531,13 @@ class Chat(commands.Cog):
 
     if not flagged:
       resp = await ctx.reply(content=response, allowed_mentions=discord.AllowedMentions.none(), mention_author=False)
-      log.info(f"{PremiumTiersNew(current_tier)} - **{ctx.author.name}:** {content}\t**Me:** {response}")
+      log.info(f"{PremiumTiersNew(current_tier)} - [{ctx.author.name}] {content}  [Me] {response}")
       await self.webhook.safe_send(username=self.bot.user.name, avatar_url=self.bot.user.display_avatar.url, content=f"{PremiumTiersNew(current_tier)} - **{ctx.author.name}:** {content}\n**Me:** {response}")
     else:
       resp = await ctx.reply("**My response was flagged and could not be sent, please try again**", mention_author=False)
-      log.info(f"{PremiumTiersNew(current_tier)} - **{ctx.author.name}:** {content}\n**Me:** Flagged message: {response} {flagged_categories}")
+      log.info(f"{PremiumTiersNew(current_tier)} - [{ctx.author.name}] {content}  [Me] Flagged message: \"{response}\" {formats.human_join(flagged_categories, final='and')}")
       await self.webhook.safe_send(username=self.bot.user.name, avatar_url=self.bot.user.display_avatar.url, content=f"{PremiumTiersNew(current_tier)} - **{ctx.author.name}:** {content}\n**Me:** Flagged message: {response} {flagged_categories}")
-    self.bot.dispatch("chat_completion", msg, resp, False, filtered=flagged, persona=msg.guild and config and config.persona, prompt="\n".join(self.chat_history[msg.channel.id].history(limit=PremiumPerks(current_tier).max_chat_history)))
+    self.bot.dispatch("chat_completion", msg, resp, False, filtered=int(flagged), persona=msg.guild and config and config.persona, prompt="\n".join(self.chat_history[msg.channel.id].history(limit=PremiumPerks(current_tier).max_chat_history)))
 
     async with chat_history.lock:
       if chat_history.bot_repeating():
