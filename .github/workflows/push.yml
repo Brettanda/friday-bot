@@ -141,6 +141,7 @@ jobs:
         REDDITCLIENTSECRET: ${{ secrets.REDDITCLIENTSECRET }}
         REDDITPASSWORD: ${{ secrets.REDDITPASSWORD }}
         APIREQUESTS: ${{ secrets.APIREQUESTS }}
+        OPENAI: ${{ secrets.OPENAI }}
       run: |
         . ~/venv/bin/activate
         if [ -f friday-trans-key.json ]; then printf "Google file here"; fi
