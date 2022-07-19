@@ -273,13 +273,11 @@ class Chat(commands.Cog):
 
   @commands.group("chat", invoke_without_command=True, case_insensitive=True)
   async def chat(self, ctx: MyContext, *, message: str):
-    """Chat with Friday powered by GPT-3 and get a response."""
-    await self.chat_message(ctx, content=message)
-
-  @chat.error
-  async def chat_error(self, ctx: MyContext, error: commands.CommandError):
-    if isinstance(error, ChatError):
-      await ctx.send(embed=embed(title=str(error), color=MessageColors.error()))
+    """Chat with Friday, powered by GPT-3 and get a response."""
+    try:
+      await self.chat_message(ctx, content=message)
+    except ChatError as e:
+      await ctx.send(embed=embed(title=str(e), color=MessageColors.error()))
 
   @chat.command("info")
   async def chat_info(self, ctx: MyContext):
