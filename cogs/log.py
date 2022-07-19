@@ -340,10 +340,6 @@ class Log(commands.Cog):
     return Config(record=record, bot=self.bot)
 
   @discord.utils.cached_property
-  def log_chat(self) -> CustomWebhook:
-    return CustomWebhook.partial(os.environ.get("WEBHOOKCHATID"), os.environ.get("WEBHOOKCHATTOKEN"), session=self.bot.session)  # type: ignore
-
-  @discord.utils.cached_property
   def log_info(self) -> CustomWebhook:
     return CustomWebhook.partial(os.environ.get("WEBHOOKINFOID"), os.environ.get("WEBHOOKINFOTOKEN"), session=self.bot.session)  # type: ignore
 

@@ -251,6 +251,11 @@ class Chat(commands.Cog):
   async def on_invalidate_patreon(self, guild_id: int):
     self.get_guild_config.invalidate(self, guild_id)
 
+  @discord.utils.cached_property
+  def webhook(self) -> CustomWebhook:
+    """Returns the webhook for logging chat messages to Discord."""
+    return CustomWebhook.partial(os.environ.get("WEBHOOKCHATID"), os.environ.get("WEBHOOKCHATTOKEN"), session=self.bot.session)  # type: ignore
+
   @commands.command(name="say", aliases=["repeat"], help="Make Friday say what ever you want")
   async def say(self, ctx: MyContext, *, content: str):
     if content in ("im stupid", "i'm stupid", "i am dumb", "im dumb"):
@@ -347,78 +352,49 @@ class Chat(commands.Cog):
 
     self.get_guild_config.invalidate(self, ctx.guild.id)
 
-  @cache.cache(maxsize=1024)
-  async def content_filter_check(self, text: str, user_id: str) -> Optional[int]:
+  async def content_filter_flagged(self, text: str) -> tuple[bool, list[str]]:
     if self.bot.testing:
-      return 0
-    try:
-      async with self.api_lock:
-        response = await self.bot.loop.run_in_executor(
-              None,
-              functools.partial(
-                  lambda: openai.Completion.create(
-                      engine="content-filter-alpha",
-                      prompt=f"<|endoftext|>{text}\n--\nLabel:",
-                      temperature=0,
-                      max_tokens=1,
-                      top_p=1,
-                      frequency_penalty=0,
-                      presence_penalty=0,
-                      user=user_id,
-                      logprobs=10
-                  )))
-    except Exception as e:
-      raise e
-    # print(response)
+      return False, []
+    async with self.api_lock:
+      response = await self.bot.loop.run_in_executor(
+          None,
+          functools.partial(
+              lambda: openai.Moderation.create(
+                  model="text-moderation-latest",
+                  input=text,
+              )))
     if response is None:
-      return None
-    toxic_therhold = -0.355
-    output_label = response["choices"][0]["text"]
-    if output_label == "2":
-      logprobs = response["choices"][0]["logprobs"]["top_logprobs"][0]
-      if logprobs["2"] < toxic_therhold:
-        logprob_0 = logprobs.get("0", None)
-        logprob_1 = logprobs.get("1", None)
-        if logprob_0 is not None and logprob_1 is not None:
-          output_label = "0" if logprob_0 >= logprob_1 else "1"
-        elif logprob_0 is not None:
-          output_label = "0"
-        elif logprob_1 is not None:
-          output_label = "1"
-    if output_label not in ["0", "1", "2"]:
-      output_label = "2"
-    return int(output_label)
+      return False, []
+    response = response["results"][0]  # type: ignore
+    categories = [name for name, value in response['categories'].items() if value == 1]
+    return bool(response["flagged"] == 1), categories
 
-  async def openai_req(self, msg: discord.Message, current_tier: int, persona: str = None, *, content: str = None) -> Optional[str]:
+  async def openai_req(self, msg: discord.Message, current_tier: PremiumTiersNew, persona: str = None, *, content: str = None) -> Optional[str]:
+    if self.bot.testing:
+      return "This message is a test"
     content = content or msg.clean_content
-    author_prompt_name, my_prompt_name = msg.author.display_name, "Friday"
+    author_prompt_name = msg.author.display_name
     my_prompt_name = msg.guild.me.display_name if msg.guild else self.bot.user.name
     prompt = await self.chat_history[msg.channel.id].prompt(content, author_prompt_name, my_prompt_name, limit=PremiumPerks(current_tier).max_chat_history)
     engine = os.environ["OPENAIMODEL"]
     if persona and persona == "pirate":
       engine = os.environ["OPENAIMODELPIRATE"]
-    if self.bot.testing:
-      return "This message is a test"
-    try:
-      async with self.api_lock:
-        response = await self.bot.loop.run_in_executor(
-            None,
-            functools.partial(
-                lambda: openai.Completion.create(
-                    model=engine,
-                    prompt=prompt,
-                    temperature=0.8,
-                    max_tokens=25 if not current_tier >= PremiumTiersNew.tier_1.value else 50,
-                    top_p=0.9,
-                    user=str(msg.channel.id),
-                    frequency_penalty=1.5,
-                    presence_penalty=1.5,
-                    stop=[f"\n{author_prompt_name}:", f"\n{my_prompt_name}:", "\n", "\n###\n"]
-                )))
-    except Exception as e:
-      raise e
-    else:
-      return response.get("choices")[0].get("text").replace("\n", "") if response is not None else None
+    async with self.api_lock:
+      response = await self.bot.loop.run_in_executor(
+          None,
+          functools.partial(
+              lambda: openai.Completion.create(
+                  model=engine,
+                  prompt=prompt,
+                  temperature=0.8,
+                  max_tokens=PremiumPerks(current_tier).max_chat_tokens,
+                  top_p=0.9,
+                  user=str(msg.channel.id),
+                  frequency_penalty=1.5,
+                  presence_penalty=1.5,
+                  stop=[f"\n{author_prompt_name}:", f"\n{my_prompt_name}:", "\n", "\n###\n"]
+              )))
+    return response.get("choices")[0].get("text").replace("\n", "") if response is not None else None
 
   @commands.Cog.listener()
   async def on_message(self, msg: discord.Message):
@@ -538,26 +514,28 @@ class Chat(commands.Cog):
         response = await self.openai_req(msg, current_tier, config and config.persona, content=str(translation).strip('\n'))
       except Exception as e:
         # resp = await ctx.send(embed=embed(title="", color=MessageColors.error()))
-        self.bot.dispatch("chat_completion", msg, resp, True, filtered=None, prompt="\n".join(chat_history.history(limit=5 if current_tier >= PremiumTiersNew.tier_1.value else 3)))
+        self.bot.dispatch("chat_completion", msg, resp, True, filtered=None, prompt="\n".join(chat_history.history(limit=PremiumPerks(current_tier).max_chat_history)))
         log.error(f"OpenAI error: {e}")
         await ctx.reply(embed=embed(title="Something went wrong, please try again later", colour=MessageColors.error()))
         return
       if response is None or response == "":
         raise ChatError("Somehow, I don't know what to say.")
       await chat_history.add_message(msg, response, user_content=content)
-      content_filter = await self.content_filter_check(response, str(msg.channel.id))
+      flagged, flagged_categories = await self.content_filter_flagged(response)
     if translation is not None and translation.detectedSourceLanguage != "en" and response is not None and "dynamic" not in response:
       chars_to_strip = "?!,;'\":`"
       final_translation = await Translation.from_text(response.replace("dynamic", ""), from_lang="en", to_lang=str(translation.detectedSourceLanguage) if translation.translatedText.strip(chars_to_strip).lower() != translation.input.strip(chars_to_strip).lower() else "en", parent=self)
       response = str(final_translation)
 
-    if content_filter != 2:
-      resp = await ctx.reply(content=response if content_filter == 0 else f"{POSSIBLE_SENSITIVE_MESSAGE}{response}||", allowed_mentions=discord.AllowedMentions.none(), mention_author=False)
-      await relay_info(f"{PremiumTiersNew(current_tier)} - **{ctx.author.name}:** {content}\n**Me:** {response}", self.bot, webhook=self.bot.log.log_chat)
-    elif content_filter == 2:
-      resp = await ctx.reply(content=POSSIBLE_OFFENSIVE_MESSAGE, mention_author=False)
-      await relay_info(f"{PremiumTiersNew(current_tier)} - **{ctx.author.name}:** {content}\n**Me:** Possible offensive message: {response}", self.bot, webhook=self.bot.log.log_chat)
-    self.bot.dispatch("chat_completion", msg, resp, False, filtered=content_filter, persona=msg.guild and config and config.persona, prompt="\n".join(self.chat_history[msg.channel.id].history(limit=5 if current_tier >= PremiumTiersNew.tier_1.value else 3)))
+    if not flagged:
+      resp = await ctx.reply(content=response, allowed_mentions=discord.AllowedMentions.none(), mention_author=False)
+      log.info(f"{PremiumTiersNew(current_tier)} - **{ctx.author.name}:** {content}\t**Me:** {response}")
+      await self.webhook.safe_send(username=self.bot.user.name, avatar_url=self.bot.user.display_avatar.url, content=f"{PremiumTiersNew(current_tier)} - **{ctx.author.name}:** {content}\n**Me:** {response}")
+    else:
+      resp = await ctx.reply("**My response was flagged and could not be sent, please try again**", mention_author=False)
+      log.info(f"{PremiumTiersNew(current_tier)} - **{ctx.author.name}:** {content}\n**Me:** Flagged message: {response} {flagged_categories}")
+      await self.webhook.safe_send(username=self.bot.user.name, avatar_url=self.bot.user.display_avatar.url, content=f"{PremiumTiersNew(current_tier)} - **{ctx.author.name}:** {content}\n**Me:** Flagged message: {response} {flagged_categories}")
+    self.bot.dispatch("chat_completion", msg, resp, False, filtered=flagged, persona=msg.guild and config and config.persona, prompt="\n".join(self.chat_history[msg.channel.id].history(limit=PremiumPerks(current_tier).max_chat_history)))
 
     async with chat_history.lock:
       if chat_history.bot_repeating():
