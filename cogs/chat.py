@@ -18,9 +18,10 @@ from google.cloud import translate_v2 as translate
 from six.moves.html_parser import HTMLParser  # type: ignore
 from slugify import slugify
 
-from functions import (MessageColors, MyContext, cache, checks, embed,
-                       relay_info, time)
+from cogs.log import CustomWebhook
+from functions import MessageColors, MyContext, cache, checks, embed, formats
 from functions.config import PremiumPerks, PremiumTiersNew
+from functions.time import human_timedelta
 
 if TYPE_CHECKING:
   from typing_extensions import Self
@@ -45,7 +46,7 @@ class ChatError(commands.CheckFailure):
 
 
 class Config:
-  __slots__ = ("bot", "id", "chat_channel_id", "persona", "lang", "tier", "puser",)
+  __slots__ = ("bot", "id", "chat_channel_id", "persona", "tier", "puser",)
 
   def __init__(self, *, record: asyncpg.Record, bot: Friday):
     self.bot: Friday = bot
@@ -54,7 +55,6 @@ class Config:
     self.tier: int = record["tier"] if record else 0
     self.puser: Optional[int] = record["user_id"] if record else None
     self.persona: Optional[str] = record["persona"]
-    self.lang: str = record["lang"] or "en"
 
   @property
   def chat_channel(self) -> Optional[Union[discord.TextChannel, discord.VoiceChannel, discord.Thread]]:

@@ -639,7 +639,6 @@ class Moderation(commands.Cog):
     await relay_info(
             f"**Begone**\nUSER: {reference.clean_content}\nME: {msg.clean_content}```{msg}```",
             self.bot,
-            webhook=self.bot.log.log_chat
     )
     await msg.delete()
     await ctx.reply(embed=embed(title="Message has been removed"), delete_after=10)
