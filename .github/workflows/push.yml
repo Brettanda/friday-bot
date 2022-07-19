@@ -21,23 +21,38 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
+          cache-dependency-path: requirements.txt
+
+      - uses: actions/cache@v3
+        id: cache
+        with:
+          path: ~/venv
+          key: ${{ matrix.os }}-pip-${{ env.cache-name }}-${{ hashfiles('requirements.txt') }}
+      
       - name: Install dependencies
+        if: steps.cache.outputs.cache-hit != 'true'
         run: |
+          python -m venv ~/venv
+          . ~/venv/bin/activate
           pip install pytest
           pip install flake8
           pip install -r requirements.txt
+
       - name: Setup node.js
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v3
         with:
           node-version: '16'
-      - name: Run Pyright
-        uses: jakebailey/pyright-action@v1
-        with:
-          version: '1.1.242'
-          warnings: false
-          no-comments: ${{ matrix.python-version != '3.x' }}
+
+      - name: Check pyright
+        run: |
+          npm install pyright
+          cd "$GITHUB_WORKSPACE"
+          source ~/venv/bin/activate
+          npx pyright --venv-path ~/venv
+
       - name: Lint with flake8
         run: |
+          . ~/venv/bin/activate
           # stop the build if there are Python syntax errors or undefined names
           flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
           # exit-zero treats all errors as warnings. The Github editor is 127 chars wide
@@ -55,15 +70,27 @@ jobs:
       with:
         ssh-key: ${{ secrets.I18N_SUBMODULE_GH_ACTIONS_PULL }}
         submodules: recursive
+
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
         cache: 'pip'
+        cache-dependency-path: requirements.txt
+
+    - uses: actions/cache@v3
+      id: cache
+      with:
+        path: ~/venv
+        key: ${{ matrix.os }}-pip-${{ env.cache-name }}-${{ hashfiles('requirements.txt') }}
+
     - name: Install dependencies
       run: |
+        python -m venv ~/venv
+        . ~/venv/bin/activate
         pip install pytest
         pip install -r requirements.txt
+
     - name: Install google key for translations
       env:
         PROJECT_ID: ${{ secrets.PROJECT_ID }}
@@ -113,5 +140,6 @@ jobs:
         REDDITPASSWORD: ${{ secrets.REDDITPASSWORD }}
         APIREQUESTS: ${{ secrets.APIREQUESTS }}
       run: |
+        . ~/venv/bin/activate
         if [ -f friday-trans-key.json ]; then printf "Google file here"; fi
         pytest test_will_it_blend.py
