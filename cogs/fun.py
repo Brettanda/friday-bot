@@ -18,7 +18,7 @@ from discord.ext import commands, tasks
 from pyfiglet import figlet_format
 
 from functions import MessageColors, checks, embed, exceptions
-from functions.config import PremiumTiers
+from functions.config import PremiumTiersNew
 
 if TYPE_CHECKING:
   from functions.custom_contexts import GuildContext, MyContext
@@ -457,13 +457,13 @@ class Fun(commands.Cog):
     free_max, paid_max = 3, 8
     if len(current_countdowns) > free_max:
       if ctx.guild is not None:
-        guild_min = await checks.guild_is_min_tier(PremiumTiers.tier_1).predicate(ctx)
+        guild_min = await checks.guild_is_min_tier(PremiumTiersNew.tier_1).predicate(ctx)
         if len(current_countdowns) > free_max and not guild_min:
           return await ctx.reply(embed=embed(title=f"This server can only have a max of {free_max} concurrent countdowns per server", description="To unlock more please check out [patreon.com/fridaybot](https://www.patreon.com/bePatron?u=42649008)", color=MessageColors.error()))
         elif len(current_countdowns) > paid_max and guild_min:
           return await ctx.reply(embed=embed(title=f"This server can only have a max of {paid_max} concurrent countdowns per server", color=MessageColors.error()))
       if ctx.guild is None and ctx.author.dm_channel is not None:
-        user_min = await checks.user_is_min_tier(PremiumTiers.tier_1).predicate(ctx)
+        user_min = await checks.user_is_min_tier(PremiumTiersNew.tier_1).predicate(ctx)
         if len(current_countdowns) > free_max and not user_min:
           return await ctx.reply(embed=embed(title=f"You can only have a max of {free_max} concurrent countdowns per server", description="To unlock more please check out [patreon.com/fridaybot](https://www.patreon.com/bePatron?u=42649008)", color=MessageColors.error()))
         elif len(current_countdowns) > paid_max and user_min:

@@ -20,7 +20,7 @@ async def test_minesweeper(event_loop, size: int, bombs: int):
   class bot:
     loop = event_loop
   fun = Fun(bot)  # type: ignore
-  async with timeout(0.1, loop=event_loop):
+  async with timeout(0.1):
     try:
       mines = await event_loop.run_in_executor(None, fun.mine_sweeper, size, bombs)
     except BadArgument:

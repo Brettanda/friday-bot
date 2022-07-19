@@ -334,7 +334,7 @@ class Chat(commands.Cog):
 
   @commands.command(name="persona", help="Change Friday's persona")
   @commands.guild_only()
-  @checks.is_mod_and_min_tier(tier=PremiumTiersNew.tier_1.value, manage_channels=True)
+  @checks.is_mod_and_min_tier(tier=PremiumTiersNew.tier_1, manage_channels=True)
   async def persona(self, ctx: GuildContext):
     current = await ctx.pool.fetchval("SELECT persona FROM servers WHERE id=$1", str(ctx.guild.id))
     choice = await ctx.multi_select("Please select a new persona", [p.capitalize() for _, p, _ in PERSONAS], values=[p for _, p, _ in PERSONAS], emojis=[e for e, _, _ in PERSONAS], descriptions=[d for _, _, d in PERSONAS], default=current, placeholder=f"Current: {current.capitalize()}")

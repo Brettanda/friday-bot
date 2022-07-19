@@ -195,7 +195,7 @@ class Patreons(commands.Cog):
 
   @norm_patreon_server.command("deactivate")
   @commands.guild_only()
-  @checks.is_mod_and_min_tier(tier=config.PremiumTiersNew.tier_1.value, manage_guild=True)
+  @checks.is_mod_and_min_tier(tier=config.PremiumTiersNew.tier_1, manage_guild=True)
   async def norm_patreon_server_false(self, ctx: GuildContext):
     query = "SELECT guild_ids FROM patrons WHERE user_id = $1;"
     record = await ctx.db.fetchval(query, str(ctx.author.id))
