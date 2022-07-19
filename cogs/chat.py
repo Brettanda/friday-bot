@@ -218,7 +218,8 @@ class Chat(commands.Cog):
     self.translate_client = translate.Client()  # _http=self.bot.http)
     self.h = HTMLParser()
 
-    self.api_lock = asyncio.Semaphore(3, loop=bot.loop)
+    # https://help.openai.com/en/articles/5008629-can-i-use-concurrent-api-calls
+    self.api_lock = asyncio.Semaphore(2, loop=bot.loop)
 
     self._spam_check = SpamChecker()
     self._repeating_spam = CooldownByRepeating.from_cooldown(3, 60 * 3, commands.BucketType.channel)
@@ -576,9 +577,6 @@ class Chat(commands.Cog):
 async def setup(bot):
   if not hasattr(bot, "cluster"):
     bot.cluster = None
-
-  if bot.cluster and not hasattr(bot.cluster.launcher, "api_lock"):
-    bot.cluster.launcher.api_lock = asyncio.Semaphore(3)
 
   if not hasattr(bot, "chat_repeat_counter"):
     bot.chat_repeat_counter = Counter()
