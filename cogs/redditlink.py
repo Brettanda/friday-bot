@@ -158,8 +158,8 @@ class redditlink(commands.Cog):
 
     self.emoji = "🔗"
 
-    self.session_lock = asyncio.Lock(loop=bot.loop)
-    self.extract_lock = asyncio.Lock(loop=bot.loop)
+    self.session_lock = asyncio.Lock()
+    self.extract_lock = asyncio.Lock()
     self.reddit = asyncpraw.Reddit(
         client_id=REDDIT_CLIENT_ID,
         client_secret=REDDIT_CLIENT_SECRET,

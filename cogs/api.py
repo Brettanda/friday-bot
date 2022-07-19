@@ -109,7 +109,7 @@ class HTTPBlocked(web.HTTPClientError):
 
 class API(commands.Cog):
   def __init__(self, bot: Friday):
-    self.app = web.Application(logger=log, debug=not bot.prod and not bot.canary)
+    self.app = web.Application(logger=log)
     self.site = None
     self.bot: Friday = bot
 

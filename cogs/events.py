@@ -55,7 +55,7 @@ class ScheduledEvents(commands.Cog):
 
     # self._data_batch = defaultdict(lambda: defaultdict(list))
     self._data_batch = defaultdict(list)
-    self._batch_lock = asyncio.Lock(loop=bot.loop)
+    self._batch_lock = asyncio.Lock()
     self.batch_updates.add_exception_type(asyncpg.PostgresConnectionError)
 
   def __repr__(self) -> str:

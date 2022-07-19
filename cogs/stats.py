@@ -150,7 +150,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
   def __init__(self, bot: Friday):
     self.bot: Friday = bot
     self.process = psutil.Process()
-    self._batch_commands_lock, self._batch_chats_lock, self._batch_joins_lock = asyncio.Lock(loop=bot.loop), asyncio.Lock(loop=bot.loop), asyncio.Lock(loop=bot.loop)
+    self._batch_commands_lock, self._batch_chats_lock, self._batch_joins_lock = asyncio.Lock(), asyncio.Lock(), asyncio.Lock()
     self._data_commands_batch: list[DataCommandsBatchEntry] = []
     self._data_chats_batch: list[DataChatsBatchEntry] = []
     self._data_joins_batch: list[DataJoinsBatchEntry] = []

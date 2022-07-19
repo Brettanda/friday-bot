@@ -55,7 +55,7 @@ class Fun(commands.Cog):
     # self.timeoutCh = None
 
     self.poll_edit_batch = defaultdict(None)
-    self.poll_edit_lock = asyncio.Lock(loop=bot.loop)
+    self.poll_edit_lock = asyncio.Lock()
 
     self.callroulette_batch: List[Tuple[discord.Member, Sequence[discord.VoiceChannel]]] = []
 
