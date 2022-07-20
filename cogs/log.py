@@ -336,7 +336,8 @@ class Log(commands.Cog):
     record = await conn.fetchrow(query, str(guild_id))
     log.debug(f"PostgreSQL Query: \"{query}\" + {str(guild_id)}")
     if not record:
-      raise ValueError("Server not found.")
+      query = "INSERT INTO servers (id) VALUES ($1) RETURNING *;"
+      record = await conn.fetchrow(query, str(guild_id))
     return Config(record=record, bot=self.bot)
 
   @discord.utils.cached_property
