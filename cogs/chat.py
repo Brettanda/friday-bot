@@ -499,15 +499,18 @@ class Chat(commands.Cog):
       log.info(f"{msg.author} ({msg.author.id}) is being ratelimited at over {rate_limiter.rate} messages and can retry after {human_timedelta(retry_after, source=ctx.message.created_at, accuracy=2, brief=True)}")
 
       ad_message = ""
+      view = discord.ui.View()
       if not current_tier >= PremiumTiersNew.tier_1:
         if not rate_name == "streaked":
           if not rate_name == "voted":
             ad_message += "Get a higher message cap by voting on [Top.gg](https://top.gg/bot/476303446547365891/vote).\n"
           ad_message += "Get an even higher cap by keeping a voting streak of at least 2 days.\n"
+          view.add_item(discord.ui.Button(label="Vote for more", url="https://top.gg/bot/476303446547365891/vote"))
         ad_message += "Get the most powerful message cap by becoming a [Patron](https://patreon.com/join/fridaybot)."
+        view.add_item(discord.ui.Button(label="Become a Patron for more", url="https://patreon.com/join/fridaybot"))
       now = discord.utils.utcnow()
       retry_dt = now + datetime.timedelta(seconds=rate_limiter.per)
-      resp = await ctx.reply(embed=embed(title=f"You have sent me over `{formats.plural(rate_limiter.rate):message}` in that last `{human_timedelta(retry_dt, source=now, accuracy=2)}` and are being rate limited, try again <t:{int(retry_after.timestamp())}:R>", description=ad_message, color=MessageColors.error()), mention_author=False)
+      resp = await ctx.reply(embed=embed(title=f"You have sent me over `{formats.plural(rate_limiter.rate):message}` in that last `{human_timedelta(retry_dt, source=now, accuracy=2)}` and are being rate limited, try again <t:{int(retry_after.timestamp())}:R>", description=ad_message, color=MessageColors.error()), view=view, mention_author=False)
       return
     chat_history = self.chat_history[msg.channel.id]
     async with ctx.typing():
