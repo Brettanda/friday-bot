@@ -339,7 +339,7 @@ class MyContext(commands.Context):
 
     reference = kwargs.pop("reference", self.replied_reference if self.command and self.replied_reference else self.message) if not self.interaction else None
     reference = reference or self.message
-    if self.bot_permissions.read_message_history:
+    if self.bot_permissions.read_message_history and reference in self.bot.cached_messages:
       return await super().send(
           *args,
           reference=reference,
