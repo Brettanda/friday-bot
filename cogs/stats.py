@@ -150,7 +150,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
   def __init__(self, bot: Friday):
     self.bot: Friday = bot
     self.process = psutil.Process()
-    self._batch_commands_lock, self._batch_chats_lock, self._batch_joins_lock = asyncio.Lock(loop=bot.loop), asyncio.Lock(loop=bot.loop), asyncio.Lock(loop=bot.loop)
+    self._batch_commands_lock, self._batch_chats_lock, self._batch_joins_lock = asyncio.Lock(), asyncio.Lock(), asyncio.Lock()
     self._data_commands_batch: list[DataCommandsBatchEntry] = []
     self._data_chats_batch: list[DataChatsBatchEntry] = []
     self._data_joins_batch: list[DataJoinsBatchEntry] = []
@@ -358,9 +358,9 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
       return await ctx.send(embed=embed(title="Chat functionality is not currently available. Please try again later."))
 
     rate_control = chat_cog._spam_check
-    free_rate = [str(key) for key, value in rate_control._free._cache.items() if value._tokens == 0]
-    voted_rate = [str(key) for key, value in rate_control._voted._cache.items() if value._tokens == 0]
-    patron_rate = [str(key) for key, value in rate_control._patron._cache.items() if value._tokens == 0]
+    free_rate = [str(key) for key, value in rate_control.free._cache.items() if value._tokens == 0]
+    voted_rate = [str(key) for key, value in rate_control.voted._cache.items() if value._tokens == 0]
+    patron_rate = [str(key) for key, value in rate_control.patron._cache.items() if value._tokens == 0]
     await ctx.send(f"{total:,} messages ({cpm:.2f}/min)\n**Rate-limits**\nFree: {len(free_rate)} users\nVoted: {len(voted_rate)} users\nPatron: {len(patron_rate)} users\n{counter_message}")
 
   @commands.command("socketstats")

@@ -222,7 +222,8 @@ class Help(commands.HelpCommand):
     except discord.HTTPException:
       await ctx.send(embed=e)
     else:
-      await ctx.message.add_reaction("✅")
+      if ctx.bot_permissions.add_reactions:
+        await ctx.message.add_reaction("✅")
 
     # commands, missing_perms = [], False
     # for com in bot.commands:

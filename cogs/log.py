@@ -43,7 +43,7 @@ log = logging.getLogger(__name__)
 
 
 class Config:
-  __slots__ = ("bot", "id", "chat_channel", "disabled_commands", "restricted_commands", "bot_channel", "tier", "lang",)
+  __slots__ = ("bot", "id", "chat_channel", "disabled_commands", "restricted_commands", "bot_channel", "lang",)
 
   def __init__(self, *, record: asyncpg.Record, bot: Friday):
     self.bot: Friday = bot
@@ -52,7 +52,6 @@ class Config:
     self.disabled_commands: Set[str] = set(record["disabled_commands"] or [])
     self.restricted_commands: Set[str] = set(record["restricted_commands"] or [])
     self.bot_channel: Optional[int] = int(record["botchannel"], base=10) if record["botchannel"] else None
-    self.tier: str = record["tier"]
     self.lang: str = record["lang"]
 
 
@@ -98,7 +97,6 @@ class Log(commands.Cog):
         send_messages=True,
         read_messages=True,
         embed_links=True,
-        add_reactions=True,
     ).predicate(ctx)
 
   async def cog_load(self) -> None:
@@ -276,7 +274,7 @@ class Log(commands.Cog):
       if ctx.guild:
         config = await self.get_guild_config(ctx.guild.id, connection=ctx.db)
         if not config:
-          await ctx.db.execute(f"INSERT INTO servers (id,lang) VALUES ({str(ctx.guild.id)},'{ctx.guild.preferred_locale.value.split('-')[0]}') ON CONFLICT DO NOTHING")
+          await ctx.db.execute(f"INSERT INTO servers (id) VALUES ({str(ctx.guild.id)}) ON CONFLICT DO NOTHING")
           self.get_guild_config.invalidate(self, ctx.guild.id)
           config = await self.get_guild_config(ctx.guild.id, connection=ctx.db)
         if config is not None:
@@ -284,7 +282,7 @@ class Log(commands.Cog):
             return False
 
           if config.bot_channel is not None and ctx.channel.id != config.bot_channel:
-            if ctx.command.name in config.restricted_commands and not ctx.author.guild_permissions.manage_guild:  # type: ignore
+            if ctx.command.name in config.restricted_commands and not ctx.permissions.manage_guild:
               await ctx.send(f"<#{config.bot_channel}>", embed=embed(title="This command is restricted to the bot channel.", color=MessageColors.error()), delete_after=30, ephemeral=True)
               return False
     return True
@@ -294,6 +292,9 @@ class Log(commands.Cog):
 
     if ctx.command is None:
       return
+
+    if not ctx.bot_permissions.send_messages:
+      return log.error(f"Bot is missing the Send Messages permission. [#{ctx.channel} ({ctx.channel.id})]")
 
     current = message.created_at.replace(tzinfo=datetime.timezone.utc).timestamp()
     bucket = self.spam_control.get_bucket(message, current)
@@ -337,10 +338,6 @@ class Log(commands.Cog):
     if not record:
       raise ValueError("Server not found.")
     return Config(record=record, bot=self.bot)
-
-  @discord.utils.cached_property
-  def log_chat(self) -> CustomWebhook:
-    return CustomWebhook.partial(os.environ.get("WEBHOOKCHATID"), os.environ.get("WEBHOOKCHATTOKEN"), session=self.bot.session)  # type: ignore
 
   @discord.utils.cached_property
   def log_info(self) -> CustomWebhook:
@@ -390,7 +387,9 @@ class Log(commands.Cog):
     if isinstance(error, just_send):
       await ctx.send(embed=embed(title=str(error), color=MessageColors.error()), ephemeral=True)
     elif isinstance(error, commands.BotMissingPermissions):
-      if "embed_links" in error.missing_permissions:
+      if "send_messages" in error.missing_permissions:
+        log.error("Failed to respond to command. Missing send_messages permission.")
+      elif "embed_links" in error.missing_permissions:
         await ctx.send(str(error), ephemeral=True)
       else:
         await ctx.send(embed=embed(title=str(error), color=MessageColors.error()), ephemeral=True)

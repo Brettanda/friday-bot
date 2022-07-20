@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 import enum
 import json
@@ -7,6 +9,8 @@ from typing import (Any, Callable, Dict, Generic, Optional, Type, TypeVar,
                     Union, overload)
 
 import discord
+from discord.ext import commands
+from typing_extensions import Self
 
 _T = TypeVar('_T')
 
@@ -189,59 +193,77 @@ patreon_supporting_role = 843941723041300480
 class PremiumTiersNew(enum.Enum):
   free = 0
   voted = 1
+  streaked = 1.5
   tier_1 = 2
   tier_2 = 3
   tier_3 = 4
   tier_4 = 5
-
-  roles = [
-        844090257221222401,
-        851980183962910720,
-        858993523536429056,
-        858993776994418708
-  ]
 
   def __str__(self):
     return self.name.capitalize().replace("_", " ")
 
-  def get_role(self, tier: int = 0) -> Optional[int]:
-    if tier == 0 or tier > len(self.roles):  # type: ignore
-      return None
-    return self.roles[tier - 1]  # type: ignore
+  def __ge__(self, other: Self):
+    return self.value >= other.value
+
+  def __gt__(self, other: Self):
+    return self.value > other.value
+
+  def __le__(self, other: Self):
+    return self.value <= other.value
+
+  def __lt__(self, other: Self):
+    return self.value < other.value
 
 
-class PremiumTiers:
-  free = 0
-  voted = 1
-  tier_1 = 2
-  tier_2 = 3
-  tier_3 = 4
-  tier_4 = 5
+class PremiumPerks:
+  def __init__(self, tier: PremiumTiersNew = PremiumTiersNew.free):
+    self.tier: PremiumTiersNew = tier
 
-  names = {
-      0: "Free",
-      1: "Voted",
-      2: "Tier 1",
-      3: "Tier 2",
-      4: "Tier 3",
-      5: "Tier 4",
-  }
+    self._roles = {
+          PremiumTiersNew.tier_1.value: 844090257221222401,
+          PremiumTiersNew.tier_2.value: 851980183962910720,
+          PremiumTiersNew.tier_3.value: 858993523536429056,
+          PremiumTiersNew.tier_4.value: 858993776994418708
+    }
 
-  roles = [
-        844090257221222401,
-        851980183962910720,
-        858993523536429056,
-        858993776994418708
-  ]
+  def __repr__(self) -> str:
+    return f"<PremiumPerks tier={self.tier}>"
 
-  @classmethod
-  def get_tier_name(cls, tier: int) -> str:
-    return cls.names[tier]
+  @property
+  def guild_role(self) -> Optional[int]:
+    """The patron role for the support guild"""
+    return self._roles.get(self.tier.value, None)
 
-  def get_role(self, tier: int) -> Optional[int]:
-    if tier == 0 or tier > len(self.roles):
-      return None
-    return self.roles[tier - 1]
+  @property
+  def chat_ratelimit(self) -> commands.CooldownMapping:
+    from cogs.chat import SpamChecker
+    if self.tier == PremiumTiersNew.free:
+      return SpamChecker().free
+    elif self.tier == PremiumTiersNew.voted:
+      return SpamChecker().voted
+    elif self.tier == PremiumTiersNew.streaked:
+      return SpamChecker().streaked
+    elif self.tier >= PremiumTiersNew.tier_1:
+      return SpamChecker().patron
+    return SpamChecker().free
+
+  @property
+  def max_chat_characters(self) -> int:
+    if self.tier == PremiumTiersNew.free:
+      return 100
+    return 200
+
+  @property
+  def max_chat_history(self) -> int:
+    if self.tier.value >= PremiumTiersNew.tier_1.value:
+      return 5
+    return 3
+
+  @property
+  def max_chat_tokens(self) -> int:
+    if not self.tier >= PremiumTiersNew.tier_1:
+      return 25
+    return 50
 
 
 allowed_mentions = discord.AllowedMentions(roles=False, everyone=False, users=True, replied_user=False)

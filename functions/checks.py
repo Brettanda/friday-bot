@@ -7,11 +7,10 @@ import discord
 from discord.ext import commands
 
 from . import config, exceptions
+from .config import PremiumTiersNew
 
 if TYPE_CHECKING:
   from cogs.config import Config
-  from cogs.dbl import TopGG
-  from cogs.patreons import Patreons
   from index import Friday
 
   from .custom_contexts import GuildContext, MyContext
@@ -20,15 +19,17 @@ if TYPE_CHECKING:
 # def guild_is_tier(tier: str):
 
 
-def user_is_tier(tier: str):
+def user_is_tier(tier: PremiumTiersNew):
   async def predicate(ctx: MyContext) -> bool:
     return True
   return commands.check(predicate)
 
 
-def is_min_tier(tier: int = config.PremiumTiersNew.tier_1.value):
+def is_min_tier(tier: PremiumTiersNew = PremiumTiersNew.tier_1):
   async def predicate(ctx: GuildContext) -> bool:
     if ctx.author.id == ctx.bot.owner_id:
+      return True
+    if tier == PremiumTiersNew.free:
       return True
     guild = ctx.bot.get_guild(config.support_server_id)
     if not guild:
@@ -43,36 +44,40 @@ def is_min_tier(tier: int = config.PremiumTiersNew.tier_1.value):
   return commands.check(predicate)
 
 
-def guild_is_min_tier(tier: int = config.PremiumTiersNew.tier_1.value):
+def guild_is_min_tier(tier: PremiumTiersNew = PremiumTiersNew.tier_1):
   """ Checks if a guild has at least patreon 'tier' """
 
   async def predicate(ctx: GuildContext) -> bool:
     if ctx.guild is None:
       raise commands.NoPrivateMessage()
-    guild_tier = await ctx.db.fetchval("""SELECT tier FROM patrons WHERE $1 = ANY(patrons.guild_ids) LIMIT 1""", str(ctx.guild.id))
+    if tier == PremiumTiersNew.free:
+      return True
+    guild_tier: Optional[int] = await ctx.db.fetchval("""SELECT tier FROM patrons WHERE $1 = ANY(patrons.guild_ids) LIMIT 1""", str(ctx.guild.id))
     if guild_tier is None:
       return False
-    return guild_tier >= tier
+    return guild_tier >= tier.value
   return commands.check(predicate)
 
 
-def user_is_min_tier(tier: int = config.PremiumTiersNew.tier_1.value):
+def user_is_min_tier(tier: PremiumTiersNew = PremiumTiersNew.tier_1):
   """ Checks if a user has at least patreon 'tier' """
 
   async def predicate(ctx: MyContext) -> bool:
-    pat_cog: Optional[Patreons] = ctx.bot.get_cog("Patreons")  # type: ignore
+    if tier == PremiumTiersNew.free:
+      return True
+    pat_cog = ctx.bot.patreon
     if pat_cog is None:
       return False
 
     config_ = [p for p in await pat_cog.get_patrons() if p.id == ctx.author.id]
     if len(config_) == 0:
       return False
-    return config_[0].tier >= tier
+    return config_[0].tier >= tier.value
   return commands.check(predicate)
 
 
 # TODO: Remove this when moved to is_mod_and_min_tier
-def is_admin_and_min_tier(tier: int = config.PremiumTiersNew.tier_1.value):
+def is_admin_and_min_tier(tier: PremiumTiersNew = PremiumTiersNew.tier_1):
   guild_is_min_tier_ = guild_is_min_tier(tier).predicate
   is_admin_ = is_admin().predicate
   user_is_min_tier_ = user_is_min_tier(tier).predicate
@@ -90,7 +95,7 @@ def is_admin_and_min_tier(tier: int = config.PremiumTiersNew.tier_1.value):
   return commands.check(predicate)
 
 
-def is_mod_and_min_tier(*, tier: int = config.PremiumTiersNew.tier_1.value, **perms: bool):
+def is_mod_and_min_tier(*, tier: PremiumTiersNew = PremiumTiersNew.tier_1, **perms: bool):
   guild_is_min_tier_ = guild_is_min_tier(tier).predicate
   is_mod_or_guild_permissions_ = is_mod_or_guild_permissions(**perms).predicate
   user_is_min_tier_ = user_is_min_tier(tier).predicate
@@ -154,7 +159,7 @@ def is_supporter_or_voted():
 
 
 async def user_voted(bot: Friday, user: discord.abc.User, *, connection: asyncpg.Pool | asyncpg.Connection = None) -> bool:
-  dbl_cog: Optional[TopGG] = bot.get_cog("TopGG")  # type: ignore
+  dbl_cog = bot.dbl
   if dbl_cog is None:
     query = """SELECT id
                 FROM reminders

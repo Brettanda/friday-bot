@@ -6,7 +6,7 @@ import functools
 import logging
 import os
 from collections import Counter, defaultdict
-from typing import TYPE_CHECKING, ClassVar, List, Optional, Union
+from typing import TYPE_CHECKING, ClassVar, List, Literal, Optional, Union
 
 import asyncpg
 import discord
@@ -18,14 +18,14 @@ from google.cloud import translate_v2 as translate
 from six.moves.html_parser import HTMLParser  # type: ignore
 from slugify import slugify
 
-from functions import (MessageColors, MyContext, cache, checks, embed,
-                       relay_info, time)
-from functions.config import PremiumTiersNew
+from cogs.log import CustomWebhook
+from functions import MessageColors, MyContext, cache, checks, embed, formats
+from functions.config import PremiumPerks, PremiumTiersNew
+from functions.time import human_timedelta
 
 if TYPE_CHECKING:
   from typing_extensions import Self
 
-  from cogs.patreons import Patreons
   from functions.custom_contexts import GuildContext
   from index import Friday
 
@@ -46,7 +46,7 @@ class ChatError(commands.CheckFailure):
 
 
 class Config:
-  __slots__ = ("bot", "id", "chat_channel_id", "persona", "lang", "tier", "puser",)
+  __slots__ = ("bot", "id", "chat_channel_id", "persona", "tier", "puser",)
 
   def __init__(self, *, record: asyncpg.Record, bot: Friday):
     self.bot: Friday = bot
@@ -55,7 +55,6 @@ class Config:
     self.tier: int = record["tier"] if record else 0
     self.puser: Optional[int] = record["user_id"] if record else None
     self.persona: Optional[str] = record["persona"]
-    self.lang: str = record["lang"] or "en"
 
   @property
   def chat_channel(self) -> Optional[Union[discord.TextChannel, discord.VoiceChannel, discord.Thread]]:
@@ -76,25 +75,28 @@ class UserConfig:
 
 class SpamChecker:
   def __init__(self):
-    self._absolute_minute = commands.CooldownMapping.from_cooldown(6, 30, commands.BucketType.user)
-    self._absolute_hour = commands.CooldownMapping.from_cooldown(180, 3600, commands.BucketType.user)
-    self._free = commands.CooldownMapping.from_cooldown(30, 43200, commands.BucketType.user)
-    self._voted = commands.CooldownMapping.from_cooldown(60, 43200, commands.BucketType.user)
-    self._patron = commands.CooldownMapping.from_cooldown(100, 43200, commands.BucketType.user)
+    self.absolute_minute = commands.CooldownMapping.from_cooldown(6, 30, commands.BucketType.user)
+    self.absolute_hour = commands.CooldownMapping.from_cooldown(180, 3600, commands.BucketType.user)
+    self.free = commands.CooldownMapping.from_cooldown(30, 43200, commands.BucketType.user)
+    self.voted = commands.CooldownMapping.from_cooldown(60, 43200, commands.BucketType.user)
+    self.streaked = commands.CooldownMapping.from_cooldown(75, 43200, commands.BucketType.user)
+    self.patron = commands.CooldownMapping.from_cooldown(100, 43200, commands.BucketType.user)
 
-  def is_spamming(self, msg: discord.Message, tier: int, voted: bool) -> tuple[bool, Optional[Cooldown], Optional[str]]:
+  def is_spamming(self, msg: discord.Message, tier: PremiumTiersNew, vote_count: int) -> tuple[bool, Optional[Cooldown], Optional[Literal["free", "voted", "streaked", "patron"]]]:
     current = msg.created_at.timestamp()
 
-    min_bucket = self._absolute_minute.get_bucket(msg, current)
-    hour_bucket = self._absolute_hour.get_bucket(msg, current)
-    free_bucket = self._free.get_bucket(msg, current)
-    voted_bucket = self._voted.get_bucket(msg, current)
-    patron_bucket = self._patron.get_bucket(msg, current)
+    min_bucket = self.absolute_minute.get_bucket(msg, current)
+    hour_bucket = self.absolute_hour.get_bucket(msg, current)
+    free_bucket = self.free.get_bucket(msg, current)
+    voted_bucket = self.voted.get_bucket(msg, current)
+    streaked_bucket = self.streaked.get_bucket(msg, current)
+    patron_bucket = self.patron.get_bucket(msg, current)
 
     min_rate = min_bucket and min_bucket.update_rate_limit(current)
     hour_rate = hour_bucket and hour_bucket.update_rate_limit(current)
     free_rate = free_bucket and free_bucket.update_rate_limit(current)
     voted_rate = voted_bucket and voted_bucket.update_rate_limit(current)
+    streaked_rate = streaked_bucket and streaked_bucket.update_rate_limit(current)
     patron_rate = patron_bucket and patron_bucket.update_rate_limit(current)
 
     if min_rate:
@@ -103,13 +105,16 @@ class SpamChecker:
     if hour_rate:
       return True, hour_bucket, None
 
-    if free_rate and not voted and not tier >= PremiumTiersNew.tier_1.value:
+    if free_rate and vote_count == 0 and tier < PremiumTiersNew.tier_1:
       return True, free_bucket, "free"
 
-    if voted_rate and voted and tier < PremiumTiersNew.tier_1.value:
+    if voted_rate and 2 > vote_count > 0 and tier < PremiumTiersNew.tier_1:
       return True, voted_bucket, "voted"
 
-    if patron_rate and tier >= PremiumTiersNew.tier_1.value:
+    if streaked_rate and vote_count >= 2 and tier < PremiumTiersNew.tier_1:
+      return True, streaked_bucket, "streaked"
+
+    if patron_rate and tier >= PremiumTiersNew.tier_1:
       return True, patron_bucket, "patron"
 
     return False, None, None
@@ -143,7 +148,7 @@ class ChatHistory:
     return bool(repeats and len(repeats) >= 3)
 
   def banned_nickname(self, name: str) -> str:
-    banned = ["nigger", "nigg"]
+    banned = ["nigger", "nigg", "niger", "nig"]
     string = slugify(name).replace("-", "")
     for old, new in (("4", "a"), ("@", "a"), ("3", "e"), ("1", "i"), ("0", "o"), ("7", "t"), ("5", "s")):
       string = string.replace(old, new)
@@ -213,7 +218,8 @@ class Chat(commands.Cog):
     self.translate_client = translate.Client()  # _http=self.bot.http)
     self.h = HTMLParser()
 
-    self.api_lock = asyncio.Semaphore(3, loop=bot.loop)
+    # https://help.openai.com/en/articles/5008629-can-i-use-concurrent-api-calls
+    self.api_lock = asyncio.Semaphore(2, loop=bot.loop)
 
     self._spam_check = SpamChecker()
     self._repeating_spam = CooldownByRepeating.from_cooldown(3, 60 * 3, commands.BucketType.channel)
@@ -246,6 +252,11 @@ class Chat(commands.Cog):
   async def on_invalidate_patreon(self, guild_id: int):
     self.get_guild_config.invalidate(self, guild_id)
 
+  @discord.utils.cached_property
+  def webhook(self) -> CustomWebhook:
+    """Returns the webhook for logging chat messages to Discord."""
+    return CustomWebhook.partial(os.environ.get("WEBHOOKCHATID"), os.environ.get("WEBHOOKCHATTOKEN"), session=self.bot.session)  # type: ignore
+
   @commands.command(name="say", aliases=["repeat"], help="Make Friday say what ever you want")
   async def say(self, ctx: MyContext, *, content: str):
     if content in ("im stupid", "i'm stupid", "i am dumb", "im dumb"):
@@ -262,31 +273,31 @@ class Chat(commands.Cog):
 
   @commands.group("chat", invoke_without_command=True, case_insensitive=True)
   async def chat(self, ctx: MyContext, *, message: str):
-    """Chat with Friday powered by GPT-3 and get a response."""
-    await self.chat_message(ctx, content=message)
-
-  @chat.error
-  async def chat_error(self, ctx: MyContext, error: commands.CommandError):
-    if isinstance(error, ChatError):
-      await ctx.send(embed=embed(title=str(error), color=MessageColors.error()))
+    """Chat with Friday, powered by GPT-3 and get a response."""
+    try:
+      await self.chat_message(ctx, content=message)
+    except ChatError as e:
+      await ctx.send(embed=embed(title=str(e), color=MessageColors.error()))
 
   @chat.command("info")
   async def chat_info(self, ctx: MyContext):
     """Displays information about the current conversation."""
     current = ctx.message.created_at.timestamp()
-    free_rate = self._spam_check._free.get_bucket(ctx.message, current)
-    free_rate = free_rate and free_rate.get_tokens(ctx.message.created_at.timestamp())
-    voted_rate = self._spam_check._voted.get_bucket(ctx.message, current)
-    voted_rate = voted_rate and voted_rate.get_tokens(ctx.message.created_at.timestamp())
-    patroned_rate = self._spam_check._patron.get_bucket(ctx.message, current)
-    patroned_rate = patroned_rate and patroned_rate.get_tokens(ctx.message.created_at.timestamp())
+
+    def get_tokens(_type: commands.CooldownMapping):
+      r = _type.get_bucket(ctx.message, current)
+      return r and r.get_tokens(ctx.message.created_at.timestamp())
+    free_rate = get_tokens(self._spam_check.free)
+    voted_rate = get_tokens(self._spam_check.voted)
+    streaked_rate = get_tokens(self._spam_check.streaked)
+    patroned_rate = get_tokens(self._spam_check.patron)
     history = self.chat_history[ctx.channel.id]
     content = history and str(history) or "No history"
     await ctx.send(embed=embed(
         title="Chat Info",
-        fieldstitle=["Messages", "Voted messages", "Patroned messages", "Recent history resets", "Message History"],
-        fieldsval=[f"{free_rate} remaining", f"{voted_rate} remaining", f"{patroned_rate} remaining", str(self.bot.chat_repeat_counter[ctx.channel.id]), f"```\n{content}\n```"],
-        fieldsin=[True, True, True, False, False]
+        fieldstitle=["Messages", "Voted messages", "Voting Streak messages", "Patroned messages", "Recent history resets", "Message History"],
+        fieldsval=[f"{free_rate} remaining", f"{voted_rate} remaining", f"{streaked_rate} remaining", f"{patroned_rate} remaining", str(self.bot.chat_repeat_counter[ctx.channel.id]), f"```\n{content}\n```"],
+        fieldsin=[True, True, True, True, False, False]
     ))
 
   @commands.command(name="reset", help="Resets Friday's chat history. Helps if Friday is repeating messages")
@@ -322,7 +333,7 @@ class Chat(commands.Cog):
 
   @commands.command(name="persona", help="Change Friday's persona")
   @commands.guild_only()
-  @checks.is_mod_and_min_tier(tier=PremiumTiersNew.tier_1.value, manage_channels=True)
+  @checks.is_mod_and_min_tier(tier=PremiumTiersNew.tier_1, manage_channels=True)
   async def persona(self, ctx: GuildContext):
     current = await ctx.pool.fetchval("SELECT persona FROM servers WHERE id=$1", str(ctx.guild.id))
     choice = await ctx.multi_select("Please select a new persona", [p.capitalize() for _, p, _ in PERSONAS], values=[p for _, p, _ in PERSONAS], emojis=[e for e, _, _ in PERSONAS], descriptions=[d for _, _, d in PERSONAS], default=current, placeholder=f"Current: {current.capitalize()}")
@@ -340,78 +351,49 @@ class Chat(commands.Cog):
 
     self.get_guild_config.invalidate(self, ctx.guild.id)
 
-  @cache.cache(maxsize=1024)
-  async def content_filter_check(self, text: str, user_id: str) -> Optional[int]:
+  async def content_filter_flagged(self, text: str) -> tuple[bool, list[str]]:
     if self.bot.testing:
-      return 0
-    try:
-      async with self.api_lock:
-        response = await self.bot.loop.run_in_executor(
-              None,
-              functools.partial(
-                  lambda: openai.Completion.create(
-                      engine="content-filter-alpha",
-                      prompt=f"<|endoftext|>{text}\n--\nLabel:",
-                      temperature=0,
-                      max_tokens=1,
-                      top_p=1,
-                      frequency_penalty=0,
-                      presence_penalty=0,
-                      user=user_id,
-                      logprobs=10
-                  )))
-    except Exception as e:
-      raise e
-    # print(response)
+      return False, []
+    async with self.api_lock:
+      response = await self.bot.loop.run_in_executor(
+          None,
+          functools.partial(
+              lambda: openai.Moderation.create(
+                  model="text-moderation-latest",
+                  input=text,
+              )))
     if response is None:
-      return None
-    toxic_therhold = -0.355
-    output_label = response["choices"][0]["text"]
-    if output_label == "2":
-      logprobs = response["choices"][0]["logprobs"]["top_logprobs"][0]
-      if logprobs["2"] < toxic_therhold:
-        logprob_0 = logprobs.get("0", None)
-        logprob_1 = logprobs.get("1", None)
-        if logprob_0 is not None and logprob_1 is not None:
-          output_label = "0" if logprob_0 >= logprob_1 else "1"
-        elif logprob_0 is not None:
-          output_label = "0"
-        elif logprob_1 is not None:
-          output_label = "1"
-    if output_label not in ["0", "1", "2"]:
-      output_label = "2"
-    return int(output_label)
+      return False, []
+    response = response["results"][0]  # type: ignore
+    categories = [name for name, value in response['categories'].items() if value == 1]
+    return bool(response["flagged"] == 1), categories
 
-  async def openai_req(self, msg: discord.Message, current_tier: int, persona: str = None, *, content: str = None) -> Optional[str]:
+  async def openai_req(self, msg: discord.Message, current_tier: PremiumTiersNew, persona: str = None, *, content: str = None) -> Optional[str]:
+    if self.bot.testing:
+      return "This message is a test"
     content = content or msg.clean_content
-    author_prompt_name, my_prompt_name = msg.author.display_name, "Friday"
+    author_prompt_name = msg.author.display_name
     my_prompt_name = msg.guild.me.display_name if msg.guild else self.bot.user.name
-    prompt = await self.chat_history[msg.channel.id].prompt(content, author_prompt_name, my_prompt_name, limit=5 if current_tier >= PremiumTiersNew.tier_1.value else 3)
+    prompt = await self.chat_history[msg.channel.id].prompt(content, author_prompt_name, my_prompt_name, limit=PremiumPerks(current_tier).max_chat_history)
     engine = os.environ["OPENAIMODEL"]
     if persona and persona == "pirate":
       engine = os.environ["OPENAIMODELPIRATE"]
-    if self.bot.testing:
-      return "This message is a test"
-    try:
-      async with self.api_lock:
-        response = await self.bot.loop.run_in_executor(
-            None,
-            functools.partial(
-                lambda: openai.Completion.create(
-                    model=engine,
-                    prompt=prompt,
-                    temperature=0.8,
-                    max_tokens=25 if not current_tier >= PremiumTiersNew.tier_1.value else 50,
-                    top_p=0.9,
-                    user=str(msg.channel.id),
-                    frequency_penalty=1.5,
-                    presence_penalty=1.5,
-                    stop=[f"\n{author_prompt_name}:", f"\n{my_prompt_name}:", "\n", "\n###\n"]
-                )))
-    except Exception as e:
-      raise e
-    else:
-      return response.get("choices")[0].get("text").replace("\n", "") if response is not None else None
+    async with self.api_lock:
+      response = await self.bot.loop.run_in_executor(
+          None,
+          functools.partial(
+              lambda: openai.Completion.create(
+                  model=engine,
+                  prompt=prompt,
+                  temperature=0.8,
+                  max_tokens=PremiumPerks(current_tier).max_chat_tokens,
+                  top_p=0.9,
+                  user=str(msg.channel.id),
+                  frequency_penalty=1.5,
+                  presence_penalty=1.5,
+                  stop=[f"\n{author_prompt_name}:", f"\n{my_prompt_name}:", "\n", "\n###\n"]
+              )))
+    return response.get("choices")[0].get("text").replace("\n", "") if response is not None else None
 
   @commands.Cog.listener()
   async def on_message(self, msg: discord.Message):
@@ -439,6 +421,9 @@ class Chat(commands.Cog):
     if ctx.command is not None or msg.webhook_id is not None:
       return
 
+    if not ctx.bot_permissions.send_messages:
+      return
+
     valid = validators.url(msg.clean_content)
     if valid:
       return
@@ -454,7 +439,7 @@ class Chat(commands.Cog):
   async def chat_message(self, ctx: MyContext | GuildContext, *, content: str = None) -> None:
     msg = ctx.message
     content = content or msg.clean_content
-    current_tier = PremiumTiersNew.free.value
+    current_tier: PremiumTiersNew = PremiumTiersNew.free
 
     config = None
     if ctx.guild:
@@ -482,37 +467,50 @@ class Chat(commands.Cog):
           return
 
       if config.tier:
-        current_tier = config.tier
-    voted = await checks.user_voted(self.bot, ctx.author, connection=ctx.db)
+        current_tier = PremiumTiersNew(config.tier)
 
-    if voted and not current_tier > PremiumTiersNew.voted.value:
-      current_tier = PremiumTiersNew.voted.value
+    dbl = self.bot.dbl
+    vote_streak = dbl and await dbl.user_streak(ctx.author.id, connection=ctx.db)
 
-    patron_cog: Optional[Patreons] = self.bot.get_cog("Patreons")  # type: ignore
+    if vote_streak and not current_tier > PremiumTiersNew.voted:
+      current_tier = PremiumTiersNew.voted
+
+    patron_cog = self.bot.patreon
     if patron_cog is not None:
       patrons = await patron_cog.get_patrons(connection=ctx.db)
 
       patron = next((p for p in patrons if p.id == ctx.author.id), None)
 
       if patron is not None:
-        current_tier = patron.tier if patron.tier > current_tier else current_tier
+        current_tier = PremiumTiersNew(patron.tier) if patron.tier > current_tier.value else current_tier
 
     char_count = len(content)
-    max_content = 100 if current_tier == PremiumTiersNew.free.value else 200
+    max_content = PremiumPerks(PremiumTiersNew(current_tier)).max_chat_characters
     if char_count > max_content:
       raise ChatError(f"Message is too long. Max length is {max_content} characters.")
 
     # Anything to do with sending messages needs to be below the above check
     response = None
-    is_spamming, rate_limiter, rate_name = self._spam_check.is_spamming(msg, current_tier, voted)
+    is_spamming, rate_limiter, rate_name = self._spam_check.is_spamming(msg, current_tier, vote_streak and vote_streak.days or 0)
     resp = None
     if is_spamming and rate_limiter:
-      vote_advertise = bool(rate_name == "free" and not voted)
-      patreon_advertise = bool(rate_name == "voted" and not (current_tier >= PremiumTiersNew.tier_1.value))
-      retry_after = discord.utils.utcnow() + datetime.timedelta(seconds=rate_limiter.get_retry_after())
-      log.info(f"{msg.author} ({msg.author.id}) is being ratelimited at over {rate_limiter.rate} messages and can retry after {time.human_timedelta(retry_after, accuracy=2, brief=True)}")
-      ad_message = "If you would like to send me more messages you can get more by voting at https://top.gg/bot/476303446547365891/vote" if vote_advertise else "If you would like to send even more messages please support Friday on Patreon at https://patreon.com/join/fridaybot" if patreon_advertise else ""
-      resp = await ctx.reply(embed=embed(title=f"You have sent me over `{rate_limiter.rate}` messages in that last `{rate_limiter.per} seconds` and are being rate limited, try again <t:{int(retry_after.timestamp())}:R>", description=ad_message, color=MessageColors.error()), mention_author=False)
+      retry_after = ctx.message.created_at + datetime.timedelta(seconds=rate_limiter.get_retry_after())
+
+      log.info(f"{msg.author} ({msg.author.id}) is being ratelimited at over {rate_limiter.rate} messages and can retry after {human_timedelta(retry_after, source=ctx.message.created_at, accuracy=2, brief=True)}")
+
+      ad_message = ""
+      view = discord.ui.View()
+      if not current_tier >= PremiumTiersNew.tier_1:
+        if not rate_name == "streaked":
+          if not rate_name == "voted":
+            ad_message += "Get a higher message cap by voting on [Top.gg](https://top.gg/bot/476303446547365891/vote).\n"
+          ad_message += "Get an even higher cap by keeping a voting streak of at least 2 days.\n"
+          view.add_item(discord.ui.Button(label="Vote for more", url="https://top.gg/bot/476303446547365891/vote"))
+        ad_message += "Get the most powerful message cap by becoming a [Patron](https://patreon.com/join/fridaybot)."
+        view.add_item(discord.ui.Button(label="Become a Patron for more", url="https://patreon.com/join/fridaybot"))
+      now = discord.utils.utcnow()
+      retry_dt = now + datetime.timedelta(seconds=rate_limiter.per)
+      resp = await ctx.reply(embed=embed(title=f"You have sent me over `{formats.plural(rate_limiter.rate):message}` in that last `{human_timedelta(retry_dt, source=now, accuracy=2)}` and are being rate limited, try again <t:{int(retry_after.timestamp())}:R>", description=ad_message, color=MessageColors.error()), view=view, mention_author=False)
       return
     chat_history = self.chat_history[msg.channel.id]
     async with ctx.typing():
@@ -521,26 +519,28 @@ class Chat(commands.Cog):
         response = await self.openai_req(msg, current_tier, config and config.persona, content=str(translation).strip('\n'))
       except Exception as e:
         # resp = await ctx.send(embed=embed(title="", color=MessageColors.error()))
-        self.bot.dispatch("chat_completion", msg, resp, True, filtered=None, prompt="\n".join(chat_history.history(limit=5 if current_tier >= PremiumTiersNew.tier_1.value else 3)))
+        self.bot.dispatch("chat_completion", msg, resp, True, filtered=None, prompt="\n".join(chat_history.history(limit=PremiumPerks(current_tier).max_chat_history)))
         log.error(f"OpenAI error: {e}")
         await ctx.reply(embed=embed(title="Something went wrong, please try again later", colour=MessageColors.error()))
         return
       if response is None or response == "":
         raise ChatError("Somehow, I don't know what to say.")
       await chat_history.add_message(msg, response, user_content=content)
-      content_filter = await self.content_filter_check(response, str(msg.channel.id))
+      flagged, flagged_categories = await self.content_filter_flagged(response)
     if translation is not None and translation.detectedSourceLanguage != "en" and response is not None and "dynamic" not in response:
       chars_to_strip = "?!,;'\":`"
       final_translation = await Translation.from_text(response.replace("dynamic", ""), from_lang="en", to_lang=str(translation.detectedSourceLanguage) if translation.translatedText.strip(chars_to_strip).lower() != translation.input.strip(chars_to_strip).lower() else "en", parent=self)
       response = str(final_translation)
 
-    if content_filter != 2:
-      resp = await ctx.reply(content=response if content_filter == 0 else f"{POSSIBLE_SENSITIVE_MESSAGE}{response}||", allowed_mentions=discord.AllowedMentions.none(), mention_author=False)
-      await relay_info(f"{PremiumTiersNew(current_tier)} - **{ctx.author.name}:** {content}\n**Me:** {response}", self.bot, webhook=self.bot.log.log_chat)
-    elif content_filter == 2:
-      resp = await ctx.reply(content=POSSIBLE_OFFENSIVE_MESSAGE, mention_author=False)
-      await relay_info(f"{PremiumTiersNew(current_tier)} - **{ctx.author.name}:** {content}\n**Me:** Possible offensive message: {response}", self.bot, webhook=self.bot.log.log_chat)
-    self.bot.dispatch("chat_completion", msg, resp, False, filtered=content_filter, persona=msg.guild and config and config.persona, prompt="\n".join(self.chat_history[msg.channel.id].history(limit=5 if current_tier >= PremiumTiersNew.tier_1.value else 3)))
+    if not flagged:
+      resp = await ctx.reply(content=response, allowed_mentions=discord.AllowedMentions.none(), mention_author=False)
+      log.info(f"{PremiumTiersNew(current_tier)} - [{ctx.author.name}] {content}  [Me] {response}")
+      await self.webhook.safe_send(username=self.bot.user.name, avatar_url=self.bot.user.display_avatar.url, content=f"{PremiumTiersNew(current_tier)} - **{ctx.author.name}:** {content}\n**Me:** {response}")
+    else:
+      resp = await ctx.reply("**My response was flagged and could not be sent, please try again**", mention_author=False)
+      log.info(f"{PremiumTiersNew(current_tier)} - [{ctx.author.name}] {content}  [Me] Flagged message: \"{response}\" {formats.human_join(flagged_categories, final='and')}")
+      await self.webhook.safe_send(username=self.bot.user.name, avatar_url=self.bot.user.display_avatar.url, content=f"{PremiumTiersNew(current_tier)} - **{ctx.author.name}:** {content}\n**Me:** Flagged message: {response} {flagged_categories}")
+    self.bot.dispatch("chat_completion", msg, resp, False, filtered=int(flagged), persona=msg.guild and config and config.persona, prompt="\n".join(self.chat_history[msg.channel.id].history(limit=PremiumPerks(current_tier).max_chat_history)))
 
     async with chat_history.lock:
       if chat_history.bot_repeating():
@@ -578,9 +578,6 @@ class Chat(commands.Cog):
 async def setup(bot):
   if not hasattr(bot, "cluster"):
     bot.cluster = None
-
-  if bot.cluster and not hasattr(bot.cluster.launcher, "api_lock"):
-    bot.cluster.launcher.api_lock = asyncio.Semaphore(3)
 
   if not hasattr(bot, "chat_repeat_counter"):
     bot.chat_repeat_counter = Counter()

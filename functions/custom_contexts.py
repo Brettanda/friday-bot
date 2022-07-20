@@ -4,7 +4,6 @@ import io
 from typing import TYPE_CHECKING, Any, Generator, List, Optional, Union
 
 import discord
-from discord.context_managers import Typing as TypingOld
 from discord.ext import commands
 
 from .myembed import embed
@@ -14,14 +13,6 @@ if TYPE_CHECKING:
   from asyncpg import Connection, Pool
 
   from index import Friday
-
-
-class Typing(TypingOld):
-  async def __aenter__(self) -> None:
-    try:
-      await super().__aenter__()
-    except discord.Forbidden:
-      pass
 
 
 class ConfirmationView(discord.ui.View):
@@ -240,11 +231,6 @@ class MyContext(commands.Context):
       await self.bot.pool.release(self._db)
       self._db = None
 
-  def typing(self, **kwargs: Any):
-    if self.interaction:
-      return Typing(self)
-    return super().typing(**kwargs)
-
   @property
   def lang_code(self) -> str:
     if self.interaction:
@@ -353,15 +339,13 @@ class MyContext(commands.Context):
 
     reference = kwargs.pop("reference", self.replied_reference if self.command and self.replied_reference else self.message) if not self.interaction else None
     reference = reference or self.message
-    try:
+    if self.bot_permissions.read_message_history:
       return await super().send(
           *args,
           reference=reference,
           **kwargs
       )
-    except (discord.Forbidden, discord.HTTPException) as e:
-      if self.interaction:
-        raise e
+    else:
       return await super().send(
           *args,
           **kwargs)
