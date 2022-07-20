@@ -211,6 +211,7 @@ class TopGG(commands.Cog):
     support_server = self.bot.get_guild(config.support_server_id)
     query = "SELECT days FROM voting_streaks WHERE user_id = $1"
     days: int | None = await self.bot.pool.fetchval(query, int(user_id, base=10))
+    days = days or 1
     role_removed = False
     if support_server:
       member = await self.bot.get_or_fetch_member(support_server, user_id)
@@ -226,7 +227,7 @@ class TopGG(commands.Cog):
       private = self.bot.get_user(user_id) or (await self.bot.fetch_user(user_id))
       view = discord.ui.View()
       view.add_item(discord.ui.Button(label="Vote", style=discord.ButtonStyle.url, url=VOTE_URL))
-      await private.send(embed=embed(title="Your vote has expired.", description=f"Vote again to keep your perks and to keep your streak of `{days and formats.plural(days):day}` going!"), view=view)
+      await private.send(embed=embed(title="Your vote has expired.", description=f"Vote again to keep your perks and to keep your streak of `{formats.plural(days):day}` going!"), view=view)
     except discord.HTTPException:
       pass
     else:
