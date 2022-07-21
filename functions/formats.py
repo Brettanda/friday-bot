@@ -1,8 +1,13 @@
-class plural:
-  def __init__(self, value):
-    self.value = value
+from __future__ import annotations
 
-  def __format__(self, format_spec):
+from typing import Sequence
+
+
+class plural:
+  def __init__(self, value: int):
+    self.value: int = value
+
+  def __format__(self, format_spec: str) -> str:
     v = self.value
     singular, sep, plural = format_spec.partition('|')
     plural = plural or f'{singular}s'
@@ -11,7 +16,7 @@ class plural:
     return f'{v} {singular}'
 
 
-def human_join(seq, delim=', ', final='or'):
+def human_join(seq: Sequence[str], delim: str = ', ', final: str = 'or') -> str:
   size = len(seq)
   if size == 0:
     return ''

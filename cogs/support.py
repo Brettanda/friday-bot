@@ -6,6 +6,8 @@ from typing import TYPE_CHECKING, Optional
 import discord
 from discord.ext import commands
 
+# from functions import embed
+
 if TYPE_CHECKING:
   from functions.custom_contexts import MyContext
   from index import Friday
@@ -69,11 +71,35 @@ class Support(commands.Cog):
     """Get the Patreon link for Friday"""
     await ctx.reply(PATREON_LINK)
 
-  @commands.Cog.listener()
-  async def on_message(self, msg):
-    if not msg.guild or msg.author.bot or msg.guild.id != 707441352367013899:
-      return
-    # print(discord.utils.resolve_invite(msg.clean_content))
+  # @commands.Cog.listener()
+  # async def on_message(self, msg: discord.Message):
+  #   if not isinstance(msg.channel, discord.DMChannel):
+  #     return
+
+  #   bot_names = (
+  #       "Hype Squad Events",
+  #       "HypeSquad Academy",
+  #       "ModMail Testers"
+  #   )
+
+  #   bot_names = [b.lower().replace(" ", "") for b in bot_names]
+
+  #   if not msg.author.name.lower().replace(" ", "") in bot_names:
+  #     return
+
+  #   support = self.bot.get_guild(707441352367013899)
+  #   if not support:
+  #     return
+
+  #   owner = await self.bot.get_or_fetch_member(support, 215227961048170496)
+  #   if not owner:
+  #     return
+
+  #   avatar = msg.author.avatar.url if msg.author.avatar is not None else None
+  #   await owner.send(embed=embed(
+  #       title="Maybe ban?",
+  #       description=f"{msg.author.mention} ({msg.author.id}) just tried to contact me in a private channel.",
+  #       image=avatar))
 
   @commands.Cog.listener()
   async def on_member_update(self, before: discord.Member, after: discord.Member):
