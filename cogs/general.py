@@ -125,7 +125,7 @@ class General(commands.Cog):
     memory_usage = self.process.memory_full_info().uss / 1024**2
     cpu_usage = self.process.cpu_percent() / psutil.cpu_count()
 
-    shard: discord.ShardInfo = self.bot.get_shard(ctx.guild.shard_id)  # type: ignore  # will never be None
+    shard = ctx.guild and self.bot.get_shard(ctx.guild.shard_id)
 
     return await ctx.send(
         embed=embed(
@@ -136,7 +136,7 @@ class General(commands.Cog):
             footer="Made with ❤️ and discord.py!",
             description="Big thanks to all Patrons!",
             fieldstitle=["Servers joined", "Latency", "Shards", "Loving Life", "Uptime", "CPU/RAM", "Existed since"],
-            fieldsval=[len(self.bot.guilds), f"{(shard.latency if ctx.guild else self.bot.latency)*1000:,.0f} ms", self.bot.shard_count, "True", uptime, f'{memory_usage:.2f} MiB\n{cpu_usage:.2f}% CPU', f"<t:{int(self.bot.user.created_at.timestamp())}:D>"],
+            fieldsval=[len(self.bot.guilds), f"{(shard and shard.latency or self.bot.latency)*1000:,.0f} ms", self.bot.shard_count, "True", uptime, f'{memory_usage:.2f} MiB\n{cpu_usage:.2f}% CPU', f"{time.format_dt(self.bot.user.created_at,style='D')}"],
         ), view=views.Links()
     )
 
