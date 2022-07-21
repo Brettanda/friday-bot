@@ -282,10 +282,7 @@ class TopGG(commands.Cog):
           avatar_url=self.bot.user.display_avatar.url,
           embed=embed(
               title=f"Somebody Voted - {_type}",
-              fieldstitle=["Member"],
-              fieldsval=[
-                  f'{member and member.mention} (ID: {user})'],
-              fieldsin=[False, False]
+              description=f'{member and member.mention} (ID: {user})',
           )
       )
 
