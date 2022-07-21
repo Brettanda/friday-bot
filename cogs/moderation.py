@@ -14,8 +14,9 @@ import discord
 from discord.ext import commands
 from typing_extensions import Annotated
 
-from functions import (MessageColors, cache, checks, embed, exceptions, plural,
+from functions import (MessageColors, cache, checks, embed, exceptions,
                        relay_info, time)
+from functions.formats import plural
 
 if TYPE_CHECKING:
   from reminder import Timer

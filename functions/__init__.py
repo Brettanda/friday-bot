@@ -2,7 +2,6 @@ import os
 
 from .messagecolors import MessageColors
 from . import exceptions, checks, config  # , queryIntents  # , queryGen
-from .config import plural
 from .myembed import embed
 from . import cache
 from . import db
@@ -36,7 +35,6 @@ __all__ = (
     "exceptions",
     "embed",
     "checks",
-    "plural",
     "time",
     "formats",
     "cooldown",
