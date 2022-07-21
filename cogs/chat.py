@@ -500,7 +500,7 @@ class Chat(commands.Cog):
 
       ad_message = ""
       view = discord.ui.View()
-      if not current_tier >= PremiumTiersNew.tier_1:
+      if rate_name and not current_tier >= PremiumTiersNew.tier_1:
         if not rate_name == "streaked":
           if not rate_name == "voted":
             ad_message += "Get a higher message cap by voting on [Top.gg](https://top.gg/bot/476303446547365891/vote).\n"

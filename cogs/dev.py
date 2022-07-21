@@ -13,6 +13,7 @@ import sys
 import textwrap
 import time as _time
 import traceback
+from contextlib import redirect_stdout
 from typing import TYPE_CHECKING, Any, List, Optional, Sequence, Union
 
 import discord
@@ -572,8 +573,8 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
 
     func = env['func']
     try:
-      # with redirect_stdout(stdout):
-      ret = await func()
+      with redirect_stdout(stdout):
+        ret = await func()
     except Exception:
       value = stdout.getvalue()
       await ctx.send(f'```py\n{value}{traceback.format_exc()}\n```')
