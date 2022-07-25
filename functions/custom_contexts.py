@@ -340,15 +340,20 @@ class MyContext(commands.Context):
     reference = kwargs.pop("reference", self.replied_reference if self.command and self.replied_reference else self.message) if not self.interaction else None
     reference = reference or self.message
     if self.bot_permissions.read_message_history and reference in self.bot.cached_messages:
-      return await super().send(
-          *args,
-          reference=reference,
-          **kwargs
-      )
-    else:
-      return await super().send(
-          *args,
-          **kwargs)
+      try:
+        return await super().send(
+            *args,
+            reference=reference,
+            **kwargs
+        )
+      except discord.HTTPException:
+        return await super().send(
+            *args,
+            **kwargs)
+
+    return await super().send(
+        *args,
+        **kwargs)
 
   async def safe_send(self, content: str, *, escape_mentions=True, **kwargs: Any) -> discord.Message:
     if escape_mentions:
