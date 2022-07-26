@@ -598,7 +598,7 @@ class Stars(commands.Cog):
         ctx.me: discord.PermissionOverwrite(read_messages=True, send_messages=True, manage_messages=True,
                                             embed_links=True, read_message_history=True),
         ctx.guild.default_role: discord.PermissionOverwrite(read_messages=True, send_messages=False,
-                                                            create_public_threads=False, use_slash_commands=False,
+                                                            create_public_threads=False, use_application_commands=False,
                                                             read_message_history=True)
     }
 
