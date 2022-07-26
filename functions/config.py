@@ -186,6 +186,12 @@ class PremiumTiersNew(enum.Enum):
   tier_3 = 4
   tier_4 = 5
 
+  @classmethod
+  def from_patreon_tier(cls, tier: int = 7212079):
+    if tier == 7212079:  # Patreon Tier 1
+      return cls.tier_1
+    return cls.free
+
   def __str__(self):
     return self.name.capitalize().replace("_", " ")
 
