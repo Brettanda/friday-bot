@@ -73,6 +73,23 @@ class LanguageConverter(commands.Converter, discord.app_commands.Transformer):
   async def convert(self, ctx: MyContext, argument: str):
     lowered = argument.lower()
 
+    enlish_lang_names = {  # discord supported languages
+        "danish": "da", "german": "de", "spanish": "es",
+        "french": "fr", "croation": "hr", "italian": "it",
+        "lithuanian": "lt", "dutch": "nl", "norwegian": "no",
+        "polish": "pl", "portuguese": "pt", "romanian": "ro",
+        "finnish": "fi", "swedish": "sv", "vietnamese": "vi",
+        "turkish": "tr", "czech": "cs", "greek": "el",
+        "bulgarian": "bg", "russian": "ru", "ukrainian": "uk",
+        "hindi": "hi", "thai": "th", "chinese": "zh",
+        "japanese": "ja", "korean": "ko", "pirate": "ep",
+        "pirate english": "ep",
+    }
+
+    if lowered in enlish_lang_names.keys():
+      if enlish_lang_names[lowered] in ctx.bot.language_files.keys():
+        return enlish_lang_names[lowered]
+
     for code, _file in ctx.bot.language_files.items():
       if lowered == code.lower():
         return code
