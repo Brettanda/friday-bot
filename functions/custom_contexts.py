@@ -43,7 +43,7 @@ class ConfirmationView(discord.ui.View):
     self.value = True
     await interaction.response.defer()
     if self.delete_after:
-      await interaction.delete_original_message()
+      await interaction.delete_original_response()
     self.stop()
 
   @discord.ui.button(emoji="\N{HEAVY MULTIPLICATION X}", label='Cancel', custom_id="confirmation_false", style=discord.ButtonStyle.red)
@@ -51,7 +51,7 @@ class ConfirmationView(discord.ui.View):
     self.value = False
     await interaction.response.defer()
     if self.delete_after:
-      await interaction.delete_original_message()
+      await interaction.delete_original_response()
     self.stop()
 
 
@@ -89,7 +89,7 @@ class MultiSelectView(discord.ui.View):
     self.values = select.values
     await interaction.response.defer()
     if self.delete_after:
-      await interaction.delete_original_message()
+      await interaction.delete_original_response()
     self.stop()
 
   async def interaction_check(self, interaction: discord.Interaction) -> bool:
