@@ -155,7 +155,7 @@ class Config:
 
 
 class CooldownByContent(commands.CooldownMapping):
-  def _bucket_key(self, msg):
+  def _bucket_key(self, msg: discord.Message):
     return (msg.channel.id, msg.content)
 
 
