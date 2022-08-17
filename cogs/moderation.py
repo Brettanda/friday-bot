@@ -395,7 +395,7 @@ class Moderation(commands.Cog):
       `--files`: Checks if the message has attachments (no arguments).
       `--embeds`: Checks if the message has embeds (no arguments).
     """
-    if not isinstance(ctx.author, discord.Member):
+    if not isinstance(ctx.author, discord.Member):  # type: ignore
       try:
         author = await ctx.guild.fetch_member(ctx.author.id)
       except discord.HTTPException:
