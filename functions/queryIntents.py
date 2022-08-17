@@ -6,16 +6,15 @@ import random
 import nltk  # type: ignore
 import numpy as np
 import pandas as pd
-# from flair.data import Sentence
-# from flair.models import MultiTagger  # , SequenceTagger
-# from tensorflow.keras.layers import Dropout, Activation, Dense
-from tensorflow.keras.models import load_model   # type: ignore
 # from tensorflow.keras.optimizers import SGD
 from nltk.sentiment import SentimentIntensityAnalyzer  # type: ignore
 # from nltk.stem.lancaster import LancasterStemmer
 from nltk.stem import PorterStemmer  # type: ignore
-
 from spellchecker import SpellChecker  # type: ignore
+# from flair.data import Sentence
+# from flair.models import MultiTagger  # , SequenceTagger
+# from tensorflow.keras.layers import Dropout, Activation, Dense
+from tensorflow.keras.models import load_model  # type: ignore
 
 spell = SpellChecker()
 
@@ -109,7 +108,7 @@ def bow(sentence, wrds, show_details=True, mentioned=False):
   # bag.insert(0, 0)
   # print(f"found in bag: {inbag}")
   # logging.info(f"found in bag: {inbag}")
-  return(np.array(bag), inbag)
+  return (np.array(bag), inbag)
 
 
 async def classify_local(sentence, mentioned=False):
