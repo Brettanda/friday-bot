@@ -18,7 +18,8 @@ from topgg.webhook import WebhookManager
 
 import cogs
 import functions
-from functions.config import Config, ReadOnly
+from functions.config import Config
+from functions.languages import load_languages
 
 if TYPE_CHECKING:
   from .cogs.database import Database
@@ -168,9 +169,8 @@ class Friday(commands.AutoShardedBot):
 
     self.blacklist: Config[bool] = Config("blacklist.json", loop=self.loop)
 
-    self.language_files: dict[str, I18n] = {  # type: ignore
-        **{name: ReadOnly(f"i18n/locales/{name}/commands.json", loop=self.loop) for name in os.listdir("./i18n/locales")}
-    }
+    await load_languages(self)
+
     self.languages = Config("languages.json", loop=self.loop)
 
     await self.tree.set_translator(Translator())

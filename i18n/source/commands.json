@@ -143,19 +143,19 @@
       "command_name": "userlanguage",
       "help": "My language to speak with just you. Doesn't affect application commands",
       "select_title": "Select the language you would like me to speak",
-      "select_description": "If you find something wrong with the translations, please contribute on the [Crowdin page](https://crwd.in/fridaybot)\n\nKeep in mind that this gets overridden with application commands by the locale set by a server and your client.",
+      "select_description": "If you find something wrong with the translations, please contribute on the [Crowdin page](https://crwd.in/fridaybot)\n\nKeep in mind that this gets overridden with application commands by the locale set by your client.",
       "current_lang": "Current language: `{current_language}`",
       "new_lang": "New language set to: `{new_language}`",
-      "new_lang_desc": "Keep in mind that this gets overridden with application commands by the locale set by a server and your client."
+      "new_lang_desc": "Keep in mind that this gets overridden with application commands by the locale set by your client."
     },
     "serverlanguage": {
       "command_name": "serverlanguage",
       "help": "My default language to speak in a server. Doesn't affect application commands",
       "select_title": "Select the language you would like me to speak",
-      "select_description": "If you find something wrong with the translations, please contribute on the [Crowdin page](https://crwd.in/fridaybot)\n\nKeep in mind that this gets overridden with application commands by the locale set by a server and your client.",
+      "select_description": "If you find something wrong with the translations, please contribute on the [Crowdin page](https://crwd.in/fridaybot)\n\nKeep in mind that this gets overridden with application commands by the locale set by your client.",
       "current_lang": "Current language: `{current_language}`",
       "new_lang": "New language set to: `{new_language}`",
-      "new_lang_desc": "Keep in mind that this gets overridden with application commands by the locale set by a server and your client."
+      "new_lang_desc": "Keep in mind that this gets overridden with application commands by the locale set by your client."
     },
     "prefix": {
       "help": "Sets the prefix for Fridays commands",
@@ -232,6 +232,27 @@
     "invite": {
       "command_name": "invite",
       "help": "Get the invite link to add me to your server"
+    },
+    "about": {
+      "command_name": "about",
+      "help": "Displays some information about myself :)",
+      "response_title": "{bot_name} - About",
+      "response_description": "Big thanks to all Patrons!",
+      "response_field_titles": [
+        "Servers joined",
+        "Latency",
+        "Shards",
+        "Loving Life",
+        "Uptime",
+        "CPU/RAM",
+        "Existed since"
+      ],
+      "response_field_values": [
+        "{ping} ms",
+        "True",
+        "{memory_usage} MiB\n{cpu_usage}% CPU"
+      ],
+      "response_footer": "Made with ❤️ and discord.py!"
     }
   },
   "help": {
