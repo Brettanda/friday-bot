@@ -1,0 +1,286 @@
+{
+  "_lang_name": "日本語",
+  "_lang_emoji": "🇯🇵",
+  "_translator": "Motostar#0001",
+  "errors": {
+    "try_again_later": "この機能は現在利用できません。後でもう一度お試しください。",
+    "canceled": "キャンセルしました"
+  },
+  "automod": {
+    "cog_description": "この世界では、ボットが人間よりも優れていることがいくつかあります。金曜日にDiscordサーバーの管理を手伝わせてください。",
+    "invalid_punishments": {
+      "_if": "以下の処罰は無効です: ",
+      "_else": "あなたが提供した罰の1つ以上は無効です。"
+    },
+    "roleorchannel": {
+      "rolenotfound": "ロールまたはチャンネルが見つかりません。",
+      "hierarchy": "ロール階層が低すぎます。"
+    },
+    "warned": {
+      "title": "警告されました",
+      "description": "`{}`で警告されました。"
+    },
+    "spamming_reasons": {
+      "mentions": "スパムの言及。",
+      "content": "以前のメッセージに一致するコンテンツでスパム。",
+      "messages": "スパムメッセージ。"
+    },
+    "prev_muted": "メンバーは以前ミュートされました。",
+    "warn_theshold": {
+      "reached": "警告のしきい値に達しました",
+      "description": "`{}`警告を`{}`に渡しました。\nあなたは罰`{}`を受けました。"
+    },
+    "whitelist": "`{}`ホワイトリストに登録しました",
+    "unwhitelist": "Unwhitelisted `{}`",
+    "blacklist": {
+      "add": {
+        "badargument": "ワードは少なくとも3文字以上でなければなりません。",
+        "dupe": "重複した単語を追加することはできません",
+        "added": "ブラックリストに `{}` を追加しました"
+      },
+      "remove": {
+        "doesntexist": "その単語をブラックリストに登録していないようです",
+        "removed": "ブラックリストから `{}` を削除しました"
+      },
+      "display": {
+        "doesntexist": "ブラックリストに載っている単語はまだありません。`{}blacklist add <word>` を使って始めましょう。",
+        "words": "ブロックされた単語"
+      },
+      "punishments": {
+        "title": "警告の処罰：",
+        "description": "`{}`の警告罰は`{}`です。",
+        "set": "`{}`に罰を設定しました"
+      },
+      "clear": "すべてのブラックリストに載っている単語を削除しました"
+    }
+  },
+  "autorole": {},
+  "chat": {
+    "cog_description": "金曜日とチャット、金曜日の代わりに何かを言って、チャットコマンドでもっと。",
+    "ratelimit": {
+      "title": "直近の`{count}`に`{human}`を送ってくれました。レート制限されています。 {stamp}もう一度お試しください。",
+      "ads": {
+        "voting": {
+          "message": "[Top.gg](https://top.gg/bot/476303446547365891/vote)に投票して、より高いメッセージキャップを取得してください。",
+          "button": "もっと投票する"
+        },
+        "streak": "少なくとも2日間の投票回数を維持することで、さらに高い上限を獲得できます。",
+        "patron": {
+          "message": "[Patron](https://patreon.com/join/fridaybot) になることで、最も強力なメッセージキャップを手に入れましょう。",
+          "button": "もっとパトロンになる"
+        }
+      }
+    },
+    "flagged": "私の応答はフラグが立てられ、送信できませんでした。もう一度やり直してください。",
+    "no_response": "どういうわけか、私は何と言ったらいいのかわからない。",
+    "try_again_later": "問題が発生しました。後でもう一度お試しください。",
+    "chat": {
+      "command_name": "チャット",
+      "help": "金曜日とのチャットについての情報を取得または話す。",
+      "commands": {
+        "talk": {
+          "command_name": "トーク",
+          "help": "GPT-3によって供給され、応答を得る金曜日とのチャット。",
+          "parameters": {
+            "message": {
+              "name": "メッセージ",
+              "description": "金曜日へのメッセージ"
+            }
+          }
+        },
+        "info": {
+          "command_name": "情報",
+          "help": "現在の会話に関する情報を表示します",
+          "no_history": "履歴が見つかりません",
+          "response_title": "チャット情報",
+          "response_field_titles": [
+            "メッセージ",
+            "投票されたメッセージ",
+            "連続投票メッセージ",
+            "パトロンメッセージ",
+            "最近の履歴をリセット",
+            "メッセージ履歴"
+          ],
+          "response_rate": "残り {rate}"
+        },
+        "reset": {
+          "command_name": "リセット",
+          "help": "金曜日のチャット履歴をリセットします。金曜日がメッセージを繰り返している場合に役立ちます。"
+        }
+      }
+    },
+    "chatchannel": {
+      "command_name": "チャットチャンネル",
+      "help": "ボットがチャットするチャンネルを表示または変更します",
+      "commands": {
+        "set": {
+          "command_name": "セット",
+          "help": "常に何かで応答しようとするように現在のチャンネルを設定してください",
+          "parameters": {
+            "channel": {
+              "name": "チャンネル",
+              "description": "私が話すチャンネル"
+            }
+          }
+        },
+        "clear": {
+          "command_name": "クリア",
+          "help": "現在のチャットチャンネルをクリア"
+        }
+      }
+    },
+    "persona": {
+      "command_name": "ペルソナ",
+      "help": "金曜日のペルソナを変更"
+    }
+  },
+  "config": {
+    "cog_description": "金曜日の一般的な設定コマンド",
+    "language": {
+      "invalid_lang": "言語 {language} が存在しないか、サポートされていません。"
+    },
+    "userlanguage": {
+      "command_name": "ユーザーの言語",
+      "help": "私の言語はあなただけと話します。アプリケーションコマンドには影響しません。",
+      "select": "あなたが話したい言語を選択してください",
+      "current_lang": "現在の言語: `{current_language}`",
+      "new_lang": "新しい言語が設定されました: `{new_language}`",
+      "new_lang_desc": "これは、サーバーとクライアントによって設定されたロケールによって、アプリケーションコマンドで上書きされることに注意してください。"
+    },
+    "serverlanguage": {
+      "command_name": "サーバ言語",
+      "help": "私のデフォルト言語はサーバーで実行されます。アプリケーションコマンドには影響しません",
+      "select": "あなたが話したい言語を選択してください",
+      "current_lang": "現在の言語: `{current_language}`",
+      "new_lang": "新しい言語が設定されました: `{new_language}`",
+      "new_lang_desc": "これは、サーバーとクライアントによって設定されたロケールによって、アプリケーションコマンドで上書きされることに注意してください。"
+    },
+    "prefix": {
+      "help": "Fridays コマンドの接頭辞を設定します。",
+      "new_prefix": "新しいプレフィックスは `{new_prefix}`",
+      "max_chars": "5文字以上のプレフィックスは設定できません"
+    },
+    "botchannel": {
+      "help": "ボットコマンドが動作するチャンネル。",
+      "title": "Botチャンネルセット"
+    },
+    "botchannelclear": "Botチャンネルをクリアしました",
+    "restrict": {
+      "help": "選択したコマンドをボットチャンネルに制限します。サーバー権限で無視されます。",
+      "title": "**{command_name}** がボットチャンネルに制限されました。",
+      "commands": {
+        "list": {
+          "help": "制限されたコマンドを一覧表示します",
+          "response_title": "制限付きコマンド",
+          "response_no_commands": "制限されたコマンドはありません。"
+        }
+      }
+    },
+    "unrestrict": {
+      "help": "選択したコマンドの制限を解除します。",
+      "title": "**{command_name}** は制限されていません。"
+    },
+    "enable": {
+      "help": "選択したコマンドを有効にします。",
+      "title": "**{command_name}**が有効になりました。"
+    },
+    "disable": {
+      "help": "コマンドを無効化",
+      "title": "**{command_name}**が無効になりました。"
+    },
+    "disablelist": {
+      "help": "無効化されたすべてのコマンドを一覧表示します。",
+      "title": "無効なコマンド",
+      "none_found": "無効なコマンドはありません。"
+    },
+    "updates": {
+      "command_name": "更新",
+      "help": "金曜日の新機能と変更履歴の更新",
+      "prompt": "このチャンネルは既にアップデートを購読しています。もう一度購読しますか？",
+      "cancelled": "キャンセルしました",
+      "reason": "更新コマンドを呼び出します。金曜日の更新",
+      "followed": "フォロー中のチャンネルを更新",
+      "parameters": {
+        "channel": {
+          "name": "チャンネル",
+          "description": "更新を取得するチャンネル"
+        }
+      }
+    }
+  },
+  "dbl": {},
+  "dice": {
+    "cog_description": "利点を持ついくつかのサイコロをロールするか、単にいくつかの基本的な数学を行います。",
+    "dice": {
+      "command_name": "さいころ",
+      "help": "Dugeons and Dragons sice rolling",
+      "response_title": "合計： {total}",
+      "response_description": "クエリ: {query}\n結果: {result}",
+      "parameters": {
+        "roll": {
+          "name": "ロール",
+          "description": "作成するロール。方法: https://d20.readthedocs.io/en/latest/start.html"
+        }
+      }
+    }
+  },
+  "fun": {},
+  "general": {
+    "cog_description": "一部の一般的なコマンド",
+    "invite": {
+      "command_name": "招待",
+      "help": "あなたのサーバーに私を追加する招待リンクを入手してください"
+    }
+  },
+  "help": {
+    "cog_description": "If you would like to make a suggestion for a command please join the [Friday's Development](https://discord.gg/NTRuFjU) and explain your suggestion.\n\nFor more info on how commands work and how to format them please check out [docs.friday-bot.com](https://docs.friday-bot.com/).\n\n**Some commands will only show if you have the correct permissions to use them.**",
+    "no_help": "ヘルプが見つかりません...",
+    "examples": "例",
+    "signature": "署名",
+    "params": "利用可能なパラメータ",
+    "commands": "マーク",
+    "no_permissible_commands": "使用できるコマンドはありません"
+  },
+  "issue": {},
+  "log": {},
+  "nacl": {},
+  "dev": {},
+  "ipc": {},
+  "topgg": {},
+  "logging": {},
+  "modlogging": {},
+  "meme": {},
+  "database": {},
+  "datedevents": {},
+  "sharding": {},
+  "stats": {},
+  "scheduledevents": {},
+  "moderation": {},
+  "music": {},
+  "patreons": {},
+  "api": {},
+  "stars": {},
+  "choosegame": {},
+  "ping": {
+    "cog_description": "ピン？ポン！",
+    "ping": {
+      "command_name": "ピング",
+      "help": "ポン！",
+      "response_title": "ポン！",
+      "response_description": "⏳ API は {ping}ms です"
+    }
+  },
+  "redditlink": {},
+  "reminder": {},
+  "support": {
+    "support": {
+      "command_name": "サポート",
+      "help": "サポートサーバーへの招待リンクを入手する"
+    },
+    "donate": {
+      "command_name": "寄付",
+      "help": "金曜日のPatreonのリンクを入手する"
+    }
+  },
+  "welcome": {}
+}

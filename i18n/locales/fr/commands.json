@@ -1,0 +1,286 @@
+{
+  "_lang_name": "Français",
+  "_lang_emoji": "🇫🇷",
+  "_translator": "Motostar#0001",
+  "errors": {
+    "try_again_later": "Cette fonctionnalité n'est pas disponible actuellement. Réessayez plus tard?",
+    "canceled": "Annulé"
+  },
+  "automod": {
+    "cog_description": "Il y a quelque chose dans ce monde que les bots sont meilleurs à ce moment-là les humains. Laissez le vendredi aider avec la modération de votre serveur Discord.",
+    "invalid_punishments": {
+      "_if": "Les punitions suivantes ne sont pas valides : ",
+      "_else": "Une ou plusieurs punitions que vous avez fournies sont invalides."
+    },
+    "roleorchannel": {
+      "rolenotfound": "Rôle ou canal introuvable.",
+      "hierarchy": "La hiérarchie de votre rôle est trop faible pour cette action."
+    },
+    "warned": {
+      "title": "Vous avez été averti",
+      "description": "Vous avez été averti dans `{}` pour `{}`"
+    },
+    "spamming_reasons": {
+      "mentions": "Mentions de spam.",
+      "content": "Spamming avec un contenu correspondant aux messages précédents.",
+      "messages": "Messages de spam."
+    },
+    "prev_muted": "Le membre était précédemment muet.",
+    "warn_theshold": {
+      "reached": "Seuil d'avertissement atteint",
+      "description": "Vous avez passé `{}` avertit pour `{}`.\nVous avez pris les punitions `{}`."
+    },
+    "whitelist": "Liste blanche `{}`",
+    "unwhitelist": "Unwhitelisted `{}`",
+    "blacklist": {
+      "add": {
+        "badargument": "Le mot doit comporter au moins 3 caractères.",
+        "dupe": "Impossible d'ajouter un mot en double",
+        "added": "Ajouté `{}` à la liste noire"
+      },
+      "remove": {
+        "doesntexist": "Vous ne semblez pas mettre ce mot en liste noire",
+        "removed": "`{}` retiré de la liste noire"
+      },
+      "display": {
+        "doesntexist": "Aucun mot blacklisté pour l'instant, utilisez `{}blacklist add <word>` pour commencer",
+        "words": "Mots bloqués"
+      },
+      "punishments": {
+        "title": "Sanctions de mise en garde",
+        "description": "Les punitions d'avertissement pour `{}` sont `{}`.",
+        "set": "Définir la punition à `{}`"
+      },
+      "clear": "Tous les mots de la liste noire ont été supprimés"
+    }
+  },
+  "autorole": {},
+  "chat": {
+    "cog_description": "Discutez avec vendredi, dites quelque chose au nom de vendredi, et plus encore avec les commandes de chat.",
+    "ratelimit": {
+      "title": "Vous m'avez envoyé plus de `{count}` dans ce dernier `{human}` et vous êtes limité au taux de débit, réessayez {stamp}",
+      "ads": {
+        "voting": {
+          "message": "Obtenez un plafond de message plus élevé en votant sur [Top.gg](https://top.gg/bot/476303446547365891/vote).",
+          "button": "Voter pour plus"
+        },
+        "streak": "Obtenez un chapeau encore plus élevé en gardant une série de votes d'au moins 2 jours.",
+        "patron": {
+          "message": "Obtenez le plafond de message le plus puissant en devenant un [Patron](https://patreon.com/join/fridaybot).",
+          "button": "Devenir un Patron pour plus"
+        }
+      }
+    },
+    "flagged": "Ma réponse a été signalée et n'a pas pu être envoyée, veuillez réessayer",
+    "no_response": "En quelque sorte, je ne sais pas quoi dire.",
+    "try_again_later": "Une erreur est survenue, veuillez réessayer plus tard",
+    "chat": {
+      "command_name": "tchat",
+      "help": "Parlez ou obtenez des informations sur la discussion avec le vendredi",
+      "commands": {
+        "talk": {
+          "command_name": "parler",
+          "help": "Discutez avec vendredi, propulsé par GPT-3 et obtenez une réponse.",
+          "parameters": {
+            "message": {
+              "name": "message",
+              "description": "Votre message au vendredi"
+            }
+          }
+        },
+        "info": {
+          "command_name": "Infos",
+          "help": "Affiche des informations sur la conversation en cours",
+          "no_history": "Aucun historique trouvé",
+          "response_title": "Infos sur le chat",
+          "response_field_titles": [
+            "Messages",
+            "Messages votés",
+            "Messages de la série de votes",
+            "Messages métronisés",
+            "Réinitialisation récente de l'historique",
+            "Historique des messages"
+          ],
+          "response_rate": "{rate} restants"
+        },
+        "reset": {
+          "command_name": "reset",
+          "help": "Réinitialise l'historique de discussion du vendredi. Aide si le vendredi répète les messages"
+        }
+      }
+    },
+    "chatchannel": {
+      "command_name": "canal de discussion",
+      "help": "Afficher ou modifier le canal où le bot discutera",
+      "commands": {
+        "set": {
+          "command_name": "définir",
+          "help": "Définit le canal actuel de sorte que je vais toujours essayer de répondre avec quelque chose",
+          "parameters": {
+            "channel": {
+              "name": "canal",
+              "description": "La chaîne dans laquelle je parlerai"
+            }
+          }
+        },
+        "clear": {
+          "command_name": "effacer",
+          "help": "Effacer le canal de discussion actuel"
+        }
+      }
+    },
+    "persona": {
+      "command_name": "persona",
+      "help": "Changer la persona du vendredi"
+    }
+  },
+  "config": {
+    "cog_description": "Les commandes de configuration générales pour vendredi",
+    "language": {
+      "invalid_lang": "La langue {language} n'existe pas ou n'est pas prise en charge."
+    },
+    "userlanguage": {
+      "command_name": "langue de l'utilisateur",
+      "help": "Ma langue pour parler avec vous seulement. N'affecte pas les commandes de l'application",
+      "select": "Sélectionnez la langue que vous souhaitez que je parle",
+      "current_lang": "Langue actuelle : `{current_language}`",
+      "new_lang": "Nouvelle langue définie à : `{new_language}`",
+      "new_lang_desc": "Gardez à l'esprit que cela est remplacé par les commandes de l'application par la locale définie par un serveur et votre client."
+    },
+    "serverlanguage": {
+      "command_name": "langue du serveur",
+      "help": "Ma langue par défaut pour parler sur un serveur. N'affecte pas les commandes de l'application",
+      "select": "Sélectionnez la langue que vous souhaitez que je parle",
+      "current_lang": "Langue actuelle : `{current_language}`",
+      "new_lang": "Nouvelle langue définie à : `{new_language}`",
+      "new_lang_desc": "Gardez à l'esprit que cela est remplacé par les commandes de l'application par la locale définie par un serveur et votre client."
+    },
+    "prefix": {
+      "help": "Définit le préfixe pour les commandes du vendredi",
+      "new_prefix": "Mon nouveau préfixe est `{new_prefix}`",
+      "max_chars": "Impossible de définir un préfixe avec plus de 5 caractères"
+    },
+    "botchannel": {
+      "help": "Le canal où les commandes du bot vivent.",
+      "title": "Set Bot Channel"
+    },
+    "botchannelclear": "Canal du bot effacé",
+    "restrict": {
+      "help": "Restreint la commande sélectionnée au salon du bot. Ignoré avec la permission de gérer le serveur.",
+      "title": "**{command_name}** a été restreint au canal de bot.",
+      "commands": {
+        "list": {
+          "help": "Liste les commandes restreintes",
+          "response_title": "Commandes restreintes",
+          "response_no_commands": "Aucune commande n'est restreinte."
+        }
+      }
+    },
+    "unrestrict": {
+      "help": "Délimite la commande sélectionnée.",
+      "title": "**{command_name}** a été sans restriction."
+    },
+    "enable": {
+      "help": "Active la ou les commandes sélectionnées.",
+      "title": "**{command_name}** a été activé."
+    },
+    "disable": {
+      "help": "Désactiver une commande",
+      "title": "**{command_name}** a été désactivé."
+    },
+    "disablelist": {
+      "help": "Liste toutes les commandes désactivées.",
+      "title": "Commandes désactivées",
+      "none_found": "Il n'y a aucune commande désactivée."
+    },
+    "updates": {
+      "command_name": "Mises à jour",
+      "help": "Recevoir des mises à jour sur les nouvelles fonctionnalités et modifications pour vendredi",
+      "prompt": "Ce salon est déjà abonné aux mises à jour. Êtes-vous sûr de vouloir vous abonner à nouveau ?",
+      "cancelled": "Annulé",
+      "reason": "Commande appelée Mises à jour, pour les mises à jour du vendredi",
+      "followed": "Canal de mise à jour suivi",
+      "parameters": {
+        "channel": {
+          "name": "canal",
+          "description": "Le canal pour obtenir les mises à jour"
+        }
+      }
+    }
+  },
+  "dbl": {},
+  "dice": {
+    "cog_description": "Lancez quelques dés avec avantage ou faites juste quelques maths de base.",
+    "dice": {
+      "command_name": "dés",
+      "help": "Roulement de dés Dugeons et Dragons",
+      "response_title": "Votre total : {total}",
+      "response_description": "Requête : {query}\nRésultat : {result}",
+      "parameters": {
+        "roll": {
+          "name": "rouleau",
+          "description": "Le rouleau à faire. Comment : https://d20.readthedocs.io/en/latest/start.html"
+        }
+      }
+    }
+  },
+  "fun": {},
+  "general": {
+    "cog_description": "Quelques commandes générales",
+    "invite": {
+      "command_name": "Inviter",
+      "help": "Obtenir le lien d'invitation pour m'ajouter à votre serveur"
+    }
+  },
+  "help": {
+    "cog_description": "Si vous souhaitez faire une suggestion pour une commande, veuillez rejoindre le [Développement du vendredi](https://discord.gg/NTRuFjU) et expliquer votre suggestion.\n\nPour plus d'informations sur le fonctionnement des commandes et comment les formater veuillez consulter [docs.friday-bot.com](https://docs. riday-bot.com/).\n\n**Certaines commandes ne s'afficheront que si vous avez les bonnes permissions pour les utiliser.**",
+    "no_help": "Aucune aide trouvée...",
+    "examples": "Exemples",
+    "signature": "Signature",
+    "params": "Paramètres disponibles",
+    "commands": "Commandes",
+    "no_permissible_commands": "Aucune commande que vous pouvez utiliser"
+  },
+  "issue": {},
+  "log": {},
+  "nacl": {},
+  "dev": {},
+  "ipc": {},
+  "topgg": {},
+  "logging": {},
+  "modlogging": {},
+  "meme": {},
+  "database": {},
+  "datedevents": {},
+  "sharding": {},
+  "stats": {},
+  "scheduledevents": {},
+  "moderation": {},
+  "music": {},
+  "patreons": {},
+  "api": {},
+  "stars": {},
+  "choosegame": {},
+  "ping": {
+    "cog_description": "Ping ? Pong!",
+    "ping": {
+      "command_name": "ping",
+      "help": "Pong!",
+      "response_title": "Pong!",
+      "response_description": "⏳ l'API est de {ping}ms"
+    }
+  },
+  "redditlink": {},
+  "reminder": {},
+  "support": {
+    "support": {
+      "command_name": "Soutien",
+      "help": "Obtenir un lien d'invitation vers mon serveur de support"
+    },
+    "donate": {
+      "command_name": "faire un don",
+      "help": "Obtenir le lien Patreon pour vendredi"
+    }
+  },
+  "welcome": {}
+}

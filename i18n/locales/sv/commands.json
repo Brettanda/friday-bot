@@ -1,0 +1,286 @@
+{
+  "_lang_name": "Svenska",
+  "_lang_emoji": "🇸🇪",
+  "_translator": "Motostar#0001",
+  "errors": {
+    "try_again_later": "Denna funktion är inte tillgänglig för tillfället. Försök igen senare?",
+    "canceled": "Avbruten"
+  },
+  "automod": {
+    "cog_description": "Det finns något i den här världen som botar är bättre på den tiden. Låt fredag hjälpa till med modereringen av din Discord-server.",
+    "invalid_punishments": {
+      "_if": "Följande straff är ogiltiga: ",
+      "_else": "En eller flera av de straff du angav är ogiltig."
+    },
+    "roleorchannel": {
+      "rolenotfound": "Roll eller kanal hittades inte.",
+      "hierarchy": "Er rollhierarki är för låg för den här åtgärden."
+    },
+    "warned": {
+      "title": "Du har blivit varnad",
+      "description": "Du har blivit varnad i `{}` för `{}`"
+    },
+    "spamming_reasons": {
+      "mentions": "Spammar omnämnanden.",
+      "content": "Spammar med innehåll som matchar tidigare meddelanden.",
+      "messages": "Spammar meddelanden."
+    },
+    "prev_muted": "Medlemmen var tidigare tystad.",
+    "warn_theshold": {
+      "reached": "Varna tröskeln nådd",
+      "description": "Du har passerat `{}` varnar för `{}`.\nDu har tagit straffet `{}`."
+    },
+    "whitelist": "Vitlistade `{}`",
+    "unwhitelist": "Unwhitelisted `{}`",
+    "blacklist": {
+      "add": {
+        "badargument": "Ordet måste vara minst 3 tecken långt.",
+        "dupe": "Kan inte lägga till dubbla ord",
+        "added": "Lade till `{}` till svartlistan"
+      },
+      "remove": {
+        "doesntexist": "Du verkar inte svartlista det ordet",
+        "removed": "Tog bort `{}` från svartlistan"
+      },
+      "display": {
+        "doesntexist": "Inga svartlistade ord ännu, använd `{}blacklist add <word>` för att komma igång",
+        "words": "Blockerade ord"
+      },
+      "punishments": {
+        "title": "Varning bestraffningar",
+        "description": "Varningsstraff för `{}` är `{}`.",
+        "set": "Sätt straff till `{}`"
+      },
+      "clear": "Tog bort alla svartlistade ord"
+    }
+  },
+  "autorole": {},
+  "chat": {
+    "cog_description": "Chatta med fredag, säg något för fredagens räkning, och mer med chattkommandon.",
+    "ratelimit": {
+      "title": "Du har skickat mig över `{count}` i det sista `{human}` och blir hastighetsbegränsad, försök igen {stamp}",
+      "ads": {
+        "voting": {
+          "message": "Få ett högre meddelande mössa genom att rösta på [Top.gg](https://top.gg/bot/476303446547365891/vote).",
+          "button": "Rösta på fler"
+        },
+        "streak": "Få ett ännu högre tak genom att hålla en röstningsrad på minst 2 dagar.",
+        "patron": {
+          "message": "Få det mest kraftfulla meddelandelocket genom att bli en [Patron](https://patreon.com/join/fridaybot).",
+          "button": "Bli en beskyddare för mer"
+        }
+      }
+    },
+    "flagged": "Mitt svar flaggades och kunde inte skickas, försök igen",
+    "no_response": "På något sätt vet jag inte vad jag ska säga.",
+    "try_again_later": "Något gick fel, försök igen senare",
+    "chat": {
+      "command_name": "Chatt",
+      "help": "Prata eller få information om att chatta med fredag",
+      "commands": {
+        "talk": {
+          "command_name": "prata",
+          "help": "Chatta med fredag, drivs av GPT-3 och få ett svar.",
+          "parameters": {
+            "message": {
+              "name": "meddelande",
+              "description": "Ditt meddelande till fredag"
+            }
+          }
+        },
+        "info": {
+          "command_name": "information",
+          "help": "Visar information om den aktuella konversationen",
+          "no_history": "Ingen historik hittades",
+          "response_title": "Chatt Information",
+          "response_field_titles": [
+            "Meddelanden",
+            "Röstade meddelanden",
+            "Röstning Streak meddelanden",
+            "Beskyddade meddelanden",
+            "Senaste historiken återställs",
+            "Meddelandets historik"
+          ],
+          "response_rate": "{rate} kvar"
+        },
+        "reset": {
+          "command_name": "reset",
+          "help": "Återställer fredagens chatthistorik. Hjälper om fredagen upprepar meddelanden"
+        }
+      }
+    },
+    "chatchannel": {
+      "command_name": "chatkanal",
+      "help": "Visa eller ändra kanalen där botten kommer att chatta",
+      "commands": {
+        "set": {
+          "command_name": "ange",
+          "help": "Ställ in nuvarande kanal så att jag alltid kommer att försöka svara med något",
+          "parameters": {
+            "channel": {
+              "name": "kanal",
+              "description": "Kanalen som jag kommer att prata i"
+            }
+          }
+        },
+        "clear": {
+          "command_name": "rensa",
+          "help": "Rensa nuvarande chattkanal"
+        }
+      }
+    },
+    "persona": {
+      "command_name": "persona",
+      "help": "Ändra fredagens persona"
+    }
+  },
+  "config": {
+    "cog_description": "De allmänna konfigurationskommandona för fredag",
+    "language": {
+      "invalid_lang": "Språket {language} finns inte, eller stöds inte."
+    },
+    "userlanguage": {
+      "command_name": "användarspråk",
+      "help": "Mitt språk att tala med bara dig. Påverkar inte programkommandon",
+      "select": "Välj det språk du vill att jag ska tala",
+      "current_lang": "Nuvarande språk: `{current_language}`",
+      "new_lang": "Nytt språk satt till: `{new_language}`",
+      "new_lang_desc": "Tänk på att detta blir åsidosatt med programkommandon från lokalen som av en server och din klient."
+    },
+    "serverlanguage": {
+      "command_name": "serverspråk",
+      "help": "Mitt standardspråk att tala på en server. Påverkar inte programkommandon",
+      "select": "Välj det språk du vill att jag ska tala",
+      "current_lang": "Nuvarande språk: `{current_language}`",
+      "new_lang": "Nytt språk satt till: `{new_language}`",
+      "new_lang_desc": "Tänk på att detta blir åsidosatt med programkommandon från lokalen som av en server och din klient."
+    },
+    "prefix": {
+      "help": "Ställer in prefix för kommandon för fredagar",
+      "new_prefix": "Mitt nya prefix är `{new_prefix}`",
+      "max_chars": "Kan inte sätta ett prefix med mer än 5 tecken"
+    },
+    "botchannel": {
+      "help": "Kanalen där bot kommandon bor.",
+      "title": "Bot Channel set"
+    },
+    "botchannelclear": "Bot-kanal rensad",
+    "restrict": {
+      "help": "Begränsar det valda kommandot till bot kanalen. Ignoreras med hantera serverbehörighet.",
+      "title": "**{command_name}** har begränsats till botkanalen.",
+      "commands": {
+        "list": {
+          "help": "Listar de begränsade kommandona",
+          "response_title": "Begränsade kommandon",
+          "response_no_commands": "Inga kommandon är begränsade."
+        }
+      }
+    },
+    "unrestrict": {
+      "help": "Avgränsa det valda kommandot.",
+      "title": "**{command_name}** har varit obegränsad."
+    },
+    "enable": {
+      "help": "Aktiverar valda kommandon.",
+      "title": "**{command_name}** har aktiverats."
+    },
+    "disable": {
+      "help": "Inaktivera ett kommando",
+      "title": "**{command_name}** har inaktiverats."
+    },
+    "disablelist": {
+      "help": "Listar alla inaktiverade kommandon.",
+      "title": "Inaktiverade kommandon",
+      "none_found": "Det finns inga inaktiverade kommandon."
+    },
+    "updates": {
+      "command_name": "uppdateringar",
+      "help": "Få uppdateringar om nya funktioner och ändringar för fredag",
+      "prompt": "Denna kanal prenumererar redan på uppdateringar. Är du säker på att du vill prenumerera igen?",
+      "cancelled": "Avbruten",
+      "reason": "Kommandot för uppdateringar ringer, för fredagsuppdateringar",
+      "followed": "Uppdateringskanal följde",
+      "parameters": {
+        "channel": {
+          "name": "kanal",
+          "description": "Kanalen för att få uppdateringar"
+        }
+      }
+    }
+  },
+  "dbl": {},
+  "dice": {
+    "cog_description": "Rulla några tärningar med fördel eller bara göra några grundläggande matematik.",
+    "dice": {
+      "command_name": "tärningar",
+      "help": "Dugeoner och drakar tärningar rullande",
+      "response_title": "Din totalt: {total}",
+      "response_description": "Fråga: {query}\nResultat: {result}",
+      "parameters": {
+        "roll": {
+          "name": "rulla",
+          "description": "Rullen som ska göras. Hur du: https://d20.readthedocs.io/en/latest/start.html"
+        }
+      }
+    }
+  },
+  "fun": {},
+  "general": {
+    "cog_description": "Vissa generella kommandon",
+    "invite": {
+      "command_name": "inbjudan",
+      "help": "Få inbjudningslänken för att lägga till mig till din server"
+    }
+  },
+  "help": {
+    "cog_description": "Om du vill komma med ett förslag till ett kommando gå med i [fredagens utveckling] (https://discord.gg/NTRuFjU) och förklara ditt förslag.\n\nFör mer information om hur kommandon fungerar och hur man formaterar dem, vänligen kolla in [docs.friday-bot.com](https://docs. riday-bot.com/).\n\n**Vissa kommandon kommer endast att visas om du har rätt behörighet att använda dem.**",
+    "no_help": "Ingen hjälp hittad...",
+    "examples": "Exempel",
+    "signature": "Signatur",
+    "params": "Tillgängliga parametrar",
+    "commands": "Kommandon",
+    "no_permissible_commands": "Inga kommandon som du kan använda"
+  },
+  "issue": {},
+  "log": {},
+  "nacl": {},
+  "dev": {},
+  "ipc": {},
+  "topgg": {},
+  "logging": {},
+  "modlogging": {},
+  "meme": {},
+  "database": {},
+  "datedevents": {},
+  "sharding": {},
+  "stats": {},
+  "scheduledevents": {},
+  "moderation": {},
+  "music": {},
+  "patreons": {},
+  "api": {},
+  "stars": {},
+  "choosegame": {},
+  "ping": {
+    "cog_description": "Ping? Pong!",
+    "ping": {
+      "command_name": "ping",
+      "help": "Pong!",
+      "response_title": "Pong!",
+      "response_description": "⏳ API är {ping}ms"
+    }
+  },
+  "redditlink": {},
+  "reminder": {},
+  "support": {
+    "support": {
+      "command_name": "Stöd",
+      "help": "Få en inbjudningslänk till min supportserver"
+    },
+    "donate": {
+      "command_name": "donera",
+      "help": "Hämta Patreon-länken för fredag"
+    }
+  },
+  "welcome": {}
+}

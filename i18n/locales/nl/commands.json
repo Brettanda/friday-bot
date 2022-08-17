@@ -1,0 +1,286 @@
+{
+  "_lang_name": "Nederlands",
+  "_lang_emoji": "🇳🇱",
+  "_translator": "Motostar#0001",
+  "errors": {
+    "try_again_later": "Deze functie is momenteel niet beschikbaar. Probeer het later opnieuw?",
+    "canceled": "Geannuleerd"
+  },
+  "automod": {
+    "cog_description": "Er zijn een paar dingen in deze wereld die bots beter zijn op dan mensen. Laat vrijdag helpen met het modereren van je Discord server.",
+    "invalid_punishments": {
+      "_if": "De volgende straffen zijn ongeldig: ",
+      "_else": "Een of meer van de straffen die u heeft opgegeven, is ongeldig."
+    },
+    "roleorchannel": {
+      "rolenotfound": "Rol of kanaal niet gevonden.",
+      "hierarchy": "Uw hiërarchie van de rol is te laag voor deze actie."
+    },
+    "warned": {
+      "title": "Je bent gewaarschuwd",
+      "description": "Je bent gewaarschuwd in `{}` voor `{}`"
+    },
+    "spamming_reasons": {
+      "mentions": "Spamming vermeldingen.",
+      "content": "Spammen met inhoud die overeenkomt met eerdere berichten.",
+      "messages": "Berichten spammen."
+    },
+    "prev_muted": "Lid was eerder gedempt.",
+    "warn_theshold": {
+      "reached": "Waarschuwen grenswaarde bereikt",
+      "description": "Je hebt `{}` waarschuwingen voor `{}`.\nJe hebt de straf `{}` genomen."
+    },
+    "whitelist": "Whitelisted`{}`",
+    "unwhitelist": "Unwhitelisted `{}`",
+    "blacklist": {
+      "add": {
+        "badargument": "Woord moet minstens 3 tekens lang zijn.",
+        "dupe": "Kan dubbele woord niet toevoegen",
+        "added": "`{}` toegevoegd aan de blacklist"
+      },
+      "remove": {
+        "doesntexist": "Het lijkt erop dat je dat woord niet hebt verbannen",
+        "removed": "`{}` verwijderd van de blacklist"
+      },
+      "display": {
+        "doesntexist": "Nog geen geblacklist woorden, gebruik `{}blacklist add <word>` om te starten",
+        "words": "Geblokkeerde woorden"
+      },
+      "punishments": {
+        "title": "Waarschuwing straffen",
+        "description": "De waarschuwingsstraffen voor `{}` zijn `{}`.",
+        "set": "Stel straf in op `{}`"
+      },
+      "clear": "Alle geblackliste woorden zijn verwijderd"
+    }
+  },
+  "autorole": {},
+  "chat": {
+    "cog_description": "Chat met vrijdag, zeg iets namens vrijdag, en meer met de chatcommando's.",
+    "ratelimit": {
+      "title": "Je hebt me meer dan `{count}` gestuurd in die laatste `{human}` en je wordt beperkt beoordeeld, probeer het opnieuw {stamp}",
+      "ads": {
+        "voting": {
+          "message": "Krijg een hogere boodschap door op [Top.gg]te stemmen (https://top.gg/bot/476303446547365891/vote).",
+          "button": "Stem voor meer"
+        },
+        "streak": "Krijg een nog hogere pet door een stemreeks van minstens 2 dagen bij te houden.",
+        "patron": {
+          "message": "Haal het krachtigste bericht op door een [Patron]te worden (https://patreon.com/join/fridaybot).",
+          "button": "Word mecenas voor meer"
+        }
+      }
+    },
+    "flagged": "Mijn antwoord was gemarkeerd en kon niet worden verzonden, probeer het opnieuw",
+    "no_response": "Hoe dan ook, ik weet niet wat ik moet zeggen.",
+    "try_again_later": "Er is iets fout gegaan, probeer het later opnieuw",
+    "chat": {
+      "command_name": "chat",
+      "help": "Praten of informatie krijgen over chatten met vrijdag",
+      "commands": {
+        "talk": {
+          "command_name": "spreken",
+          "help": "Chat met vrijdag aangedreven door GPT-3 en krijg een reactie.",
+          "parameters": {
+            "message": {
+              "name": "Bericht",
+              "description": "Uw bericht aan vrijdag"
+            }
+          }
+        },
+        "info": {
+          "command_name": "info",
+          "help": "Laat informatie over het huidige gesprek zien",
+          "no_history": "Geen geschiedenis gevonden",
+          "response_title": "Chat informatie",
+          "response_field_titles": [
+            "berichten",
+            "Gestemd berichten",
+            "Berichten stemmen",
+            "Gepatroneerde berichten",
+            "Recente geschiedenis reset",
+            "Berichten geschiedenis"
+          ],
+          "response_rate": "{rate} resterend"
+        },
+        "reset": {
+          "command_name": "reset",
+          "help": "Chatgeschiedenis van vrijdag herstellen. Helpen als vrijdag berichten herhalen"
+        }
+      }
+    },
+    "chatchannel": {
+      "command_name": "chatkanaal",
+      "help": "Toon of wijzig het kanaal waar de bot zal chatten",
+      "commands": {
+        "set": {
+          "command_name": "instellen",
+          "help": "Stel het huidige kanaal in zodat ik altijd zal proberen om te reageren met iets",
+          "parameters": {
+            "channel": {
+              "name": "kanaal",
+              "description": "Het kanaal waar ik over zal praten"
+            }
+          }
+        },
+        "clear": {
+          "command_name": "Wis",
+          "help": "Verwijder het huidige chat-kanaal"
+        }
+      }
+    },
+    "persona": {
+      "command_name": "persona",
+      "help": "Wijzig persoon van vrijdag"
+    }
+  },
+  "config": {
+    "cog_description": "De algemene configuratieopdrachten voor vrijdag",
+    "language": {
+      "invalid_lang": "Taal {language} bestaat niet of wordt niet ondersteund."
+    },
+    "userlanguage": {
+      "command_name": "gebruikerstaal",
+      "help": "Mijn taal om alleen met jou te spreken. Heeft geen invloed op applicatie commando's",
+      "select": "Selecteer de taal die je wilt dat ik spreek",
+      "current_lang": "Huidige taal: `{current_language}`",
+      "new_lang": "Nieuwe taal ingesteld op: `{new_language}`",
+      "new_lang_desc": "Houd er rekening mee dat dit wordt overschreven met applicatiecommando's door de lokalisatie ingesteld door een server en uw client."
+    },
+    "serverlanguage": {
+      "command_name": "servertaal",
+      "help": "Mijn standaard taal om te spreken in een server. Heeft geen invloed op applicatie commando's",
+      "select": "Selecteer de taal die je wilt dat ik spreek",
+      "current_lang": "Huidige taal: `{current_language}`",
+      "new_lang": "Nieuwe taal ingesteld op: `{new_language}`",
+      "new_lang_desc": "Houd er rekening mee dat dit wordt overschreven met applicatiecommando's door de lokalisatie ingesteld door een server en uw client."
+    },
+    "prefix": {
+      "help": "Stelt de prefix in voor vrijdagen commando's",
+      "new_prefix": "Mijn nieuwe prefix is `{new_prefix}`",
+      "max_chars": "Kan geen voorvoegsel instellen met meer dan 5 tekens"
+    },
+    "botchannel": {
+      "help": "Het kanaal waar de bot commando's wonen.",
+      "title": "Bot kanaal ingesteld"
+    },
+    "botchannelclear": "Bot kanaal gewist",
+    "restrict": {
+      "help": "Beperkt het geselecteerde commando tot het bot kanaal. Genegeerd met het beheren van de server permissie.",
+      "title": "**{command_name}** is beperkt tot het bot kanaal.",
+      "commands": {
+        "list": {
+          "help": "Geeft de beperkte commando's weer",
+          "response_title": "Beperkte Commando's",
+          "response_no_commands": "Geen commando's zijn beperkt."
+        }
+      }
+    },
+    "unrestrict": {
+      "help": "Onbeperkt de geselecteerde opdracht.",
+      "title": "**{command_name}** is onbeperkt."
+    },
+    "enable": {
+      "help": "Schakelt geselecteerde opdrachten in.",
+      "title": "**{command_name}** is ingeschakeld."
+    },
+    "disable": {
+      "help": "Schakel een commando uit",
+      "title": "**{command_name}** is uitgeschakeld."
+    },
+    "disablelist": {
+      "help": "Laat alle uitgeschakelde commando's zien.",
+      "title": "Opdrachten Uitgeschakeld",
+      "none_found": "Er zijn geen uitgeschakelde commando's."
+    },
+    "updates": {
+      "command_name": "updates",
+      "help": "Ontvang updates over nieuwe functies en wijzigingen voor vrijdag",
+      "prompt": "Dit kanaal is al geabonneerd op updates. Weet u zeker dat u zich opnieuw wilt abonneren?",
+      "cancelled": "Geannuleerd",
+      "reason": "Aanroep updates commando, voor vrijdag updates",
+      "followed": "Updates kanaal gevolgd",
+      "parameters": {
+        "channel": {
+          "name": "kanaal",
+          "description": "Het kanaal om updates te ontvangen"
+        }
+      }
+    }
+  },
+  "dbl": {},
+  "dice": {
+    "cog_description": "Rol wat dobbelstenen met voordeel of doe gewoon wat basis wiskunde.",
+    "dice": {
+      "command_name": "dobbelstenen",
+      "help": "Dugees en Draken duiken aan het rollen",
+      "response_title": "Uw totaal: {total}",
+      "response_description": "Query: {query}\nResultaat: {result}",
+      "parameters": {
+        "roll": {
+          "name": "rol",
+          "description": "De rol die gemaakt moet worden. Hoe tot: https://d20.readthedocs.io/en/latest/start.html"
+        }
+      }
+    }
+  },
+  "fun": {},
+  "general": {
+    "cog_description": "Enkele algemene opdrachten",
+    "invite": {
+      "command_name": "uitnodigen",
+      "help": "Ontvang de uitnodigingslink om me toe te voegen aan uw server"
+    }
+  },
+  "help": {
+    "cog_description": "Als je een suggestie voor een opdracht wilt doen, doe dan mee met de [vrijdag ontwikkeling](https://discord.gg/NTRuFjU) en leg je suggestie uit.\n\nBekijk voor meer informatie over hoe commando's werken en hoe ze te formatteren [docs.friday-bot.com](https://docs. riday-bot.com/).\n\n**Sommige commando's worden alleen getoond als je de juiste permissies hebt om ze te gebruiken.**",
+    "no_help": "Geen hulp gevonden...",
+    "examples": "Voorbeelden",
+    "signature": "Handtekening",
+    "params": "Beschikbare parameters",
+    "commands": "Opdrachten",
+    "no_permissible_commands": "Geen commando's die je kunt gebruiken"
+  },
+  "issue": {},
+  "log": {},
+  "nacl": {},
+  "dev": {},
+  "ipc": {},
+  "topgg": {},
+  "logging": {},
+  "modlogging": {},
+  "meme": {},
+  "database": {},
+  "datedevents": {},
+  "sharding": {},
+  "stats": {},
+  "scheduledevents": {},
+  "moderation": {},
+  "music": {},
+  "patreons": {},
+  "api": {},
+  "stars": {},
+  "choosegame": {},
+  "ping": {
+    "cog_description": "Ping? Pong!",
+    "ping": {
+      "command_name": "ping",
+      "help": "Pong!",
+      "response_title": "Pong!",
+      "response_description": "⏳ API is {ping}ms"
+    }
+  },
+  "redditlink": {},
+  "reminder": {},
+  "support": {
+    "support": {
+      "command_name": "ondersteuning",
+      "help": "Krijg een uitnodigingslink naar mijn ondersteuningsserver"
+    },
+    "donate": {
+      "command_name": "doneren",
+      "help": "Ontvang de Patreon-link voor vrijdag"
+    }
+  },
+  "welcome": {}
+}
