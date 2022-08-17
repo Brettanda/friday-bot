@@ -188,7 +188,7 @@ class PremiumTiersNew(enum.Enum):
 
   @classmethod
   def from_patreon_tier(cls, tier: int = 7212079):
-    if tier == 7212079:  # Patreon Tier 1
+    if int(tier) == 7212079:  # Patreon Tier 1
       return cls.tier_1
     return cls.free
 
