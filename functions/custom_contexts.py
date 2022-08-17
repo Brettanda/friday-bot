@@ -43,7 +43,7 @@ class ConfirmationView(discord.ui.View):
     self.value = True
     await interaction.response.defer()
     if self.delete_after:
-      await interaction.delete_original_message()
+      await interaction.delete_original_response()
     self.stop()
 
   @discord.ui.button(emoji="\N{HEAVY MULTIPLICATION X}", label='Cancel', custom_id="confirmation_false", style=discord.ButtonStyle.red)
@@ -51,7 +51,7 @@ class ConfirmationView(discord.ui.View):
     self.value = False
     await interaction.response.defer()
     if self.delete_after:
-      await interaction.delete_original_message()
+      await interaction.delete_original_response()
     self.stop()
 
 
@@ -89,7 +89,7 @@ class MultiSelectView(discord.ui.View):
     self.values = select.values
     await interaction.response.defer()
     if self.delete_after:
-      await interaction.delete_original_message()
+      await interaction.delete_original_response()
     self.stop()
 
   async def interaction_check(self, interaction: discord.Interaction) -> bool:
@@ -181,6 +181,7 @@ class MyContext(commands.Context):
     super().__init__(**kwargs)
     self.pool: Pool = self.bot.pool
     self._db: Optional[Union[Pool, Connection]] = None
+    self._bot_message: Optional[discord.Message] = None
 
   def __repr__(self) -> str:
     return "<Context>"
@@ -195,6 +196,10 @@ class MyContext(commands.Context):
   @property
   def session(self) -> ClientSession:
     return self.bot.session
+
+  @property
+  def bot_message(self) -> Optional[discord.Message]:
+    return self._bot_message
 
   @property
   def db(self) -> Union[Pool, Connection]:
@@ -330,6 +335,13 @@ class MyContext(commands.Context):
   #   await view.wait()
   #   return view.value
 
+  async def edit(self, content: str | None = ..., embed: embed | None = ..., view: discord.ui.View | None = ...) -> discord.Message:
+    if self.interaction:
+      return await self.interaction.edit_original_response(content=content, embed=embed, view=view)
+    if not self.bot_message:
+      raise ValueError("Cannot edit a message that was not sent by the bot.")
+    return await self.bot_message.edit(content=content, embed=embed, view=view)
+
   async def reply(self, *args: Any, **kwargs: Any) -> discord.Message:
     return await self.send(*args, **kwargs)
 
@@ -341,19 +353,22 @@ class MyContext(commands.Context):
     reference = reference or self.message
     if self.bot_permissions.read_message_history and reference in self.bot.cached_messages:
       try:
-        return await super().send(
+        self._bot_message = await super().send(
             *args,
             reference=reference,
             **kwargs
         )
+        return self._bot_message
       except discord.HTTPException:
-        return await super().send(
+        self._bot_message = await super().send(
             *args,
             **kwargs)
+        return self._bot_message
 
-    return await super().send(
+    self._bot_message = await super().send(
         *args,
         **kwargs)
+    return self._bot_message
 
   async def safe_send(self, content: str, *, escape_mentions=True, **kwargs: Any) -> discord.Message:
     if escape_mentions:

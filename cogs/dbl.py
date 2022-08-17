@@ -270,7 +270,7 @@ class TopGG(commands.Cog):
         return
 
       member = await self.bot.get_or_fetch_member(support_server, user)
-      if member is not None:
+      if member is not None and not member.pending:
         try:
           await member.add_roles(discord.Object(id=VOTE_ROLE), reason="Voted on Top.gg")
         except discord.HTTPException:

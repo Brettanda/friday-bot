@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
 GAMES = [
     "Developing myself",
-    "Minecraft 1.19",
+    "Minecraft 1.20",
     "Super Smash Bros. Ultimate",
     "Cyberpunk 2078",
     "Forza Horizon 6",

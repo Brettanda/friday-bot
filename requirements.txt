@@ -4,7 +4,7 @@ autopep8
 d20==1.1.2
 topggpy==1.4.0
 discord-ext-menus @ git+https://github.com/Rapptz/discord-ext-menus@fbb8803779373357e274e1540b368365fd9d8074
-discord.py @ git+https://github.com/Rapptz/discord.py@a8a6bf4f6c9d6cb71a23bf2079c410aeb1407a8b
+discord.py @ git+https://github.com/Rapptz/discord.py@f52a02359de5d7f14a8cddee6fa9833d62c26604
 # py-cord>=v2.0.0b4
 # flair==0.8.0.post1
 grpcio

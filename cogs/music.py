@@ -468,6 +468,7 @@ class Music(commands.Cog):
   @commands.Cog.listener('on_wavelink_track_stuck')
   @commands.Cog.listener('on_wavelink_track_end')
   async def on_player_stop(self, player: Player, track: Track, *args, **kwargs):
+    log.info(f"Track ended {track!r} for VC: {player.channel and player.channel.id}, TX: {player.text_channel and player.text_channel.id}")
     await player.do_next(force=True)
 
   @commands.Cog.listener()

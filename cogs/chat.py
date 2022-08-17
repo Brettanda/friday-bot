@@ -175,7 +175,7 @@ class ChatHistory:
 
 
 class CooldownByRepeating(commands.CooldownMapping):
-  def _bucket_key(self, msg):
+  def _bucket_key(self, msg: discord.Message):
     return (msg.content)
 
 

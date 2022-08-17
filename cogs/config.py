@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Optional
 
 import asyncpg
 import discord
+from discord import app_commands
 from discord.ext import commands
 from typing_extensions import Annotated
 
@@ -69,18 +70,6 @@ class Command(commands.Converter):
     return ctx.bot.get_command(lowered)  # type: ignore
 
 
-class LanguageConverter(commands.Converter, discord.app_commands.Transformer):
-  async def convert(self, ctx: MyContext, argument: str):
-    lowered = argument.lower()
-
-    for code, _file in ctx.bot.language_files.items():
-      if lowered == code.lower():
-        return code
-      if lowered == _file["_lang_name"].lower():
-        return code
-    raise commands.BadArgument(f"Language {lowered!r} does not exist, or is not supported.")
-
-
 class ConfigConfig:
   __slots__ = ("bot", "id", "mod_role_ids")
 
@@ -96,22 +85,13 @@ class ConfigConfig:
 
 
 class Config(commands.Cog, command_attrs=dict(extras={"permissions": ["manage_guild"]})):
+  """The general configuration commands for Friday"""
+
   def __init__(self, bot: Friday):
     self.bot: Friday = bot
 
   def __repr__(self) -> str:
     return f"<cogs.{self.__cog_name__}>"
-
-  async def cog_check(self, ctx: GuildContext) -> bool:
-    if ctx.guild is None:
-      raise commands.NoPrivateMessage("This command can only be used within a guild")
-
-    if await ctx.bot.is_owner(ctx.author):
-      return True
-
-    if not ctx.permissions.manage_guild:
-      raise commands.MissingPermissions(["manage_guild"])
-    return True
 
   @cache.cache(ignore_kwargs=True)
   async def get_guild_config(self, guild_id: int, *, connection: Optional[asyncpg.Pool | asyncpg.Connection] = None) -> Optional[ConfigConfig]:
@@ -123,144 +103,184 @@ class Config(commands.Cog, command_attrs=dict(extras={"permissions": ["manage_gu
       return ConfigConfig(record=record, bot=self.bot)
     return None
 
-  @commands.command(name="prefix", extras={"examples": ["?", "f!"]}, help="Sets the prefix for Fridays commands")
+  @commands.command(name="prefix", extras={"examples": ["?", "f!"]})
+  @commands.has_guild_permissions(manage_guild=True)
   async def prefix(self, ctx: GuildContext, new_prefix: str = config.defaultPrefix):
+    """Sets the prefix for Fridays commands"""
     prefix = new_prefix.lower()
     if len(prefix) > 5:
-      return await ctx.reply(embed=embed(title="Can't set a prefix with more than 5 characters", color=MessageColors.error()))
+      return await ctx.reply(embed=embed(title=ctx.lang["config"]["prefix"]["max_chars"], color=MessageColors.error()))
     await ctx.db.execute("UPDATE servers SET prefix=$1 WHERE id=$2", str(prefix), str(ctx.guild.id))
     self.bot.prefixes[ctx.guild.id] = prefix
-    await ctx.reply(embed=embed(title=f"My new prefix is `{prefix}`"))
+    await ctx.reply(embed=embed(title=ctx.lang["config"]["prefix"]["new_prefix"].format(new_prefix=prefix)))
 
-  @commands.command("updates", help="Recieve updates on new features and changes for Friday")
+  @commands.hybrid_command("updates")
+  @commands.guild_only()
+  @commands.has_guild_permissions(manage_guild=True)
   @commands.has_permissions(manage_webhooks=True)
   @commands.bot_has_permissions(manage_webhooks=True)
+  @app_commands.describe(channel="The channel to get updates")
   async def updates(self, ctx: GuildContext, channel: discord.TextChannel):
+    """Recieve updates on new features and changes for Friday"""
     updates_channel: discord.TextChannel = self.bot.get_channel(UPDATES_CHANNEL)  # type: ignore
 
     if updates_channel.id in [w.source_channel and w.source_channel.id for w in await channel.webhooks()]:
-      confirm = await ctx.prompt("This channel is already subscribed to updates. Are you sure you want to subscribe again?")
+      confirm = await ctx.prompt(ctx.lang["config"]["updates"]["prompt"])
       if not confirm:
-        return await ctx.reply(embed=embed(title="Cancelled"))
+        return await ctx.reply(embed=embed(title=ctx.lang["config"]["updates"]["cancelled"]))
 
-    await updates_channel.follow(destination=channel, reason="Called updates command, for Friday updates")
-    await ctx.reply(embed=embed(title="Updates channel followed"))
+    await updates_channel.follow(destination=channel, reason=ctx.lang["config"]["updates"]["reason"])
+    await ctx.reply(embed=embed(title=ctx.lang["config"]["updates"]["followed"]))
 
   #
   # TODO: Add the cooldown back to the below command but check if the command fails then reset the cooldown
   #
 
-  @commands.command(name="userlanguage", extras={"examples": ["en", "es", "english", "Español"]}, aliases=["userlang"])
-  async def user_language(self, ctx: MyContext, language: Annotated[Optional[str], LanguageConverter] = None):
-    """Change the language that I will speak to you as a user"""
-    if language is None:
-      return await ctx.reply(embed=embed(title=ctx.lang["config"]["lang"]["current_lang"].format(ctx.lang['_lang_name'])))
+  @commands.hybrid_command(name="userlanguage", aliases=["userlang"])
+  async def user_language(self, ctx: MyContext):
+    """Change the language that I will speak to you as a user. This doesn't affect application commands"""
+    current_code = self.bot.languages.get(ctx.author.id, "en")
+    lang = self.bot.language_files.get(current_code, self.bot.language_files["en"])
+    choice = await ctx.multi_select(
+        lang["config"]["userlanguage"]["select"],
+        options=[
+            {
+                "label": x["_lang_name"],
+                "value": c,
+                "emoji": x["_lang_emoji"],
+                "description": x["_translator"] if x["_translator"] != f"{self.bot.owner.display_name}#{self.bot.owner.discriminator}" else None,
+                "default": bool(c == current_code)
+            } for c, x in self.bot.language_files.items()
+        ], delete_after=False)
+    if not choice:
+      return await ctx.edit(content=None, view=None, embed=embed(title=lang["errors"]["canceled"]))
 
-    await self.bot.languages.put(ctx.author.id, language)
-    await ctx.reply(embed=embed(title=ctx.lang["config"]["lang"]["new_lang"].format(ctx.lang['_lang_name']), description=ctx.lang["config"]["lang"]["new_lang_desc"]))
+    await self.bot.languages.put(ctx.author.id, choice[0])
+    lang = self.bot.language_files.get(choice[0], self.bot.language_files["en"])
+    await ctx.edit(content=None, view=None, embed=embed(title=lang["config"]["userlanguage"]["new_lang"].format(new_language=lang['_lang_name']), description=lang["config"]["userlanguage"]["new_lang_desc"]))
 
-  @commands.command(name="serverlanguage", extras={"examples": ["en", "es", "english", "Español"]}, aliases=["serverlang", "guildlang", "guildlanguage"])
+  @commands.hybrid_command(name="serverlanguage", aliases=["serverlang", "guildlang", "guildlanguage"])
+  @commands.guild_only()
   @commands.has_guild_permissions(manage_guild=True)
-  async def guild_language(self, ctx: GuildContext, language: Annotated[Optional[str], LanguageConverter] = None):
-    """Change the language that I will speak in a server"""
-    if language is None:
-      return await ctx.reply(embed=embed(title=ctx.lang["config"]["lang"]["current_lang"].format(ctx.lang['_lang_name'])))
+  async def guild_language(self, ctx: GuildContext):
+    """Change the default language that I will speak in a server. Doesn't affect application commands"""
+    current_code = self.bot.languages.get(ctx.guild.id, "en")
+    lang = self.bot.language_files.get(current_code, self.bot.language_files["en"])
+    choice = await ctx.multi_select(
+        lang["config"]["serverlanguage"]["select"],
+        options=[
+            {
+                "label": x["_lang_name"],
+                "value": c,
+                "emoji": x["_lang_emoji"],
+                "description": x["_translator"] if x["_translator"] != f"{self.bot.owner.display_name}#{self.bot.owner.discriminator}" else None,
+                "default": bool(c == current_code)
+            } for c, x in self.bot.language_files.items()
+        ], delete_after=False)
+    if not choice:
+      return await ctx.edit(content=None, view=None, embed=embed(title=lang["errors"]["canceled"]))
 
-    await self.bot.languages.put(ctx.guild.id, language)
-    await ctx.reply(embed=embed(title=ctx.lang["config"]["lang"]["new_lang"].format(ctx.lang['_lang_name']), description=ctx.lang["config"]["lang"]["new_lang_desc"]))
+    await self.bot.languages.put(ctx.guild.id, choice[0])
+    lang = self.bot.language_files.get(choice[0], self.bot.language_files["en"])
+    await ctx.edit(content=None, view=None, embed=embed(title=lang["config"]["serverlanguage"]["new_lang"].format(new_language=lang['_lang_name']), description=lang["config"]["serverlanguage"]["new_lang_desc"]))
 
-  @commands.group("botchannel", invoke_without_command=True, case_insensitive=True, extras={"examples": ["#botspam"]}, help="The channel where bot commands live.")
-  async def botchannel(self, ctx: GuildContext, *, channel: discord.TextChannel = None):
+  @commands.group("botchannel", invoke_without_command=True, case_insensitive=True, extras={"examples": ["#botspam"]})
+  @commands.has_guild_permissions(manage_guild=True)
+  async def botchannel(self, ctx: GuildContext, *, channel: discord.abc.GuildChannel = None):
+    """The channel where bot commands live."""
     if channel is None:
       return await ctx.send_help(ctx.command)
     log_cog = self.bot.log
     if log_cog is None:
-      return await ctx.send(embed=embed(title="This functionality is not currently available. Try again later?", color=MessageColors.error()))
+      return await ctx.send(embed=embed(title=ctx.lang["errors"]["try_again_later"], color=MessageColors.error()))
 
     query = "UPDATE servers SET botchannel=$2 WHERE id=$1;"
 
     await ctx.db.execute(query, str(ctx.guild.id), str(channel.id))
     log_cog.get_guild_config.invalidate(log_cog, ctx.guild.id)
-    await ctx.send(embed=embed(title="Bot Channel", description=f"Bot channel set to {channel.mention}."))
+    await ctx.send(f"{channel.mention}", embed=embed(title=ctx.lang["config"]["botchannel"]["title"]))
 
   @botchannel.command("clear")
+  @commands.has_guild_permissions(manage_guild=True)
   async def botchannel_clear(self, ctx: GuildContext):
     log_cog = self.bot.log
     if log_cog is None:
-      return await ctx.send(embed=embed(title="This functionality is not currently available. Try again later?", color=MessageColors.error()))
+      return await ctx.send(embed=embed(title=ctx.lang["errors"]["try_again_later"], color=MessageColors.error()))
 
     await ctx.db.execute("UPDATE servers SET botchannel=NULL WHERE id=$1;", str(ctx.guild.id))
     log_cog.get_guild_config.invalidate(log_cog, ctx.guild.id)
-    await ctx.send(embed=embed(title="Bot channel cleared"))
+    await ctx.send(embed=embed(title=ctx.lang["config"]["botchannelclear"]))
 
-  @commands.group("restrict", help="Restricts the selected command to the bot channel. Ignored with manage server permission.", invoke_without_command=True)
+  @commands.group("restrict", invoke_without_command=True)
+  @commands.has_guild_permissions(manage_guild=True)
   async def restrict(self, ctx: GuildContext, *, command: Annotated[commands.Command, Command]):
+    """Restricts the selected command to the bot channel. Ignored with manage server permission."""
     query = "UPDATE servers SET restricted_commands=array_append(restricted_commands, $1) WHERE id=$2 AND NOT ($1=any(restricted_commands));"
     log_cog = self.bot.log
     if log_cog is None:
-      return await ctx.send(embed=embed(title="This functionality is not currently available. Try again later?", color=MessageColors.error()))
+      return await ctx.send(embed=embed(title=ctx.lang["errors"]["try_again_later"], color=MessageColors.error()))
     await ctx.db.execute(query, command.qualified_name, str(ctx.guild.id))
     log_cog.get_guild_config.invalidate(log_cog, ctx.guild.id)
-    await ctx.send(embed=embed(title=f"**{command.qualified_name}** has been restricted to the bot channel."))
+    await ctx.send(embed=embed(title=ctx.lang["config"]["restrict"]["title"].format(command.qualified_name)))
 
   @restrict.command("list")
+  @commands.has_guild_permissions(manage_guild=True)
   async def restrict_list(self, ctx: GuildContext):
+    """Lists the restricted commands."""
     query = "SELECT restricted_commands FROM servers WHERE id=$1;"
     restricted_commands = await ctx.db.fetchval(query, str(ctx.guild.id))
     if restricted_commands is None:
       restricted_commands = []
-    await ctx.send(embed=embed(title="Restricted Commands", description="\n".join(restricted_commands) or "No commands are restricted."))
+    await ctx.send(embed=embed(title=ctx.lang["config"]["restrict"]["commands"]["list"]["response_title"], description="\n".join(restricted_commands) or ctx.lang["config"]["restrict"]["commands"]["list"]["response_no_commands"]))
 
-  @commands.command("unrestrict", help="Unrestricts the selected command.")
+  @commands.command("unrestrict")
+  @commands.has_guild_permissions(manage_guild=True)
   async def unrestrict(self, ctx: GuildContext, *, command: Annotated[commands.Command, Command]):
+    """Unrestricts the selected command."""
     query = "UPDATE servers SET restricted_commands=array_remove(restricted_commands, $1) WHERE id=$2;"
     log_cog = self.bot.log
     if log_cog is None:
-      return await ctx.send(embed=embed(title="This functionality is not currently available. Try again later?", color=MessageColors.error()))
+      return await ctx.send(embed=embed(title=ctx.lang["errors"]["try_again_later"], color=MessageColors.error()))
 
     await ctx.db.execute(query, command.qualified_name, str(ctx.guild.id))
     log_cog.get_guild_config.invalidate(log_cog, ctx.guild.id)
-    await ctx.send(embed=embed(title=f"**{command.qualified_name}** has been unrestricted."))
+    await ctx.send(embed=embed(title=ctx.lang["config"]["unrestrict"]["title"].format(command.qualified_name)))
 
-  @commands.group("enable", help="Enables the selected command(s).", invoke_without_command=True)
+  @commands.group("enable", invoke_without_command=True)
+  @commands.has_guild_permissions(manage_guild=True)
   async def enable(self, ctx: GuildContext, *, command: Annotated[commands.Command, Command]):
+    """Enables the selected command(s)."""
     query = "UPDATE servers SET disabled_commands=array_remove(disabled_commands, $1) WHERE id=$2;"
     log_cog = self.bot.log
     if log_cog is None:
-      return await ctx.send(embed=embed(title="This functionality is not currently available. Try again later?", color=MessageColors.error()))
+      return await ctx.send(embed=embed(title=ctx.lang["errors"]["try_again_later"], color=MessageColors.error()))
 
     await ctx.db.execute(query, command.qualified_name, str(ctx.guild.id))
     log_cog.get_guild_config.invalidate(log_cog, ctx.guild.id)
-    await ctx.send(embed=embed(title=f"**{command.qualified_name}** has been enabled."))
+    await ctx.send(embed=embed(title=ctx.lang["config"]["enable"]["title"].format(command.qualified_name)))
 
-  @enable.command("all", help="Enables all commands.", hidden=True)
-  @commands.is_owner()
-  async def enable_all(self, ctx: GuildContext):
-    ...
-
-  @commands.group(name="disable", extras={"examples": ["ping", "ping last", "\"blacklist add\" ping"]}, aliases=["disablecmd"], help="Disable a command", invoke_without_command=True)
+  @commands.group(name="disable", extras={"examples": ["ping", "ping last", "\"blacklist add\" ping"]}, aliases=["disablecmd"], invoke_without_command=True)
+  @commands.has_guild_permissions(manage_guild=True)
   async def disable(self, ctx: GuildContext, *, command: Annotated[commands.Command, Command]):
+    """Disable a command"""
     query = "UPDATE servers SET disabled_commands=array_append(disabled_commands, $1) WHERE id=$2 AND NOT ($1=any(disabled_commands));"
     log_cog = self.bot.log
     if log_cog is None:
-      return await ctx.send(embed=embed(title="This functionality is not currently available. Try again later?", color=MessageColors.error()))
+      return await ctx.send(embed=embed(title=ctx.lang["errors"]["try_again_later"], color=MessageColors.error()))
 
     await ctx.db.execute(query, command.qualified_name, str(ctx.guild.id))
     log_cog.get_guild_config.invalidate(log_cog, ctx.guild.id)
-    await ctx.send(embed=embed(title=f"**{command.qualified_name}** has been disabled."))
+    await ctx.send(embed=embed(title=ctx.lang["config"]["disable"]["title"].format(command.qualified_name)))
 
-  @disable.command("list", help="Lists all disabled commands.")
+  @disable.command("list")
+  @commands.has_guild_permissions(manage_guild=True)
   async def disable_list(self, ctx: GuildContext):
+    """Lists all disabled commands."""
     query = "SELECT disabled_commands FROM servers WHERE id=$1;"
     disabled_commands = await ctx.db.fetchval(query, str(ctx.guild.id))
     if disabled_commands is None:
-      return await ctx.send(embed=embed(title="There are no disabled commands."))
-    await ctx.send(embed=embed(title="Disabled Commands", description="\n".join(disabled_commands) or "There are no disabled commands."))
-
-  @disable.command("all", help="Disables all commands.", hidden=True)
-  @commands.is_owner()
-  async def disable_all(self, ctx: GuildContext):
-    ...
+      return await ctx.send(embed=embed(title=ctx.lang["config"]["disablelist"]["none_found"]))
+    await ctx.send(embed=embed(title=ctx.lang["config"]["disablelist"]["title"], description="\n".join(disabled_commands) or ctx.lang["config"]["disablelist"]["none_found"]))
 
   # async def _bulk_ignore_entries(self, ctx: MyContext, entries):
   #   async with ctx.acquire():
