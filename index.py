@@ -170,7 +170,7 @@ class Friday(commands.AutoShardedBot):
 
     self.blacklist: Config[bool] = Config("blacklist.json", loop=self.loop)
 
-    await load_languages(self)
+    self.loop.create_task(load_languages(self))
 
     self.languages = Config("languages.json", loop=self.loop)
 
