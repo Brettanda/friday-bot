@@ -38,8 +38,8 @@ class Dice(commands.Cog):
       return await ctx.send(embed=embed(title=f"{e}", color=MessageColors.error()))
     else:
       return await ctx.send(embed=embed(
-          title=ctx.lang["dice"]["dice"]["response_title"].format(total=str(result.total)),
-          description=ctx.lang["dice"]["dice"]["response_description"].format(query=str(result.ast), result=str(result))))
+          title=ctx.lang.dice.dice.response_title.format(total=str(result.total)),
+          description=ctx.lang.dice.dice.response_description.format(query=str(result.ast), result=str(result))))
 
 
 async def setup(bot):
