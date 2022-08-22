@@ -237,13 +237,21 @@ class MyContext(commands.Context):
       self._db = None
 
   @property
+  def lang_code_user(self) -> str:
+    if self.interaction:
+      return self.interaction.locale.value.split("-")[0]
+    return self.bot.languages.get(self.author.id, "en")
+
+  @property
   def lang_code(self) -> str:
     if self.interaction:
-      if self.interaction.guild_locale is not None:
-        return self.interaction.guild_locale.value.split("-")[0]
       return self.interaction.locale.value.split("-")[0]
     guild = self.guild and self.bot.languages.get(self.guild.id, None)
-    return guild or self.bot.languages.get(self.author.id, "en")
+    return guild or self.lang_code_user
+
+  @property
+  def lang_user(self):
+    return self.bot.language_files.get(self.lang_code_user, self.bot.language_files["en"])
 
   @property
   def lang(self):

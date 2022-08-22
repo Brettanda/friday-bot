@@ -143,3 +143,4 @@ blacklist.json
 languages.json
 crowdin.yml
 wandb/
+i18n/locales/

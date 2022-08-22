@@ -21,30 +21,6 @@ log = logging.getLogger(__name__)
 UPDATES_CHANNEL = 744652167142441020
 
 
-class ChannelOrMember(commands.Converter):
-  async def convert(self, ctx: GuildContext, argument: str):
-    try:
-      return await commands.TextChannelConverter().convert(ctx, argument)
-    except commands.BadArgument:
-      return await commands.MemberConverter().convert(ctx, argument)
-
-
-class CogName(commands.Converter):
-  async def convert(self, ctx: GuildContext, argument: str) -> str:
-    lowered = argument.lower()
-
-    valid_cogs = {
-        n
-        for n, c in ctx.bot.cogs
-        if n not in ("Dev", "Config")
-    }
-
-    if lowered not in valid_cogs:
-      raise commands.BadArgument(f"Cog {lowered!r} does not exist.")
-
-    return lowered
-
-
 class Command(commands.Converter):
   async def convert(self, ctx: GuildContext, argument: str) -> commands.Command:
     lowered = argument.lower()
@@ -109,10 +85,10 @@ class Config(commands.Cog, command_attrs=dict(extras={"permissions": ["manage_gu
     """Sets the prefix for Fridays commands"""
     prefix = new_prefix.lower()
     if len(prefix) > 5:
-      return await ctx.reply(embed=embed(title=ctx.lang["config"]["prefix"]["max_chars"], color=MessageColors.error()))
+      return await ctx.reply(embed=embed(title=ctx.lang.config.prefix.max_chars, color=MessageColors.error()))
     await ctx.db.execute("UPDATE servers SET prefix=$1 WHERE id=$2", str(prefix), str(ctx.guild.id))
     self.bot.prefixes[ctx.guild.id] = prefix
-    await ctx.reply(embed=embed(title=ctx.lang["config"]["prefix"]["new_prefix"].format(new_prefix=prefix)))
+    await ctx.reply(embed=embed(title=ctx.lang.config.prefix.new_prefix.format(new_prefix=prefix)))
 
   @commands.hybrid_command("updates")
   @commands.guild_only()
@@ -125,12 +101,12 @@ class Config(commands.Cog, command_attrs=dict(extras={"permissions": ["manage_gu
     updates_channel: discord.TextChannel = self.bot.get_channel(UPDATES_CHANNEL)  # type: ignore
 
     if updates_channel.id in [w.source_channel and w.source_channel.id for w in await channel.webhooks()]:
-      confirm = await ctx.prompt(ctx.lang["config"]["updates"]["prompt"])
+      confirm = await ctx.prompt(ctx.lang.config.updates.prompt)
       if not confirm:
-        return await ctx.reply(embed=embed(title=ctx.lang["config"]["updates"]["cancelled"]))
+        return await ctx.reply(embed=embed(title=ctx.lang.config.updates.cancelled))
 
-    await updates_channel.follow(destination=channel, reason=ctx.lang["config"]["updates"]["reason"])
-    await ctx.reply(embed=embed(title=ctx.lang["config"]["updates"]["followed"]))
+    await updates_channel.follow(destination=channel, reason=ctx.lang.config.updates.reason)
+    await ctx.reply(embed=embed(title=ctx.lang.config.updates.followed))
 
   #
   # TODO: Add the cooldown back to the below command but check if the command fails then reset the cooldown
@@ -142,7 +118,7 @@ class Config(commands.Cog, command_attrs=dict(extras={"permissions": ["manage_gu
     current_code = self.bot.languages.get(ctx.author.id, "en")
     lang = self.bot.language_files.get(current_code, self.bot.language_files["en"])
     choice = await ctx.multi_select(
-        lang["config"]["userlanguage"]["select"],
+        embed=embed(title=lang.config.userlanguage.select_title, description=lang.config.userlanguage.select_description),
         options=[
             {
                 "label": x["_lang_name"],
@@ -153,11 +129,11 @@ class Config(commands.Cog, command_attrs=dict(extras={"permissions": ["manage_gu
             } for c, x in self.bot.language_files.items()
         ], delete_after=False)
     if not choice:
-      return await ctx.edit(content=None, view=None, embed=embed(title=lang["errors"]["canceled"]))
+      return await ctx.edit(content=None, view=None, embed=embed(title=lang.errors.canceled))
 
     await self.bot.languages.put(ctx.author.id, choice[0])
     lang = self.bot.language_files.get(choice[0], self.bot.language_files["en"])
-    await ctx.edit(content=None, view=None, embed=embed(title=lang["config"]["userlanguage"]["new_lang"].format(new_language=lang['_lang_name']), description=lang["config"]["userlanguage"]["new_lang_desc"]))
+    await ctx.edit(content=None, view=None, embed=embed(title=lang.config.userlanguage.new_lang.format(new_language=lang._lang_name), description=lang.config.userlanguage.new_lang_desc))
 
   @commands.hybrid_command(name="serverlanguage", aliases=["serverlang", "guildlang", "guildlanguage"])
   @commands.guild_only()
@@ -167,7 +143,7 @@ class Config(commands.Cog, command_attrs=dict(extras={"permissions": ["manage_gu
     current_code = self.bot.languages.get(ctx.guild.id, "en")
     lang = self.bot.language_files.get(current_code, self.bot.language_files["en"])
     choice = await ctx.multi_select(
-        lang["config"]["serverlanguage"]["select"],
+        embed=embed(title=lang.config.serverlanguage.select_title, description=lang.config.serverlanguage.select_description),
         options=[
             {
                 "label": x["_lang_name"],
@@ -178,11 +154,11 @@ class Config(commands.Cog, command_attrs=dict(extras={"permissions": ["manage_gu
             } for c, x in self.bot.language_files.items()
         ], delete_after=False)
     if not choice:
-      return await ctx.edit(content=None, view=None, embed=embed(title=lang["errors"]["canceled"]))
+      return await ctx.edit(content=None, view=None, embed=embed(title=lang.errors.canceled))
 
     await self.bot.languages.put(ctx.guild.id, choice[0])
     lang = self.bot.language_files.get(choice[0], self.bot.language_files["en"])
-    await ctx.edit(content=None, view=None, embed=embed(title=lang["config"]["serverlanguage"]["new_lang"].format(new_language=lang['_lang_name']), description=lang["config"]["serverlanguage"]["new_lang_desc"]))
+    await ctx.edit(content=None, view=None, embed=embed(title=lang.config.serverlanguage.new_lang.format(new_language=lang._lang_name), description=lang.config.serverlanguage.new_lang_desc))
 
   @commands.group("botchannel", invoke_without_command=True, case_insensitive=True, extras={"examples": ["#botspam"]})
   @commands.has_guild_permissions(manage_guild=True)
@@ -192,24 +168,24 @@ class Config(commands.Cog, command_attrs=dict(extras={"permissions": ["manage_gu
       return await ctx.send_help(ctx.command)
     log_cog = self.bot.log
     if log_cog is None:
-      return await ctx.send(embed=embed(title=ctx.lang["errors"]["try_again_later"], color=MessageColors.error()))
+      return await ctx.send(embed=embed(title=ctx.lang.errors.try_again_later, color=MessageColors.error()))
 
     query = "UPDATE servers SET botchannel=$2 WHERE id=$1;"
 
     await ctx.db.execute(query, str(ctx.guild.id), str(channel.id))
     log_cog.get_guild_config.invalidate(log_cog, ctx.guild.id)
-    await ctx.send(f"{channel.mention}", embed=embed(title=ctx.lang["config"]["botchannel"]["title"]))
+    await ctx.send(f"{channel.mention}", embed=embed(title=ctx.lang.config.botchannel.title))
 
   @botchannel.command("clear")
   @commands.has_guild_permissions(manage_guild=True)
   async def botchannel_clear(self, ctx: GuildContext):
     log_cog = self.bot.log
     if log_cog is None:
-      return await ctx.send(embed=embed(title=ctx.lang["errors"]["try_again_later"], color=MessageColors.error()))
+      return await ctx.send(embed=embed(title=ctx.lang.errors.try_again_later, color=MessageColors.error()))
 
     await ctx.db.execute("UPDATE servers SET botchannel=NULL WHERE id=$1;", str(ctx.guild.id))
     log_cog.get_guild_config.invalidate(log_cog, ctx.guild.id)
-    await ctx.send(embed=embed(title=ctx.lang["config"]["botchannelclear"]))
+    await ctx.send(embed=embed(title=ctx.lang.config.botchannelclear))
 
   @commands.group("restrict", invoke_without_command=True)
   @commands.has_guild_permissions(manage_guild=True)
@@ -218,10 +194,10 @@ class Config(commands.Cog, command_attrs=dict(extras={"permissions": ["manage_gu
     query = "UPDATE servers SET restricted_commands=array_append(restricted_commands, $1) WHERE id=$2 AND NOT ($1=any(restricted_commands));"
     log_cog = self.bot.log
     if log_cog is None:
-      return await ctx.send(embed=embed(title=ctx.lang["errors"]["try_again_later"], color=MessageColors.error()))
+      return await ctx.send(embed=embed(title=ctx.lang.errors.try_again_later, color=MessageColors.error()))
     await ctx.db.execute(query, command.qualified_name, str(ctx.guild.id))
     log_cog.get_guild_config.invalidate(log_cog, ctx.guild.id)
-    await ctx.send(embed=embed(title=ctx.lang["config"]["restrict"]["title"].format(command.qualified_name)))
+    await ctx.send(embed=embed(title=ctx.lang.config.restrict.title.format(command.qualified_name)))
 
   @restrict.command("list")
   @commands.has_guild_permissions(manage_guild=True)
@@ -231,7 +207,7 @@ class Config(commands.Cog, command_attrs=dict(extras={"permissions": ["manage_gu
     restricted_commands = await ctx.db.fetchval(query, str(ctx.guild.id))
     if restricted_commands is None:
       restricted_commands = []
-    await ctx.send(embed=embed(title=ctx.lang["config"]["restrict"]["commands"]["list"]["response_title"], description="\n".join(restricted_commands) or ctx.lang["config"]["restrict"]["commands"]["list"]["response_no_commands"]))
+    await ctx.send(embed=embed(title=ctx.lang.config.restrict.commands.list.response_title, description="\n".join(restricted_commands) or ctx.lang.config.restrict.commands.list.response_no_commands))
 
   @commands.command("unrestrict")
   @commands.has_guild_permissions(manage_guild=True)
@@ -240,11 +216,11 @@ class Config(commands.Cog, command_attrs=dict(extras={"permissions": ["manage_gu
     query = "UPDATE servers SET restricted_commands=array_remove(restricted_commands, $1) WHERE id=$2;"
     log_cog = self.bot.log
     if log_cog is None:
-      return await ctx.send(embed=embed(title=ctx.lang["errors"]["try_again_later"], color=MessageColors.error()))
+      return await ctx.send(embed=embed(title=ctx.lang.errors.try_again_later, color=MessageColors.error()))
 
     await ctx.db.execute(query, command.qualified_name, str(ctx.guild.id))
     log_cog.get_guild_config.invalidate(log_cog, ctx.guild.id)
-    await ctx.send(embed=embed(title=ctx.lang["config"]["unrestrict"]["title"].format(command.qualified_name)))
+    await ctx.send(embed=embed(title=ctx.lang.config.unrestrict.title.format(command.qualified_name)))
 
   @commands.group("enable", invoke_without_command=True)
   @commands.has_guild_permissions(manage_guild=True)
@@ -253,11 +229,11 @@ class Config(commands.Cog, command_attrs=dict(extras={"permissions": ["manage_gu
     query = "UPDATE servers SET disabled_commands=array_remove(disabled_commands, $1) WHERE id=$2;"
     log_cog = self.bot.log
     if log_cog is None:
-      return await ctx.send(embed=embed(title=ctx.lang["errors"]["try_again_later"], color=MessageColors.error()))
+      return await ctx.send(embed=embed(title=ctx.lang.errors.try_again_later, color=MessageColors.error()))
 
     await ctx.db.execute(query, command.qualified_name, str(ctx.guild.id))
     log_cog.get_guild_config.invalidate(log_cog, ctx.guild.id)
-    await ctx.send(embed=embed(title=ctx.lang["config"]["enable"]["title"].format(command.qualified_name)))
+    await ctx.send(embed=embed(title=ctx.lang.config.enable.title.format(command.qualified_name)))
 
   @commands.group(name="disable", extras={"examples": ["ping", "ping last", "\"blacklist add\" ping"]}, aliases=["disablecmd"], invoke_without_command=True)
   @commands.has_guild_permissions(manage_guild=True)
@@ -266,11 +242,11 @@ class Config(commands.Cog, command_attrs=dict(extras={"permissions": ["manage_gu
     query = "UPDATE servers SET disabled_commands=array_append(disabled_commands, $1) WHERE id=$2 AND NOT ($1=any(disabled_commands));"
     log_cog = self.bot.log
     if log_cog is None:
-      return await ctx.send(embed=embed(title=ctx.lang["errors"]["try_again_later"], color=MessageColors.error()))
+      return await ctx.send(embed=embed(title=ctx.lang.errors.try_again_later, color=MessageColors.error()))
 
     await ctx.db.execute(query, command.qualified_name, str(ctx.guild.id))
     log_cog.get_guild_config.invalidate(log_cog, ctx.guild.id)
-    await ctx.send(embed=embed(title=ctx.lang["config"]["disable"]["title"].format(command.qualified_name)))
+    await ctx.send(embed=embed(title=ctx.lang.config.disable.title.format(command.qualified_name)))
 
   @disable.command("list")
   @commands.has_guild_permissions(manage_guild=True)
@@ -279,8 +255,8 @@ class Config(commands.Cog, command_attrs=dict(extras={"permissions": ["manage_gu
     query = "SELECT disabled_commands FROM servers WHERE id=$1;"
     disabled_commands = await ctx.db.fetchval(query, str(ctx.guild.id))
     if disabled_commands is None:
-      return await ctx.send(embed=embed(title=ctx.lang["config"]["disablelist"]["none_found"]))
-    await ctx.send(embed=embed(title=ctx.lang["config"]["disablelist"]["title"], description="\n".join(disabled_commands) or ctx.lang["config"]["disablelist"]["none_found"]))
+      return await ctx.send(embed=embed(title=ctx.lang.config.disablelist.none_found))
+    await ctx.send(embed=embed(title=ctx.lang.config.disablelist.title, description="\n".join(disabled_commands) or ctx.lang.config.disablelist.none_found))
 
   # async def _bulk_ignore_entries(self, ctx: MyContext, entries):
   #   async with ctx.acquire():
@@ -352,12 +328,4 @@ class Config(commands.Cog, command_attrs=dict(extras={"permissions": ["manage_gu
 
 
 async def setup(bot: Friday):
-  # if not hasattr(bot, "languages") or len(bot.languages) == 0:
-  #   bot.languages["en"] = ReadOnly("i18n/source/commands.json")
-  #   for lang in os.listdir("./i18n/translations"):
-  #     bot.languages[lang] = ReadOnly(f"i18n/translations/{lang}/commands.json")
-
-  # if not hasattr(bot, "language_config"):
-  #   bot.language_config = ConfigFile("languages.json")
-
   await bot.add_cog(Config(bot))
