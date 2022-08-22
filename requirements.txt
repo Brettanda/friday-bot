@@ -36,7 +36,6 @@ wavelink==1.2.5
 youtube-dl==2021.1.24.1
 # spacy==3.0.6
 google-cloud-translate==2.0.1
-pycountry==20.7.3
 # pyspellchecker==0.6.2
 openai>=0.20.0
 python-slugify==5.0.2
@@ -48,7 +47,7 @@ pytest
 pytest-asyncio==0.15.1
 pytest-dependency==0.5.1
 humanize==3.12.0
-lru-dict==1.1.7
+lru-dict
 aiohttp-cors
 parsedatetime==2.6
 sympy==1.10
