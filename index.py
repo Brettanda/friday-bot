@@ -108,6 +108,7 @@ class Friday(commands.AutoShardedBot):
   uptime: datetime.datetime
   chat_repeat_counter: Counter[int]
   old_help_command: Optional[commands.HelpCommand]
+  language_files: dict[str, I18n]
 
   def __init__(self, **kwargs):
     self.cluster = kwargs.pop("cluster", None)
