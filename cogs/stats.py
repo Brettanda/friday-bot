@@ -610,13 +610,6 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
     e.add_field(name='Top Users', value='\n'.join(value), inline=False)
     await ctx.send(embed=e)
 
-  @commandstats_today.before_invoke
-  @chatstats_today.before_invoke
-  @commandstats_global.before_invoke
-  @chatstats_global.before_invoke
-  async def before_stats_invoke(self, ctx):
-    await ctx.trigger_typing()
-
   @commands.Cog.listener()
   async def on_command_error(self, ctx, error):
     await self.register_command(ctx)
