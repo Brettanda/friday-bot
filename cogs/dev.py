@@ -632,28 +632,6 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
         self._last_result = ret
         await ctx.send(f'```py\n{value}{ret}\n```')
 
-  @dev.command("evall")
-  async def _evall(self, ctx: MyContext, *, body: str):
-    """Evaluates a code on all clusters"""
-
-    body = self.cleanup_code(body)
-    to_compile = f'async def func():\n{textwrap.indent(body, "  ")}'
-
-    sharding = self.bot.sharding
-    if sharding is None:
-      return await ctx.send("Sharding cog not found")
-    data = await sharding.handler(
-        "evaluate", {"body": to_compile}
-    )
-    filtered_data = {instance: data.count(instance) for instance in data}
-    pretty_data = "".join(
-        f"```py\n{count}x | {instance[6:]}"
-        for instance, count in filtered_data.items()
-    )
-    if len(pretty_data) > 2000:
-      pretty_data = pretty_data[:1997] + "..."
-    await ctx.send(pretty_data)
-
   @dev.command("perf")
   async def perf(self, ctx: MyContext, *, command: str):
     msg = copy.copy(ctx.message)
