@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import copy
+import datetime
 import importlib
 import io
 import logging
@@ -14,7 +15,7 @@ import textwrap
 import time as _time
 import traceback
 from contextlib import redirect_stdout
-from typing import TYPE_CHECKING, Any, List, Optional, Sequence, Union
+from typing import TYPE_CHECKING, Any, Literal, Optional, Sequence, Union
 
 import discord
 from discord.ext import commands
@@ -25,6 +26,7 @@ import cogs
 from cogs.help import syntax
 from functions import (MessageColors, MyContext,  # , query  # , MessageColors
                        build_docs, embed, time)
+from functions.custom_contexts import GuildContext
 
 if TYPE_CHECKING:
   from typing_extensions import Self
@@ -100,7 +102,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     self._last_result: Optional[Any] = None
 
   def __repr__(self) -> str:
-    return f"<cogs.Dev owner={self.bot.owner_id}>"
+    return f"<cogs.{self.__cog_name__} owner={self.bot.owner_id}>"
 
   async def cog_check(self, ctx: MyContext) -> bool:
     if ctx.author.id == 892865928520413245:
@@ -128,7 +130,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     # remove `foo`
     return content.strip('` \n')
 
-  async def run_process(self, command: str) -> List[str]:
+  async def run_process(self, command: str) -> list[str]:
     try:
       process = await asyncio.create_subprocess_shell(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
       result = await process.communicate()
@@ -138,12 +140,59 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
 
     return [output.decode() for output in result]
 
+  @commands.Cog.listener()
+  async def on_ready(self):
+    if self.bot.cluster_idx == 0:
+      if not (self.bot.prod or self.bot.canary):
+        DIARY = discord.Object(id=243159711237537802)
+        await self.bot.tree.sync(guild=DIARY)
+        await self.bot.tree.sync()
+
+  @commands.command()
+  @commands.guild_only()
+  async def sync(self, ctx: GuildContext, guilds: commands.Greedy[discord.Object], spec: Optional[Literal["~", "*", "^"]] = None):
+    """Works like:
+      `!sync` -> global sync
+      `!sync ~` -> sync current guild
+      `!sync *` -> copies all global app commands to current guild and syncs
+      `!sync ^` -> clears all commands from the current guild target and syncs (removes guild commands)
+      `!sync id_1 id_2` -> syncs guilds with id 1 and 2
+    """
+    if not guilds:
+      if spec == "~":
+        synced = await ctx.bot.tree.sync(guild=ctx.guild)
+      elif spec == "*":
+        ctx.bot.tree.copy_global_to(guild=ctx.guild)
+        synced = await ctx.bot.tree.sync(guild=ctx.guild)
+      elif spec == "^":
+        ctx.bot.tree.clear_commands(guild=ctx.guild)
+        await ctx.bot.tree.sync(guild=ctx.guild)
+        synced = []
+      else:
+        synced = await ctx.bot.tree.sync()
+
+      await ctx.send(
+          f"Synced {len(synced)} commands {'globally' if spec is None else 'to the current guild.'}"
+      )
+      return
+
+    ret = 0
+    for guild in guilds:
+      try:
+        await ctx.bot.tree.sync(guild=guild)
+      except discord.HTTPException:
+        pass
+      else:
+        ret += 1
+
+    await ctx.send(f"Synced the tree to {ret}/{len(guilds)}.")
+
   @commands.group(name="dev", invoke_without_command=True, case_insensitive=True)
-  async def norm_dev(self, ctx: MyContext):
+  async def dev(self, ctx: MyContext):
     await ctx.send_help(ctx.command)
 
-  @norm_dev.command("chain")
-  async def norm_dev_chain(self, ctx: MyContext, *, commands: str):
+  @dev.command("chain")
+  async def dev_chain(self, ctx: MyContext, *, commands: str):
     commandlist = commands.split("&&")
     if ctx.bot_permissions.add_reactions:
       await ctx.message.add_reaction("\N{OK HAND SIGN}")
@@ -157,7 +206,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
 
       await new_ctx.reinvoke()
 
-  @norm_dev.command(name="say", rest_is_raw=True,)
+  @dev.command(name="say")
   async def say(self, ctx: MyContext, channel: Optional[discord.TextChannel] = None, *, say: str):
     new_channel = channel or ctx.channel
     try:
@@ -166,7 +215,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       pass
     await new_channel.send(f"{say}")
 
-  @norm_dev.command(name="edit")
+  @dev.command(name="edit")
   async def edit(self, ctx: MyContext, message: discord.Message, *, edit: str):
     from support import SupportIntroRoles
     try:
@@ -177,7 +226,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       return await message.edit(content=edit, view=SupportIntroRoles())
     await message.edit(content=edit)
 
-  @norm_dev.command(name="react")
+  @dev.command(name="react")
   @commands.bot_has_permissions(add_reactions=True)
   async def react(self, ctx: MyContext, messages: commands.Greedy[discord.Message], reactions: Annotated[Sequence[discord.Emoji], commands.Greedy[RawEmoji]]):
     try:
@@ -191,29 +240,19 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
         except BaseException:
           pass
 
-  @norm_dev.command(name="restart")
-  async def restart(self, ctx: MyContext, force: bool = False):
-    stat = await ctx.reply(embed=embed(title="Pending"))
-    if len(self.bot.voice_clients) > 0 and force is False:
-      await stat.edit(embed=embed(title=f"{len(self.bot.voice_clients)} guilds are playing music"))
-      while len(self.bot.voice_clients) > 0:
-        await stat.edit(embed=embed(title=f"{len(self.bot.voice_clients)} guilds are playing music"))
-        await asyncio.sleep(1)
-      await stat.edit(embed=embed(title=f"{len(self.bot.voice_clients)} guilds are playing music"))
-    # if len(songqueue) is 0 or force is True:
-    try:
-      wait = 5
-      while wait > 0:
-        await stat.edit(embed=embed(title=f"Restarting in {wait} seconds"))
-        await asyncio.sleep(1)
-        wait = wait - 1
-    finally:
-      await ctx.message.delete()
-      await stat.delete()
-      stdout, stderr = await self.run_process("systemctl daemon-reload && systemctl restart friday.service")
-      await ctx.send(f"```sh\n{stdout}\n{stderr}```")
+  @dev.command(name="restart")
+  async def restart(self, ctx: MyContext):
+    five_seconds = datetime.timedelta(seconds=5)
+    dt = ctx.message.created_at + five_seconds
+    stat = await ctx.send(embed=embed(title=f"Restarting {time.format_dt(dt, style='R')}"))
 
-  @norm_dev.group(name="reload", invoke_without_command=True)
+    if ctx.bot_permissions.manage_messages:
+      await ctx.message.delete()
+    await stat.delete()
+    stdout, stderr = await self.run_process("systemctl daemon-reload && systemctl restart friday.service")
+    await ctx.send(f"```sh\n{stdout}\n{stderr}```")
+
+  @dev.group(name="reload", invoke_without_command=True)
   async def reload(self, ctx: MyContext, *, modules: str):
     mods = [mod.strip("\"") for mod in modules.split(" ")]
     ret = []
@@ -254,6 +293,8 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
             statuses.append((":white_check_mark:", module))
       else:
         try:
+          # if self.bot.tasks:
+          #   self.bot.tasks.put(Event("reload_cog", "all", module))
           await self.reload_or_load_extention(module)
         except Exception:
           statuses.append((":x:", module))
@@ -338,6 +379,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
           statuses.append((":white_check_mark:", module))
 
     await ctx.send(embed=embed(title="Reloading modules", description="\n".join(f"{status} {module}" for status, module in statuses)))
+    await self.bot.tree.sync()
     # async with ctx.typing():
     #   await self.bot.reload_cogs()
     # await ctx.reply(embed=embed(title="All cogs have been reloaded"))
@@ -358,14 +400,14 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     else:
       await ctx.reply(embed=embed(title=f"Reloaded module {module}"))
 
-  @norm_dev.command(name="load")
+  @dev.command(name="load")
   async def load(self, ctx: MyContext, command: str):
     async with ctx.typing():
       path = "spice.cogs." if command.lower() in cogs.spice else "cogs."
       await self.bot.load_extension(f"{path}{command.lower()}")
     await ctx.reply(embed=embed(title=f"Cog *{command}* has been loaded"))
 
-  @norm_dev.command(name="unload")
+  @dev.command(name="unload")
   async def unload(self, ctx: MyContext, command: str):
     async with ctx.typing():
       path = "spice.cogs." if command.lower() in cogs.spice else "cogs."
@@ -381,12 +423,12 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
   #     print(error)
   #     log.error(error)
 
-  @norm_dev.command(name="block")
+  @dev.command(name="block")
   async def block(self, ctx: MyContext, object_id: int):
     await self.bot.blacklist.put(object_id, True)
     await ctx.send(embed=embed(title=f"{object_id} has been blocked"))
 
-  @norm_dev.command(name="unblock")
+  @dev.command(name="unblock")
   async def unblock(self, ctx: MyContext, object_id: int):
     try:
       await self.bot.blacklist.remove(object_id)
@@ -394,11 +436,11 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       pass
     await ctx.send(embed=embed(title=f"{object_id} has been unblocked"))
 
-  @norm_dev.command(name="voice")
+  @dev.command(name="voice")
   async def voice(self, ctx: MyContext):
     await ctx.send(embed=embed(title=f"I am in `{len(self.bot.voice_clients)}` voice channels"))
 
-  @norm_dev.command(name="update")
+  @dev.command(name="update")
   async def update(self, ctx: MyContext):
     async with ctx.typing():
       if self.bot.canary:
@@ -415,12 +457,12 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       stdout, stderr = await self.run_process("python -m pip install --upgrade pip && python -m pip install -r requirements.txt --upgrade --no-cache-dir")
     await ctx.safe_send(stdout)
 
-  @norm_dev.command(name="cogs")
+  @dev.command(name="cogs")
   async def cogs(self, ctx: MyContext):
     cogs = ", ".join(self.bot.cogs)
     await ctx.reply(embed=embed(title=f"{len(self.bot.cogs)} total cogs", description=f"{cogs}"))
 
-  @norm_dev.command(name="log")
+  @dev.command(name="log")
   async def log(self, ctx: MyContext):
     async with ctx.typing():
       thispath = os.getcwd()
@@ -431,16 +473,16 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       shutil.copy(f"{thispath}{seperator}logging.log", f"{thispath}{seperator}logging-send.log")
     await ctx.reply(file=discord.File(fp=f"{thispath}{seperator}logging-send.log", filename="logging.log"))
 
-  @norm_dev.command(name="markdown", aliases=["md"])
+  @dev.command(name="markdown", aliases=["md"])
   async def markdown(self, ctx: MyContext):
     build_docs(self.bot)
     await ctx.reply(embed=embed(title="Commands loaded"))
 
-  @norm_dev.command("time")
+  @dev.command("time")
   async def time(self, ctx: MyContext, *, _time: time.TimeWithTimezone):
     await ctx.send(f"{time.format_dt(_time.dt)} ({time.format_dt(_time.dt, style='R')}) `{time.format_dt(_time.dt)}`")
 
-  @norm_dev.command(name="sudo")
+  @dev.command(name="sudo")
   async def sudo(self, ctx: MyContext, channel: Optional[discord.TextChannel], user: Union[discord.Member, discord.User], *, command: str):
     msg = copy.copy(ctx.message)
     new_channel = channel or ctx.channel
@@ -450,7 +492,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     new_ctx = await self.bot.get_context(msg, cls=type(ctx))
     await self.bot.invoke(new_ctx)
 
-  @norm_dev.command(name="do", aliases=["repeat"])
+  @dev.command(name="do", aliases=["repeat"])
   async def do(self, ctx: MyContext, times: int, *, command: str):
     msg = copy.copy(ctx.message)
     msg.content = ctx.prefix + command
@@ -461,13 +503,13 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     for i in range(times):
       await new_ctx.reinvoke()
 
-  # @norm_dev.command(name="mysql")
+  # @dev.command(name="mysql")
   # async def mysql(self, ctx: MyContext, *, string: str):
   #   async with ctx.channel.typing():
   #     response = await self.bot.db.query(string)
   #   await ctx.reply(f"```mysql\n{[tuple(r) for r in response] if response is not None else 'failed'}\n```")
 
-  @norm_dev.command(name="html")
+  @dev.command(name="html")
   async def html(self, ctx: MyContext):
     commands = self.bot.commands
     header_start = 3
@@ -494,7 +536,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       seperator = "/"
     await ctx.reply(file=discord.File(fp=f"{thispath}{seperator}commands.html", filename="commands.html"))
 
-  @norm_dev.command(name="graph")
+  @dev.command(name="graph")
   async def graph(self, ctx: MyContext):
     async with ctx.typing():
       channel: discord.TextChannel = self.bot.get_channel(713270475031183390)  # type: ignore
@@ -518,7 +560,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     fp = io.BytesIO(w.encode())
     await ctx.reply(file=discord.File(fp=fp, filename="join_sheet.csv"))
 
-  @norm_dev.command("pirate")
+  @dev.command("pirate")
   async def pirate(self, ctx: MyContext):
     pattern = r'completion.:.\s(.+)\\n.}'
     async with ctx.typing():
@@ -536,14 +578,14 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
                   f2.write(new)
     await ctx.send("Done")
 
-  # @norm_dev.command(name="joinleave")
+  # @dev.command(name="joinleave")
   # async def norm_dev_join_leave(self, ctx):
   #   channel = self.bot.get_guild(707441352367013899).get_channel(713270475031183390)
   #   messages = await channel.history(limit=None, oldest_first=True).flatten()
 
   #   # for msg in messages:
 
-  @norm_dev.command(name="eval")
+  @dev.command(name="eval")
   async def _eval(self, ctx: MyContext, *, body: str):
     """Evaluates a code"""
 
@@ -590,7 +632,29 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
         self._last_result = ret
         await ctx.send(f'```py\n{value}{ret}\n```')
 
-  @norm_dev.command("perf")
+  @dev.command("evall")
+  async def _evall(self, ctx: MyContext, *, body: str):
+    """Evaluates a code on all clusters"""
+
+    body = self.cleanup_code(body)
+    to_compile = f'async def func():\n{textwrap.indent(body, "  ")}'
+
+    sharding = self.bot.sharding
+    if sharding is None:
+      return await ctx.send("Sharding cog not found")
+    data = await sharding.handler(
+        "evaluate", {"body": to_compile}
+    )
+    filtered_data = {instance: data.count(instance) for instance in data}
+    pretty_data = "".join(
+        f"```py\n{count}x | {instance[6:]}"
+        for instance, count in filtered_data.items()
+    )
+    if len(pretty_data) > 2000:
+      pretty_data = pretty_data[:1997] + "..."
+    await ctx.send(pretty_data)
+
+  @dev.command("perf")
   async def perf(self, ctx: MyContext, *, command: str):
     msg = copy.copy(ctx.message)
     msg.content = ctx.prefix + command
