@@ -265,7 +265,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
       guild_id = ctx.guild.id
 
     command_with_args = message.content or f"{ctx.clean_prefix}{command} {' '.join([a for a in ctx.args[2:] if a])}{' ' and ' '.join([str(k) for k in ctx.kwargs.values()])}"
-    log.info(f'{message.author} in {destination}: {command_with_args}')
+    log.info(f'{message.author} [{ctx.lang_code}] in {destination}: {command_with_args}')
     async with self._batch_commands_lock:
       self._data_commands_batch.append({
           'guild': str(guild_id),
