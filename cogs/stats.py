@@ -311,7 +311,14 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
       })
 
   @commands.Cog.listener()
-  async def on_command_completion(self, ctx):
+  async def on_app_command_completion(self, interaction: discord.Interaction, command: discord.app_commands.Command | discord.app_commands.ContextMenu):
+    if isinstance(command, commands.hybrid.HybridAppCommand):
+      return
+    ctx = await MyContext.from_interaction(interaction)
+    await self.register_command(ctx)
+
+  @commands.Cog.listener()
+  async def on_command_completion(self, ctx: MyContext):
     await self.register_command(ctx)
 
   @commands.Cog.listener()
