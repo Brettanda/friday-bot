@@ -11,7 +11,7 @@ from typing import List, Optional
 
 import discord
 import requests
-from discord.client import _ColourFormatter
+from discord.utils import _ColourFormatter
 
 from index import Friday
 
