@@ -22,10 +22,10 @@ import wavelink
 from discord.ext import commands, tasks
 
 from functions import embed, time
+from functions import MyContext
 
 if TYPE_CHECKING:
 
-  from functions import MyContext
   from index import Friday
 
   from .chat import Chat
