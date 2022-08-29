@@ -34,6 +34,7 @@ class Database(commands.Cog):
             "persona text DEFAULT 'default'",
             "customjoinleave text NULL",
             "chatchannel text NULL DEFAULT NULL",
+            "chatchannel_webhook text NULL",
             "chatstoprepeating boolean DEFAULT true",
             "botchannel text NULL DEFAULT NULL",
             "musicchannel text NULL DEFAULT NULL",

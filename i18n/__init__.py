@@ -301,19 +301,35 @@ class ChatChatChannelCommandsSetParameters(Struct):
   channel = ParameterChannel()
 
 
-class ChatChatChannelCommandsSet(Struct):
+class ChatChatChannelCommandsSet(AppCommandDefault):
   command_name = "set"
   help = "Set the current channel so that I will always try to respond with something"
   parameters = ChatChatChannelCommandsSetParameters()
 
 
-class ChatChatChannelCommandsClear(Struct):
+class ChatChatChannelCommandsWebhookParametersEnable(AppCommandParameterDefault):
+  name = "enable"
+  description = "Weather to enable or disable webhook mode"
+
+
+class ChatChatChannelCommandsWebhookParameters(Struct):
+  enable = ChatChatChannelCommandsWebhookParametersEnable()
+
+
+class ChatChatChannelCommandsWebhook(AppCommandDefault):
+  command_name = "webhook"
+  help = "Toggles webhook chatting with Friday in the current chat channel"
+  parameters = ChatChatChannelCommandsWebhookParameters()
+
+
+class ChatChatChannelCommandsClear(AppCommandDefault):
   command_name = "clear"
   help = "Clear the current chat channel"
 
 
 class ChatChatChannelCommands(Struct):
   set = ChatChatChannelCommandsSet()
+  webhook = ChatChatChannelCommandsWebhook()
   clear = ChatChatChannelCommandsClear()
 
 

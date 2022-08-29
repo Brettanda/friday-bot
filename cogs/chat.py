@@ -46,12 +46,13 @@ class ChatError(commands.CheckFailure):
 
 
 class Config:
-  __slots__ = ("bot", "id", "chat_channel_id", "persona", "tier", "puser",)
+  __slots__ = ("bot", "id", "chat_channel_id", "chat_channel_webhook_url", "persona", "tier", "puser",)
 
   def __init__(self, *, record: asyncpg.Record, bot: Friday):
     self.bot: Friday = bot
     self.id: int = int(record["id"], base=10)
     self.chat_channel_id: Optional[int] = record.get("chatchannel") and int(record["chatchannel"], base=10)
+    self.chat_channel_webhook_url: Optional[str] = record.get("chatchannel_webhook")
     self.tier: int = record["tier"] if record else 0
     self.puser: Optional[int] = record["user_id"] if record else None
     self.persona: Optional[str] = record["persona"]
@@ -61,6 +62,17 @@ class Config:
     if self.chat_channel_id:
       guild = self.bot.get_guild(self.id)
       return guild and guild.get_channel(self.chat_channel_id)  # type: ignore
+
+  @property
+  def webhook(self) -> Optional[discord.Webhook]:
+    if self.chat_channel_webhook_url:
+      return discord.Webhook.from_url(self.chat_channel_webhook_url, session=self.bot.session)
+
+  async def webhook_fetched(self) -> Optional[discord.Webhook]:
+    if self.webhook is not None:
+      if self.webhook.is_partial():
+        return await self.bot.fetch_webhook(self.webhook.id)
+      return self.webhook
 
 
 class UserConfig:
@@ -323,6 +335,32 @@ class Chat(commands.Cog):
 
     await ctx.db.execute("UPDATE servers SET chatchannel=$1 WHERE id=$2", str(channel.id), str(ctx.guild.id))
     await ctx.send(embed=embed(title="Chat channel set", description=f"I will now respond to every message in this channel\n{channel.mention}"))
+
+  @chatchannel.command("webhook")
+  @commands.guild_only()
+  @commands.has_permissions(manage_channels=True)
+  @commands.bot_has_permissions(manage_webhooks=True)
+  async def chatchannel_webhook(self, ctx: GuildContext, enable: bool = None):
+    """Toggles webhook chatting with Friday in the current chat channel"""
+
+    config = await self.get_guild_config(ctx.guild.id, connection=ctx.db)
+    if config is None or config.chat_channel is None:
+      return await ctx.send(embed=embed(title="No chat channel set", description="Setup a chat channel before running this command", colour=MessageColors.red()))
+
+    if enable is None:
+      return await ctx.send(embed=embed(title=f"The current chat channel's webhook mode is set to {bool(config.webhook is not None)}"))
+
+    webhook = None
+    if enable is True and config.webhook is None:
+      try:
+        avatar = await self.bot.user.avatar.read() if self.bot.user.avatar else None
+        webhook = await config.chat_channel.create_webhook(name=self.bot.user.display_name, avatar=avatar)  # type: ignore
+      except Exception:
+        return await ctx.send(embed=embed(title="Looks like I can't make webhooks on that channel", color=MessageColors.red()))
+
+    await ctx.db.execute("UPDATE servers SET chatchannel_webhook=$1 WHERE id=$2", webhook and webhook.url, str(ctx.guild.id))
+    self.get_guild_config.invalidate(self, ctx.guild.id)
+    await ctx.send(embed=embed(title=f"Webhook mode is now {enable}"))
 
   @chatchannel.command(name="clear", help="Clear the current chat channel")
   @commands.guild_only()
