@@ -431,7 +431,7 @@ class Chat(commands.Cog):
                   presence_penalty=1.5,
                   stop=[f"\n{author_prompt_name}:", f"\n{my_prompt_name}:", "\n", "\n###\n"]
               )))
-    return response.get("choices")[0].get("text").replace("\n", "") if response is not None else None
+    return response.get("choices")[0].get("text").replace("\n", "") if response is not None else None  # type: ignore
 
   @commands.Cog.listener()
   async def on_message(self, msg: discord.Message):
