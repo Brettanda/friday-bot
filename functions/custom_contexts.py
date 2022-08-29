@@ -353,9 +353,13 @@ class MyContext(commands.Context):
   async def reply(self, *args: Any, **kwargs: Any) -> discord.Message:
     return await self.send(*args, **kwargs)
 
-  async def send(self, *args: Any, **kwargs: Any) -> discord.Message:
+  async def send(self, *args: Any, webhook: Optional[discord.Webhook] = None, **kwargs: Any) -> discord.Message:
     if not hasattr(kwargs, "mention_author") and not self.interaction:
       kwargs.update({"mention_author": False})
+
+    if webhook is not None:
+      kwargs.pop("mention_author")
+      return await webhook.send(*args, wait=True, **kwargs)
 
     reference = kwargs.pop("reference", self.replied_reference if self.command and self.replied_reference else self.message) if not self.interaction else None
     reference = reference or self.message

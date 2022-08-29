@@ -144,3 +144,4 @@ languages.json
 crowdin.yml
 wandb/
 i18n/locales/
+i18n/en/commands.json

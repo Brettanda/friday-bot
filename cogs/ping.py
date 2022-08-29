@@ -24,7 +24,7 @@ class Ping(commands.Cog):
     """Pong!"""
     shard = ctx.guild and self.bot.get_shard(ctx.guild.shard_id)
     latency = f"{shard.latency*1000:,.0f}" if shard is not None else f"{self.bot.latency*1000:,.0f}"
-    await ctx.send(embed=embed(title=ctx.lang["ping"]["ping"]["response_title"], description=ctx.lang["ping"]["ping"]["response_description"].format(ping=latency)))
+    await ctx.send(embed=embed(title=ctx.lang.ping.ping.response_title, description=ctx.lang.ping.ping.response_description.format(ping=latency)))
 
 
 async def setup(bot):
