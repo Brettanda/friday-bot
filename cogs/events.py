@@ -502,12 +502,12 @@ class ScheduledEvents(commands.Cog):
           await asyncio.sleep(1)
         subscribers.append(member.id)
 
-        if isinstance(member, discord.Member):
-          role_id = config.get_role(current_event.id)
-          if role_id and member._roles.has(role_id):
-            await member.remove_roles(discord.Object(id=role_id), reason="Old Event role")
-          if not member._roles.has(role.id):
-            await member.add_roles(role, reason="Event role")
+        # if isinstance(member, discord.Member):
+        role_id = config.get_role(current_event.id)
+        if role_id and member._roles.has(role_id):
+          await member.remove_roles(discord.Object(id=role_id), reason="Old Event role")
+        if not member._roles.has(role.id):
+          await member.add_roles(role, reason="Event role")
         n += 1
 
     query = """INSERT INTO scheduledevents

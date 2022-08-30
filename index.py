@@ -11,13 +11,15 @@ from typing import TYPE_CHECKING, Any, AsyncIterator, Iterable, Optional
 import aiohttp
 import asyncpg
 import discord
+from discord import app_commands
 from discord.ext import commands
 from dotenv import load_dotenv
 from topgg.webhook import WebhookManager
 
 import cogs
 import functions
-from functions.config import Config, ReadOnly
+from functions.config import Config
+from functions.languages import load_languages
 
 if TYPE_CHECKING:
   from .cogs.database import Database
@@ -32,6 +34,58 @@ load_dotenv()
 TOKEN = os.environ.get('TOKENTEST')
 
 log = logging.getLogger(__name__)
+
+
+class Translator(app_commands.Translator):
+  async def translate(self, string: app_commands.locale_str, locale: discord.Locale, ctx: app_commands.TranslationContext) -> Optional[str]:
+    lang: str = locale.value.split("-")[0]
+    data = ctx.data
+    cog = getattr(data, "binding", None) or (getattr(data, "commands", None) and data.commands[0].binding) or (getattr(data, "command", None) and data.command.binding)
+    cog_name = cog.__class__.__name__.lower()
+    if cog is None:
+      return None
+    lang_file: I18n = cog.bot.language_files
+    try:
+      c = lang_file[lang][cog_name]
+      trans = None
+      if ctx.location.name in ("command_name", "command_description"):
+        command_name = data.name.lower()
+        parent_name = data.parent and data.parent.name
+        if parent_name is not None:
+          c = c[parent_name]["commands"][command_name]
+        else:
+          c = c[command_name]
+        if ctx.location.name == "command_name":
+          trans = c["command_name"].translate(str.maketrans("", "", r"""!"#$%&'()*+,./:;<=>?@[\]^`{|}~""")).lower().replace(" ", "_")
+        elif ctx.location.name == "command_description":
+          trans = c["help"]
+      elif ctx.location.name in ("group_name", "group_description"):
+        command_name = data.name.lower()
+        c = c[command_name]
+        if ctx.location.name == "group_name":
+          trans = c["command_name"].translate(str.maketrans("", "", r"""!"#$%&'()*+,./:;<=>?@[\]^`{|}~""")).lower().replace(" ", "_")
+        elif ctx.location.name == "group_description":
+          trans = c[command_name]["help"]
+      elif ctx.location.name in ("parameter_name", "parameter_description"):
+        group_name = data.command.parent and data.command.parent.name
+        command_name = data.command.name.lower()
+        param_name = data.name.lower()
+        try:
+          if group_name is not None:
+            c = c[group_name]["commands"][command_name]["parameters"][param_name]
+          else:
+            c = c[command_name]["parameters"][param_name]
+        except KeyError as e:
+          if lang == "en":
+            log.error(f"{param_name} parameter is missing from {command_name}")
+          raise e
+        if ctx.location.name == "parameter_name":
+          trans = c["name"].lower().replace(" ", "_")
+        elif ctx.location.name == "parameter_description":
+          trans = c["description"]
+      return trans if trans and trans != string.message else None
+    except KeyError:
+      return None
 
 
 async def get_prefix(bot: Friday, message: discord.Message):
@@ -54,6 +108,7 @@ class Friday(commands.AutoShardedBot):
   uptime: datetime.datetime
   chat_repeat_counter: Counter[int]
   old_help_command: Optional[commands.HelpCommand]
+  language_files: dict[str, I18n]
 
   def __init__(self, **kwargs):
     self.cluster = kwargs.pop("cluster", None)
@@ -115,10 +170,11 @@ class Friday(commands.AutoShardedBot):
 
     self.blacklist: Config[bool] = Config("blacklist.json", loop=self.loop)
 
-    self.language_files: dict[str, I18n] = {  # type: ignore
-        **{name: ReadOnly(f"i18n/locales/{name}/commands.json", loop=self.loop) for name in os.listdir("./i18n/locales")}
-    }
+    self.loop.create_task(load_languages(self))
+
     self.languages = Config("languages.json", loop=self.loop)
+
+    await self.tree.set_translator(Translator())
 
     self.pool = await functions.db.Table.create_pool(prod=self.prod, canary=self.canary)
     await self.load_extension("cogs.database")

@@ -85,7 +85,7 @@ class ModalView(discord.ui.View):
 
   @discord.ui.button(emoji="\N{HEAVY MULTIPLICATION X}", label='Cancel', custom_id="issue_cancel", style=discord.ButtonStyle.red)
   async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
-    await interaction.delete_original_message()
+    await interaction.delete_original_response()
     self.stop()
 
   async def on_timeout(self) -> None:

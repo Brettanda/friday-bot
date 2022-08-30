@@ -21,7 +21,7 @@ from slugify import slugify
 from cogs.log import CustomWebhook
 from functions import MessageColors, MyContext, cache, checks, embed, formats
 from functions.config import PremiumPerks, PremiumTiersNew
-from functions.time import human_timedelta
+from functions.time import format_dt, human_timedelta
 
 if TYPE_CHECKING:
   from typing_extensions import Self
@@ -46,12 +46,13 @@ class ChatError(commands.CheckFailure):
 
 
 class Config:
-  __slots__ = ("bot", "id", "chat_channel_id", "persona", "tier", "puser",)
+  __slots__ = ("bot", "id", "chat_channel_id", "chat_channel_webhook_url", "persona", "tier", "puser",)
 
   def __init__(self, *, record: asyncpg.Record, bot: Friday):
     self.bot: Friday = bot
     self.id: int = int(record["id"], base=10)
     self.chat_channel_id: Optional[int] = record.get("chatchannel") and int(record["chatchannel"], base=10)
+    self.chat_channel_webhook_url: Optional[str] = record.get("chatchannel_webhook")
     self.tier: int = record["tier"] if record else 0
     self.puser: Optional[int] = record["user_id"] if record else None
     self.persona: Optional[str] = record["persona"]
@@ -61,6 +62,17 @@ class Config:
     if self.chat_channel_id:
       guild = self.bot.get_guild(self.id)
       return guild and guild.get_channel(self.chat_channel_id)  # type: ignore
+
+  @property
+  def webhook(self) -> Optional[discord.Webhook]:
+    if self.chat_channel_webhook_url:
+      return discord.Webhook.from_url(self.chat_channel_webhook_url, session=self.bot.session)
+
+  async def webhook_fetched(self) -> Optional[discord.Webhook]:
+    if self.webhook is not None:
+      if self.webhook.is_partial():
+        return await self.bot.fetch_webhook(self.webhook.id)
+      return self.webhook
 
 
 class UserConfig:
@@ -175,7 +187,7 @@ class ChatHistory:
 
 
 class CooldownByRepeating(commands.CooldownMapping):
-  def _bucket_key(self, msg):
+  def _bucket_key(self, msg: discord.Message):
     return (msg.content)
 
 
@@ -324,6 +336,32 @@ class Chat(commands.Cog):
     await ctx.db.execute("UPDATE servers SET chatchannel=$1 WHERE id=$2", str(channel.id), str(ctx.guild.id))
     await ctx.send(embed=embed(title="Chat channel set", description=f"I will now respond to every message in this channel\n{channel.mention}"))
 
+  @chatchannel.command("webhook")
+  @commands.guild_only()
+  @commands.has_permissions(manage_channels=True)
+  @commands.bot_has_permissions(manage_webhooks=True)
+  async def chatchannel_webhook(self, ctx: GuildContext, enable: bool = None):
+    """Toggles webhook chatting with Friday in the current chat channel"""
+
+    config = await self.get_guild_config(ctx.guild.id, connection=ctx.db)
+    if config is None or config.chat_channel is None:
+      return await ctx.send(embed=embed(title="No chat channel set", description="Setup a chat channel before running this command", colour=MessageColors.red()))
+
+    if enable is None:
+      return await ctx.send(embed=embed(title=f"The current chat channel's webhook mode is set to {bool(config.webhook is not None)}"))
+
+    webhook = None
+    if enable is True and config.webhook is None:
+      try:
+        avatar = await self.bot.user.avatar.read() if self.bot.user.avatar else None
+        webhook = await config.chat_channel.create_webhook(name=self.bot.user.display_name, avatar=avatar)  # type: ignore
+      except Exception:
+        return await ctx.send(embed=embed(title="Looks like I can't make webhooks on that channel", color=MessageColors.red()))
+
+    await ctx.db.execute("UPDATE servers SET chatchannel_webhook=$1 WHERE id=$2", webhook and webhook.url, str(ctx.guild.id))
+    self.get_guild_config.invalidate(self, ctx.guild.id)
+    await ctx.send(embed=embed(title=f"Webhook mode is now {enable}"))
+
   @chatchannel.command(name="clear", help="Clear the current chat channel")
   @commands.guild_only()
   @commands.has_guild_permissions(manage_channels=True)
@@ -393,7 +431,7 @@ class Chat(commands.Cog):
                   presence_penalty=1.5,
                   stop=[f"\n{author_prompt_name}:", f"\n{my_prompt_name}:", "\n", "\n###\n"]
               )))
-    return response.get("choices")[0].get("text").replace("\n", "") if response is not None else None
+    return response.get("choices")[0].get("text").replace("\n", "") if response is not None else None  # type: ignore
 
   @commands.Cog.listener()
   async def on_message(self, msg: discord.Message):
@@ -442,8 +480,9 @@ class Chat(commands.Cog):
     current_tier: PremiumTiersNew = PremiumTiersNew.free
 
     config = None
+    webhook = None
     if ctx.guild:
-      if self.bot.log:
+      if self.bot.log and not ctx.interaction:
         conf = await self.bot.log.get_guild_config(ctx.guild.id, connection=ctx.db)
         if not conf:
           await ctx.db.execute(f"INSERT INTO servers (id) VALUES ({str(ctx.guild.id)}) ON CONFLICT DO NOTHING")
@@ -468,6 +507,9 @@ class Chat(commands.Cog):
 
       if config.tier:
         current_tier = PremiumTiersNew(config.tier)
+
+      if config.webhook is not None:
+        webhook = await config.webhook_fetched()
 
     dbl = self.bot.dbl
     vote_streak = dbl and await dbl.user_streak(ctx.author.id, connection=ctx.db)
@@ -494,6 +536,8 @@ class Chat(commands.Cog):
     is_spamming, rate_limiter, rate_name = self._spam_check.is_spamming(msg, current_tier, vote_streak and vote_streak.days or 0)
     resp = None
     if is_spamming and rate_limiter:
+      if not ctx.bot_permissions.embed_links:
+        return
       retry_after = ctx.message.created_at + datetime.timedelta(seconds=rate_limiter.get_retry_after())
 
       log.info(f"{msg.author} ({msg.author.id}) is being ratelimited at over {rate_limiter.rate} messages and can retry after {human_timedelta(retry_after, source=ctx.message.created_at, accuracy=2, brief=True)}")
@@ -503,14 +547,14 @@ class Chat(commands.Cog):
       if rate_name and not current_tier >= PremiumTiersNew.tier_1:
         if not rate_name == "streaked":
           if not rate_name == "voted":
-            ad_message += "Get a higher message cap by voting on [Top.gg](https://top.gg/bot/476303446547365891/vote).\n"
-          ad_message += "Get an even higher cap by keeping a voting streak of at least 2 days.\n"
-          view.add_item(discord.ui.Button(label="Vote for more", url="https://top.gg/bot/476303446547365891/vote"))
-        ad_message += "Get the most powerful message cap by becoming a [Patron](https://patreon.com/join/fridaybot)."
-        view.add_item(discord.ui.Button(label="Become a Patron for more", url="https://patreon.com/join/fridaybot"))
+            ad_message += ctx.lang.chat.ratelimit.ads.voting.message + "\n"
+          ad_message += ctx.lang.chat.ratelimit.ads.streak + "\n"
+          view.add_item(discord.ui.Button(label=ctx.lang.chat.ratelimit.ads.voting.button, url="https://top.gg/bot/476303446547365891/vote"))
+        ad_message += ctx.lang.chat.ratelimit.ads.patron.message
+        view.add_item(discord.ui.Button(label=ctx.lang.chat.ratelimit.ads.patron.button, url="https://patreon.com/join/fridaybot"))
       now = discord.utils.utcnow()
       retry_dt = now + datetime.timedelta(seconds=rate_limiter.per)
-      resp = await ctx.reply(embed=embed(title=f"You have sent me over `{formats.plural(rate_limiter.rate):message}` in that last `{human_timedelta(retry_dt, source=now, accuracy=2)}` and are being rate limited, try again <t:{int(retry_after.timestamp())}:R>", description=ad_message, color=MessageColors.error()), view=view, mention_author=False)
+      resp = await ctx.reply(embed=embed(title=ctx.lang.chat.ratelimit.title.format(count=f"{formats.plural(rate_limiter.rate):message}", human=human_timedelta(retry_dt, source=now, accuracy=2), stamp=format_dt(retry_after, style='R')), description=ad_message, color=MessageColors.error()), view=view, webhook=webhook, mention_author=False)
       return
     chat_history = self.chat_history[msg.channel.id]
     async with ctx.typing():
@@ -521,10 +565,10 @@ class Chat(commands.Cog):
         # resp = await ctx.send(embed=embed(title="", color=MessageColors.error()))
         self.bot.dispatch("chat_completion", msg, resp, True, filtered=None, prompt="\n".join(chat_history.history(limit=PremiumPerks(current_tier).max_chat_history)))
         log.error(f"OpenAI error: {e}")
-        await ctx.reply(embed=embed(title="Something went wrong, please try again later", colour=MessageColors.error()))
+        await ctx.reply(embed=embed(title=ctx.lang.chat.try_again_later, colour=MessageColors.error()), webhook=webhook, mention_author=False)
         return
       if response is None or response == "":
-        raise ChatError("Somehow, I don't know what to say.")
+        raise ChatError(ctx.lang.chat.no_response)
       await chat_history.add_message(msg, response, user_content=content)
       flagged, flagged_categories = await self.content_filter_flagged(response)
     if translation is not None and translation.detectedSourceLanguage != "en" and response is not None and "dynamic" not in response:
@@ -533,12 +577,12 @@ class Chat(commands.Cog):
       response = str(final_translation)
 
     if not flagged:
-      resp = await ctx.reply(content=response, allowed_mentions=discord.AllowedMentions.none(), mention_author=False)
-      log.info(f"{PremiumTiersNew(current_tier)} - [{ctx.author.name}] {content}  [Me] {response}")
+      resp = await ctx.reply(content=response, allowed_mentions=discord.AllowedMentions.none(), webhook=webhook, mention_author=False)
+      log.info(f"{PremiumTiersNew(current_tier)} - [{ctx.lang_code}] [{ctx.author.name}] {content}  [Me] {response}")
       await self.webhook.safe_send(username=self.bot.user.name, avatar_url=self.bot.user.display_avatar.url, content=f"{PremiumTiersNew(current_tier)} - **{ctx.author.name}:** {content}\n**Me:** {response}")
     else:
-      resp = await ctx.reply("**My response was flagged and could not be sent, please try again**", mention_author=False)
-      log.info(f"{PremiumTiersNew(current_tier)} - [{ctx.author.name}] {content}  [Me] Flagged message: \"{response}\" {formats.human_join(flagged_categories, final='and')}")
+      resp = await ctx.reply(f"**{ctx.lang.chat.flagged}**", webhook=webhook, mention_author=False)
+      log.info(f"{PremiumTiersNew(current_tier)} - [{ctx.lang_code}] [{ctx.author.name}] {content}  [Me] Flagged message: \"{response}\" {formats.human_join(flagged_categories, final='and')}")
       await self.webhook.safe_send(username=self.bot.user.name, avatar_url=self.bot.user.display_avatar.url, content=f"{PremiumTiersNew(current_tier)} - **{ctx.author.name}:** {content}\n**Me:** Flagged message: {response} {flagged_categories}")
     self.bot.dispatch("chat_completion", msg, resp, False, filtered=int(flagged), persona=msg.guild and config and config.persona, prompt="\n".join(self.chat_history[msg.channel.id].history(limit=PremiumPerks(current_tier).max_chat_history)))
 

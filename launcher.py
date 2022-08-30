@@ -11,7 +11,7 @@ from typing import List, Optional
 
 import discord
 import requests
-from discord.client import _ColourFormatter
+from discord.utils import _ColourFormatter
 
 from index import Friday
 
@@ -43,7 +43,7 @@ _ColourFormatter.FORMATS = FORMATS
 class _ColourFormatterFile(_ColourFormatter):
   @property
   def FORMATS(self):
-    return{
+    return {
         level: logging.Formatter(
             '{asctime} {levelname:<8} {name:<16} {message}',
             '%Y-%m-%d %H:%M:%S',
@@ -56,7 +56,7 @@ class _ColourFormatterFile(_ColourFormatter):
 class _ColourFormatterShort(_ColourFormatter):
   @property
   def FORMATS(self):
-    return{
+    return {
         level: logging.Formatter(
             '\x1b[30;1m{asctime}\x1b[0m ' + colour + '{levelname:<8}\x1b[0m \x1b[34m{name:<16}\x1b[0m {message}',
             '%H:%M:%S',

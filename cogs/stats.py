@@ -22,10 +22,10 @@ import wavelink
 from discord.ext import commands, tasks
 
 from functions import embed, time
+from functions import MyContext
 
 if TYPE_CHECKING:
 
-  from functions import MyContext
   from index import Friday
 
   from .chat import Chat
@@ -265,7 +265,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
       guild_id = ctx.guild.id
 
     command_with_args = message.content or f"{ctx.clean_prefix}{command} {' '.join([a for a in ctx.args[2:] if a])}{' ' and ' '.join([str(k) for k in ctx.kwargs.values()])}"
-    log.info(f'{message.author} in {destination}: {command_with_args}')
+    log.info(f'{message.author} [{ctx.lang_code}] in {destination}: {command_with_args}')
     async with self._batch_commands_lock:
       self._data_commands_batch.append({
           'guild': str(guild_id),
@@ -311,7 +311,14 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
       })
 
   @commands.Cog.listener()
-  async def on_command_completion(self, ctx):
+  async def on_app_command_completion(self, interaction: discord.Interaction, command: discord.app_commands.Command | discord.app_commands.ContextMenu):
+    if isinstance(command, commands.hybrid.HybridAppCommand):
+      return
+    ctx = await MyContext.from_interaction(interaction)
+    await self.register_command(ctx)
+
+  @commands.Cog.listener()
+  async def on_command_completion(self, ctx: MyContext):
     await self.register_command(ctx)
 
   @commands.Cog.listener()
@@ -602,13 +609,6 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
 
     e.add_field(name='Top Users', value='\n'.join(value), inline=False)
     await ctx.send(embed=e)
-
-  @commandstats_today.before_invoke
-  @chatstats_today.before_invoke
-  @commandstats_global.before_invoke
-  @chatstats_global.before_invoke
-  async def before_stats_invoke(self, ctx):
-    await ctx.trigger_typing()
 
   @commands.Cog.listener()
   async def on_command_error(self, ctx, error):
