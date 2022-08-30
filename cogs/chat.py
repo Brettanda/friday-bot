@@ -459,7 +459,7 @@ class Chat(commands.Cog):
     if ctx.command is not None or msg.webhook_id is not None:
       return
 
-    if not ctx.bot_permissions.send_messages:
+    if not ctx.bot_permissions.send_messages or not ctx.bot_permissions.embed_links:
       return
 
     valid = validators.url(msg.clean_content)
