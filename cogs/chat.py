@@ -459,7 +459,7 @@ class Chat(commands.Cog):
     if ctx.command is not None or msg.webhook_id is not None:
       return
 
-    if not ctx.bot_permissions.send_messages or not ctx.bot_permissions.embed_links:
+    if not ctx.bot_permissions.send_messages:
       return
 
     valid = validators.url(msg.clean_content)
@@ -536,6 +536,8 @@ class Chat(commands.Cog):
     is_spamming, rate_limiter, rate_name = self._spam_check.is_spamming(msg, current_tier, vote_streak and vote_streak.days or 0)
     resp = None
     if is_spamming and rate_limiter:
+      if not ctx.bot_permissions.embed_links:
+        return
       retry_after = ctx.message.created_at + datetime.timedelta(seconds=rate_limiter.get_retry_after())
 
       log.info(f"{msg.author} ({msg.author.id}) is being ratelimited at over {rate_limiter.rate} messages and can retry after {human_timedelta(retry_after, source=ctx.message.created_at, accuracy=2, brief=True)}")
