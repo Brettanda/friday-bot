@@ -463,7 +463,7 @@ class Dbl(Struct):
 
 class DiceDiceParametersRoll(AppCommandParameterDefault):
   name: str = "roll"
-  description: str = "The roll to be made. How to: https://d20.readthedocs.io/en/latest/start.html"
+  description: str = "The roll to be made. Example: 1d20"
 
 
 class DiceDiceParameters(Struct):
