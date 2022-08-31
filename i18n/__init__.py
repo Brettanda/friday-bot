@@ -472,7 +472,7 @@ class DiceDiceParameters(Struct):
 
 class DiceDice(AppCommandDefault):
   command_name: str = "dice"
-  help: str = "D&D dice rolling"
+  help: str = "..."
   response_title: str = "Your total: {total}"
   response_description: str = "Query: {query}\nResult: {result}"
   parameters = DiceDiceParameters()
