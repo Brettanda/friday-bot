@@ -462,7 +462,7 @@ class Dbl(Struct):
 
 
 class DiceDiceParametersRoll(AppCommandParameterDefault):
-  name: str = "roll"
+  name: str = "equation"
   description: str = "..."
 
 
@@ -471,7 +471,7 @@ class DiceDiceParameters(Struct):
 
 
 class DiceDice(AppCommandDefault):
-  command_name: str = "dice"
+  command_name: str = "diceroll"
   help: str = "..."
   response_title: str = "Your total: {total}"
   response_description: str = "Query: {query}\nResult: {result}"
