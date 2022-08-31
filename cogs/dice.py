@@ -23,9 +23,9 @@ class Dice(commands.Cog):
     return f"<cogs.{self.__cog_name__}>"
 
   @commands.hybrid_command(extras={"examples": ["1d20", "5d10k3", "d6"]}, aliases=["d", "r", "roll"])
-  @app_commands.describe(roll="The roll to be made. How to: https://d20.readthedocs.io/en/latest/start.html")
+  # @app_commands.describe(roll="The roll to be made. How to: https://d20.readthedocs.io/en/latest/start.html")
   async def dice(self, ctx: MyContext, *, roll: str):
-    """Dungeons and Dragons dice rolling"""
+    # """Dungeons and Dragons dice rolling"""
     if "bump" in roll.lower():
       raise commands.NotOwner()
 
