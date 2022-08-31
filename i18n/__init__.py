@@ -462,8 +462,8 @@ class Dbl(Struct):
 
 
 class DiceDiceParametersRoll(AppCommandParameterDefault):
-  name: str = "equation"
-  description: str = "..."
+  name: str = "roll"
+  description: str = "The roll in dice notation. Example: 1d20"
 
 
 class DiceDiceParameters(Struct):
@@ -471,8 +471,8 @@ class DiceDiceParameters(Struct):
 
 
 class DiceDice(AppCommandDefault):
-  command_name: str = "roll"
-  help: str = "..."
+  command_name: str = "dice"
+  help: str = "Dungeons and Dragons dice rolling"
   response_title: str = "Your total: {total}"
   response_description: str = "Query: {query}\nResult: {result}"
   parameters = DiceDiceParameters()
