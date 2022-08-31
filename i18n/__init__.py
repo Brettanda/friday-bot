@@ -463,7 +463,7 @@ class Dbl(Struct):
 
 class DiceDiceParametersRoll(AppCommandParameterDefault):
   name: str = "roll"
-  description: str = "The roll. Example: 1d20"
+  description: str = "..."
 
 
 class DiceDiceParameters(Struct):
