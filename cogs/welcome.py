@@ -97,6 +97,9 @@ class Welcome(commands.Cog):
     message, channel = config.message, config.channel
     if message is None or channel is None:
       return
+    if not channel.permissions_for(member.guild.me).send_messages:
+      log.warning(f"no permission to send welcome message in {channel} (ID:{channel.id})")
+      return
     message = format_message(message, member, member.guild)
     if not isinstance(config.channel, discord.TextChannel):
       await self.bot.pool.execute("UPDATE welcome SET channel_id=NULL WHERE guild_id=$1", str(member.guild.id))
