@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Optional
 import discord
 from discord.ext import commands
 from numpy import random
+import traceback
 
 from functions import MessageColors, embed, time
 
@@ -18,12 +19,101 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 
+class ElectionModal(discord.ui.Modal, title="Election submission"):
+  piss = discord.ui.TextInput(
+      label="Piss",
+      placeholder="Acceptable inputs include: \"x\" or \"1\", \"2\", and \"3\". One being highest priority",
+      required=False,
+      min_length=1,
+      max_length=1
+  )
+  shit = discord.ui.TextInput(
+      label="Shit",
+      placeholder="Acceptable inputs include: \"x\" or \"1\", \"2\", and \"3\". One being highest priority",
+      required=False,
+      min_length=1,
+      max_length=1
+  )
+  cum = discord.ui.TextInput(
+      label="Cum",
+      placeholder="Acceptable inputs include: \"x\" or \"1\", \"2\", and \"3\". One being highest priority",
+      required=False,
+      min_length=1,
+      max_length=1
+  )
+
+  async def on_submit(self, interaction: discord.Interaction) -> None:
+    assert interaction.guild is not None
+
+    the_list_items = [self.piss, self.shit, self.cum]
+    the_list = [x.value for x in the_list_items]
+
+    unique_list = []
+    for x in the_list:
+      if x != "":
+        if x not in unique_list:
+          unique_list.append(x)
+        else:
+          await interaction.response.send_message("Your inputs cannot be the same as your other inputs. i.e you cannot vote 1 for everyone", ephemeral=True)
+          return
+
+    if len(unique_list) == 0:
+      await interaction.response.send_message("Bruh. You didn't vote for anyone???????????????", ephemeral=True)
+      return
+
+    if any(v.lower() not in ["x", "1", "2", "3"] for v in unique_list):
+      await interaction.response.send_message("Submission failed, please make sure that your inputs match any of the following:\n`x`, `1`, `2`, `3`", ephemeral=True)
+      return
+
+    if any(v.lower() == "x" for v in unique_list) and any(v.lower() in ["1", "2", "3"] for v in unique_list):
+      await interaction.response.send_message("Submitting `x` means you don't want to rank your votes, so you're only voting for one candidate.", ephemeral=True)
+      return
+
+    submission_channel = interaction.guild.get_channel(1017527144181661767) or (await interaction.guild.fetch_channel(1017527144181661767))
+    assert isinstance(submission_channel, discord.TextChannel)
+    await submission_channel.send(embed=embed(
+        author_name=f"{interaction.user.display_name} (ID: {interaction.user.id})",
+        author_icon=interaction.user.display_avatar.url,
+        title="Vote submission",
+        fieldstitle=[x.label for x in the_list_items],
+        fieldsval=[x.value or "No input" for x in the_list_items],
+        fieldsin=[False] * len(the_list_items),
+    ))
+    await interaction.response.send_message("Your vote has been submitted", ephemeral=True)
+
+  async def on_error(self, interaction: discord.Interaction, error: Exception) -> None:
+    e = embed(title='Oops! Something went wrong.', color=MessageColors.red())
+    if interaction.response.is_done():
+      await interaction.followup.send(embed=e, ephemeral=True)
+    else:
+      await interaction.response.send_message(embed=e, ephemeral=True)
+
+    # Make sure we know what the error actually is
+    traceback.print_tb(error.__traceback__)
+
+
+class ElectionButton(discord.ui.View):
+  """This should only be used in the support guild"""
+
+  def __init__(self):
+    super().__init__(timeout=None)
+
+  @discord.ui.button(emoji="🤱", label="Vote", style=discord.ButtonStyle.red, custom_id="election_button")
+  async def support_updates(self, interaction: discord.Interaction, button: discord.ui.Button):
+    await interaction.response.send_modal(ElectionModal())
+
+
 class NaCl(commands.Cog):
   def __init__(self, bot: Friday):
     self.bot: Friday = bot
 
   def __repr__(self) -> str:
     return f"<cogs.{self.__cog_name__}>"
+
+  @commands.Cog.listener()
+  async def on_ready(self):
+    if not self.bot.views_loaded:
+      self.bot.add_view(ElectionButton())
 
   async def sexed(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState) -> None:
     # NaCl
