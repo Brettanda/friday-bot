@@ -20,22 +20,22 @@ log = logging.getLogger(__name__)
 
 
 class ElectionModal(discord.ui.Modal, title="Election submission"):
-  piss = discord.ui.TextInput(
-      label="Piss",
+  egan = discord.ui.TextInput(
+      label="Egan",
       placeholder="Acceptable inputs include: \"x\" or \"1\", \"2\", and \"3\". One being highest priority",
       required=False,
       min_length=1,
       max_length=1
   )
-  shit = discord.ui.TextInput(
-      label="Shit",
+  logan = discord.ui.TextInput(
+      label="Logan",
       placeholder="Acceptable inputs include: \"x\" or \"1\", \"2\", and \"3\". One being highest priority",
       required=False,
       min_length=1,
       max_length=1
   )
-  cum = discord.ui.TextInput(
-      label="Cum",
+  vexx = discord.ui.TextInput(
+      label="Vexx",
       placeholder="Acceptable inputs include: \"x\" or \"1\", \"2\", and \"3\". One being highest priority",
       required=False,
       min_length=1,
@@ -45,7 +45,7 @@ class ElectionModal(discord.ui.Modal, title="Election submission"):
   async def on_submit(self, interaction: discord.Interaction) -> None:
     assert interaction.guild is not None
 
-    the_list_items = [self.piss, self.shit, self.cum]
+    the_list_items = [self.egan, self.logan, self.vexx]
     the_list = [x.value for x in the_list_items]
 
     unique_list = []
