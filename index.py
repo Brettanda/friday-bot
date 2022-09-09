@@ -330,6 +330,7 @@ class Friday(commands.AutoShardedBot):
   def patreon(self) -> Optional[Patreons]:
     return self.get_cog("Patreons")  # type: ignore
 
+
 async def run_bot():
   log = logging.getLogger()
   try:
