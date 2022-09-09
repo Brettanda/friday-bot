@@ -78,23 +78,23 @@ class TopGG(commands.Cog):
     self._update_stats_loop.cancel()
 
   @cache.cache()
-  async def user_has_voted(self, user_id: int, *, connection: Optional[asyncpg.Connection] = None) -> bool:
+  async def user_has_voted(self, user_id: int) -> bool:
     query = """SELECT id
               FROM reminders
               WHERE event = 'vote'
               AND extra #>> '{args,0}' = $1
               ORDER BY expires
               LIMIT 1;"""
-    conn = connection or self.bot.pool
+    conn = self.bot.pool
     record = await conn.fetchrow(query, str(user_id))
     return True if record else False
 
   @cache.cache()
-  async def user_streak(self, user_id: int, *, connection: Optional[asyncpg.Connection] = None) -> Optional[StreakConfig]:
+  async def user_streak(self, user_id: int) -> Optional[StreakConfig]:
     query = """SELECT *
               FROM voting_streaks
               WHERE user_id = $1;"""
-    conn = connection or self.bot.pool
+    conn = self.bot.pool
     record = await conn.fetchrow(query, user_id)
     return record and StreakConfig(record=record)
 
@@ -106,7 +106,7 @@ class TopGG(commands.Cog):
   @commands.command(help="Get the link to vote for me on Top.gg", case_insensitive=True)
   async def vote(self, ctx: MyContext):
     self.user_streak.invalidate(self, ctx.author.id)
-    async with ctx.acquire():
+    async with ctx.db.acquire():
       query = """SELECT id,expires
                 FROM reminders
                 WHERE event = 'vote'

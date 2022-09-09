@@ -160,11 +160,8 @@ class Reminder(commands.Cog):
     event_name = f'{timer.event}_timer_complete'
     self.bot.dispatch(event_name, timer)
 
-  async def create_timer(self, when: datetime.datetime, event: str, *args: Any, **kwargs: Any) -> Timer:
-    try:
-      connection = kwargs.pop('connection')
-    except KeyError:
-      connection = self.bot.pool
+  async def create_timer(self, when: datetime.datetime, event: str, /, *args: Any, **kwargs: Any) -> Timer:
+    pool = self.bot.pool
 
     try:
       now = kwargs.pop('created')
@@ -186,7 +183,7 @@ class Reminder(commands.Cog):
                   RETURNING id;
               """
 
-    row = await connection.fetchrow(query, event, {"args": args, "kwargs": kwargs}, when, now)
+    row = await pool.fetchrow(query, event, {"args": args, "kwargs": kwargs}, when, now)
     log.debug(f"PostgreSQL Query: \"{query}\" + {event, {'args': args, 'kwargs': kwargs}, when, now}")
     timer.id = row[0]
 
@@ -208,7 +205,6 @@ class Reminder(commands.Cog):
         ctx.author.id,
         ctx.channel.id,
         when.arg,
-        connection=ctx.pool,
         created=ctx.message.created_at,
         message_id=ctx.message.id
     )
