@@ -170,11 +170,11 @@ class Friday(commands.AutoShardedBot):
   async def setup_hook(self) -> None:
     self.session = aiohttp.ClientSession()
 
-    self.blacklist: Config[bool] = Config("blacklist.json", loop=self.loop)
+    self.blacklist: Config[bool] = Config("blacklist.json")
 
     self.loop.create_task(load_languages(self))
 
-    self.languages = Config("languages.json", loop=self.loop)
+    self.languages = Config("languages.json")
 
     await self.tree.set_translator(Translator())
 
