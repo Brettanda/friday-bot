@@ -5,7 +5,8 @@ import os
 # import sys
 import time
 from typing import Callable, Optional
-
+import logging
+import functions
 import discord
 import pytest
 from discord.ext import commands
@@ -96,8 +97,16 @@ async def bot(event_loop: asyncio.AbstractEventLoop) -> UnitTester:
 @pytest.fixture(scope="session")
 async def friday(event_loop_friday: asyncio.AbstractEventLoop) -> Friday:
   async def main(bot):
+    log = logging.getLogger()
+    try:
+      pool = await functions.db.create_pool()
+    except Exception:
+      log.exception('Could not set up PostgreSQL. Exiting.')
+      return
+
     with setup_logging():
       async with bot:
+        bot.pool = pool
         await bot.start(FRIDAYTOKEN, reconnect=True)
 
   bot = Friday()
