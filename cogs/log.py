@@ -320,11 +320,7 @@ class Log(commands.Cog):
     if super_retry_after:
       return
 
-    try:
-      await self.bot.invoke(ctx)
-    finally:
-      # Just in case
-      await ctx.release()
+    await self.bot.invoke(ctx)
 
   def get_prefixes(self) -> List[str]:
     return ["/", "!", "f!", "!f", "%", ">", "?", "-", "(", ")"]
