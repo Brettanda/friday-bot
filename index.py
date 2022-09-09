@@ -148,8 +148,6 @@ class Friday(commands.AutoShardedBot):
 
     # guild_id: str("!")
     self.prefixes = defaultdict(lambda: str("!"))
-    self.prod = kwargs.pop("prod", None) or True if len(sys.argv) > 1 and (sys.argv[1] == "--prod" or sys.argv[1] == "--production") else False
-    self.canary = kwargs.pop("canary", None) or True if len(sys.argv) > 1 and (sys.argv[1] == "--canary") else False
     self.ready = False
     self.testing = False
 
@@ -164,6 +162,14 @@ class Friday(commands.AutoShardedBot):
 
   def __repr__(self) -> str:
     return f"<Friday username=\"{self.user.display_name if self.user else None}\" id={self.user.id if self.user else None}>"
+
+  @property
+  def prod(self) -> bool:
+    return self.user.id == 476303446547365891  # Prod bot
+
+  @property
+  def canary(self) -> bool:
+    return self.user.id == 760615464300445726  # Canary bot id
 
   async def get_context(self, origin: discord.Message | discord.Interaction, /, *, cls=None) -> functions.MyContext:
     return await super().get_context(origin, cls=cls or functions.MyContext)
@@ -307,8 +313,8 @@ class Friday(commands.AutoShardedBot):
     await super().close()
     await self.session.close()
 
-  async def start(self, token: str, **kwargs) -> None:
-    await super().start(token, reconnect=True)
+  async def start(self) -> None:
+    await super().start(os.environ['TOKEN'], reconnect=True)
 
   @property
   def log(self) -> Log:
