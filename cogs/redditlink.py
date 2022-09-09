@@ -270,7 +270,6 @@ class redditlink(commands.Cog):
 
   @commands.group(name="redditextract", help="Extracts the media from the reddit post", invoke_without_command=True, case_insensitive=True)
   async def norm_extract(self, ctx: MyContext, link: RedditMedia):
-    await ctx.release()
     if ctx.interaction:
       await ctx.defer()
     async with ctx.typing():

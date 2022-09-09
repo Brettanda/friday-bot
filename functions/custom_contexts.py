@@ -273,7 +273,6 @@ class MyContext(commands.Context):
     view = ConfirmationView(
         timeout=timeout,
         delete_after=delete_after,
-        reacquire=reacquire,
         ctx=self,
         author_id=author_id
     )
