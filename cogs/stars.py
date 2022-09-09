@@ -41,7 +41,7 @@ def requires_starboard():
 
     cog: Stars = ctx.bot.get_cog('Stars')  # type: ignore
 
-    ctx.starboard = await cog.get_starboard(ctx.guild.id, connection=ctx.db)  # type: ignore
+    ctx.starboard = await cog.get_starboard(ctx.guild.id)  # type: ignore
     if ctx.starboard.channel is None:
       raise StarError('\N{WARNING SIGN} Starboard channel not found.')
 
@@ -125,8 +125,8 @@ class Stars(commands.Cog):
     self._message_cache.clear()
 
   @cache.cache()
-  async def get_starboard(self, guild_id: int, *, connection: Optional[asyncpg.Pool | asyncpg.Connection] = None) -> StarboardConfig:
-    conn = connection or self.bot.pool
+  async def get_starboard(self, guild_id: int) -> StarboardConfig:
+    conn = self.bot.pool
     query = "SELECT * FROM starboard WHERE id=$1;"
     record = await conn.fetchrow(query, guild_id)
     return StarboardConfig(guild_id=guild_id, bot=self.bot, record=record)
@@ -329,7 +329,7 @@ class Stars(commands.Cog):
     guild_id = channel.guild.id
     lock = self._locks.get(guild_id)
     if lock is None:
-      self._locks[guild_id] = lock = asyncio.Lock(loop=self.bot.loop)
+      self._locks[guild_id] = lock = asyncio.Lock()
 
     async with lock:
       async with self.bot.pool.acquire(timeout=300.0) as con:
@@ -460,7 +460,7 @@ class Stars(commands.Cog):
     guild_id = channel.guild.id
     lock = self._locks.get(guild_id)
     if lock is None:
-      self._locks[guild_id] = lock = asyncio.Lock(loop=self.bot.loop)
+      self._locks[guild_id] = lock = asyncio.Lock()
 
     async with lock:
       async with self.bot.pool.acquire(timeout=300.0) as con:
@@ -1138,7 +1138,6 @@ class Stars(commands.Cog):
     """Announce stuff to every starboard."""
     query = "SELECT id, channel_id FROM starboard;"
     records = await ctx.db.fetch(query)
-    await ctx.release()
 
     to_send = []
     for guild_id, channel_id in records:

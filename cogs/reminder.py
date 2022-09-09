@@ -264,7 +264,7 @@ class Reminder(commands.Cog):
               AND extra #>> '{args,0}' = $1;"""
 
     author_id = str(ctx.author.id)
-    total = await ctx.db.fetchrow(query, author_id)
+    total: asyncpg.Record = await ctx.db.fetchrow(query, author_id)
     total = total[0]
     if total == 0:
       return await ctx.send(embed=embed(title="You have no reminders.", color=MessageColors.error()))
