@@ -1,18 +1,20 @@
 import asyncio
 import logging
-import os
+# import os
 import sys
 
 import discord
 from discord.ext import tasks
 from dotenv import load_dotenv
 
+import functions
 from index import Friday
+from launcher import setup_logging
 
 # from create_trans_key import run
 
 load_dotenv(dotenv_path="./.env")
-TOKEN = os.environ.get('TOKENTEST')
+# TOKEN = os.environ.get('TOKENTEST')
 
 
 class Friday_testing(Friday):
@@ -73,16 +75,21 @@ logger.setLevel(logging.INFO)
 
 
 def test_will_it_blend():
-  bot = Friday_testing(logger=logger)
-  loop = asyncio.get_event_loop()
-  try:
-    loop.run_until_complete(bot.start())
-  except KeyboardInterrupt:
-    # mydb.close()
-    logging.info("STOPED")
-    loop.run_until_complete(bot.close())
-  finally:
-    loop.close()
+  bot = Friday_testing()
+
+  async def main(bot):
+    try:
+      pool = await functions.db.create_pool()
+    except Exception:
+      print('Could not set up PostgreSQL. Exiting.')
+      return
+
+    with setup_logging():
+      async with bot:
+        bot.pool = pool
+        await bot.start()
+
+  asyncio.run(main(bot))
 
 # import asyncio
 # import os
