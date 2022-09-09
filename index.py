@@ -178,7 +178,6 @@ class Friday(commands.AutoShardedBot):
 
     await self.tree.set_translator(Translator())
 
-    self.pool = await functions.db.Table.create_pool(prod=self.prod, canary=self.canary)
     await self.load_extension("cogs.database")
     await self.load_extension("cogs.log")
 
