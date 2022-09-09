@@ -11,7 +11,7 @@ import discord
 from discord.ext import commands
 from typing_extensions import Annotated
 
-from functions import MessageColors, db, embed, time
+from functions import MessageColors, embed, time
 
 if TYPE_CHECKING:
   from typing_extensions import Self
