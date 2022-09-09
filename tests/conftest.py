@@ -5,7 +5,7 @@ import os
 # import sys
 import time
 from typing import Callable, Optional
-
+import functions
 import discord
 import pytest
 from discord.ext import commands
@@ -17,7 +17,6 @@ from launcher import setup_logging
 load_dotenv()
 
 TOKEN = os.environ['TOKENUNITTEST']
-FRIDAYTOKEN = os.environ['TOKENTEST']
 TOKENUSER = os.environ['TOKENUNITTESTUSER']
 
 
@@ -96,9 +95,16 @@ async def bot(event_loop: asyncio.AbstractEventLoop) -> UnitTester:
 @pytest.fixture(scope="session")
 async def friday(event_loop_friday: asyncio.AbstractEventLoop) -> Friday:
   async def main(bot):
+    try:
+      pool = await functions.db.create_pool()
+    except Exception:
+      print('Could not set up PostgreSQL. Exiting.')
+      return
+
     with setup_logging():
       async with bot:
-        await bot.start(FRIDAYTOKEN, reconnect=True)
+        bot.pool = pool
+        await bot.start()
 
   bot = Friday()
   asyncio.create_task(main(bot))

@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import datetime
-import re
-from typing import (TYPE_CHECKING, List, Optional, Sequence, Set,
-                    TypedDict, Union)
-
 import logging
+import re
+from typing import (TYPE_CHECKING, List, Optional, Sequence, Set, TypedDict,
+                    Union)
+
 import asyncpg
 import discord
 from discord.ext import commands
@@ -250,10 +250,10 @@ class AutoMod(commands.Cog):
     self.get_guild_config.invalidate(self, guild_id)
 
   @cache.cache()
-  async def get_guild_config(self, guild_id: int, *, connection: Optional[Union[asyncpg.Pool, asyncpg.Connection]] = None) -> Optional[Config]:
+  async def get_guild_config(self, guild_id: int) -> Optional[Config]:
     query = "SELECT * FROM servers WHERE id=$1 LIMIT 1;"
     blquery = "SELECT * FROM blacklist WHERE guild_id=$1 LIMIT 1;"
-    conn = connection or self.bot.pool
+    conn = self.bot.pool
     record = await conn.fetchrow(query, str(guild_id))
     # REMOVE THIS AT SOME POINT
     if record and record["max_mentions"] is not None:
@@ -455,7 +455,7 @@ class AutoMod(commands.Cog):
   async def _blacklist_add_word(self, ctx: GuildContext, *, phrase: str):
     if len(phrase) < 3:
       raise commands.BadArgument("Word must be at least 3 characters long.")
-    config = await self.get_guild_config(ctx.guild.id, connection=ctx.db)
+    config = await self.get_guild_config(ctx.guild.id)
     if config and phrase in config.blacklisted_words:
       return await ctx.reply(embed=embed(title="Can't add duplicate word", color=MessageColors.error()))
     await ctx.db.execute("INSERT INTO blacklist (guild_id,words) VALUES ($1::text,array[$2]::text[]) ON CONFLICT(guild_id) DO UPDATE SET words = array_append(blacklist.words, $2)", str(ctx.guild.id), phrase)
@@ -467,7 +467,7 @@ class AutoMod(commands.Cog):
   @commands.bot_has_guild_permissions(manage_messages=True)
   async def _blacklist_remove_word(self, ctx: GuildContext, *, word: str):
     cleansed_word = word
-    config = await self.get_guild_config(ctx.guild.id, connection=ctx.db)
+    config = await self.get_guild_config(ctx.guild.id)
     if config and cleansed_word not in config.blacklisted_words:
       return await ctx.reply(embed=embed(title="You don't seem to be blacklisting that word"))
     await ctx.db.execute("UPDATE blacklist SET words = array_remove(words,$2::text) WHERE guild_id=$1", str(ctx.guild.id), cleansed_word)
@@ -478,7 +478,7 @@ class AutoMod(commands.Cog):
   @commands.has_guild_permissions(manage_messages=True)
   @commands.bot_has_guild_permissions(manage_messages=True)
   async def _blacklist_display_words(self, ctx: GuildContext):
-    config = await self.get_guild_config(ctx.guild.id, connection=ctx.db)
+    config = await self.get_guild_config(ctx.guild.id)
     if config and config.blacklisted_words:
       return await ctx.reply(embed=embed(title="Blocked words", description='\n'.join(config.blacklisted_words)))
     await ctx.reply(embed=embed(title=f"No blacklisted words yet, use `{ctx.prefix}blacklist add <word>` to get started"))
@@ -489,7 +489,7 @@ class AutoMod(commands.Cog):
   @commands.bot_has_guild_permissions(manage_messages=True, manage_roles=True)
   async def _blacklist_punishment(self, ctx: GuildContext, *, punishments: str = None):
     if punishments is None:
-      old_punishments = await ctx.db.fetchval(f"SELECT punishments FROM blacklist WHERE guild_id='{ctx.guild.id}'")
+      old_punishments: list[str] = await ctx.db.fetchval(f"SELECT punishments FROM blacklist WHERE guild_id='{ctx.guild.id}'")  # type: ignore
       return await ctx.send(embed=embed(title="Blacklist punishments", description=f"The blacklist punishments for `{ctx.guild}` are `{', '.join(old_punishments)}`."))
 
     new_punishments = [i for i in punishments.split(" ") if i.lower() in PUNISHMENT_TYPES]
@@ -579,7 +579,7 @@ class AutoMod(commands.Cog):
   @commands.bot_has_guild_permissions(manage_messages=True, manage_roles=True)
   async def max_mentions_punishment(self, ctx: GuildContext, *, punishments: str = None):
     if punishments is None:
-      old_punishments = await ctx.db.fetchval(f"SELECT warn_punishments FROM servers WHERE id='{ctx.guild.id}'")
+      old_punishments: list[str] = await ctx.db.fetchval(f"SELECT warn_punishments FROM servers WHERE id='{ctx.guild.id}'")  # type: ignore
       return await ctx.send(embed=embed(title="Warning punishments", description=f"The warning punishments for `{ctx.guild}` are `{', '.join(old_punishments)}`."))
 
     new_punishments = [i for i in punishments.split(" ") if i.lower() in PUNISHMENT_TYPES]
@@ -631,7 +631,7 @@ class AutoMod(commands.Cog):
   @commands.bot_has_guild_permissions(manage_messages=True, manage_roles=True)
   async def max_spam_punishment(self, ctx: GuildContext, *, punishments: str = None):
     if punishments is None:
-      old_punishments = await ctx.db.fetchval(f"SELECT warn_punishments FROM servers WHERE id='{ctx.guild.id}'")
+      old_punishments: list[str] = await ctx.db.fetchval(f"SELECT warn_punishments FROM servers WHERE id='{ctx.guild.id}'")  # type: ignore
       return await ctx.send(embed=embed(title="Warning punishments", description=f"The warning punishments for `{ctx.guild}` are `{', '.join(old_punishments)}`."))
 
     old_punishments = [i for i in punishments.split(" ") if i.lower() in PUNISHMENT_TYPES]
@@ -682,7 +682,7 @@ class AutoMod(commands.Cog):
   @commands.bot_has_guild_permissions(manage_messages=True, manage_roles=True)
   async def max_content_spam_punishment(self, ctx: GuildContext, *, punishments: str = None):
     if punishments is None:
-      old_punishments = await ctx.db.fetchval(f"SELECT warn_punishments FROM servers WHERE id='{ctx.guild.id}'")
+      old_punishments: list[str] = await ctx.db.fetchval(f"SELECT warn_punishments FROM servers WHERE id='{ctx.guild.id}'")  # type: ignore
       return await ctx.send(embed=embed(title="Warning punishments", description=f"The warning punishments for `{ctx.guild}` are `{', '.join(old_punishments)}`."))
 
     new_punishments = [i for i in punishments.split(" ") if i.lower() in PUNISHMENT_TYPES]

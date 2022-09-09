@@ -1,19 +1,20 @@
 import asyncio
 import logging
-import os
+# import os
 import sys
 
 import discord
 from discord.ext import tasks
 from dotenv import load_dotenv
 
+import functions
 from index import Friday
-import cogs
+from launcher import setup_logging
 
 # from create_trans_key import run
 
 load_dotenv(dotenv_path="./.env")
-TOKEN = os.environ.get('TOKENTEST')
+# TOKEN = os.environ.get('TOKENTEST')
 
 
 class Friday_testing(Friday):
@@ -23,17 +24,16 @@ class Friday_testing(Friday):
     # self.test_stop.start()
     # self.test_message.start()
 
-  async def setup(self, load_extentions=False):
-    for cog in cogs.default:
-      self.load_extension(f"cogs.{cog}")
-    return await super().setup(load_extentions=load_extentions)
+  # async def setup(self, load_extentions=False):
+  #   for cog in cogs.default:
+  #     await self.load_extension(f"cogs.{cog}")
+  #   return await super().setup(load_extentions=load_extentions)
 
-  @property
   async def channel(self) -> discord.TextChannel:
-    return self.get_channel(892840236781015120) if self.get_channel(892840236781015120) is None else await self.fetch_channel(892840236781015120)
+    return self.get_channel(892840236781015120) if self.get_channel(892840236781015120) is None else await self.fetch_channel(892840236781015120)  # type: ignore
 
   async def on_ready(self):
-    await (await self.channel).send("?ready")
+    await (await self.channel()).send("?ready")
 
     try:
       def online_check(m) -> bool:
@@ -75,16 +75,21 @@ logger.setLevel(logging.INFO)
 
 
 def test_will_it_blend():
-  bot = Friday_testing(logger=logger)
-  loop = asyncio.get_event_loop()
-  try:
-    loop.run_until_complete(bot.start(TOKEN))
-  except KeyboardInterrupt:
-    # mydb.close()
-    logging.info("STOPED")
-    loop.run_until_complete(bot.close())
-  finally:
-    loop.close()
+  bot = Friday_testing()
+
+  async def main(bot):
+    try:
+      pool = await functions.db.create_pool()
+    except Exception:
+      print('Could not set up PostgreSQL. Exiting.')
+      return
+
+    with setup_logging():
+      async with bot:
+        bot.pool = pool
+        await bot.start()
+
+  asyncio.run(main(bot))
 
 # import asyncio
 # import os

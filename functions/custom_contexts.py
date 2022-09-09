@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import io
-from typing import TYPE_CHECKING, Any, Generator, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Protocol, List, Optional, Union
 
 import discord
 from discord.ext import commands
@@ -13,16 +13,49 @@ if TYPE_CHECKING:
   from asyncpg import Connection, Pool
 
   from index import Friday
+  from types import TracebackType
+
+
+class ConnectionContextManager(Protocol):
+  async def __aenter__(self) -> Connection:
+    ...
+
+  async def __aexit__(
+      self,
+      exc_type: Optional[type[BaseException]],
+      exc_value: Optional[BaseException],
+      traceback: Optional[TracebackType]
+  ) -> None:
+    ...
+
+
+class DatabaseProtocol(Protocol):
+  async def execute(self, query: str, *args: Any, timeout: Optional[float] = None) -> str:
+    ...
+
+  async def fetch(self, query: str, *args: Any, timeout: Optional[float] = None) -> list[Any]:
+    ...
+
+  async def fetchrow(self, query: str, *args: Any, timeout: Optional[float] = None) -> Optional[Any]:
+    ...
+
+  async def fetchval(self, query: str, *args: Any, timeout: Optional[float] = None) -> Optional[Any]:
+    ...
+
+  def acquire(self, *, timeout: Optional[float] = None) -> ConnectionContextManager:
+    ...
+
+  def release(self, connection: Connection) -> None:
+    ...
 
 
 class ConfirmationView(discord.ui.View):
-  def __init__(self, *, timeout: float, author_id: int, reacquire: bool, ctx: MyContext, delete_after: bool) -> None:
+  def __init__(self, *, timeout: float, author_id: int, ctx: MyContext, delete_after: bool) -> None:
     super().__init__(timeout=timeout)
     self.value: Optional[bool] = None
     self.delete_after: bool = delete_after
     self.author_id: int = author_id
     self.ctx: MyContext = ctx
-    self.reacquire: bool = reacquire
     self.message: Optional[discord.Message] = None
 
   async def interaction_check(self, interaction: discord.Interaction) -> bool:
@@ -33,8 +66,6 @@ class ConfirmationView(discord.ui.View):
       return False
 
   async def on_timeout(self) -> None:
-    if self.reacquire:
-      await self.ctx.acquire()
     if self.delete_after and self.message:
       await self.message.delete()
 
@@ -56,7 +87,7 @@ class ConfirmationView(discord.ui.View):
 
 
 class MultiSelectView(discord.ui.View):
-  def __init__(self, options: list, *, values: list = [], emojis: list = [], descriptions: list = [], placeholder: str = None, min_values: int = 1, max_values: int = 1, default: str = None, timeout: float, delete_after: bool, reacquire: bool, author_id: int, ctx: MyContext) -> None:
+  def __init__(self, options: list, *, values: list = [], emojis: list = [], descriptions: list = [], placeholder: str = None, min_values: int = 1, max_values: int = 1, default: str = None, timeout: float, delete_after: bool, author_id: int, ctx: MyContext) -> None:
     super().__init__(timeout=timeout)
     new = False
     if not values and not emojis and not descriptions:
@@ -73,7 +104,6 @@ class MultiSelectView(discord.ui.View):
     self.ctx: MyContext = ctx
     self.min_values: int = min_values
     self.max_values: int = max_values
-    self.reacquire: bool = reacquire
     self.delete_after: bool = delete_after
     self.message: Optional[discord.Message] = None
 
@@ -100,8 +130,6 @@ class MultiSelectView(discord.ui.View):
       return False
 
   async def on_timeout(self) -> None:
-    if self.reacquire:
-      await self.ctx.acquire()
     if self.delete_after and self.message:
       await self.message.delete()
 
@@ -152,25 +180,6 @@ class MultiSelectView(discord.ui.View):
 #       await self.message.delete()
 #     except discord.NotFound:
 #       pass
-
-class _ContextDBAcquire:
-  __slots__ = ("ctx", "timeout")
-
-  def __init__(self, ctx: MyContext, timeout: Optional[float]):
-    self.ctx: MyContext = ctx
-    self.timeout: Optional[float] = timeout
-
-  def __await__(self) -> Generator[Any, None, Connection]:
-    return self.ctx._acquire(self.timeout).__await__()
-
-  async def __aenter__(self) -> Union[Pool, Connection]:
-    await self.ctx._acquire(self.timeout)
-    return self.ctx.db
-
-  async def __aexit__(self, *args) -> None:
-    await self.ctx.release()
-
-
 class MyContext(commands.Context):
   channel: Union[discord.VoiceChannel, discord.TextChannel, discord.Thread, discord.DMChannel]
   prefix: str
@@ -180,7 +189,6 @@ class MyContext(commands.Context):
   def __init__(self, **kwargs):
     super().__init__(**kwargs)
     self.pool: Pool = self.bot.pool
-    self._db: Optional[Union[Pool, Connection]] = None
     self._bot_message: Optional[discord.Message] = None
 
   def __repr__(self) -> str:
@@ -202,39 +210,8 @@ class MyContext(commands.Context):
     return self._bot_message
 
   @property
-  def db(self) -> Union[Pool, Connection]:
-    return self._db if self._db else self.pool
-
-  async def _acquire(self, timeout: Optional[float]) -> Connection:
-    if self._db is None:
-      self._db = await self.pool.acquire(timeout=timeout)
-    return self._db
-
-  def acquire(self, *, timeout=300.0) -> _ContextDBAcquire:
-    """Acquires a database connection from the pool. e.g. ::
-          async with ctx.acquire():
-              await ctx.db.execute(...)
-      or: ::
-          await ctx.acquire()
-          try:
-              await ctx.db.execute(...)
-          finally:
-              await ctx.release()
-    """
-    return _ContextDBAcquire(self, timeout)
-
-  async def release(self) -> None:
-    """Releases the database connection from the pool.
-      Useful if needed for "long" interactive commands where
-      we want to release the connection and re-acquire later.
-      Otherwise, this is called automatically by the bot.
-      """
-    # from source digging asyncpg source, releasing an already
-    # released connection does nothing
-
-    if self._db is not None:
-      await self.bot.pool.release(self._db)
-      self._db = None
+  def db(self) -> DatabaseProtocol:
+    return self.pool
 
   @property
   def lang_code_user(self) -> str:
@@ -263,7 +240,6 @@ class MyContext(commands.Context):
           *,
           timeout: float = 60.0,
           delete_after: bool = True,
-          reacquire: bool = True,
           author_id: Optional[int] = None,
           **kwargs
   ) -> Optional[bool]:
@@ -297,7 +273,6 @@ class MyContext(commands.Context):
     view = ConfirmationView(
         timeout=timeout,
         delete_after=delete_after,
-        reacquire=reacquire,
         ctx=self,
         author_id=author_id
     )
@@ -306,7 +281,7 @@ class MyContext(commands.Context):
     await view.wait()
     return view.value
 
-  async def multi_select(self, message: str = "Please select one or more of the options.", options: List[dict] = [], *, values: list = [], emojis: list = [], descriptions: list = [], default: str = None, placeholder: str = None, min_values: int = 1, max_values: int = 1, timeout: float = 60.0, delete_after: bool = True, reacquire: bool = True, author_id: Optional[int] = None, **kwargs) -> Optional[list]:
+  async def multi_select(self, message: str = "Please select one or more of the options.", options: List[dict] = [], *, values: list = [], emojis: list = [], descriptions: list = [], default: str = None, placeholder: str = None, min_values: int = 1, max_values: int = 1, timeout: float = 60.0, delete_after: bool = True, author_id: Optional[int] = None, **kwargs) -> Optional[list]:
     author_id = author_id or self.author.id
     view = MultiSelectView(
         options=options,
@@ -322,7 +297,6 @@ class MyContext(commands.Context):
         max_values=max_values,
         ctx=self,
         delete_after=delete_after,
-        reacquire=reacquire,
         author_id=author_id,
     )
     kwargs["embed"] = kwargs.pop("embed", embed(title=message))

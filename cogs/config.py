@@ -70,9 +70,9 @@ class Config(commands.Cog, command_attrs=dict(extras={"permissions": ["manage_gu
     return f"<cogs.{self.__cog_name__}>"
 
   @cache.cache(ignore_kwargs=True)
-  async def get_guild_config(self, guild_id: int, *, connection: Optional[asyncpg.Pool | asyncpg.Connection] = None) -> Optional[ConfigConfig]:
+  async def get_guild_config(self, guild_id: int) -> Optional[ConfigConfig]:
     query = "SELECT * FROM servers WHERE id=$1 LIMIT 1;"
-    conn = connection or self.bot.pool
+    conn = self.bot.pool
     record = await conn.fetchrow(query, str(guild_id))
     log.debug(f"PostgreSQL Query: \"{query}\" + {str(guild_id)}")
     if record is not None:

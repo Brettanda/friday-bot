@@ -5,11 +5,13 @@ import datetime
 import logging
 import os
 import sys
+import traceback
 from collections import Counter, defaultdict
 from typing import TYPE_CHECKING, Any, AsyncIterator, Iterable, Optional
 
 import aiohttp
 import asyncpg
+import click
 import discord
 from discord import app_commands
 from discord.ext import commands
@@ -19,6 +21,7 @@ from topgg.webhook import WebhookManager
 import cogs
 import functions
 from functions.config import Config
+from functions.db import Migrations
 from functions.languages import load_languages
 
 if TYPE_CHECKING:
@@ -168,15 +171,14 @@ class Friday(commands.AutoShardedBot):
   async def setup_hook(self) -> None:
     self.session = aiohttp.ClientSession()
 
-    self.blacklist: Config[bool] = Config("blacklist.json", loop=self.loop)
+    self.blacklist: Config[bool] = Config("blacklist.json")
 
     self.loop.create_task(load_languages(self))
 
-    self.languages = Config("languages.json", loop=self.loop)
+    self.languages = Config("languages.json")
 
     await self.tree.set_translator(Translator())
 
-    self.pool = await functions.db.Table.create_pool(prod=self.prod, canary=self.canary)
     await self.load_extension("cogs.database")
     await self.load_extension("cogs.log")
 
@@ -329,22 +331,103 @@ class Friday(commands.AutoShardedBot):
     return self.get_cog("Patreons")  # type: ignore
 
 
-async def main(bot):
-  async with bot:
-    await bot.start(TOKEN)
-
-if __name__ == "__main__":
-  from launcher import setup_logging
-  print(f"Python version: {sys.version}")
-
-  bot = Friday()
-  if len(sys.argv) > 1:
-    if sys.argv[1] == "--prod" or sys.argv[1] == "--production":
-      TOKEN = os.environ.get("TOKEN")
-    elif sys.argv[1] == "--canary":
-      TOKEN = os.environ.get("TOKENCANARY")
+async def run_bot():
+  log = logging.getLogger()
   try:
+    pool = await functions.db.create_pool()
+  except Exception:
+    click.echo('Could not set up PostgreSQL. Exiting.', file=sys.stderr)
+    log.exception('Could not set up PostgreSQL. Exiting.')
+    return
+
+  async with Friday() as bot:
+    bot.pool = pool
+    await bot.start()
+
+
+@click.group(invoke_without_command=True, options_metavar='[options]')
+@click.pass_context
+def main(ctx):
+  """Launches the bot."""
+  if ctx.invoked_subcommand is None:
+    print(f"Python version: {sys.version}")
+    from launcher import setup_logging
+
     with setup_logging("Friday"):
-      asyncio.run(main(bot))
-  except KeyboardInterrupt:
-    asyncio.run(bot.close())
+      asyncio.run(run_bot())
+
+
+@main.group(short_help='database stuff', options_metavar='[options]')
+def db():
+  pass
+
+
+async def ensure_uri_can_run() -> bool:
+  connection: asyncpg.Connection = await asyncpg.connect(os.environ["DBURL"])
+  await connection.close()
+  return True
+
+
+@db.command()
+@click.option('--reason', '-r', help='The reason for this revision.', required=True)
+def migrate(reason):
+  """Creates a new revision for you to edit."""
+  asyncio.run(ensure_uri_can_run())
+
+  migrations = Migrations()
+  if migrations.is_next_revision_taken():
+    click.echo('an unapplied migration already exists for the next version, exiting')
+    click.secho('hint: apply pending migrations with the `upgrade` command', bold=True)
+    return
+
+  revision = migrations.create_revision(reason)
+  click.echo(f'Created revision V{revision.version!r}')
+
+
+async def run_upgrade(migrations: Migrations) -> int:
+  connection: asyncpg.Connection = await asyncpg.connect(migrations.database_uri)
+  return await migrations.upgrade(connection)
+
+
+@db.command()
+@click.option('--sql', help='Print the SQL instead of executing it', is_flag=True)
+def upgrade(sql):
+  """Upgrades the database at the given revision (if any)."""
+  asyncio.run(ensure_uri_can_run())
+
+  migrations = Migrations()
+
+  if sql:
+    migrations.display()
+    return
+
+  try:
+    applied = asyncio.run(run_upgrade(migrations))
+  except Exception:
+    traceback.print_exc()
+    click.secho('failed to apply migrations due to error', fg='red')
+  else:
+    click.secho(f'Applied {applied} revisions(s)', fg='green')
+
+
+@db.command()
+def current():
+  """Shows the current active revision version"""
+  migrations = Migrations()
+  click.echo(f'Version {migrations.version}')
+
+
+@db.command()
+@click.option('--reverse', help='Print in reverse order (oldest first).', is_flag=True)
+def logs(reverse):
+  """Displays the revision history"""
+  migrations = Migrations()
+  # Revisions is oldest first already
+  revs = reversed(migrations.ordered_revisions) if not reverse else migrations.ordered_revisions
+  for rev in revs:
+    as_yellow = click.style(f'V{rev.version:>03}', fg='yellow')
+    click.echo(f'{as_yellow} {rev.description.replace("_", " ")}')
+
+
+if __name__ == '__main__':
+  main()

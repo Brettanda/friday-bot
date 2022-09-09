@@ -394,10 +394,10 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
   @chatstats.command("global")
   async def chatstats_global(self, ctx: MyContext):
     query = """SELECT COUNT(*) FROM chats;"""
-    total = await ctx.db.fetchrow(query)
+    total = await ctx.db.fetchval(query)
 
     e = discord.Embed(title="Chat Stats", colour=discord.Colour.blurple())
-    e.description = f"{total[0]:,} chats used."
+    e.description = f"{total:,} chats used."
 
     # query = """SELECT command, COUNT(*) AS "uses"
     #            FROM chats
@@ -493,10 +493,10 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
   @commandstats.command("global")
   async def commandstats_global(self, ctx: MyContext):
     query = """SELECT COUNT(*) FROM commands;"""
-    total = await ctx.db.fetchrow(query)
+    total = await ctx.db.fetchval(query)
 
     e = discord.Embed(title="Command Stats", colour=discord.Colour.blurple())
-    e.description = f"{total[0]:,} commands used."
+    e.description = f"{total:,} commands used."
 
     query = """SELECT command, COUNT(*) AS "uses"
                FROM commands

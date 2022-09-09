@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING
 
-import asyncpg
 from discord.ext import commands
 
 if TYPE_CHECKING:
@@ -155,55 +154,6 @@ class Database(commands.Cog):
 
   def __repr__(self) -> str:
     return f"<cogs.{self.__cog_name__}>"
-
-  async def cog_load(self):
-    if self.bot.cluster_idx == 0:
-      self.loop.create_task(self.create_tables())
-      self.loop.create_task(self.sync_table_columns())
-
-  @property
-  def pool(self) -> asyncpg.Pool:
-    return self.bot.pool
-
-  async def create_tables(self):
-    query = ""
-    async with self.pool.acquire(timeout=300.0) as conn:
-      for table in self.columns:
-        query = query + f"CREATE TABLE IF NOT EXISTS {table} ({','.join(self.columns[table])});"
-      for index in self.indexes:
-        query = query + index
-      await conn.execute(query)
-      log.debug(f"PostgreSQL Query: {query}")
-
-  async def sync_table_columns(self):
-    # https://stackoverflow.com/questions/9991043/how-can-i-test-if-a-column-exists-in-a-table-using-an-sql-statement
-    async with self.pool.acquire(timeout=300.0) as conn:
-      async with conn.transaction():
-        for table in self.columns:
-          for column in self.columns[table]:
-            result = await conn.fetch(f"SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='{table}' AND column_name='{column.split(' ')[0]}') LIMIT 1")
-            if not result[0].get("exists"):
-              await conn.execute(f"ALTER TABLE {table} ADD COLUMN {column};")
-
-  async def query(self, query: str, *params) -> Optional[Union[str, list]]:
-    async with self.pool.acquire(timeout=300.0) as mycursor:
-      if "select" in query.lower():
-        result = await mycursor.fetch(query, *params)
-      else:
-        await mycursor.execute(query, *params)
-    if hasattr(self.bot, "logger"):
-      log.debug(f"PostgreSQL Query: \"{query}\" + {params}")
-    if "select" in query.lower():
-      if isinstance(result, list) and len(result) == 1 and "limit 1" in query.lower():  # type: ignore
-        result = [tuple(i) for i in result][0]
-        if len(result) == 1:
-          return result[0]
-        return result  # type: ignore
-      if isinstance(result, list) and len(result) > 0 and "limit 1" not in query.lower():  # type: ignore
-        return [tuple(i) for i in result]
-      elif isinstance(result, list) and len(result) == 0 and "limit 1" in query.lower():  # type: ignore
-        return None
-      return result  # type: ignore
 
 
 async def setup(bot):

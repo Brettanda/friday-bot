@@ -913,7 +913,7 @@ class Music(commands.Cog):
       return await ctx.invoke(self.custom_list)  # type: ignore
     try:
       async with ctx.typing():
-        sounds = await ctx.db.fetchval("SELECT customSounds FROM servers WHERE id=$1 LIMIT 1", str(ctx.guild.id))
+        sounds: list[dict] = await ctx.db.fetchval("SELECT customSounds FROM servers WHERE id=$1 LIMIT 1", str(ctx.guild.id))  # type: ignore
     except Exception:
       await ctx.reply(embed=embed(title=f"The custom sound `{name}` has not been set, please add it with `{ctx.prefix}custom|c add <name> <url>`", color=MessageColors.error()))
     else:
@@ -940,8 +940,8 @@ class Music(commands.Cog):
 
     async with ctx.typing():
       name = "".join(name.split(" ")).lower()
-      sounds: list = (await ctx.db.fetchval("SELECT customSounds FROM servers WHERE id=$1 LIMIT 1", str(ctx.guild.id)))
-      if sounds == "" or sounds is None:
+      sounds: list[dict] = await ctx.db.fetchval("SELECT customSounds FROM servers WHERE id=$1 LIMIT 1", str(ctx.guild.id))  # type: ignore
+      if sounds == "" or not sounds:
         sounds = []
       if name in [x["name"] for x in sounds]:
         return await ctx.reply(embed=embed(title=f"`{name}` was already added, please choose another", color=MessageColors.error()))
@@ -953,8 +953,8 @@ class Music(commands.Cog):
   @commands.guild_only()
   async def custom_list(self, ctx: GuildContext):
     async with ctx.typing():
-      sounds = await ctx.db.fetchval("SELECT customSounds FROM servers WHERE id=$1 LIMIT 1", str(ctx.guild.id))
-      if sounds is None:
+      sounds: list[dict] = await ctx.db.fetchval("SELECT customSounds FROM servers WHERE id=$1 LIMIT 1", str(ctx.guild.id))  # type: ignore
+      if not sounds:
         raise NoCustomSoundsFound("There are no custom sounds for this server (yet)")
       result = ""
       for sound in sounds:
@@ -970,9 +970,10 @@ class Music(commands.Cog):
     try:
       async with ctx.typing():
         name = "".join(name.split(" ")).lower()
-        sounds = await ctx.db.fetchval("SELECT customSounds FROM servers WHERE id=$1 LIMIT 1", str(ctx.guild.id))
-        old = sounds[name]
-        sounds[name] = url
+        sounds: list[dict] = await ctx.db.fetchval("SELECT customSounds FROM servers WHERE id=$1 LIMIT 1", str(ctx.guild.id))  # type: ignore
+        index = next((i for (i, d) in enumerate(sounds) if d["name"] == name), 10000000000000000000)
+        old = sounds[index]
+        sounds[index]["url"] = url
         await ctx.db.execute("UPDATE servers SET customSounds=$1 WHERE id=$2", sounds, str(ctx.guild.id))
     except KeyError:
       await ctx.reply(embed=embed(title=f"Could not find the custom command `{name}`", color=MessageColors.error()))
@@ -986,8 +987,8 @@ class Music(commands.Cog):
     try:
       async with ctx.typing():
         name = "".join(name.split(" ")).lower()
-        sounds = await ctx.db.fetchval("SELECT customSounds FROM servers WHERE id=$1 LIMIT 1", str(ctx.guild.id))
-        sounds.pop(next((index for (index, d) in enumerate(sounds) if d["name"] == name), None))
+        sounds: list[dict] = await ctx.db.fetchval("SELECT customSounds FROM servers WHERE id=$1 LIMIT 1", str(ctx.guild.id))  # type: ignore
+        sounds.pop(next((index for (index, d) in enumerate(sounds) if d["name"] == name), 100000000000000000))
         await ctx.db.execute("UPDATE servers SET customSounds=$1::jsonb[] WHERE id=$2", sounds, str(ctx.guild.id))
     except KeyError:
       await ctx.reply(embed=embed(title=f"Could not find the custom command `{name}`", color=MessageColors.error()))
