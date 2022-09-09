@@ -99,20 +99,6 @@ class Log(commands.Cog):
         embed_links=True,
     ).predicate(ctx)
 
-  async def cog_load(self) -> None:
-    query = "SELECT id,lang FROM servers WHERE lang IS NOT NULL;"
-    records = await self.bot.pool.fetch(query)
-    new_query = ""
-    total = len(records)
-    completed = 0
-    for r in records:
-      await self.bot.languages.put(r["id"], r["lang"])
-      new_query += f"UPDATE servers SET lang = NULL WHERE id = {r['id']}::text;"
-      completed += 1
-    if new_query:
-      await self.bot.pool.execute(new_query)
-    log.info(f"Moved {completed}/{total} languages to new system")
-
   @commands.Cog.listener()
   async def on_shard_connect(self, shard_id):
     await relay_info(f"Shard #{shard_id} has connected", self.bot, logger=log)
