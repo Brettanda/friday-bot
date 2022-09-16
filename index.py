@@ -106,7 +106,7 @@ class Friday(commands.AutoShardedBot):
   command_stats: Counter[str]
   socket_stats: Counter[str]
   chat_stats: Counter[int]
-  gateway_handler: Any
+  logging_handler: Any
   bot_app_info: discord.AppInfo
   uptime: datetime.datetime
   chat_repeat_counter: Counter[int]
