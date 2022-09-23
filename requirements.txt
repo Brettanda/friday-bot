@@ -53,7 +53,7 @@ pathspec==0.8.1
 # patreon==0.5.0
 peewee==3.13.3
 Pillow==8.3.2
-protobuf==3.14.0
+protobuf==3.18.3
 psutil==5.8.0
 pyasn1==0.4.8
 pycparser==2.20
