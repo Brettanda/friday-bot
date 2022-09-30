@@ -35,7 +35,7 @@ grpcio
 h5py
 idna==2.10
 isort==5.7.0
-joblib==1.0.1
+joblib==1.2.0
 Keras==2.4.3
 Keras-Preprocessing==1.1.2
 lark-parser==0.9.0
