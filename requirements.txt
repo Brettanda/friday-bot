@@ -71,7 +71,7 @@ scipy==1.6.0
 sentry-sdk==0.19.4
 six==1.15.0
 smmap==3.0.5
-spotipy==2.16.1
+spotipy==2.22.1
 tensorboard>=2.2.0
 tensorboard-plugin-wit==1.8.0
 tensorflow>=2.2.0
