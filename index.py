@@ -353,7 +353,9 @@ async def run_bot():
 
 @click.group(invoke_without_command=True, options_metavar='[options]')
 @click.pass_context
-def main(ctx):
+@click.option('--prod', help='Run in production mode.', is_flag=True)
+@click.option('--canary', help='Run in production mode.', is_flag=True)
+def main(ctx, prod, canary):
   """Launches the bot."""
   if ctx.invoked_subcommand is None:
     print(f"Python version: {sys.version}")

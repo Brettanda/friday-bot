@@ -47,7 +47,24 @@ services:
     logging:
       driver: "none"
     volumes:
-       - pgadmin:/var/lib/pgadmin
+      - pgadmin:/var/lib/pgadmin
+  # portainer:
+  #   image: portainer/portainer-ce
+  #   restart: always
+  #   ports:
+  #     - 8000:8000
+  #     - 9000:9000
+  #     - 9443:9443
+  #   depends_on:
+  #     - bot
+  #   logging:
+  #     driver: "none"
+  #   volumes:
+  #     - portainer:/data
+  #     - /var/run/docker.sock:/var/run/docker.sock
+  #     # - pgadmin:/var/run/docker.sock
+
 volumes:
   db:
   pgadmin:
+  # portainer:
