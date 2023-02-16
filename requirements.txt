@@ -10,6 +10,7 @@ click
 # flair==0.8.0.post1
 grpcio
 h5py
+pytz
 # Keras==2.4.3
 # Keras-Preprocessing==1.1.2
 # nltk==3.5
