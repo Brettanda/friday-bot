@@ -1,0 +1,6 @@
+*/revisions.json
+.vscode/
+.github/
+__pycache__/
+wandb/
+hidden/

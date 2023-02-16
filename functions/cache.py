@@ -4,9 +4,9 @@ import asyncio
 import enum
 import time
 from functools import wraps
-from typing import (Any, Callable, Coroutine, MutableMapping,
-                    Protocol, TypeVar)
+from typing import Any, Callable, Coroutine, MutableMapping, Protocol, TypeVar
 
+from discord.ext import commands
 from lru import LRU
 
 R = TypeVar('R')
@@ -23,7 +23,7 @@ class CacheProtocol(Protocol[R]):
   def get_key(self, *args: Any, **kwargs: Any) -> str:
     ...
 
-  def invalidate(self, *args: Any, **kwargs: Any) -> bool:
+  def invalidate(self, cog: commands.Cog, *args: Any, **kwargs: Any) -> bool:
     ...
 
   def invalidate_containing(self, key: str) -> None:
@@ -99,7 +99,7 @@ def cache(
           # I want to pass asyncpg.Connection objects to the parameters
           # however, they use default __repr__ and I do not care what
           # connection is passed in, so I needed a bypass.
-          if k == 'connection':
+          if k == 'connection' or k == 'pool':
             continue
 
           key.append(_true_repr(k))
