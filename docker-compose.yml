@@ -6,17 +6,17 @@ services:
     restart: unless-stopped
     env_file: .env
     environment:
-      # - DBURL=postgresql://fridaylocal:fridaylocal@db:5432/fridaylocal
+      - DBURL=postgresql://fridaylocal:fridaylocal@db:5432/fridaylocal
       - LAVALINKDOCKERHOST=lavalink
       - LAVALINKDOCKERPORT=2333
       - LAVALINKDOCKERPASS=lavalink
-      # - WAIT_HOSTS=db:5432
+      - WAIT_HOSTS=db:5432
     volumes:
       - .:/usr/src/app
     ports:
       - 5678:5678
-    # entrypoint: sh -c "/wait && cp -r /opt/venv . && pip -V && exec python3 index.py"
-    entrypoint: sh -c "exec python3 index.py"
+    entrypoint: sh -c "/wait && exec python3 index.py"
+    # entrypoint: sh -c "exec python3 index.py"
   lavalink:
     image: fredboat/lavalink
     restart: unless-stopped
