@@ -13,8 +13,10 @@ services:
       - WAIT_HOSTS=db:5432
     volumes:
       - .:/usr/src/app
+      - /home/certs/:/home/certs/
     ports:
       - 5678:5678
+      - 443:443
     entrypoint: sh -c "/wait && exec python3 index.py"
     # entrypoint: sh -c "exec python3 index.py"
   lavalink:
