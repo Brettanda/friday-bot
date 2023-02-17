@@ -116,10 +116,11 @@ class API(commands.Cog):
     # TODO: Not sure how to choose which cluster to ping from API
     # Use something like port 4001 when clusters
     # But now there is ssl so idk what i will do when clusters lmao
-    if self.bot.canary or self.bot.prod:
-      self.port = 443  # + bot.cluster_idx
-    else:
-      self.port = 4001
+    # if self.bot.canary or self.bot.prod:
+    #   self.port = 443  # + bot.cluster_idx
+    # else:
+    #   self.port = 4001
+    self.port = 443
 
   def __repr__(self) -> str:
     return f"<cogs.{self.__cog_name__}>"

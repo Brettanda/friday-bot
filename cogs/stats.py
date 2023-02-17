@@ -563,8 +563,8 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
     await self.register_command(ctx)
 
   def add_record(self, record: logging.LogRecord) -> None:
-    if self.bot.prod:
-      self._logging_queue.put_nowait(record)
+    # if self.bot.prod:
+    self._logging_queue.put_nowait(record)
 
   async def send_log_record(self, record):
     attributes = {
@@ -862,7 +862,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
     await self.tabulate_query(ctx, query, str(guild_id))
 
   @command_history.command(name='user', aliases=['member'])
-  async def command_history_user(self, ctx, user_id: int):
+  async def command_history_user(self, ctx, user: discord.User):
     """Command history for a user."""
 
     query = """SELECT
@@ -877,7 +877,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
                   ORDER BY used DESC
                   LIMIT 20;
               """
-    await self.tabulate_query(ctx, query, str(user_id))
+    await self.tabulate_query(ctx, query, str(user.id))
 
   @commands.group("chathistory", invoke_without_command=True)
   async def chat_histroy(self, ctx: MyContext):

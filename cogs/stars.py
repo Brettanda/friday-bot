@@ -118,7 +118,7 @@ class Stars(commands.Cog):
 
   async def cog_command_error(self, ctx: StarboardContext, error: commands.CommandError):
     if isinstance(error, StarError):
-      await ctx.send(embed=embed(title=str(error), color=MessageColors.error()))
+      await ctx.send(embed=embed(title=str(error), color=MessageColors.error()), ephemeral=True)
 
   @tasks.loop(hours=1.0)
   async def clean_message_cache(self):

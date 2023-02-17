@@ -15,7 +15,7 @@ RUN chmod +x /wait
 COPY ./requirements.txt .
 RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
-RUN cp -r /opt/venv .
+RUN cp -r $VIRTUAL_ENV .
 
 EXPOSE 4001
 
