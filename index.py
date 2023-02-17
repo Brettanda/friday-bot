@@ -112,7 +112,7 @@ class Friday(commands.AutoShardedBot):
   bot_app_info: discord.AppInfo
   uptime: datetime.datetime
   chat_repeat_counter: Counter[int]
-  old_help_command: Optional[commands.HelpCommand]
+  old_help_command: commands.HelpCommand | None
   language_files: dict[str, I18n]
 
   def __init__(self, **kwargs):
@@ -200,16 +200,7 @@ class Friday(commands.AutoShardedBot):
 
     for cog in [*cogs.default, *cogs.spice]:
       path = "spice.cogs." if cog.lower() in cogs.spice else "cogs."
-      try:
-        await self.load_extension(f"{path}{cog}")
-      except Exception as e:
-        log.error(f"Failed to load extenstion {cog} with \n {e}")
-
-  async def on_ready(self):
-    if not (self.prod or self.canary):
-      DIARY = discord.Object(id=243159711237537802)
-      await self.tree.sync(guild=DIARY)
-    await self.tree.sync()
+      await self.load_extension(f"{path}{cog}")
 
   def _clear_gateway_data(self) -> None:
     one_week_ago = discord.utils.utcnow() - datetime.timedelta(days=7)
