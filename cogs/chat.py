@@ -136,8 +136,8 @@ class ChatHistory:
   _limit: ClassVar[int] = 3
   _messages_per_group: ClassVar[int] = 2
 
-  def __init__(self, *, loop: Optional[asyncio.AbstractEventLoop] = ...):
-    self.lock = asyncio.Lock(loop=loop)
+  def __init__(self):
+    self.lock = asyncio.Lock()
     self._history: List[str] = []
     self._bot_name: str = "Friday"
 
@@ -231,13 +231,13 @@ class Chat(commands.Cog):
     self.h = HTMLParser()
 
     # https://help.openai.com/en/articles/5008629-can-i-use-concurrent-api-calls
-    self.api_lock = asyncio.Semaphore(2, loop=bot.loop)
+    self.api_lock = asyncio.Semaphore(2) # bot.openai_api_lock
 
     self._spam_check = SpamChecker()
     self._repeating_spam = CooldownByRepeating.from_cooldown(3, 60 * 3, commands.BucketType.channel)
 
     # channel_id: list
-    self.chat_history: defaultdict[int, ChatHistory] = defaultdict(lambda: ChatHistory(loop=bot.loop))
+    self.chat_history: defaultdict[int, ChatHistory] = defaultdict(lambda: ChatHistory())
 
   def __repr__(self) -> str:
     return f"<cogs.{self.__cog_name__}>"
