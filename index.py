@@ -25,6 +25,7 @@ from functions.db import Migrations
 from functions.languages import load_languages
 
 if TYPE_CHECKING:
+  from i18n import I18n
   from .cogs.database import Database
   from .cogs.log import Log
   from .cogs.reminder import Reminder
@@ -47,7 +48,7 @@ class Translator(app_commands.Translator):
     cog_name = cog.__class__.__name__.lower()
     if cog is None:
       return None
-    lang_file: I18n = cog.bot.language_files
+    lang_file: dict[str, I18n] = cog.bot.language_files
     try:
       c = lang_file[lang][cog_name]
       trans = None
@@ -68,7 +69,8 @@ class Translator(app_commands.Translator):
         if ctx.location.name == "group_name":
           trans = c["command_name"].translate(str.maketrans("", "", r"""!"#$%&'()*+,./:;<=>?@[\]^`{|}~""")).lower().replace(" ", "_")
         elif ctx.location.name == "group_description":
-          trans = c[command_name]["help"]
+          # trans = c[command_name]["help"]
+          trans = c.help
       elif ctx.location.name in ("parameter_name", "parameter_description"):
         group_name = data.command.parent and data.command.parent.name
         command_name = data.command.name.lower()
@@ -80,7 +82,7 @@ class Translator(app_commands.Translator):
             c = c[command_name]["parameters"][param_name]
         except KeyError as e:
           if lang == "en":
-            log.error(f"{param_name} parameter is missing from {command_name}")
+            log.error(str(e))
           raise e
         if ctx.location.name == "parameter_name":
           trans = c["name"].lower().replace(" ", "_")
@@ -179,7 +181,7 @@ class Friday(commands.AutoShardedBot):
 
     self.blacklist: Config[bool] = Config("blacklist.json")
 
-    self.loop.create_task(load_languages(self))
+    await load_languages(self)
 
     self.languages = Config("languages.json")
 
