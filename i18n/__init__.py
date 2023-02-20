@@ -873,6 +873,6 @@ class I18n(Struct):
 en = I18n()
 # print(en.ping.ping.command_name)
 
-with open("./i18n/en/commands.json", "w") as f:
+with open("./i18n/en/commands.json", "w", encoding='utf-8') as f:
   d = dict(en)
   f.write(json.dumps(d, indent=4, ensure_ascii=False))
