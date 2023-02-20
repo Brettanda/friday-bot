@@ -179,8 +179,6 @@ class Player(wavelink.Player):
     self.text_channel = getattr(self, "text_channel", self.ctx.channel)
     self.dj = self.dj if hasattr(self, "dj") else self.ctx.author if self.ctx else None
 
-    self.volume = self.volume if hasattr(self, "volume") else 100
-
     self._equalizer = Equalizer.flat()
     self.waiting = self.waiting if hasattr(self, "waiting") else False
     self.queue = self.queue if hasattr(self, "queue") else wavelink.WaitQueue(max_size=5000, history_max_size=5000)
