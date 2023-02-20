@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from typing import TYPE_CHECKING, List, Sequence, Optional, Union
+from typing import TYPE_CHECKING
 
 import asyncpg
 import discord
@@ -30,7 +30,7 @@ class PatreonConfig:
 
   id: int
   _amount_cents: int
-  guild_ids: List[int]
+  guild_ids: list[int]
 
   @classmethod
   def from_pledge_record(cls, patron: dict, record: asyncpg.Record) -> Self:
@@ -74,8 +74,8 @@ class Patreons(commands.Cog):
     return f"<cogs.{self.__cog_name__}>"
 
   @cache.cache()
-  async def get_patrons(self, *, connection: Optional[Union[asyncpg.Pool, asyncpg.Connection]] = None) -> Sequence[PatreonConfig]:
-    conn = connection or self.bot.pool
+  async def get_patrons(self) -> list[PatreonConfig]:
+    conn = self.bot.pool
 
     # available options to return ?include=currently_entitled_tiers,address&fields[member]=full_name,is_follower,last_charge_date,last_charge_status,lifetime_support_cents,currently_entitled_amount_cents,patron_status&fields[tier]=amount_cents,created_at,description,discord_role_ids,edited_at,patron_count,published,published_at,requires_shipping,title,url&fields[address]=addressee,city,line_1,line_2,phone_number,postal_code,state
     # can also be found here https://docs.patreon.com/#get-api-oauth2-v2-campaigns-campaign_id-members
@@ -118,9 +118,10 @@ class Patreons(commands.Cog):
       return
     self.bot.dispatch("invalidate_patreon", ctx.guild.id)
 
-  @commands.group(name="patreon", aliases=["patron"], help="Commands for Friday's Patrons", invoke_without_command=True, case_insensitive=True)
+  @commands.group(name="patreon", aliases=["patron"], invoke_without_command=True, case_insensitive=True)
   @commands.guild_only()
   async def norm_patreon(self, ctx: GuildContext):
+    """Commands for Friday's Patrons"""
     await ctx.send(embed=embed(
         title="Become a Patron!",
         description="Become a Patron and get access to awesome features.\n\nYou can view all of the available features on Patreon.\n\nA few of the features that you will get access include:",
@@ -131,16 +132,18 @@ class Patreons(commands.Cog):
     ),
         view=PatreonButtons())
 
-  @norm_patreon.command("activate", aliases=["update"], help="Run this command to activate your Patronage or update your Patreon tier.")
+  @norm_patreon.command("activate", aliases=["update"])
   async def patreon_update(self, ctx: MyContext):
+    """Run this command to activate your Patronage or update your Patreon tier."""
     self.get_patrons.invalidate(self)
     if ctx.guild is not None:
       self.bot.dispatch("invalidate_patreon", ctx.guild.id)
 
     await ctx.send(embed=embed(title="The patrons list has been updated!", description="If you still don't have access to Patroned features, please contact the developer on the support server."))
 
-  @norm_patreon.command("status", description="Updates Friday to recognize your Patreon tier and guilds.")
+  @norm_patreon.command("status")
   async def patreon_status(self, ctx: MyContext):
+    """Updates Friday to recognize your Patreon tier and guilds."""
     patrons = await self.get_patrons()
 
     if ctx.author.id not in [p.id for p in patrons]:
@@ -164,9 +167,10 @@ class Patreons(commands.Cog):
         description=f"**Connected Discord Account**: {statuses['connected_discord']}\n**Activated Server ID(s)**: {statuses['activated_server_ids']}\n**Current Server Activated**: {statuses['current_server_activated']}"
     ))
 
-  @norm_patreon.group("server", help="Activate the server that you would like to apply your patronage to", invoke_without_command=True, case_insensitive=True)
+  @norm_patreon.group("server", invoke_without_command=True, case_insensitive=True)
   @commands.guild_only()
   async def norm_patreon_server(self, ctx: MyContext):
+    """Activate the server that you would like to apply your patronage to"""
     await ctx.send_help(ctx.command)
 
   @norm_patreon_server.command("activate")

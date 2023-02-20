@@ -679,8 +679,78 @@ class Redditlink(Struct):
   ...
 
 
-class Reminder(Struct):
-  ...
+class ReminderErrors(Struct):
+  not_found = "No reminder found"
+  empty = "You have no reminders."
+
+
+class ReminderCommandsSetParametersWhen(AppCommandParameterDefault):
+  name = "when"
+  description = "The time to be reminded. In UTC"
+
+
+class ReminderCommandsSetParametersText(AppCommandParameterDefault):
+  name = "text"
+  description = "Your reminder message"
+
+
+class ReminderCommandsSetParameters(Struct):
+  when = ReminderCommandsSetParametersWhen()
+  text = ReminderCommandsSetParametersText()
+
+
+class ReminderCommandsSet(AppCommandDefault):
+  command_name = "set"
+  help = "Create a reminder for a certain time in the future."
+  response = "Reminder set {}"
+  parameters = ReminderCommandsSetParameters()
+
+
+class ReminderCommandsList(AppCommandDefault):
+  command_name = "list"
+  help = "List all reminders."
+  list_title = "Reminders"
+
+
+class ReminderCommandsDeleteParametersReminder(AppCommandParameterDefault):
+  name = "reminder"
+  description = "The reminder to delete"
+
+
+class ReminderCommandsDeleteParameters(Struct):
+  reminder = ReminderCommandsDeleteParametersReminder()
+
+
+class ReminderCommandsDelete(AppCommandDefault):
+  command_name = "delete"
+  help = "Delete a reminder."
+  parameters = ReminderCommandsDeleteParameters()
+  response = "Reminder deleted"
+
+
+class ReminderCommandsClear(AppCommandDefault):
+  command_name = "clear"
+  help = "Delete all your reminders."
+  prompt = "Are you sure you want to delete {reminder}?"
+  response = "Successfully deleted {reminder}."
+
+
+class ReminderCommands(Struct):
+  set = ReminderCommandsSet()
+  list = ReminderCommandsList()
+  delete = ReminderCommandsDelete()
+  clear = ReminderCommandsClear()
+
+
+class ReminderReminder(AppCommandGroupDefault):
+  help = "Create a reminder for a certain time in the future."
+  commands = ReminderCommands()
+
+
+class Reminder(CogDefault):
+  # cog_description = "Set reminders for yourself"
+  reminder = ReminderReminder()
+  errors = ReminderErrors()
 
 
 class SupportSupport(AppCommandDefault):
@@ -801,7 +871,7 @@ class I18n(Struct):
 
 
 en = I18n()
-print(en.ping.ping.command_name)
+# print(en.ping.ping.command_name)
 
 with open("./i18n/en/commands.json", "w") as f:
   d = dict(en)

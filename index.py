@@ -35,8 +35,6 @@ if TYPE_CHECKING:
 
 load_dotenv()
 
-TOKEN = os.environ.get('TOKENTEST')
-
 log = logging.getLogger(__name__)
 
 
@@ -134,10 +132,8 @@ class Friday(commands.AutoShardedBot):
             bans=True,
             guild_scheduled_events=True,
             message_content=True,
-            # invites=True,
         ),
         status=discord.Status.idle,
-        owner_id=215227961048170496,
         description=functions.config.description,
         member_cache_flags=discord.MemberCacheFlags.all(),
         chunk_guilds_at_startup=False,
@@ -157,10 +153,6 @@ class Friday(commands.AutoShardedBot):
     # shows the last attempted IDENTIFYs and RESUMEs
     self.resumes: defaultdict[int, list[datetime.datetime]] = defaultdict(list)
     self.identifies: defaultdict[int, list[datetime.datetime]] = defaultdict(list)
-
-    log.info(f"Cluster Starting {kwargs.get('shard_ids', None)}, {kwargs.get('shard_count', 1)}")
-    if self.should_start:
-      self.run(kwargs["token"])
 
   def __repr__(self) -> str:
     return f"<Friday username=\"{self.user.display_name if self.user else None}\" id={self.user.id if self.user else None}>"

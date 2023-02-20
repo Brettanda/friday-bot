@@ -67,12 +67,15 @@ class TopGG(commands.Cog):
     token = os.environ["WEBHOOKBUMPSTOKEN"]
     return CustomWebhook.partial(id, token, session=self.bot.session)
 
-  async def cog_load(self):
+  async def start_webhook(self):
     if self.bot.cluster_idx == 0:
       if not hasattr(self.bot, "topgg_webhook"):
         self.bot.topgg_webhook = WebhookManager(self.bot).dbl_webhook("/dblwebhook", os.environ["DBLWEBHOOKPASS"])
         self.bot.topgg_webhook.run(5000)
       self._update_stats_loop.start()
+
+  async def cog_load(self):
+    self.bot.loop.create_task(self.start_webhook())
 
   async def cog_unload(self):
     self._update_stats_loop.cancel()

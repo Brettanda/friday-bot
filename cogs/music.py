@@ -573,7 +573,7 @@ class Music(commands.Cog):
         tracks = tracks[:1]
       if not tracks:
         spot_link = None
-    if not spot_link:
+    else:
       try:
         tracks = await player.node.get_tracks(cls=PartTrack, query=query)
       except wavelink.errors.LavalinkException:

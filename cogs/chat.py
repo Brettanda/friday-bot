@@ -90,11 +90,14 @@ class SpamChecker:
     self.absolute_minute = commands.CooldownMapping.from_cooldown(6, 30, commands.BucketType.user)
     self.absolute_hour = commands.CooldownMapping.from_cooldown(180, 3600, commands.BucketType.user)
     self.free = commands.CooldownMapping.from_cooldown(30, 43200, commands.BucketType.user)
-    self.voted = commands.CooldownMapping.from_cooldown(60, 43200, commands.BucketType.user)
-    self.streaked = commands.CooldownMapping.from_cooldown(75, 43200, commands.BucketType.user)
-    self.patron = commands.CooldownMapping.from_cooldown(100, 43200, commands.BucketType.user)
+    self.voted = commands.CooldownMapping.from_cooldown(40, 43200, commands.BucketType.user)
+    self.streaked = commands.CooldownMapping.from_cooldown(60, 43200, commands.BucketType.user)
+    self.patron_1 = commands.CooldownMapping.from_cooldown(50, 43200, commands.BucketType.user)
+    self.patron_2 = commands.CooldownMapping.from_cooldown(150, 43200, commands.BucketType.user)
+    self.patron_3 = commands.CooldownMapping.from_cooldown(200, 43200, commands.BucketType.user)
+    # self.self_token = commands.CooldownMapping.from_cooldown(1000, 43200, commands.BucketType.user)
 
-  def is_spamming(self, msg: discord.Message, tier: PremiumTiersNew, vote_count: int) -> tuple[bool, Optional[Cooldown], Optional[Literal["free", "voted", "streaked", "patron"]]]:
+  def is_spamming(self, msg: discord.Message, tier: PremiumTiersNew, vote_count: int) -> tuple[bool, Optional[Cooldown], Optional[Literal["free", "voted", "streaked", "patron_1", "patron_2", "patron_3"]]]:
     current = msg.created_at.timestamp()
 
     min_bucket = self.absolute_minute.get_bucket(msg, current)
@@ -102,14 +105,18 @@ class SpamChecker:
     free_bucket = self.free.get_bucket(msg, current)
     voted_bucket = self.voted.get_bucket(msg, current)
     streaked_bucket = self.streaked.get_bucket(msg, current)
-    patron_bucket = self.patron.get_bucket(msg, current)
+    patron_1_bucket = self.patron_1.get_bucket(msg, current)
+    patron_2_bucket = self.patron_2.get_bucket(msg, current)
+    patron_3_bucket = self.patron_3.get_bucket(msg, current)
 
     min_rate = min_bucket and min_bucket.update_rate_limit(current)
     hour_rate = hour_bucket and hour_bucket.update_rate_limit(current)
     free_rate = free_bucket and free_bucket.update_rate_limit(current)
     voted_rate = voted_bucket and voted_bucket.update_rate_limit(current)
     streaked_rate = streaked_bucket and streaked_bucket.update_rate_limit(current)
-    patron_rate = patron_bucket and patron_bucket.update_rate_limit(current)
+    patron_1_rate = patron_1_bucket and patron_1_bucket.update_rate_limit(current)
+    patron_2_rate = patron_2_bucket and patron_2_bucket.update_rate_limit(current)
+    patron_3_rate = patron_3_bucket and patron_3_bucket.update_rate_limit(current)
 
     if min_rate:
       return True, min_bucket, None
@@ -126,8 +133,14 @@ class SpamChecker:
     if streaked_rate and vote_count >= 2 and tier < PremiumTiersNew.tier_1:
       return True, streaked_bucket, "streaked"
 
-    if patron_rate and tier >= PremiumTiersNew.tier_1:
-      return True, patron_bucket, "patron"
+    if patron_1_rate and tier >= PremiumTiersNew.tier_1:
+      return True, patron_1_bucket, "patron_1"
+
+    if patron_2_rate and tier >= PremiumTiersNew.tier_2:
+      return True, patron_2_bucket, "patron_2"
+
+    if patron_3_rate and tier >= PremiumTiersNew.tier_3:
+      return True, patron_3_bucket, "patron_3"
 
     return False, None, None
 
@@ -243,13 +256,13 @@ class Chat(commands.Cog):
     return f"<cogs.{self.__cog_name__}>"
 
   @cache.cache()
-  async def get_guild_config(self, guild_id: int, *, connection: Optional[asyncpg.Connection] = None) -> Optional[Config]:
+  async def get_guild_config(self, guild_id: int) -> Optional[Config]:
     query = """SELECT *
     FROM servers s
     LEFT OUTER JOIN patrons p
       ON s.id = ANY(p.guild_ids)
     WHERE s.id=$1"""
-    conn = connection or self.bot.pool
+    conn = self.bot.pool
     try:
       record = await conn.fetchrow(query, str(guild_id))
     except Exception as e:
@@ -283,7 +296,8 @@ class Chat(commands.Cog):
     await ctx.message.delete()
     await ctx.send(content, allowed_mentions=discord.AllowedMentions.none())
 
-  @commands.group("chat", invoke_without_command=True, case_insensitive=True)
+  @commands.hybrid_group("chat", fallback="talk", invoke_without_command=True, case_insensitive=True)
+  @app_commands.describe(message="Your message to Friday")
   async def chat(self, ctx: MyContext, *, message: str):
     """Chat with Friday, powered by GPT-3 and get a response."""
     try:
@@ -302,18 +316,28 @@ class Chat(commands.Cog):
     free_rate = get_tokens(self._spam_check.free)
     voted_rate = get_tokens(self._spam_check.voted)
     streaked_rate = get_tokens(self._spam_check.streaked)
-    patroned_rate = get_tokens(self._spam_check.patron)
+    patroned_1_rate = get_tokens(self._spam_check.patron_1)
+    patroned_2_rate = get_tokens(self._spam_check.patron_2)
+    patroned_3_rate = get_tokens(self._spam_check.patron_3)
     history = self.chat_history[ctx.channel.id]
-    content = history and str(history) or "No history"
+    content = history and str(history) or ctx.lang["chat"]["chat"]["commands"]["info"]["no_history"]
+    rate_message = ctx.lang.chat.chat.commands.info.response_rate
     await ctx.send(embed=embed(
-        title="Chat Info",
-        fieldstitle=["Messages", "Voted messages", "Voting Streak messages", "Patroned messages", "Recent history resets", "Message History"],
-        fieldsval=[f"{free_rate} remaining", f"{voted_rate} remaining", f"{streaked_rate} remaining", f"{patroned_rate} remaining", str(self.bot.chat_repeat_counter[ctx.channel.id]), f"```\n{content}\n```"],
-        fieldsin=[True, True, True, True, False, False]
+        title=ctx.lang["chat"]["chat"]["commands"]["info"]["response_title"],
+        fieldstitle=ctx.lang["chat"]["chat"]["commands"]["info"]["response_field_titles"],
+        fieldsval=[
+            rate_message.format(rate=free_rate), rate_message.format(rate=voted_rate), rate_message.format(rate=streaked_rate), rate_message.format(rate=patroned_1_rate), rate_message.format(rate=patroned_2_rate), rate_message.format(rate=patroned_3_rate), str(self.bot.chat_repeat_counter[ctx.channel.id]), f"```\n{content}\n```"],
+        fieldsin=[True, True, True, True, True, True, False, False]
     ))
 
-  @commands.command(name="reset", help="Resets Friday's chat history. Helps if Friday is repeating messages")
+  @chat.command("reset")
+  async def chat_reset_history(self, ctx: MyContext):
+    """Resets Friday's chat history. Helps if Friday is repeating messages"""
+    await self.reset_history(ctx)
+
+  @commands.command(name="reset")
   async def reset_history(self, ctx: MyContext):
+    """Resets Friday's chat history. Helps if Friday is repeating messages"""
     try:
       self.chat_history.pop(ctx.channel.id)
     except KeyError:
@@ -324,26 +348,27 @@ class Chat(commands.Cog):
       self.bot.chat_repeat_counter[ctx.channel.id] += 1
       await ctx.send(embed=embed(title="My chat history has been reset", description="I have forgotten the last few messages"))
 
-  @commands.group(name="chatchannel", extras={"examples": ["#channel"]}, invoke_without_command=True, case_insensitive=True)
+  @commands.hybrid_group(name="chatchannel", fallback="set", extras={"examples": ["#channel"]}, invoke_without_command=True, case_insensitive=True)
   @commands.guild_only()
-  @commands.has_guild_permissions(manage_channels=True)
+  @commands.has_permissions(manage_channels=True)
   async def chatchannel(self, ctx: GuildContext, channel: discord.TextChannel = None):
     """Set the current channel so that I will always try to respond with something"""
     if channel is None:
-      config = await self.get_guild_config(ctx.guild.id, connection=ctx.db)
+      config = await self.get_guild_config(ctx.guild.id)
       return await ctx.send(embed=embed(title="Current chat channel", description=f"{config and config.chat_channel and config.chat_channel.mention}"))
 
     await ctx.db.execute("UPDATE servers SET chatchannel=$1 WHERE id=$2", str(channel.id), str(ctx.guild.id))
+    self.get_guild_config.invalidate(self, ctx.guild.id)
     await ctx.send(embed=embed(title="Chat channel set", description=f"I will now respond to every message in this channel\n{channel.mention}"))
 
-  @chatchannel.command("webhook")
+  @chatchannel.command("webhook", extras={"examples": {"1", "0", "false", "true"}})
   @commands.guild_only()
   @commands.has_permissions(manage_channels=True)
   @commands.bot_has_permissions(manage_webhooks=True)
   async def chatchannel_webhook(self, ctx: GuildContext, enable: bool = None):
     """Toggles webhook chatting with Friday in the current chat channel"""
 
-    config = await self.get_guild_config(ctx.guild.id, connection=ctx.db)
+    config = await self.get_guild_config(ctx.guild.id)
     if config is None or config.chat_channel is None:
       return await ctx.send(embed=embed(title="No chat channel set", description="Setup a chat channel before running this command", colour=MessageColors.red()))
 
@@ -362,11 +387,13 @@ class Chat(commands.Cog):
     self.get_guild_config.invalidate(self, ctx.guild.id)
     await ctx.send(embed=embed(title=f"Webhook mode is now {enable}"))
 
-  @chatchannel.command(name="clear", help="Clear the current chat channel")
+  @chatchannel.command(name="clear")
   @commands.guild_only()
-  @commands.has_guild_permissions(manage_channels=True)
+  @commands.has_permissions(manage_channels=True)
   async def chatchannel_clear(self, ctx: GuildContext):
+    """Clear the current chat channel"""
     await ctx.db.execute("UPDATE servers SET chatchannel=NULL WHERE id=$1", str(ctx.guild.id))
+    self.get_guild_config.invalidate(self, ctx.guild.id)
     await ctx.send(embed=embed(title="Chat channel cleared", description="I will no longer respond to messages in this channel"))
 
   @commands.command(name="persona", help="Change Friday's persona")
@@ -379,15 +406,8 @@ class Chat(commands.Cog):
       return await ctx.send(embed=embed(title="No change made"))
 
     await ctx.db.execute("UPDATE servers SET persona=$1 WHERE id=$2", choice[0], str(ctx.guild.id))
-    await ctx.send(embed=embed(title=f"New Persona `{choice[0].capitalize()}`"))
-
-  @chatchannel.after_invoke
-  @persona.after_invoke
-  async def settings_after_invoke(self, ctx: GuildContext):
-    if not ctx.guild:
-      return
-
     self.get_guild_config.invalidate(self, ctx.guild.id)
+    await ctx.send(embed=embed(title=f"New Persona `{choice[0].capitalize()}`"))
 
   async def content_filter_flagged(self, text: str) -> tuple[bool, list[str]]:
     if self.bot.testing:
@@ -471,8 +491,6 @@ class Chat(commands.Cog):
       await self.chat_message(ctx)
     except ChatError:
       pass
-    finally:
-      await ctx.release()
 
   async def chat_message(self, ctx: MyContext | GuildContext, *, content: str = None) -> None:
     msg = ctx.message
@@ -483,16 +501,16 @@ class Chat(commands.Cog):
     webhook = None
     if ctx.guild:
       if self.bot.log and not ctx.interaction:
-        conf = await self.bot.log.get_guild_config(ctx.guild.id, connection=ctx.db)
+        conf = await self.bot.log.get_guild_config(ctx.guild.id)
         if not conf:
           await ctx.db.execute(f"INSERT INTO servers (id) VALUES ({str(ctx.guild.id)}) ON CONFLICT DO NOTHING")
-          self.bot.log.get_guild_config.invalidate(log, ctx.guild.id)
+          self.bot.log.get_guild_config.invalidate(self.bot.log, ctx.guild.id)
           self.get_guild_config.invalidate(self, ctx.guild.id)
-          conf = await self.bot.log.get_guild_config(ctx.guild.id, connection=ctx.db)
+          conf = await self.bot.log.get_guild_config(ctx.guild.id)
         if "chat" in conf.disabled_commands:
           return
 
-      config = await self.get_guild_config(ctx.guild.id, connection=ctx.db)
+      config = await self.get_guild_config(ctx.guild.id)
       if config is None:
         log.error(f"Config was not available in chat for (guild: {ctx.guild.id if ctx.guild else None}) (channel type: {ctx.channel.type if ctx.channel else 'uhm'}) (user: {msg.author.id})")
         raise ChatError("Guild config not available, please contact developer.")
@@ -512,14 +530,14 @@ class Chat(commands.Cog):
         webhook = await config.webhook_fetched()
 
     dbl = self.bot.dbl
-    vote_streak = dbl and await dbl.user_streak(ctx.author.id, connection=ctx.db)
+    vote_streak = dbl and await dbl.user_streak(ctx.author.id)
 
     if vote_streak and not current_tier > PremiumTiersNew.voted:
       current_tier = PremiumTiersNew.voted
 
     patron_cog = self.bot.patreon
     if patron_cog is not None:
-      patrons = await patron_cog.get_patrons(connection=ctx.db)
+      patrons = await patron_cog.get_patrons()
 
       patron = next((p for p in patrons if p.id == ctx.author.id), None)
 

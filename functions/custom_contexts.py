@@ -227,45 +227,23 @@ class MyContext(commands.Context):
     return guild or self.lang_code_user
 
   @property
-  def lang_user(self):
+  def lang_user(self) -> I18n:
     return self.bot.language_files.get(self.lang_code_user, self.bot.language_files["en"])
 
   @property
-  def lang(self):
+  def lang(self) -> I18n:
     return self.bot.language_files.get(self.lang_code, self.bot.language_files["en"])
 
   async def prompt(
           self,
           message: str,
           *,
+          embed: Optional[Embed] = None,
           timeout: float = 60.0,
           delete_after: bool = True,
           author_id: Optional[int] = None,
           **kwargs
   ) -> Optional[bool]:
-    """An interactive reaction confirmation dialog.
-
-    Parameters
-    -----------
-    message: str
-        The message to show along with the prompt.
-    timeout: float
-        How long to wait before returning.
-    delete_after: bool
-        Whether to delete the confirmation message after we're done.
-    reacquire: bool
-        Whether to release the database connection and then acquire it
-        again when we're done.
-    author_id: Optional[int]
-        The member who should respond to the prompt. Defaults to the author of the
-        Context's message.
-    Returns
-    --------
-    Optional[bool]
-        ``True`` if explicit confirm,
-        ``False`` if explicit deny,
-        ``None`` if deny due to timeout
-    """
     author_id = author_id or self.author.id
     if self.author.bot and author_id == 892865928520413245:
       # unit testing bots can't use interactions :(
@@ -276,8 +254,8 @@ class MyContext(commands.Context):
         ctx=self,
         author_id=author_id
     )
-    kwargs["embed"] = kwargs.pop("embed", embed(title=message))
-    view.message = await self.send(view=view, **kwargs)
+    embed = embed or Embed(title=message)
+    view.message = await self.send(view=view, embed=embed, **kwargs)
     await view.wait()
     return view.value
 

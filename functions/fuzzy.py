@@ -1,7 +1,28 @@
+from __future__ import annotations
+
+import textwrap
 import numpy as np
+from discord.app_commands import Choice
+from fuzzywuzzy import fuzz
 
 
-def levenshtein_ratio_and_distance(first: str, second: str, ratio_calc=False) -> float:
+def autocomplete(arr: list[Choice], value: str | float | int) -> list[Choice]:
+  """Return a list of choices that are at least 90% similar to current."""
+  if not value:
+    # If the value is empty, return the original list
+    return arr[:25]
+
+  # Create a list of tuples with the choices and their fuzzy match score
+  choices_with_score = [(choice, fuzz.token_set_ratio(value, textwrap.shorten(choice.value, width=100))) for choice in arr]
+  # Sort the list by descending score
+  choices_with_score.sort(key=lambda x: x[1], reverse=True)
+  # Get the top 25 choices (or less if there are less than 25)
+  top_choices = [choice for choice, score in choices_with_score[:25]]
+
+  return top_choices
+
+
+def levenshtein_ratio_and_distance(first: str, second: str, ratio_calc: bool = False) -> float:
   """ levenshtein_ratio_and_distance:
       Calculates levenshtein distance between two strings.
       If ratio_calc = True, the function computes the
@@ -21,9 +42,14 @@ def levenshtein_ratio_and_distance(first: str, second: str, ratio_calc=False) ->
       distance[i][0] = i
       distance[0][k] = k
 
+  new_row = 0
+  new_col = 0
+
   # Iterate over the matrix to compute the cost of deletions,insertions and/or substitutions
   for col in range(1, cols):
+    new_col = col
     for row in range(1, rows):
+      new_row = row
       if first[row - 1] == second[col - 1]:
         cost = 0  # If the characters are the same in the two strings in a given position [i,j] then the cost is 0
       else:
@@ -36,13 +62,13 @@ def levenshtein_ratio_and_distance(first: str, second: str, ratio_calc=False) ->
                                distance[row][col - 1] + 1,          # Cost of insertions
                                distance[row - 1][col - 1] + cost)     # Cost of substitutions
   if ratio_calc is True:
-    Ratio = ((len(first) + len(second)) - distance[row][col]) / (len(first) + len(second))  # type: ignore
+    Ratio = ((len(first) + len(second)) - distance[new_row][new_col]) / (len(first) + len(second))
     return Ratio
   else:
-    return distance[row][col]  # type: ignore
+    return distance[new_row][new_col]
 
 
-def levenshtein_string_list(string: str, arr: list, *, min_: float = 0.7) -> list:
+def levenshtein_string_list(string: str, arr: list[str], *, min_: float = 0.7) -> list[tuple[float, str]]:
   """ Return an ordered list in numeric order of the strings in arr that are
   at least min_ percent similar to string."""
   return sorted(

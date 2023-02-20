@@ -258,11 +258,11 @@ class Log(commands.Cog):
         return False
 
       if ctx.guild:
-        config = await self.get_guild_config(ctx.guild.id, connection=ctx.db)
+        config = await self.get_guild_config(ctx.guild.id)
         if not config:
           await ctx.db.execute(f"INSERT INTO servers (id) VALUES ({str(ctx.guild.id)}) ON CONFLICT DO NOTHING")
           self.get_guild_config.invalidate(self, ctx.guild.id)
-          config = await self.get_guild_config(ctx.guild.id, connection=ctx.db)
+          config = await self.get_guild_config(ctx.guild.id)
         if config is not None:
           if ctx.command.name in config.disabled_commands:
             return False
@@ -311,10 +311,10 @@ class Log(commands.Cog):
   def get_prefixes(self) -> List[str]:
     return ["/", "!", "f!", "!f", "%", ">", "?", "-", "(", ")"]
 
-  @cache.cache(ignore_kwargs=True)
-  async def get_guild_config(self, guild_id: int, *, connection: Optional[asyncpg.Pool | asyncpg.Connection] = None) -> Config:
+  @cache.cache()
+  async def get_guild_config(self, guild_id: int) -> Config:
     query = "SELECT * FROM servers WHERE id=$1 LIMIT 1;"
-    conn = connection or self.bot.pool
+    conn = self.bot.pool
     record = await conn.fetchrow(query, str(guild_id))
     log.debug(f"PostgreSQL Query: \"{query}\" + {str(guild_id)}")
     if not record:
@@ -364,7 +364,7 @@ class Log(commands.Cog):
     error = getattr(error, 'original', error)
 
     if isinstance(error, (*ignored, *wave_errors)) or (hasattr(error, "log") and error and error.log is False):
-      log.warning("Ignored error called: {}".format(error))
+      log.warning(f"Ignored error called: {error}")
       return
 
     if isinstance(error, just_send):
