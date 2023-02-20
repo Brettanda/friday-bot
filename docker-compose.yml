@@ -6,7 +6,7 @@ services:
     restart: unless-stopped
     env_file: .env
     environment:
-      - DBURL=postgresql://fridaylocal:fridaylocal@db:5432/fridaylocal
+      # - DBURL=postgresql://fridaylocal:fridaylocal@db:5432/fridaylocal
       - LAVALINKUSHOST=lavalink
       - LAVALINKUSPORT=2333
       - LAVALINKUSPASS=lavalink
