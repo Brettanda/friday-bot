@@ -5,6 +5,7 @@ import datetime
 import json
 import re
 from collections import defaultdict
+from enum import Enum
 # import random
 from typing import TYPE_CHECKING, Any, Optional, Sequence, List, Tuple
 from typing_extensions import Annotated
@@ -40,6 +41,12 @@ def is_nacl_server():
       raise commands.NotOwner()
     return True
   return commands.check(predicate)
+
+
+class RockPaperScissorsOptions(Enum):
+  Rock = "rock"
+  Paper = "paper"
+  Scissors = "scissors"
 
 
 class Fun(commands.Cog):
@@ -85,73 +92,29 @@ class Fun(commands.Cog):
     elif isinstance(error, asyncio.TimeoutError):
       await ctx.send(embed=embed(title="This command took too long to execute. Please try again with different arguments", color=MessageColors.error()))
 
-  # @commands.Cog.listener()
-  # async def on_ready(self):
-  #   self.bot.add_view(views.StopButton())
+  @commands.hybrid_command(name="rockpaperscissors", aliases=["rps"], usage="<rock, paper or scissors>")
+  async def rockpaperscissors(self, ctx: MyContext, choice: RockPaperScissorsOptions):
+    """Play Rock Paper Scissors with Friday"""
+    mychoice = RockPaperScissorsOptions(random.choice(self.rpsoptions))
 
-  # TODO: has no way to end this command ATM
-  # TODO: can only store one user total for all of friday
-  # @commands.group(name="timeout",aliases=["banish"],description="Put someone into a voice channel for a timeout",invoke_without_command=True)
-  # @commands.guild_only()
-  # @commands.bot_has_guild_permissions(move_members = True)
-  # @commands.has_guild_permissions(move_members = True)
-  # @commands.bot_has_permissions(send_messages = True, read_messages = True, embed_links = True)
-  # async def timeout(self,ctx,channel:discord.VoiceChannel,member:discord.Member):
-  #   self.timeouter = member
-  #   self.timeoutCh = channel
-  #   try:
-  #     await member.move_to(channel,reason=f"{ctx.author} called the move command")
-  #   except:
-  #     raise
-  #   await ctx.channel.send(embed=embed(title=f"Successfully moved {member} to {channel}"))
-
-  # @timeout.command(name="stop")
-  # @commands.guild_only()
-  # async def timeout_stop(self,ctx):
-  #   print("")
-
-  # @commands.Cog.listener()
-  # async def on_voice_state_update(self,member,before,after):
-  #   if before.channel == self.timeoutCh and member == self.timeouter:
-  #     await member.move_to(self.timeoutCh,reason="Bad dog, stay in your timeout room")
-
-  # @commands.command(name="crowdcontrol",aliases=["cc"],description="Sends every back to the channel they came from if they enter a specific voicechannel")
-  # @commands.guild_only()
-  # @commands.bot_has_guild_permissions(move_members = True)
-  # @commands.bot_has_permissions(send_messages = True, read_messages = True, embed_links = True)
-  # @commands.has_guild_permissions(move_members = True)
-
-  @commands.command(name="rockpaperscissors", help="Play Rock Paper Scissors with Friday", aliases=["rps"], usage="<rock, paper or scissors>")
-  async def norm_rockpaperscissors(self, ctx: MyContext, choice: str):
-    arg = choice.lower()
-
-    if arg not in self.rpsoptions:
-      return await ctx.send(embed=embed(title=f"`{arg}` is not Rock, Paper, Scissors. Please choose one of those three.", color=MessageColors.error()))
-
-    mychoice = random.choice(self.rpsoptions)
-
-    if mychoice == arg:
-      conclusion = "Draw"
-    elif mychoice == "rock" and arg == "paper":
-      conclusion = self.bot.user
-    elif mychoice == "rock" and arg == "scissors":
-      conclusion = self.bot.user
-    elif mychoice == "paper" and arg == "scissors":
-      conclusion = ctx.author
-    elif mychoice == "paper" and arg == "rock":
-      conclusion = ctx.author
-    elif mychoice == "scissors" and arg == "rock":
-      conclusion = ctx.author
-    elif mychoice == "scissors" and arg == "paper":
-      conclusion = self.bot.user
+    if mychoice == choice:
+      conclusion = ctx.lang.fun.rockpaperscissors.win_options.draw
+    elif mychoice == RockPaperScissorsOptions.Rock and choice == RockPaperScissorsOptions.Paper:
+      conclusion = ctx.author.mention
+    elif mychoice == RockPaperScissorsOptions.Paper and choice == RockPaperScissorsOptions.Scissors:
+      conclusion = ctx.author.mention
+    elif mychoice == RockPaperScissorsOptions.Scissors and choice == RockPaperScissorsOptions.Rock:
+      conclusion = ctx.author.mention
     else:
-      conclusion = "Something went wrong"
+      conclusion = self.bot.user.mention
 
+    user_choice = ctx.lang.fun.rockpaperscissors.choices[choice.value]
+    bot_choice = ctx.lang.fun.rockpaperscissors.choices[mychoice.value]
     return await ctx.send(
         embed=embed(
-            title=f"Your move: {arg} VS My move: {mychoice}",
+            title=ctx.lang.fun.rockpaperscissors.response_title.format(user_choice=user_choice, bot_choice=bot_choice),
             color=MessageColors.rps(),
-            description=f"The winner of this round is: **{conclusion}**"))
+            description=ctx.lang.fun.rockpaperscissors.response_description.format(winner_user_name=conclusion)))
 
   MINEEMOTES = {
       "X": "💥",
@@ -175,51 +138,49 @@ class Fun(commands.Cog):
       "8": "8️⃣"
   }
 
-  @commands.command(name="minesweeper", aliases=["ms"], extras={"examples": ["9 10", "5 5"]}, help="Play minesweeper")
-  async def norm_minesweeper(self, ctx, size: int = 5, bomb_count: int = 6):
+  @commands.hybrid_command(aliases=["ms"], extras={"examples": ["9 10", "5 5"]})
+  async def minesweeper(self, ctx: MyContext, size: int = 5, bomb_count: int = 6):
+    """Play minesweeper"""
+    if size > 9:
+      raise commands.BadArgument(ctx.lang.fun.minesweeper.error_max_board_size)
+    if bomb_count >= size**2 or bomb_count >= 81:
+      raise commands.BadArgument(ctx.lang.fun.minesweeper.error_greater_than_board)
+    if size <= 1 or bomb_count <= 1:
+      raise commands.BadArgument(ctx.lang.fun.minesweeper.error_greater_than_one)
+
     async with timeout(2):
       mines = await self.bot.loop.run_in_executor(None, self.mine_sweeper, size, bomb_count)
-    await ctx.reply(embed=embed(title=f"{size}x{size} with {bomb_count} bombs", author_name="Minesweeper", description=mines))
+    await ctx.reply(embed=embed(title=ctx.lang.fun.minesweeper.response_title.format(size=size, bomb_count=bomb_count), author_name=ctx.lang.fun.minesweeper.response_author, description=mines))
 
-  def mine_sweeper(self, size: int = 5, bomb_count: int = 3):
-    if size > 9:
-      raise commands.BadArgument("Size cannot be larger than 9 due to the message character limit of Discord")
-    if bomb_count >= size**2 or bomb_count >= 81:
-      raise commands.BadArgument("Bomb count cannot be larger than the game board")
-    if size <= 1 or bomb_count <= 1:
-      raise commands.BadArgument("Bomb count and board size must be greater than 1")
+  def mine_sweeper(self, board_size: int, bomb_count: int) -> str:
+    board = np.zeros((board_size, board_size), dtype=int)
+    bomb_positions = np.random.choice(board_size * board_size, size=bomb_count, replace=False)
+    board.flat[bomb_positions] = -1
 
-    arr = np.full((size, size), "0", dtype='<U21')
+    for i in range(board_size):
+      for j in range(board_size):
+        if board[i, j] == -1:
+          continue
+        n = 0
+        for ni in [-1, 0, 1]:
+          for nj in [-1, 0, 1]:
+            if ni == 0 and nj == 0:
+              continue
+            if i + ni >= 0 and i + ni < board_size and j + nj >= 0 and j + nj < board_size:
+              if board[i + ni, j + nj] == -1:
+                n += 1
+        board[i, j] = n
 
-    # arr: list[list[str | int]] = [[0 for row in range(size)] for column in range(size)]
+    board_str = ""
+    for i in range(board_size):
+      for j in range(board_size):
+        if board[i, j] == -1:
+          board_str += "||" + self.MINEEMOTES["X"] + "||"
+        else:
+          board_str += "||" + self.MINEEMOTES[board[i, j]] + "||"
+      board_str += "\n"
 
-    planted, x = 0, 0
-    while planted < bomb_count and x < size**2:
-      x += 1
-      loc = random.randint(0, size**2 - 1)
-      row = loc // size
-      col = loc % size
-
-      if arr[row][col] == "X":
-        continue
-
-      arr[row][col] = "X"
-      planted += 1
-
-    for a in np.nditer(arr, op_flags=['readwrite']):
-      if a == "X":
-        continue
-
-      neighbors = 0
-      for row in range(max(0, int(a) - 1), min(size - 1, int(a) + 1) + 1):
-        for col in range(max(0, int(a) - 1), min(size - 1, int(a) + 1) + 1):
-          if a == row and a == col:
-            continue
-          if arr[row][col] == "X":
-            neighbors += 1
-      a[...] = neighbors
-
-    return "||" + "||\n||".join("||||".join(self.MINEEMOTES[cell] for cell in row) for row in arr) + "||"
+    return board_str.strip()
 
   @commands.command(name='souptime', help='Soup Time')
   @commands.cooldown(1, 7, commands.BucketType.user)
