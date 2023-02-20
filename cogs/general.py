@@ -134,14 +134,22 @@ class General(commands.Cog):
 
     return await ctx.send(
         embed=embed(
-            title=f"{self.bot.user.name} - About",
+            title=ctx.lang.general.about.response_title.format(bot_name=self.bot.user.name),
             thumbnail=self.bot.user.display_avatar.url,
             author_icon=self.bot.owner.display_avatar.url,
             author_name=str(self.bot.owner),
-            footer="Made with ❤️ and discord.py!",
-            description="Big thanks to all Patrons!",
-            fieldstitle=["Servers joined", "Latency", "Shards", "Loving Life", "Uptime", "CPU/RAM", "Existed since"],
-            fieldsval=[len(self.bot.guilds), f"{(shard and shard.latency or self.bot.latency)*1000:,.0f} ms", self.bot.shard_count, "True", uptime, f'{memory_usage:.2f} MiB\n{cpu_usage:.2f}% CPU', f"{time.format_dt(self.bot.user.created_at,style='D')}"],
+            footer=ctx.lang.general.about.response_footer,
+            description=ctx.lang.general.about.response_description,
+            fieldstitle=ctx.lang.general.about.response_field_titles,
+            fieldsval=[
+                len(self.bot.guilds),
+                ctx.lang.general.about.response_field_values[0].format(ping=f"{(shard and shard.latency or self.bot.latency)*1000:,.0f}"),
+                self.bot.shard_count,
+                ctx.lang.general.about.response_field_values[1],
+                uptime,
+                ctx.lang.general.about.response_field_values[2].format(memory_usage=f"{memory_usage:.2f}", cpu_usage=f"{cpu_usage:.2f}"),
+                f"{time.format_dt(self.bot.user.created_at,style='D')}"
+            ],
         ), view=views.Links()
     )
 
