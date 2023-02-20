@@ -5,6 +5,7 @@ import datetime
 import json
 import re
 from collections import defaultdict
+from enum import Enum
 # import random
 from typing import TYPE_CHECKING, Any, Optional, Sequence, List, Tuple
 from typing_extensions import Annotated
@@ -40,6 +41,12 @@ def is_nacl_server():
       raise commands.NotOwner()
     return True
   return commands.check(predicate)
+
+
+class RockPaperScissorsOptions(Enum):
+  Rock = "rock"
+  Paper = "paper"
+  Scissors = "scissors"
 
 
 class Fun(commands.Cog):
@@ -85,73 +92,29 @@ class Fun(commands.Cog):
     elif isinstance(error, asyncio.TimeoutError):
       await ctx.send(embed=embed(title="This command took too long to execute. Please try again with different arguments", color=MessageColors.error()))
 
-  # @commands.Cog.listener()
-  # async def on_ready(self):
-  #   self.bot.add_view(views.StopButton())
+  @commands.hybrid_command(name="rockpaperscissors", aliases=["rps"], usage="<rock, paper or scissors>")
+  async def rockpaperscissors(self, ctx: MyContext, choice: RockPaperScissorsOptions):
+    """Play Rock Paper Scissors with Friday"""
+    mychoice = RockPaperScissorsOptions(random.choice(self.rpsoptions))
 
-  # TODO: has no way to end this command ATM
-  # TODO: can only store one user total for all of friday
-  # @commands.group(name="timeout",aliases=["banish"],description="Put someone into a voice channel for a timeout",invoke_without_command=True)
-  # @commands.guild_only()
-  # @commands.bot_has_guild_permissions(move_members = True)
-  # @commands.has_guild_permissions(move_members = True)
-  # @commands.bot_has_permissions(send_messages = True, read_messages = True, embed_links = True)
-  # async def timeout(self,ctx,channel:discord.VoiceChannel,member:discord.Member):
-  #   self.timeouter = member
-  #   self.timeoutCh = channel
-  #   try:
-  #     await member.move_to(channel,reason=f"{ctx.author} called the move command")
-  #   except:
-  #     raise
-  #   await ctx.channel.send(embed=embed(title=f"Successfully moved {member} to {channel}"))
-
-  # @timeout.command(name="stop")
-  # @commands.guild_only()
-  # async def timeout_stop(self,ctx):
-  #   print("")
-
-  # @commands.Cog.listener()
-  # async def on_voice_state_update(self,member,before,after):
-  #   if before.channel == self.timeoutCh and member == self.timeouter:
-  #     await member.move_to(self.timeoutCh,reason="Bad dog, stay in your timeout room")
-
-  # @commands.command(name="crowdcontrol",aliases=["cc"],description="Sends every back to the channel they came from if they enter a specific voicechannel")
-  # @commands.guild_only()
-  # @commands.bot_has_guild_permissions(move_members = True)
-  # @commands.bot_has_permissions(send_messages = True, read_messages = True, embed_links = True)
-  # @commands.has_guild_permissions(move_members = True)
-
-  @commands.command(name="rockpaperscissors", help="Play Rock Paper Scissors with Friday", aliases=["rps"], usage="<rock, paper or scissors>")
-  async def norm_rockpaperscissors(self, ctx: MyContext, choice: str):
-    arg = choice.lower()
-
-    if arg not in self.rpsoptions:
-      return await ctx.send(embed=embed(title=f"`{arg}` is not Rock, Paper, Scissors. Please choose one of those three.", color=MessageColors.error()))
-
-    mychoice = random.choice(self.rpsoptions)
-
-    if mychoice == arg:
-      conclusion = "Draw"
-    elif mychoice == "rock" and arg == "paper":
-      conclusion = self.bot.user
-    elif mychoice == "rock" and arg == "scissors":
-      conclusion = self.bot.user
-    elif mychoice == "paper" and arg == "scissors":
-      conclusion = ctx.author
-    elif mychoice == "paper" and arg == "rock":
-      conclusion = ctx.author
-    elif mychoice == "scissors" and arg == "rock":
-      conclusion = ctx.author
-    elif mychoice == "scissors" and arg == "paper":
-      conclusion = self.bot.user
+    if mychoice == choice:
+      conclusion = ctx.lang.fun.rockpaperscissors.win_options.draw
+    elif mychoice == RockPaperScissorsOptions.Rock and choice == RockPaperScissorsOptions.Paper:
+      conclusion = ctx.author.mention
+    elif mychoice == RockPaperScissorsOptions.Paper and choice == RockPaperScissorsOptions.Scissors:
+      conclusion = ctx.author.mention
+    elif mychoice == RockPaperScissorsOptions.Scissors and choice == RockPaperScissorsOptions.Rock:
+      conclusion = ctx.author.mention
     else:
-      conclusion = "Something went wrong"
+      conclusion = self.bot.user.mention
 
+    user_choice = ctx.lang.fun.rockpaperscissors.choices[choice.value]
+    bot_choice = ctx.lang.fun.rockpaperscissors.choices[mychoice.value]
     return await ctx.send(
         embed=embed(
-            title=f"Your move: {arg} VS My move: {mychoice}",
+            title=ctx.lang.fun.rockpaperscissors.response_title.format(user_choice=user_choice, bot_choice=bot_choice),
             color=MessageColors.rps(),
-            description=f"The winner of this round is: **{conclusion}**"))
+            description=ctx.lang.fun.rockpaperscissors.response_description.format(winner_user_name=conclusion)))
 
   MINEEMOTES = {
       "X": "💥",
