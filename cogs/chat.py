@@ -12,6 +12,7 @@ import asyncpg
 import discord
 import openai
 import validators
+from discord import app_commands
 from discord.app_commands.checks import Cooldown
 from discord.ext import commands
 from google.cloud import translate_v2 as translate
