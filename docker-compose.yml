@@ -7,9 +7,9 @@ services:
     env_file: .env
     environment:
       - DBURL=postgresql://fridaylocal:fridaylocal@db:5432/fridaylocal
-      - LAVALINKDOCKERHOST=lavalink
-      - LAVALINKDOCKERPORT=2333
-      - LAVALINKDOCKERPASS=lavalink
+      - LAVALINKUSHOST=lavalink
+      - LAVALINKUSPORT=2333
+      - LAVALINKUSPASS=lavalink
       - WAIT_HOSTS=db:5432
     volumes:
       - .:/usr/src/app
@@ -17,10 +17,10 @@ services:
     ports:
       - 5678:5678
       - 443:443
-    entrypoint: sh -c "/wait && exec python3 index.py"
+    # entrypoint: sh -c "/wait && python3 index.py db upgrade && exec python3 index.py"
     # entrypoint: sh -c "exec python3 index.py"
   lavalink:
-    image: fredboat/lavalink
+    image: fredboat/lavalink:dev
     restart: unless-stopped
     ports:
       - 2333:2333

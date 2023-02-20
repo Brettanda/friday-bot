@@ -161,7 +161,7 @@ class NaCl(commands.Cog):
     if reminder is None:
       return
 
-    two_min = time.FutureTime("2m")
+    two_min = time.FutureTime("5m")
     await reminder.create_timer(two_min.dt, "ghostfapper", member.guild.id, after.channel.id, member.id)
 
   @commands.Cog.listener()

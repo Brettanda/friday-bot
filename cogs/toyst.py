@@ -39,7 +39,7 @@
 #   async def funny(self, button: discord.ui.Button, interaction: discord.Interaction):
 #     self.value = True
 #     await interaction.response.defer()
-#     await interaction.edit_original_message(view=None)
+#     await interaction.edit_original_response(view=None)
 #     await interaction.followup.send("Thank you for improving the bot!", ephemeral=True)
 #     self.stop()
 
@@ -47,7 +47,7 @@
 #   async def nah(self, button: discord.ui.Button, interaction: discord.Interaction):
 #     self.value = False
 #     await interaction.response.defer()
-#     await interaction.delete_original_message()
+#     await interaction.delete_original_response()
 #     await interaction.followup.send("Thank you for improving the bot!", ephemeral=True)
 #     self.stop()
 

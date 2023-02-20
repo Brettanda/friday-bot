@@ -71,36 +71,6 @@ class Support(commands.Cog):
     """Get the Patreon link for Friday"""
     await ctx.reply(PATREON_LINK)
 
-  # @commands.Cog.listener()
-  # async def on_message(self, msg: discord.Message):
-  #   if not isinstance(msg.channel, discord.DMChannel):
-  #     return
-
-  #   bot_names = (
-  #       "Hype Squad Events",
-  #       "HypeSquad Academy",
-  #       "ModMail Testers"
-  #   )
-
-  #   bot_names = [b.lower().replace(" ", "") for b in bot_names]
-
-  #   if not msg.author.name.lower().replace(" ", "") in bot_names:
-  #     return
-
-  #   support = self.bot.get_guild(707441352367013899)
-  #   if not support:
-  #     return
-
-  #   owner = await self.bot.get_or_fetch_member(support, 215227961048170496)
-  #   if not owner:
-  #     return
-
-  #   avatar = msg.author.avatar.url if msg.author.avatar is not None else None
-  #   await owner.send(embed=embed(
-  #       title="Maybe ban?",
-  #       description=f"{msg.author.mention} ({msg.author.id}) just tried to contact me in a private channel.",
-  #       image=avatar))
-
   @commands.Cog.listener()
   async def on_member_update(self, before: discord.Member, after: discord.Member):
     if after.guild.id != SUPPORT_SERVER_ID:
@@ -130,25 +100,6 @@ class Support(commands.Cog):
     if not self.bot.views_loaded:
       self.bot.add_view(SupportIntroRoles())
 
-  # @commands.Cog.listener("on_ready")
-  # @commands.Cog.listener("on_invite_create")
-  # @commands.Cog.listener("on_invite_delete")
-  # async def set_invite_tracking(self, invite: discord.Invite = None):
-  #   if self.bot.cluster_idx != 0:
-  #     return
-
-  #   try:
-  #     if invite is not None:
-  #       if hasattr(invite, "guild") and hasattr(invite.guild, "id") and invite.guild.id != SUPPORT_SERVER_ID:
-  #         return
-
-  #     if self.bot.get_guild(SUPPORT_SERVER_ID) is not None:
-  #       for invite in await self.bot.get_guild(SUPPORT_SERVER_ID).invites():
-  #         if invite.max_age == 0 and invite.max_uses == 0 and invite.inviter.id == self.bot.owner_id:
-  #           self.bot.invite_tracking.update({invite.code: invite.uses})
-  #   except discord.Forbidden:
-  #     pass
-
   @commands.Cog.listener()
   async def on_member_join(self, member: discord.Member):
     # await self.bot.request_offline_members()
@@ -160,29 +111,6 @@ class Support(commands.Cog):
 
     if self.bot.get_guild(SUPPORT_SERVER_ID) is None:
       return
-
-    # invite_used, x, invites = None, 0, await self.bot.get_guild(SUPPORT_SERVER_ID).invites()
-    # for invite in invites:
-    #   if invite.max_age == 0 and invite.max_uses == 0 and invite.inviter.id == self.bot.owner_id:
-    #     if int(invite.uses) > int(self.bot.invite_tracking[invite.code]):
-    #       invite_used = invite
-    #       self.bot.invite_tracking[invite.code] = invite.uses
-    #     x += 1
-
-    # if invite_used is not None:
-    #   if config.support_server_invites.get(invite_used.code, None) is not None:
-    #     with open("invite_tracking.csv", "w") as f:
-    #       f.write("reference,key,count\n")
-    #       x = 0
-    #       for reference in config.support_server_invites:
-    #         inv = [invite for invite in invites if invite.code == reference][0]
-    #         count, inv = inv.uses, inv.code
-    #         f.write(f"{config.support_server_invites.get(reference, None)},{inv},{count}\n")
-    #         x += 1
-    #       f.close()
-    #     print(config.support_server_invites[invite_used.code])
-    #   else:
-    #     print(invite_used.code)
 
 
 async def setup(bot):
