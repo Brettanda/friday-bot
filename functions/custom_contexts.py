@@ -67,14 +67,20 @@ class ConfirmationView(discord.ui.View):
 
   async def on_timeout(self) -> None:
     if self.delete_after and self.message:
-      await self.message.delete()
+      if not self.message.flags.ephemeral:
+        await self.message.delete()
+      else:
+        await self.message.edit(view=None, content=None, embeds=[Embed(title="This is safe to dismiss now")])
 
   @discord.ui.button(emoji="\N{HEAVY CHECK MARK}", label='Confirm', custom_id="confirmation_true", style=discord.ButtonStyle.green)
   async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
     self.value = True
     await interaction.response.defer()
-    if self.delete_after:
-      await interaction.delete_original_response()
+    if self.delete_after and self.message:
+      if not self.message.flags.ephemeral:
+        await self.message.delete()
+      else:
+        await self.message.edit(view=None, content=None, embeds=[Embed(title="This is safe to dismiss now")])
     self.stop()
 
   @discord.ui.button(emoji="\N{HEAVY MULTIPLICATION X}", label='Cancel', custom_id="confirmation_false", style=discord.ButtonStyle.red)
@@ -118,8 +124,11 @@ class MultiSelectView(discord.ui.View):
   async def select(self, interaction: discord.Interaction, select: discord.ui.Select):
     self.values = select.values
     await interaction.response.defer()
-    if self.delete_after:
-      await interaction.delete_original_response()
+    if self.delete_after and self.message:
+      if not self.message.flags.ephemeral:
+        await self.message.delete()
+      else:
+        await self.message.edit(view=None, content=None, embeds=[Embed(title="This is safe to dismiss now")])
     self.stop()
 
   async def interaction_check(self, interaction: discord.Interaction) -> bool:
@@ -131,55 +140,12 @@ class MultiSelectView(discord.ui.View):
 
   async def on_timeout(self) -> None:
     if self.delete_after and self.message:
-      await self.message.delete()
+      if not self.message.flags.ephemeral:
+        await self.message.delete()
+      else:
+        await self.message.edit(view=None, content=None, embeds=[Embed(title="This is safe to dismiss now")])
 
 
-# class Modal(discord.ui.Modal):
-#   def __init__(self, title: str, items: List[dict]):
-#     super().__init__(title)
-#     self.values: Optional[list] = None
-#     for item in items:
-#       self.add_item(discord.ui.InputText(**item))
-
-#   async def callback(self, interaction: discord.Interaction):
-#     await interaction.response.defer()
-#     return [c.value for c in self.children]
-#     # embed = discord.Embed(title="Your Modal Results", color=discord.Color.random())
-#     # embed.add_field(name="First Input", value=self.children[0].value, inline=False)
-#     # # embed.add_field(name="Second Input", value=self.children[1].value, inline=False)
-#     # await interaction.response.send_message(embeds=[embed])
-
-
-# class ModalView(discord.ui.View):
-#   def __init__(self, *, modal_button: Optional[str] = "Modal", modal_title: Optional[str] = "Modal", modal_items: List[dict] = [], author_id: int):
-#     super().__init__(timeout=60.0)
-#     self._modal_button: Optional[str] = modal_button
-#     self._modal_title: Optional[str] = modal_title
-#     self._modal_items: List[dict] = modal_items
-#     self.author_id: int = author_id
-
-#     self.button_modal.label = modal_button
-
-#   async def interaction_check(self, interaction: discord.Interaction) -> bool:
-#     if interaction.user and interaction.user.id == self.author_id:
-#       return True
-#     else:
-#       await interaction.response.send_message('This confirmation dialog is not for you.', ephemeral=True)
-#       return False
-
-#   @discord.ui.button(label="Modal", style=discord.ButtonStyle.primary)
-#   async def button_modal(self, button, interaction: discord.Interaction):
-#     await interaction.response.send_modal(Modal(
-#         title=self._modal_title,
-#         items=self._modal_items
-#     ))
-#     self.stop()
-
-#   async def on_timeout(self) -> None:
-#     try:
-#       await self.message.delete()
-#     except discord.NotFound:
-#       pass
 class MyContext(commands.Context):
   channel: Union[discord.VoiceChannel, discord.TextChannel, discord.Thread, discord.DMChannel]
   prefix: str
