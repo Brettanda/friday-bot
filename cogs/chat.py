@@ -93,7 +93,7 @@ class SpamChecker:
     self.voted = commands.CooldownMapping.from_cooldown(60, 43200, commands.BucketType.user)
     self.streaked = commands.CooldownMapping.from_cooldown(75, 43200, commands.BucketType.user)
     self.patron_1 = commands.CooldownMapping.from_cooldown(50, 43200, commands.BucketType.user)
-    self.patron_2 = commands.CooldownMapping.from_cooldown(150, 43200, commands.BucketType.user)
+    self.patron_2 = commands.CooldownMapping.from_cooldown(120, 43200, commands.BucketType.user)
     self.patron_3 = commands.CooldownMapping.from_cooldown(200, 43200, commands.BucketType.user)
     # self.self_token = commands.CooldownMapping.from_cooldown(1000, 43200, commands.BucketType.user)
 
