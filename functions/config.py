@@ -185,9 +185,13 @@ class PremiumTiersNew(enum.Enum):
   tier_4 = 5
 
   @classmethod
-  def from_patreon_tier(cls, tier: int = 7212079):
-    if int(tier) == 7212079:  # Patreon Tier 1
+  def from_patreon_tier(cls, tier: int = 7212079) -> PremiumTiersNew:
+    if int(tier) == 8434506:  # Patreon Tier 1
       return cls.tier_1
+    if int(tier) == 7212079:  # Patreon Tier 2
+      return cls.tier_2
+    if int(tier) == 7378874:  # Patreon Tier 3
+      return cls.tier_3
     return cls.free
 
   def __str__(self):
@@ -235,7 +239,11 @@ class PremiumPerks:
     elif self.tier == PremiumTiersNew.streaked:
       return SpamChecker().streaked
     elif self.tier >= PremiumTiersNew.tier_1:
-      return SpamChecker().patron
+      return SpamChecker().patron_1
+    elif self.tier >= PremiumTiersNew.tier_2:
+      return SpamChecker().patron_2
+    elif self.tier >= PremiumTiersNew.tier_3:
+      return SpamChecker().patron_3
     return SpamChecker().free
 
   @property

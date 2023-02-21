@@ -16,7 +16,6 @@ from discord import app_commands
 from discord.app_commands.checks import Cooldown
 from discord.ext import commands
 from google.cloud import translate_v2 as translate
-from six.moves.html_parser import HTMLParser  # type: ignore
 from slugify import slugify
 
 from cogs.log import CustomWebhook
@@ -91,10 +90,10 @@ class SpamChecker:
     self.absolute_minute = commands.CooldownMapping.from_cooldown(6, 30, commands.BucketType.user)
     self.absolute_hour = commands.CooldownMapping.from_cooldown(180, 3600, commands.BucketType.user)
     self.free = commands.CooldownMapping.from_cooldown(30, 43200, commands.BucketType.user)
-    self.voted = commands.CooldownMapping.from_cooldown(40, 43200, commands.BucketType.user)
-    self.streaked = commands.CooldownMapping.from_cooldown(60, 43200, commands.BucketType.user)
+    self.voted = commands.CooldownMapping.from_cooldown(60, 43200, commands.BucketType.user)
+    self.streaked = commands.CooldownMapping.from_cooldown(75, 43200, commands.BucketType.user)
     self.patron_1 = commands.CooldownMapping.from_cooldown(50, 43200, commands.BucketType.user)
-    self.patron_2 = commands.CooldownMapping.from_cooldown(150, 43200, commands.BucketType.user)
+    self.patron_2 = commands.CooldownMapping.from_cooldown(120, 43200, commands.BucketType.user)
     self.patron_3 = commands.CooldownMapping.from_cooldown(200, 43200, commands.BucketType.user)
     # self.self_token = commands.CooldownMapping.from_cooldown(1000, 43200, commands.BucketType.user)
 
@@ -226,7 +225,7 @@ class Translation:
         self.input = translation.get("input", text)
         self.detectedSourceLanguage = translation.get("detectedSourceLanguage", from_lang)
         if translation is not None and translation.get("translatedText", None) is not None:
-          self.translatedText = parent.h.unescape(translation["translatedText"])  # type: ignore
+          self.translatedText = translation["translatedText"]
       except OSError:
         pass
 
