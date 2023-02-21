@@ -16,7 +16,6 @@ from discord import app_commands
 from discord.app_commands.checks import Cooldown
 from discord.ext import commands
 from google.cloud import translate_v2 as translate
-from six.moves.html_parser import HTMLParser  # type: ignore
 from slugify import slugify
 
 from cogs.log import CustomWebhook
@@ -226,7 +225,7 @@ class Translation:
         self.input = translation.get("input", text)
         self.detectedSourceLanguage = translation.get("detectedSourceLanguage", from_lang)
         if translation is not None and translation.get("translatedText", None) is not None:
-          self.translatedText = parent.h.unescape(translation["translatedText"])  # type: ignore
+          self.translatedText = translation["translatedText"]
       except OSError:
         pass
 
