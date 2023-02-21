@@ -241,10 +241,9 @@ class Chat(commands.Cog):
   def __init__(self, bot: Friday):
     self.bot: Friday = bot
     self.translate_client = translate.Client()  # _http=self.bot.http)
-    self.h = HTMLParser()
 
     # https://help.openai.com/en/articles/5008629-can-i-use-concurrent-api-calls
-    self.api_lock = asyncio.Semaphore(2) # bot.openai_api_lock
+    self.api_lock = asyncio.Semaphore(2)  # bot.openai_api_lock
 
     self._spam_check = SpamChecker()
     self._repeating_spam = CooldownByRepeating.from_cooldown(3, 60 * 3, commands.BucketType.channel)
