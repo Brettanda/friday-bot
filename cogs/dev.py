@@ -202,7 +202,6 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       msg.content = ctx.prefix + command
 
       new_ctx = await self.bot.get_context(msg, cls=type(ctx))
-      new_ctx._db = ctx._db
 
       await new_ctx.reinvoke()
 
@@ -498,7 +497,6 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     msg.content = ctx.prefix + command
 
     new_ctx = await self.bot.get_context(msg, cls=type(ctx))
-    new_ctx._db = ctx._db
 
     for i in range(times):
       await new_ctx.reinvoke()
@@ -638,7 +636,6 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     msg.content = ctx.prefix + command
 
     new_ctx = await self.bot.get_context(msg, cls=type(ctx))
-    new_ctx._db = PerformanceMocker()
 
     new_ctx._state = PerformanceMocker()  # type: ignore
     new_ctx.channel = PerformanceMocker()  # type: ignore

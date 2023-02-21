@@ -5,11 +5,13 @@ import datetime
 import logging
 import os
 import sys
+import traceback
 from collections import Counter, defaultdict
 from typing import TYPE_CHECKING, Any, AsyncIterator, Iterable, Optional
 
 import aiohttp
 import asyncpg
+import click
 import discord
 from discord import app_commands
 from discord.ext import commands
@@ -19,9 +21,11 @@ from topgg.webhook import WebhookManager
 import cogs
 import functions
 from functions.config import Config
+from functions.db import Migrations
 from functions.languages import load_languages
 
 if TYPE_CHECKING:
+  from i18n import I18n
   from .cogs.database import Database
   from .cogs.log import Log
   from .cogs.reminder import Reminder
@@ -30,8 +34,6 @@ if TYPE_CHECKING:
   from i18n import I18n
 
 load_dotenv()
-
-TOKEN = os.environ.get('TOKENTEST')
 
 log = logging.getLogger(__name__)
 
@@ -44,7 +46,7 @@ class Translator(app_commands.Translator):
     cog_name = cog.__class__.__name__.lower()
     if cog is None:
       return None
-    lang_file: I18n = cog.bot.language_files
+    lang_file: dict[str, I18n] = cog.bot.language_files
     try:
       c = lang_file[lang][cog_name]
       trans = None
@@ -65,7 +67,8 @@ class Translator(app_commands.Translator):
         if ctx.location.name == "group_name":
           trans = c["command_name"].translate(str.maketrans("", "", r"""!"#$%&'()*+,./:;<=>?@[\]^`{|}~""")).lower().replace(" ", "_")
         elif ctx.location.name == "group_description":
-          trans = c[command_name]["help"]
+          # trans = c[command_name]["help"]
+          trans = c.help
       elif ctx.location.name in ("parameter_name", "parameter_description"):
         group_name = data.command.parent and data.command.parent.name
         command_name = data.command.name.lower()
@@ -77,7 +80,7 @@ class Translator(app_commands.Translator):
             c = c[command_name]["parameters"][param_name]
         except KeyError as e:
           if lang == "en":
-            log.error(f"{param_name} parameter is missing from {command_name}")
+            log.error(str(e))
           raise e
         if ctx.location.name == "parameter_name":
           trans = c["name"].lower().replace(" ", "_")
@@ -103,11 +106,11 @@ class Friday(commands.AutoShardedBot):
   command_stats: Counter[str]
   socket_stats: Counter[str]
   chat_stats: Counter[int]
-  gateway_handler: Any
+  logging_handler: Any
   bot_app_info: discord.AppInfo
   uptime: datetime.datetime
   chat_repeat_counter: Counter[int]
-  old_help_command: Optional[commands.HelpCommand]
+  old_help_command: commands.HelpCommand | None
   language_files: dict[str, I18n]
 
   def __init__(self, **kwargs):
@@ -129,10 +132,8 @@ class Friday(commands.AutoShardedBot):
             bans=True,
             guild_scheduled_events=True,
             message_content=True,
-            # invites=True,
         ),
         status=discord.Status.idle,
-        owner_id=215227961048170496,
         description=functions.config.description,
         member_cache_flags=discord.MemberCacheFlags.all(),
         chunk_guilds_at_startup=False,
@@ -145,8 +146,6 @@ class Friday(commands.AutoShardedBot):
 
     # guild_id: str("!")
     self.prefixes = defaultdict(lambda: str("!"))
-    self.prod = kwargs.pop("prod", None) or True if len(sys.argv) > 1 and (sys.argv[1] == "--prod" or sys.argv[1] == "--production") else False
-    self.canary = kwargs.pop("canary", None) or True if len(sys.argv) > 1 and (sys.argv[1] == "--canary") else False
     self.ready = False
     self.testing = False
 
@@ -155,12 +154,16 @@ class Friday(commands.AutoShardedBot):
     self.resumes: defaultdict[int, list[datetime.datetime]] = defaultdict(list)
     self.identifies: defaultdict[int, list[datetime.datetime]] = defaultdict(list)
 
-    log.info(f"Cluster Starting {kwargs.get('shard_ids', None)}, {kwargs.get('shard_count', 1)}")
-    if self.should_start:
-      self.run(kwargs["token"])
-
   def __repr__(self) -> str:
     return f"<Friday username=\"{self.user.display_name if self.user else None}\" id={self.user.id if self.user else None}>"
+
+  @property
+  def prod(self) -> bool:
+    return self.user.id == 476303446547365891  # Prod bot
+
+  @property
+  def canary(self) -> bool:
+    return self.user.id == 760615464300445726  # Canary bot id
 
   async def get_context(self, origin: discord.Message | discord.Interaction, /, *, cls=None) -> functions.MyContext:
     return await super().get_context(origin, cls=cls or functions.MyContext)
@@ -168,15 +171,14 @@ class Friday(commands.AutoShardedBot):
   async def setup_hook(self) -> None:
     self.session = aiohttp.ClientSession()
 
-    self.blacklist: Config[bool] = Config("blacklist.json", loop=self.loop)
+    self.blacklist: Config[bool] = Config("blacklist.json")
 
-    self.loop.create_task(load_languages(self))
+    await load_languages(self)
 
-    self.languages = Config("languages.json", loop=self.loop)
+    self.languages = Config("languages.json")
 
     await self.tree.set_translator(Translator())
 
-    self.pool = await functions.db.Table.create_pool(prod=self.prod, canary=self.canary)
     await self.load_extension("cogs.database")
     await self.load_extension("cogs.log")
 
@@ -190,16 +192,7 @@ class Friday(commands.AutoShardedBot):
 
     for cog in [*cogs.default, *cogs.spice]:
       path = "spice.cogs." if cog.lower() in cogs.spice else "cogs."
-      try:
-        await self.load_extension(f"{path}{cog}")
-      except Exception as e:
-        log.error(f"Failed to load extenstion {cog} with \n {e}")
-
-  async def on_ready(self):
-    if not (self.prod or self.canary):
-      DIARY = discord.Object(id=243159711237537802)
-      await self.tree.sync(guild=DIARY)
-    await self.tree.sync()
+      await self.load_extension(f"{path}{cog}")
 
   def _clear_gateway_data(self) -> None:
     one_week_ago = discord.utils.utcnow() - datetime.timedelta(days=7)
@@ -305,8 +298,8 @@ class Friday(commands.AutoShardedBot):
     await super().close()
     await self.session.close()
 
-  async def start(self, token: str, **kwargs) -> None:
-    await super().start(token, reconnect=True)
+  async def start(self) -> None:
+    await super().start(os.environ['TOKEN'], reconnect=True)
 
   @property
   def log(self) -> Log:
@@ -329,22 +322,105 @@ class Friday(commands.AutoShardedBot):
     return self.get_cog("Patreons")  # type: ignore
 
 
-async def main(bot):
-  async with bot:
-    await bot.start(TOKEN)
-
-if __name__ == "__main__":
-  from launcher import setup_logging
-  print(f"Python version: {sys.version}")
-
-  bot = Friday()
-  if len(sys.argv) > 1:
-    if sys.argv[1] == "--prod" or sys.argv[1] == "--production":
-      TOKEN = os.environ.get("TOKEN")
-    elif sys.argv[1] == "--canary":
-      TOKEN = os.environ.get("TOKENCANARY")
+async def run_bot():
+  log = logging.getLogger()
   try:
+    pool = await functions.db.create_pool()
+  except Exception:
+    click.echo('Could not set up PostgreSQL. Exiting.', file=sys.stderr)
+    log.exception('Could not set up PostgreSQL. Exiting.')
+    return
+
+  async with Friday() as bot:
+    bot.pool = pool
+    await bot.start()
+
+
+@click.group(invoke_without_command=True, options_metavar='[options]')
+@click.pass_context
+@click.option('--prod', help='Run in production mode.', is_flag=True)
+@click.option('--canary', help='Run in production mode.', is_flag=True)
+def main(ctx, prod, canary):
+  """Launches the bot."""
+  if ctx.invoked_subcommand is None:
+    print(f"Python version: {sys.version}")
+    from launcher import setup_logging
+
     with setup_logging("Friday"):
-      asyncio.run(main(bot))
-  except KeyboardInterrupt:
-    asyncio.run(bot.close())
+      asyncio.run(run_bot())
+
+
+@main.group(short_help='database stuff', options_metavar='[options]')
+def db():
+  pass
+
+
+async def ensure_uri_can_run() -> bool:
+  connection: asyncpg.Connection = await asyncpg.connect(os.environ["DBURL"])
+  await connection.close()
+  return True
+
+
+@db.command()
+@click.option('--reason', '-r', help='The reason for this revision.', required=True)
+def migrate(reason):
+  """Creates a new revision for you to edit."""
+  asyncio.run(ensure_uri_can_run())
+
+  migrations = Migrations()
+  if migrations.is_next_revision_taken():
+    click.echo('an unapplied migration already exists for the next version, exiting')
+    click.secho('hint: apply pending migrations with the `upgrade` command', bold=True)
+    return
+
+  revision = migrations.create_revision(reason)
+  click.echo(f'Created revision V{revision.version!r}')
+
+
+async def run_upgrade(migrations: Migrations) -> int:
+  connection: asyncpg.Connection = await asyncpg.connect(migrations.database_uri)
+  return await migrations.upgrade(connection)
+
+
+@db.command()
+@click.option('--sql', help='Print the SQL instead of executing it', is_flag=True)
+def upgrade(sql):
+  """Upgrades the database at the given revision (if any)."""
+  asyncio.run(ensure_uri_can_run())
+
+  migrations = Migrations()
+
+  if sql:
+    migrations.display()
+    return
+
+  try:
+    applied = asyncio.run(run_upgrade(migrations))
+  except Exception:
+    traceback.print_exc()
+    click.secho('failed to apply migrations due to error', fg='red')
+  else:
+    click.secho(f'Applied {applied} revisions(s)', fg='green')
+
+
+@db.command()
+def current():
+  """Shows the current active revision version"""
+  migrations = Migrations()
+  click.echo(f'Version {migrations.version}')
+
+
+@db.command()
+@click.option('--reverse', help='Print in reverse order (oldest first).', is_flag=True)
+def logs(reverse):
+  """Displays the revision history"""
+  migrations = Migrations()
+  # Revisions is oldest first already
+  revs = reversed(migrations.ordered_revisions) if not reverse else migrations.ordered_revisions
+  for rev in revs:
+    as_yellow = click.style(f'V{rev.version:>03}', fg='yellow')
+    click.echo(f'{as_yellow} {rev.description.replace("_", " ")}')
+
+
+if __name__ == '__main__':
+  main()

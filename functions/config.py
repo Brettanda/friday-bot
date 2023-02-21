@@ -26,13 +26,12 @@ class Config(Generic[_T]):
       *,
       object_hook: Optional[ObjectHook] = None,
       encoder: Optional[Type[json.JSONEncoder]] = None,
-      loop: asyncio.AbstractEventLoop,
       load_later: bool = False,
   ):
     self.name = name
     self.object_hook = object_hook
     self.encoder = encoder
-    self.loop = loop
+    self.loop = asyncio.get_running_loop()
     self.lock = asyncio.Lock()
     self._db: Dict[str, Union[_T, Any]] = {}
     if load_later:
@@ -42,7 +41,7 @@ class Config(Generic[_T]):
 
   def load_from_file(self):
     try:
-      with open(self.name) as f:
+      with open(self.name, 'r', encoding='utf-8') as f:
         self._db = json.load(f, object_hook=self.object_hook)
     except FileNotFoundError:
       self._db = {}
@@ -107,13 +106,12 @@ class ReadOnly(Generic[_T]):
       *,
       object_hook: Optional[ObjectHook] = None,
       encoder: Optional[Type[json.JSONEncoder]] = None,
-      loop: asyncio.AbstractEventLoop,
       load_later: bool = False,
   ):
     self.name = name
     self.object_hook = object_hook
     self.encoder = encoder
-    self.loop = loop
+    self.loop = asyncio.get_running_loop()
     self.lock = asyncio.Lock()
     self._db: Dict[str, Union[_T, Any]] = {}
     if load_later:
@@ -123,7 +121,7 @@ class ReadOnly(Generic[_T]):
 
   def load_from_file(self):
     try:
-      with open(self.name, 'r') as f:
+      with open(self.name, 'r', encoding='utf-8') as f:
         self._db = json.load(f, object_hook=self.object_hook)
     except FileNotFoundError:
       self._db = {}

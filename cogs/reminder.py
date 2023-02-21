@@ -11,7 +11,7 @@ import discord
 from discord.ext import commands
 from typing_extensions import Annotated
 
-from functions import MessageColors, db, embed, time
+from functions import MessageColors, embed, time
 
 if TYPE_CHECKING:
   from typing_extensions import Self
@@ -20,6 +20,24 @@ if TYPE_CHECKING:
   from index import Friday
 
 log = logging.getLogger(__name__)
+
+
+class MaybeAcquire:
+  def __init__(self, connection: Optional[asyncpg.Connection], *, pool: asyncpg.Pool) -> None:
+    self.connection: Optional[asyncpg.Connection] = connection
+    self.pool: asyncpg.Pool = pool
+    self._cleanup: bool = False
+
+  async def __aenter__(self) -> asyncpg.Connection:
+    if self.connection is None:
+      self._cleanup = True
+      self._connection = c = await self.pool.acquire()
+      return c
+    return self.connection
+
+  async def __aexit__(self, *args) -> None:
+    if self._cleanup:
+      await self.pool.release(self._connection)
 
 
 class Timer:
@@ -105,7 +123,7 @@ class Reminder(commands.Cog):
     return Timer(record=record) if record else None
 
   async def wait_for_active_timer(self, *, connection: Optional[asyncpg.Connection] = None, days: int = 7) -> Timer:
-    async with db.MaybeAcquire(connection=connection, pool=self.bot.pool) as con:
+    async with MaybeAcquire(connection=connection, pool=self.bot.pool) as con:
       timer = await self.get_active_timer(connection=con, days=days)
       if timer is not None:
         self._have_data.set()
@@ -142,11 +160,8 @@ class Reminder(commands.Cog):
     event_name = f'{timer.event}_timer_complete'
     self.bot.dispatch(event_name, timer)
 
-  async def create_timer(self, when: datetime.datetime, event: str, *args: Any, **kwargs: Any) -> Timer:
-    try:
-      connection = kwargs.pop('connection')
-    except KeyError:
-      connection = self.bot.pool
+  async def create_timer(self, when: datetime.datetime, event: str, /, *args: Any, **kwargs: Any) -> Timer:
+    pool = self.bot.pool
 
     try:
       now = kwargs.pop('created')
@@ -168,7 +183,7 @@ class Reminder(commands.Cog):
                   RETURNING id;
               """
 
-    row = await connection.fetchrow(query, event, {"args": args, "kwargs": kwargs}, when, now)
+    row = await pool.fetchrow(query, event, {"args": args, "kwargs": kwargs}, when, now)
     log.debug(f"PostgreSQL Query: \"{query}\" + {event, {'args': args, 'kwargs': kwargs}, when, now}")
     timer.id = row[0]
 
@@ -190,7 +205,6 @@ class Reminder(commands.Cog):
         ctx.author.id,
         ctx.channel.id,
         when.arg,
-        connection=ctx.pool,
         created=ctx.message.created_at,
         message_id=ctx.message.id
     )
@@ -250,7 +264,7 @@ class Reminder(commands.Cog):
               AND extra #>> '{args,0}' = $1;"""
 
     author_id = str(ctx.author.id)
-    total = await ctx.db.fetchrow(query, author_id)
+    total: asyncpg.Record = await ctx.db.fetchrow(query, author_id)
     total = total[0]
     if total == 0:
       return await ctx.send(embed=embed(title="You have no reminders.", color=MessageColors.error()))

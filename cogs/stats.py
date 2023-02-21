@@ -4,7 +4,6 @@ import asyncio
 import datetime
 import gc
 import io
-import json
 import logging
 import os
 import re
@@ -12,17 +11,17 @@ import sys
 import textwrap
 import traceback
 from collections import Counter
-from typing import TYPE_CHECKING, Optional, Any, TypedDict
-from typing_extensions import Annotated
+from typing import TYPE_CHECKING, Any, Optional, TypedDict
 
 import asyncpg
 import discord
 import psutil
 import wavelink
 from discord.ext import commands, tasks
+from typing_extensions import Annotated
 
-from functions import embed, time
-from functions import MyContext
+from functions import MyContext, embed, time
+from functions.formats import TabularData
 
 if TYPE_CHECKING:
 
@@ -60,72 +59,16 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 
-class GatewayHandler(logging.Handler):
+class LoggingHandler(logging.Handler):
   def __init__(self, cog: Stats):
     self.cog: Stats = cog
     super().__init__(logging.INFO)
 
   def filter(self, record: logging.LogRecord) -> bool:
-    try:
-      return record.name == "discord.gateway" or "Shard ID" in record.msg or "Websocket closed" in record.msg
-    except TypeError:
-      return False
+    return record.name in ('discord.gateway')
 
   def emit(self, record: logging.LogRecord) -> None:
     self.cog.add_record(record)
-
-
-class TabularData:
-  def __init__(self):
-    self._widths = []
-    self._columns = []
-    self._rows = []
-
-  def set_columns(self, columns):
-    self._columns = columns
-    self._widths = [len(c) + 2 for c in columns]
-
-  def add_row(self, row):
-    rows = [str(r) for r in row]
-    self._rows.append(rows)
-    for index, element in enumerate(rows):
-      width = len(element) + 2
-      if width > self._widths[index]:
-        self._widths[index] = width
-
-  def add_rows(self, rows):
-    for row in rows:
-      self.add_row(row)
-
-  def render(self):
-    """Renders a table in rST format.
-    Example:
-    +-------+-----+
-    | Name  | Age |
-    +-------+-----+
-    | Alice | 24  |
-    |  Bob  | 19  |
-    +-------+-----+
-    """
-
-    sep = '+'.join('-' * w for w in self._widths)
-    sep = f'+{sep}+'
-
-    to_draw = [sep]
-
-    def get_entry(d):
-      elem = '|'.join(f'{e:^{self._widths[i]}}' for i, e in enumerate(d))
-      elem = "\\n".join(elem.splitlines())
-      return f'|{elem}|'
-
-    to_draw.append(get_entry(self._columns))
-    to_draw.append(sep)
-
-    for row in self._rows:
-      to_draw.append(get_entry(row))
-
-    to_draw.append(sep)
-    return '\n'.join(to_draw)
 
 
 _INVITE_REGEX = re.compile(r'(?:https?:\/\/)?discord(?:\.gg|\.com|app\.com\/invite)?\/[A-Za-z0-9]+')
@@ -155,12 +98,16 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
     self._data_chats_batch: list[DataChatsBatchEntry] = []
     self._data_joins_batch: list[DataJoinsBatchEntry] = []
     self.bulk_insert_commands_loop.add_exception_type(asyncpg.PostgresConnectionError)
+    self.bulk_insert_commands_loop.start()
 
     self.bulk_insert_chats_loop.add_exception_type(asyncpg.PostgresConnectionError)
+    self.bulk_insert_chats_loop.start()
 
     self.bulk_insert_joins_loop.add_exception_type(asyncpg.PostgresConnectionError)
+    self.bulk_insert_joins_loop.start()
 
-    self._gateway_queue = asyncio.Queue()
+    self._logging_queue = asyncio.Queue()
+    self.logging_worker.start()
 
   def __repr__(self) -> str:
     return f"<cogs.{self.__cog_name__}>"
@@ -180,7 +127,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
                x(guild TEXT, channel TEXT, author TEXT, used TIMESTAMP, prefix TEXT, command TEXT, failed BOOLEAN)"""
 
     if self._data_commands_batch:
-      await self.bot.pool.execute(query, json.dumps(self._data_commands_batch))
+      await self.bot.pool.execute(query, self._data_commands_batch)
       total = len(self._data_commands_batch)
       if total > 1:
         log.info(f"Inserted {total} commands into the database")
@@ -193,7 +140,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
                x(guild TEXT, joined BOOLEAN, current_count BIGINT, time TIMESTAMP)"""
 
     if self._data_joins_batch:
-      await self.bot.pool.execute(query, json.dumps(self._data_joins_batch))
+      await self.bot.pool.execute(query, self._data_joins_batch)
       total = len(self._data_joins_batch)
       if total > 1:
         log.info(f"Inserted {total} guild counts into the database")
@@ -206,23 +153,17 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
                x(guild TEXT, channel TEXT, author TEXT, used TIMESTAMP, user_msg TEXT, bot_msg TEXT, failed BOOLEAN, filtered INT, prompt TEXT)"""
 
     if self._data_chats_batch:
-      await self.bot.pool.execute(query, json.dumps(self._data_chats_batch))
+      await self.bot.pool.execute(query, self._data_chats_batch)
       total = len(self._data_chats_batch)
       if total > 1:
         log.info(f"Inserted {total} chats into the database")
       self._data_chats_batch.clear()
 
-  async def cog_load(self):
-    self.bulk_insert_commands_loop.start()
-    self.bulk_insert_chats_loop.start()
-    self.bulk_insert_joins_loop.start()
-    self.gateway_worker.start()
-
   async def cog_unload(self):
     self.bulk_insert_commands_loop.stop()
     self.bulk_insert_chats_loop.stop()
     self.bulk_insert_joins_loop.stop()
-    self.gateway_worker.cancel()
+    self.logging_worker.cancel()
 
   @tasks.loop(seconds=10.0)
   async def bulk_insert_commands_loop(self):
@@ -240,9 +181,9 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
       await self.bulk_insert_chats()
 
   @tasks.loop(seconds=0.0)
-  async def gateway_worker(self):
-    record = await self._gateway_queue.get()
-    await self.notify_gateway_status(record)
+  async def logging_worker(self):
+    record = await self._logging_queue.get()
+    await self.send_log_record(record)
 
   @discord.utils.cached_property
   def webhook(self):
@@ -311,11 +252,18 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
       })
 
   @commands.Cog.listener()
-  async def on_app_command_completion(self, interaction: discord.Interaction, command: discord.app_commands.Command | discord.app_commands.ContextMenu):
-    if isinstance(command, commands.hybrid.HybridAppCommand):
-      return
-    ctx = await MyContext.from_interaction(interaction)
-    await self.register_command(ctx)
+  async def on_interaction(self, interaction: discord.Interaction):
+    command = interaction.command
+    # Check if a command is found and it's not a hybrid command
+    # Hybrid commands are already counted via on_command_completion
+    if (
+        command is not None and interaction.type is discord.InteractionType.application_command and not command.__class__.__name__.startswith('Hybrid')  # Kind of awful, but it'll do
+    ):
+      # This is technically bad, but since we only access Command.qualified_name and it's
+      # available on all types of commands then it's fine
+      ctx = await self.bot.get_context(interaction)
+      ctx.command_failed = interaction.command_failed or ctx.command_failed
+      await self.register_command(ctx)
 
   @commands.Cog.listener()
   async def on_command_completion(self, ctx: MyContext):
@@ -394,10 +342,10 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
   @chatstats.command("global")
   async def chatstats_global(self, ctx: MyContext):
     query = """SELECT COUNT(*) FROM chats;"""
-    total = await ctx.db.fetchrow(query)
+    total = await ctx.db.fetchval(query)
 
     e = discord.Embed(title="Chat Stats", colour=discord.Colour.blurple())
-    e.description = f"{total[0]:,} chats used."
+    e.description = f"{total:,} chats used."
 
     # query = """SELECT command, COUNT(*) AS "uses"
     #            FROM chats
@@ -493,10 +441,10 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
   @commandstats.command("global")
   async def commandstats_global(self, ctx: MyContext):
     query = """SELECT COUNT(*) FROM commands;"""
-    total = await ctx.db.fetchrow(query)
+    total = await ctx.db.fetchval(query)
 
     e = discord.Embed(title="Command Stats", colour=discord.Colour.blurple())
-    e.description = f"{total[0]:,} commands used."
+    e.description = f"{total:,} commands used."
 
     query = """SELECT command, COUNT(*) AS "uses"
                FROM commands
@@ -614,11 +562,11 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
   async def on_command_error(self, ctx, error):
     await self.register_command(ctx)
 
-  def add_record(self, record):
-    if self.bot.prod:
-      self._gateway_queue.put_nowait(record)
+  def add_record(self, record: logging.LogRecord) -> None:
+    # if self.bot.prod:
+    self._logging_queue.put_nowait(record)
 
-  async def notify_gateway_status(self, record):
+  async def send_log_record(self, record):
     attributes = {
         'INFO': '\N{INFORMATION SOURCE}',
         'WARNING': '\N{WARNING SIGN}'
@@ -626,8 +574,15 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
 
     emoji = attributes.get(record.levelname, '\N{CROSS MARK}')
     dt = datetime.datetime.utcfromtimestamp(record.created)
-    msg = textwrap.shorten(f'{emoji} [{time.format_dt(dt)}] `{record.msg % record.args}`', width=1990)
-    await self.webhook.send(msg, username='Gateway', avatar_url='https://i.imgur.com/4PnCKB3.png')
+    msg = textwrap.shorten(f'{emoji} {time.format_dt(dt)} {record.message}', width=1990)
+    if record.name == 'discord.gateway':
+      username = 'Gateway'
+      avatar_url = 'https://i.imgur.com/4PnCKB3.png'
+    else:
+      username = f'{record.name} Logger'
+      avatar_url = discord.utils.MISSING
+
+    await self.webhook.send(msg, username=username, avatar_url=avatar_url)
 
   @commands.command("bothealth")
   async def bothealth(self, ctx: MyContext):
@@ -684,13 +639,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
       embed_.colour = WARNING
       total_warnings += 1
 
-    try:
-      task_retriever = asyncio.Task.all_tasks
-    except AttributeError:
-      # future proofing for 3.9 I guess
-      task_retriever = asyncio.all_tasks
-
-    all_tasks = task_retriever(loop=self.bot.loop)
+    all_tasks = asyncio.Task.all_tasks(loop=self.bot.loop)
 
     event_tasks = [
         t for t in all_tasks
@@ -913,7 +862,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
     await self.tabulate_query(ctx, query, str(guild_id))
 
   @command_history.command(name='user', aliases=['member'])
-  async def command_history_user(self, ctx, user_id: int):
+  async def command_history_user(self, ctx, user: discord.User):
     """Command history for a user."""
 
     query = """SELECT
@@ -928,7 +877,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
                   ORDER BY used DESC
                   LIMIT 20;
               """
-    await self.tabulate_query(ctx, query, str(user_id))
+    await self.tabulate_query(ctx, query, str(user.id))
 
   @commands.group("chathistory", invoke_without_command=True)
   async def chat_histroy(self, ctx: MyContext):
@@ -1047,12 +996,12 @@ async def setup(bot: Friday):
 
   cog = Stats(bot)
   await bot.add_cog(cog)
-  bot.gateway_handler = handler = GatewayHandler(cog)
+  bot.logging_handler = handler = LoggingHandler(cog)
   logging.getLogger().addHandler(handler)
   commands.AutoShardedBot.on_error = on_error
 
 
 def teardown(bot: Friday):
   commands.AutoShardedBot.on_error = old_on_error
-  logging.getLogger().removeHandler(bot.gateway_handler)
-  del bot.gateway_handler
+  logging.getLogger().removeHandler(bot.logging_handler)
+  del bot.logging_handler

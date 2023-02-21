@@ -1,33 +1,37 @@
-aiohttp==3.8.1
+aiohttp==3.8.3
 async-timeout
 autopep8
 d20==1.1.2
 topggpy==1.4.0
 discord-ext-menus @ git+https://github.com/Rapptz/discord-ext-menus@fbb8803779373357e274e1540b368365fd9d8074
-discord.py==2.0.0
+discord.py==2.1.1
+click
+fuzzywuzzy==0.18.0
+python-Levenshtein
 # py-cord>=v2.0.0b4
 # flair==0.8.0.post1
 grpcio
 h5py
+pytz
 # Keras==2.4.3
 # Keras-Preprocessing==1.1.2
 # nltk==3.5
-numpy==1.19.5
-oauthlib==3.1.0
-Pillow==8.3.2
+numpy==1.24.1
+oauthlib==3.2.2
+Pillow==9.4.0
 psutil
-expiringdict==1.2.1
+expiringdict==1.2.2
 # PyNaCl==1.4.0
-python-dateutil==2.8.1
-python-dotenv==0.15.0
-requests==2.25
+python-dateutil==2.8.2
+python-dotenv==0.21.1
+requests==2.28.2
 # tensorboard>=2.2.0
 # tensorboard-plugin-wit==1.8.0
 # tensorflow>=2.2.0
 typing-extensions
-urllib3==1.26.5
-validators==0.18.2
-wavelink==1.2.5
+urllib3==1.26.14
+validators==0.20.0
+wavelink==1.3.5
 # wavelink @ git+https://github.com/Brettanda/Wavelink
 # pycord.wavelink @ git+https://github.com/Pycord-Development/Pycord.Wavelink
 # wavelink==0.9.10
@@ -35,19 +39,19 @@ wavelink==1.2.5
 # yarl==1.6.3
 youtube-dl==2021.1.24.1
 # spacy==3.0.6
-google-cloud-translate==2.0.1
+google-cloud-translate==3.10.1
 # pyspellchecker==0.6.2
-openai>=0.20.0
-python-slugify==5.0.2
+openai>=0.26.4.0
+python-slugify==8.0.0
 profanity==1.1
 pyfiglet==0.8.post1
-asyncpg==0.23.0
-asyncpraw>=7.5.0
+asyncpg==0.27.0
+asyncpraw>=7.6.1
 pytest
-pytest-asyncio==0.15.1
+pytest-asyncio==0.20.3
 pytest-dependency==0.5.1
-humanize==3.12.0
+humanize==4.5.0
 lru-dict
 aiohttp-cors
 parsedatetime==2.6
-sympy==1.10
+sympy==1.11

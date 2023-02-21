@@ -100,6 +100,7 @@ celerybeat-schedule
 
 # Environments
 .env
+.env.*
 .venv
 env/
 venv/
@@ -145,3 +146,6 @@ crowdin.yml
 wandb/
 i18n/locales/
 i18n/en/commands.json
+
+migrations/*.json
+!migrations/V*__*.sql

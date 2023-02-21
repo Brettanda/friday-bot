@@ -8,10 +8,10 @@ from discord.ext import commands
 from discord.utils import cached_property, oauth_url
 
 from functions import MessageColors, config, embed, time, views
+from index import Friday
 
 if TYPE_CHECKING:
   from functions.custom_contexts import GuildContext, MyContext
-  from index import Friday
 
 GENERAL_CHANNEL_NAMES = {"welcome", "general", "lounge", "chat", "talk", "main"}
 
@@ -48,6 +48,8 @@ class InviteButtons(discord.ui.View):
 
 
 class General(commands.Cog):
+  """Some general commands"""
+
   def __init__(self, bot: Friday):
     self.bot: Friday = bot
     self.process = psutil.Process()
@@ -106,20 +108,23 @@ class General(commands.Cog):
     #   action: discord.AuditLogEntry = audit[0]
     #   await self.bot.db.query("UPDATE ")
 
-  @commands.command(name="intro", help="Replies with the intro message for the bot")
+  @commands.command(name="intro")
   async def intro(self, ctx: MyContext):
+    """Replies with the intro message for the bot"""
     await ctx.send(**self.welcome_message())
 
   @cached_property
   def link(self):
     return oauth_url(self.bot.user.id, permissions=INVITE_PERMISSIONS, scopes=["bot", "applications.commands"])
 
-  @commands.hybrid_command("invite", help="Get the invite link to add me to your server")
+  @commands.hybrid_command("invite")
   async def _invite(self, ctx: MyContext):
+    """Get the invite link to add me to your server"""
     await ctx.send(embed=embed(title="Invite me :)"), view=InviteButtons(self.link))
 
-  @commands.command(name="info", aliases=["about"], help="Displays some information about myself :)")
-  async def info(self, ctx: MyContext):
+  @commands.hybrid_command(name="about", aliases=["info"])
+  async def about(self, ctx: MyContext):
+    """Displays some information about myself :)"""
     uptime = time.human_timedelta(self.bot.uptime, accuracy=None, brief=True, suffix=False)
 
     memory_usage = self.process.memory_full_info().uss / 1024**2
@@ -129,20 +134,29 @@ class General(commands.Cog):
 
     return await ctx.send(
         embed=embed(
-            title=f"{self.bot.user.name} - About",
+            title=ctx.lang.general.about.response_title.format(bot_name=self.bot.user.name),
             thumbnail=self.bot.user.display_avatar.url,
             author_icon=self.bot.owner.display_avatar.url,
             author_name=str(self.bot.owner),
-            footer="Made with ❤️ and discord.py!",
-            description="Big thanks to all Patrons!",
-            fieldstitle=["Servers joined", "Latency", "Shards", "Loving Life", "Uptime", "CPU/RAM", "Existed since"],
-            fieldsval=[len(self.bot.guilds), f"{(shard and shard.latency or self.bot.latency)*1000:,.0f} ms", self.bot.shard_count, "True", uptime, f'{memory_usage:.2f} MiB\n{cpu_usage:.2f}% CPU', f"{time.format_dt(self.bot.user.created_at,style='D')}"],
+            footer=ctx.lang.general.about.response_footer,
+            description=ctx.lang.general.about.response_description,
+            fieldstitle=ctx.lang.general.about.response_field_titles,
+            fieldsval=[
+                len(self.bot.guilds),
+                ctx.lang.general.about.response_field_values[0].format(ping=f"{(shard and shard.latency or self.bot.latency)*1000:,.0f}"),
+                self.bot.shard_count,
+                ctx.lang.general.about.response_field_values[1],
+                uptime,
+                ctx.lang.general.about.response_field_values[2].format(memory_usage=f"{memory_usage:.2f}", cpu_usage=f"{cpu_usage:.2f}"),
+                f"{time.format_dt(self.bot.user.created_at,style='D')}"
+            ],
         ), view=views.Links()
     )
 
-  @commands.command(name="serverinfo", aliases=["guildinfo"], help="Shows information about the server")
+  @commands.command(name="serverinfo", aliases=["guildinfo"])
   @commands.guild_only()
   async def serverinfo(self, ctx: GuildContext):
+    """Shows information about the server"""
     await ctx.send(
         embed=embed(
             title=ctx.guild.name + " - Info",
@@ -154,10 +168,10 @@ class General(commands.Cog):
         )
     )
 
-  @commands.command(name="userinfo", extras={"examples": ["@Friday", "476303446547365891"]}, help="Some information on the mentioned user")
+  @commands.command(name="userinfo", extras={"examples": ["@Friday", "476303446547365891"]})
   @commands.guild_only()
-  async def userinfo(self, ctx: GuildContext, *, user: Union[discord.Member, discord.User] = None):
-    user = user or ctx.author
+  async def userinfo(self, ctx: GuildContext, *, user: Union[discord.Member, discord.User] = commands.Author):
+    """Some information on the mentioned user"""
     await ctx.send(embed=embed(
         title=f"{user.name} - Info",
         thumbnail=user.display_avatar.url,
@@ -174,9 +188,10 @@ class General(commands.Cog):
         color=user.color if user.color.value != 0 else MessageColors.default()
     ))
 
-  @commands.command(name="roleinfo", help="Shows information about the role")
+  @commands.command(name="roleinfo")
   @commands.guild_only()
   async def roleinfo(self, ctx: GuildContext, *, role: discord.Role):
+    """Shows information about the role"""
     await ctx.send(embed=embed(
         title=f"{role.name} - Info",
         thumbnail=getattr(role.icon, "url", None),

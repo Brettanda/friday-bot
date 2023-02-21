@@ -99,20 +99,6 @@ class Log(commands.Cog):
         embed_links=True,
     ).predicate(ctx)
 
-  async def cog_load(self) -> None:
-    query = "SELECT id,lang FROM servers WHERE lang IS NOT NULL;"
-    records = await self.bot.pool.fetch(query)
-    new_query = ""
-    total = len(records)
-    completed = 0
-    for r in records:
-      await self.bot.languages.put(r["id"], r["lang"])
-      new_query += f"UPDATE servers SET lang = NULL WHERE id = {r['id']}::text;"
-      completed += 1
-    if new_query:
-      await self.bot.pool.execute(new_query)
-    log.info(f"Moved {completed}/{total} languages to new system")
-
   @commands.Cog.listener()
   async def on_shard_connect(self, shard_id):
     await relay_info(f"Shard #{shard_id} has connected", self.bot, logger=log)
@@ -272,11 +258,11 @@ class Log(commands.Cog):
         return False
 
       if ctx.guild:
-        config = await self.get_guild_config(ctx.guild.id, connection=ctx.db)
+        config = await self.get_guild_config(ctx.guild.id)
         if not config:
           await ctx.db.execute(f"INSERT INTO servers (id) VALUES ({str(ctx.guild.id)}) ON CONFLICT DO NOTHING")
           self.get_guild_config.invalidate(self, ctx.guild.id)
-          config = await self.get_guild_config(ctx.guild.id, connection=ctx.db)
+          config = await self.get_guild_config(ctx.guild.id)
         if config is not None:
           if ctx.command.name in config.disabled_commands:
             return False
@@ -320,19 +306,15 @@ class Log(commands.Cog):
     if super_retry_after:
       return
 
-    try:
-      await self.bot.invoke(ctx)
-    finally:
-      # Just in case
-      await ctx.release()
+    await self.bot.invoke(ctx)
 
   def get_prefixes(self) -> List[str]:
     return ["/", "!", "f!", "!f", "%", ">", "?", "-", "(", ")"]
 
-  @cache.cache(ignore_kwargs=True)
-  async def get_guild_config(self, guild_id: int, *, connection: Optional[asyncpg.Pool | asyncpg.Connection] = None) -> Config:
+  @cache.cache()
+  async def get_guild_config(self, guild_id: int) -> Config:
     query = "SELECT * FROM servers WHERE id=$1 LIMIT 1;"
-    conn = connection or self.bot.pool
+    conn = self.bot.pool
     record = await conn.fetchrow(query, str(guild_id))
     log.debug(f"PostgreSQL Query: \"{query}\" + {str(guild_id)}")
     if not record:
@@ -382,7 +364,7 @@ class Log(commands.Cog):
     error = getattr(error, 'original', error)
 
     if isinstance(error, (*ignored, *wave_errors)) or (hasattr(error, "log") and error and error.log is False):
-      log.warning("Ignored error called: {}".format(error))
+      log.warning(f"Ignored error called: {error}")
       return
 
     if isinstance(error, just_send):

@@ -88,7 +88,7 @@ async def load_languages(bot: Friday) -> None:
   base_url = "https://api.crowdin.com/api/v2/projects/484775"
   key = os.environ["CROWDIN_KEY"]
   lang_dir = os.path.join(os.getcwd(), "i18n")
-  log.info(f"path {lang_dir!r}")
+  log.debug(f"path {lang_dir!r}")
 
   if bot.cluster_idx == 0:
     async with bot.session.post(f"{base_url}/translations/builds", headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"}) as resp:
