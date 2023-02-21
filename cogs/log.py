@@ -312,9 +312,9 @@ class Log(commands.Cog):
     return ["/", "!", "f!", "!f", "%", ">", "?", "-", "(", ")"]
 
   @cache.cache()
-  async def get_guild_config(self, guild_id: int) -> Config:
+  async def get_guild_config(self, guild_id: int, *, connection: asyncpg.Connection = None) -> Config:
     query = "SELECT * FROM servers WHERE id=$1 LIMIT 1;"
-    conn = self.bot.pool
+    conn = connection or self.bot.pool
     record = await conn.fetchrow(query, str(guild_id))
     log.debug(f"PostgreSQL Query: \"{query}\" + {str(guild_id)}")
     if not record:
