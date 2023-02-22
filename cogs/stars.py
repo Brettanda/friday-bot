@@ -125,8 +125,8 @@ class Stars(commands.Cog):
     self._message_cache.clear()
 
   @cache.cache()
-  async def get_starboard(self, guild_id: int) -> StarboardConfig:
-    conn = self.bot.pool
+  async def get_starboard(self, guild_id: int, *, connection: asyncpg.Connection = None) -> StarboardConfig:
+    conn = connection or self.bot.pool
     query = "SELECT * FROM starboard WHERE id=$1;"
     record = await conn.fetchrow(query, guild_id)
     return StarboardConfig(guild_id=guild_id, bot=self.bot, record=record)
