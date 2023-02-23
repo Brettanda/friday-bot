@@ -27,7 +27,7 @@ def user_is_tier(tier: PremiumTiersNew):
 
 def is_min_tier(tier: PremiumTiersNew = PremiumTiersNew.tier_1):
   async def predicate(ctx: GuildContext) -> bool:
-    if ctx.author.id == ctx.bot.owner_id:
+    if await ctx.bot.is_owner(ctx.author):
       return True
     if tier == PremiumTiersNew.free:
       return True
@@ -202,7 +202,7 @@ def is_mod_or_guild_permissions(**perms: bool):
       if con and any(arole in con.mod_roles for arole in ctx.author.roles):
         return True
 
-    resolved = ctx.author.guild_permissions
+    resolved = ctx.permissions
     if all(getattr(resolved, name, None) == value for name, value in perms.items()):
       return True
     raise commands.MissingPermissions([name for name, value in perms.items() if getattr(resolved, name, None) != value])
