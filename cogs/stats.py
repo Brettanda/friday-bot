@@ -17,7 +17,7 @@ import asyncpg
 import discord
 import psutil
 import wavelink
-from discord.ext import commands, tasks
+from discord.ext import commands, tasks, menus
 from typing_extensions import Annotated
 
 from functions import MyContext, embed, time
@@ -639,7 +639,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
       embed_.colour = WARNING
       total_warnings += 1
 
-    all_tasks = asyncio.Task.all_tasks(loop=self.bot.loop)
+    all_tasks = asyncio.all_tasks(loop=self.bot.loop)
 
     event_tasks = [
         t for t in all_tasks
@@ -984,6 +984,41 @@ async def on_error(self, event: str, *args: Any, **kwargs: Any) -> None:
     pass
 
 
+async def on_app_command_error(interaction: discord.Interaction, error: discord.app_commands.AppCommandError, /) -> None:
+  command = interaction.command
+  error = getattr(error, 'original', error)
+
+  if isinstance(error, (discord.Forbidden, discord.NotFound, menus.MenuError)):
+    return
+
+  hook = interaction.client.get_cog('Stats').webhook  # type: ignore
+  e = discord.Embed(title='App Command Error', colour=0xCC3366)
+
+  if command is not None:
+    if command._has_any_error_handlers():
+      return
+
+    e.add_field(name='Name', value=command.qualified_name)
+
+  e.add_field(name='User', value=f'{interaction.user} (ID: {interaction.user.id})')
+
+  fmt = f'Channel: {interaction.channel} (ID: {interaction.channel_id})'
+  if interaction.guild:
+    fmt = f'{fmt}\nGuild: {interaction.guild} (ID: {interaction.guild.id})'
+
+  e.add_field(name='Location', value=fmt, inline=False)
+  e.add_field(name='Namespace', value=' '.join(f'{k}: {v!r}' for k, v in interaction.namespace), inline=False)
+
+  exc = ''.join(traceback.format_exception(type(error), error, error.__traceback__, chain=False))
+  e.description = f'```py\n{exc}\n```'
+  e.timestamp = interaction.created_at
+
+  try:
+    await hook.send(embed=e)
+  except BaseException:
+    pass
+
+
 async def setup(bot: Friday):
   if not hasattr(bot, 'command_stats'):
     bot.command_stats = Counter()
@@ -999,9 +1034,12 @@ async def setup(bot: Friday):
   bot.logging_handler = handler = LoggingHandler(cog)
   logging.getLogger().addHandler(handler)
   commands.AutoShardedBot.on_error = on_error
+  bot.old_tree_error = bot.tree.on_error  # type: ignore
+  bot.tree.on_error = on_app_command_error
 
 
 def teardown(bot: Friday):
   commands.AutoShardedBot.on_error = old_on_error
   logging.getLogger().removeHandler(bot.logging_handler)
+  bot.tree.on_error = bot.old_tree_error  # type: ignore
   del bot.logging_handler
