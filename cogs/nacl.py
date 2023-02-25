@@ -185,7 +185,10 @@ class NaCl(commands.Cog):
 
     try:
       await member.edit(voice_channel=None, reason="Ghost Fapper")
-      await member.send(embed=embed(title="It's creepy when you leave a ghost in a voice channel.", color=MessageColors.error()))
+      if not random.random() < 0.0001:
+        await member.send(embed=embed(title="It's creepy when you leave a ghost in a voice channel.", color=MessageColors.error()))
+      else:
+        await member.send("https://www.youtube.com/watch?v=NR9iGWyztck")
     except Exception:
       pass
 
