@@ -193,7 +193,7 @@ class Patreons(commands.Cog):
       guild_names = [f"`{g.name if not isinstance(g, int) else None}` (ID: {g if isinstance(g, int) else g.id})" for g in guilds]
       return await ctx.send(embed=embed(title=f"You can only activate {con.max_guilds} server{'s' if con.max_guilds > 1 else ''}", description=f"The server{'s' if con.max_guilds > 1 else ''} you already have activated {'are' if con.max_guilds > 1 else 'is'}:\n\n" + '\n'.join(guild_names), color=MessageColors.error()))
 
-    query = f"INSERT INTO patrons (user_id,tier,guild_ids) VALUES ($1,{config.PremiumTiersNew.tier_1.value},array[$2]::text[]) ON CONFLICT (user_id) DO UPDATE SET guild_ids=array_append(patrons.guild_ids,$2) WHERE NOT ($2=any(patrons.guild_ids));"
+    query = "INSERT INTO patrons (user_id,guild_ids) VALUES ($1,array[$2]::text[]) ON CONFLICT (user_id) DO UPDATE SET guild_ids=array_append(patrons.guild_ids,$2) WHERE NOT ($2=any(patrons.guild_ids));"
     await ctx.db.execute(query, str(ctx.author.id), str(ctx.guild.id))
     await ctx.send(embed=embed(title="You have upgraded this server to premium"))
 
