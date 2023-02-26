@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import datetime
 import logging
+import multiprocessing
 import os
 import sys
 import traceback
@@ -20,18 +21,24 @@ from topgg.webhook import WebhookManager
 
 import cogs
 import functions
+# from cogs.sharding import Sharding
 from functions.config import Config
 from functions.db import Migrations
 from functions.languages import load_languages
 
 if TYPE_CHECKING:
+  from concurrent.futures import ThreadPoolExecutor
+
   from i18n import I18n
+  from launcher import Cluster
+
   from .cogs.database import Database
-  from .cogs.log import Log
-  from .cogs.reminder import Reminder
   from .cogs.dbl import TopGG
+  from .cogs.log import Log
   from .cogs.patreons import Patreons
-  from i18n import I18n
+  from .cogs.reminder import Reminder
+  from .cogs.sharding import Event
+
 
 load_dotenv()
 
@@ -114,10 +121,13 @@ class Friday(commands.AutoShardedBot):
   language_files: dict[str, I18n]
 
   def __init__(self, **kwargs):
-    self.cluster = kwargs.pop("cluster", None)
-    self.cluster_name = kwargs.pop("cluster_name", None)
-    self.cluster_idx = kwargs.pop("cluster_idx", 0)
-    self.should_start = kwargs.pop("start", False)
+    self.cluster: Cluster | None = kwargs.pop("cluster", None)
+    self.cluster_name: str | None = kwargs.pop("cluster_name", None)
+    self.cluster_idx: int = kwargs.pop("cluster_idx", 0)
+    self.openai_api_lock: asyncio.Semaphore = kwargs.pop("openai_api_lock", asyncio.Semaphore(2))
+    self.tasks: multiprocessing.Queue[Event] | None = kwargs.pop("tasks", None)
+    self.tasks_to_complete: multiprocessing.Queue[Event] | None = kwargs.pop("tasks_to_complete", None)
+    self.task_executer: ThreadPoolExecutor | None = kwargs.pop("task_executer", None)
 
     super().__init__(
         command_prefix=get_prefix,
@@ -165,6 +175,31 @@ class Friday(commands.AutoShardedBot):
   def canary(self) -> bool:
     return self.user.id == 760615464300445726  # Canary bot id
 
+  @classmethod
+  def from_launcher(
+      cls,
+      *,
+      cluster: Cluster | None = None,
+      cluster_name: str = None,
+      cluster_idx: int = 0,
+      tasks: multiprocessing.Queue[Event] = None,
+      tasks_to_complete: multiprocessing.Queue[Event] = None,
+      task_executer: ThreadPoolExecutor = None,
+      openai_api_lock: asyncio.Semaphore = asyncio.Semaphore(2),
+      **kwargs
+  ) -> None:
+    self = cls(
+        cluster=cluster,
+        cluster_name=cluster_name,
+        cluster_idx=cluster_idx,
+        tasks=tasks,
+        tasks_to_complete=tasks_to_complete,
+        task_executer=task_executer,
+        openai_api_lock=openai_api_lock
+    )
+    log.info(f"Cluster Starting {kwargs.get('shard_ids', None)}, {kwargs.get('shard_count', 1)}")
+    self.run(kwargs["token"])
+
   async def get_context(self, origin: discord.Message | discord.Interaction, /, *, cls=None) -> functions.MyContext:
     return await super().get_context(origin, cls=cls or functions.MyContext)
 
@@ -179,7 +214,7 @@ class Friday(commands.AutoShardedBot):
 
     await self.tree.set_translator(Translator())
 
-    await self.load_extension("cogs.database")
+    # await self.load_extension("cogs.database")
     await self.load_extension("cogs.log")
 
     self.bot_app_info = await self.application_info()
@@ -321,6 +356,10 @@ class Friday(commands.AutoShardedBot):
   def patreon(self) -> Optional[Patreons]:
     return self.get_cog("Patreons")  # type: ignore
 
+  # @property
+  # def sharding(self) -> Optional[Sharding]:
+  #   return self.get_cog("Sharding")  # type: ignore
+
 
 async def run_bot():
   log = logging.getLogger()
@@ -359,6 +398,20 @@ async def ensure_uri_can_run() -> bool:
   connection: asyncpg.Connection = await asyncpg.connect(os.environ["DBURL"])
   await connection.close()
   return True
+
+
+# @db.command()
+# @click.option('--reason', '-r', help='The reason for this revision.', default='Initial migration')
+# def init(reason):
+#   """Initializes the database and creates the initial revision."""
+
+#   asyncio.run(ensure_uri_can_run())
+
+#   migrations = Migrations()
+#   migrations.database_uri = os.environ["DBURL"]
+#   revision = migrations.create_revision(reason)
+#   click.echo(f'created revision V{revision.version!r}')
+#   click.secho('hint: use the `upgrade` command to apply', fg='yellow')
 
 
 @db.command()
