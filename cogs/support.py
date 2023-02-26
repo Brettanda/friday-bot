@@ -86,7 +86,7 @@ class Support(commands.Cog):
       return
 
     if not after_has:
-      await self.bot.pool.execute("UPDATE servers SET patreon_user=NULL,tier=NULL WHERE patreon_user=$1", str(after.id))
+      await self.bot.pool.execute("UPDATE servers SET patreon_user=NULL WHERE patreon_user=$1", str(after.id))
       log.info(f"Lost patreonage for guild {after.guild.id} with user {after.id} :(")
     # else:
     #   welcome new patron
