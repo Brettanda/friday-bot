@@ -16,6 +16,7 @@ services:
     ports:
       - 5678:5678
       - 443:443
+      - 5000:5000
   lavalink:
     image: fredboat/lavalink:dev
     restart: unless-stopped
