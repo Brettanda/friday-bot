@@ -29,6 +29,7 @@ class PatreonConfig:
   __slots__ = ("id", "_current_tier", "_amount_cents", "guild_ids")
 
   id: int
+  _current_tier: int
   _amount_cents: int
   guild_ids: list[int]
 
@@ -56,8 +57,9 @@ class PatreonConfig:
 
   @property
   def max_guilds(self) -> int:
-    # TODO: Make this dynamic with the tiers
-    return 1
+    if self.tier >= PremiumTiersNew.tier_2.value:
+      return 1
+    return 0
 
   @property
   def guilds_remaining(self) -> int:
@@ -101,6 +103,8 @@ class Patreons(commands.Cog):
         if i['id'] == shit['relationships']['user']['data']['id']:
           r['user_id'] = i['attributes']['social_connections']['discord']['user_id']
       members.append(r)
+    # # me is patron
+    # members.append({"current_tier": "7212079", "amount_cents": "150", "user_id": "215227961048170496"})
 
     query = "SELECT * FROM patrons"
     records = await conn.fetch(query)
@@ -175,6 +179,7 @@ class Patreons(commands.Cog):
 
   @norm_patreon_server.command("activate")
   @commands.guild_only()
+  @checks.user_is_min_tier(tier=config.PremiumTiersNew.tier_2)
   async def norm_patreon_server_true(self, ctx: GuildContext):
     async with ctx.typing():
       con = next((c for c in await self.get_patrons() if str(c) == str(ctx.author.id)), None)
