@@ -246,7 +246,7 @@ class TopGG(commands.Cog):
     _type, user = data.get("type", None), data.get("user", None)
     log.info(f'Received an upvote, {data}')
     if _type == "test":
-      fut = now + datetime.timedelta(minutes=1, seconds=10)
+      fut = now + datetime.timedelta(seconds=10)
       expires = fut + datetime.timedelta(minutes=1)
     if user is None:
       return
@@ -254,7 +254,7 @@ class TopGG(commands.Cog):
     if reminder is None:
       return
     async with self.bot.pool.acquire(timeout=300.0) as conn:
-      await reminder.create_timer(fut, "vote", user, created=now, connection=conn)
+      await reminder.create_timer(fut, "vote", user, created=now)
       query = "DELETE FROM reminders WHERE event='vote_streak' AND extra #>> '{args,0}' = $1;"
       status = await conn.execute(query, user)
       if status != "DELETE 0":
@@ -264,7 +264,7 @@ class TopGG(commands.Cog):
 
       query = "INSERT INTO voting_streaks (user_id, last_vote, expires) VALUES ($1, $2, $3) ON CONFLICT (user_id) DO UPDATE SET days = voting_streaks.days + 1, last_vote = $2, expires = $3;"
       await conn.execute(query, int(user, base=10), now.replace(tzinfo=None), expires.replace(tzinfo=None))
-      await reminder.create_timer(expires, "vote_streak", user, created=now, connection=conn)
+      await reminder.create_timer(expires, "vote_streak", user, created=now)
     self.user_streak.invalidate(self, int(user, base=10))
     self.user_has_voted.invalidate(self, int(user, base=10))
     if _type == "test" or int(user, base=10) not in (215227961048170496, 813618591878086707):
