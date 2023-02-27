@@ -534,9 +534,8 @@ class API(commands.Cog):
 
     try:
       ssl_ctx = None
-      if self.bot.prod or self.bot.canary:
-        ssl_ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-        ssl_ctx.load_cert_chain(os.environ.get("SSLCERT", None), os.environ.get("SSLKEY", None))  # type: ignore
+      ssl_ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+      ssl_ctx.load_cert_chain(os.environ.get("SSLCERT", None), os.environ.get("SSLKEY", None))  # type: ignore
 
       app.add_routes(routes)
       for route in list(app.router.routes()):
