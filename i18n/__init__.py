@@ -128,13 +128,16 @@ class CommandGroupDefaultCustom(CommandDefault):
 
 class AppCommandGroupDefault(CommandDefault):  # , metaclass = ForceRequiredAttributeDefinitionMeta):
   command_name: str = MISSING
-  commands: Struct = MISSING
+  commands = MISSING
 
   def check_required_attributes(self):
     if self.command_name is MISSING:
       raise AttributeError(f"'command_name' is required for {self!r}")
     if self.commands is MISSING:
       raise AttributeError(f"'commands' is required for {self!r}")
+    if not issubclass(self.commands, Struct):
+      raise AttributeError("'commands' must be a sub class of 'Struct'")
+
     # else:
     #   for k, v in self.commands.items():
     #     v.check_required_attributes()

@@ -17,6 +17,8 @@ COPY ./requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 EXPOSE 4001
+EXPOSE 443
+EXPOSE 5000
 
 ENV WAIT_HOSTS="db:5432,lavalink:2333"
 

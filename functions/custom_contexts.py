@@ -1,19 +1,21 @@
 from __future__ import annotations
 
 import io
-from typing import TYPE_CHECKING, Any, Protocol, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Optional, Protocol, TypedDict, Union
 
 import discord
 from discord.ext import commands
 
-from .myembed import embed
+from .myembed import embed as Embed
 
 if TYPE_CHECKING:
+  from types import TracebackType
+
   from aiohttp import ClientSession
   from asyncpg import Connection, Pool
 
+  from i18n import I18n
   from index import Friday
-  from types import TracebackType
 
 
 class ConnectionContextManager(Protocol):
@@ -87,24 +89,26 @@ class ConfirmationView(discord.ui.View):
   async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
     self.value = False
     await interaction.response.defer()
-    if self.delete_after:
-      await interaction.delete_original_response()
+    if self.delete_after and self.message:
+      if not self.message.flags.ephemeral:
+        await self.message.delete()
+      else:
+        await self.message.edit(view=None, content=None, embeds=[Embed(title="This is safe to dismiss now")])
     self.stop()
 
 
+class MultiSelectViewOptions(TypedDict, total=False):
+  label: str
+  value: str
+  description: str | None
+  emoji: discord.PartialEmoji | None
+  default: bool
+
+
 class MultiSelectView(discord.ui.View):
-  def __init__(self, options: list, *, values: list = [], emojis: list = [], descriptions: list = [], placeholder: str = None, min_values: int = 1, max_values: int = 1, default: str = None, timeout: float, delete_after: bool, author_id: int, ctx: MyContext) -> None:
+  def __init__(self, options: list[MultiSelectViewOptions], *, placeholder: str = None, min_values: int = 1, max_values: int = 1, default: str = None, timeout: float, delete_after: bool, author_id: int, ctx: MyContext) -> None:
     super().__init__(timeout=timeout)
-    new = False
-    if not values and not emojis and not descriptions:
-      new = True
-    values = values if len(values) > 0 else [None] * len(options)
-    emojis = emojis if len(emojis) > 0 else [None] * len(options)
-    descriptions = descriptions if len(descriptions) > 0 else [None] * len(options)
-    if not new:
-      self.options: list = [discord.SelectOption(label=p, value=v or p, emoji=e, description=d, default=True if default == v else False) for p, v, e, d in zip(options, values, emojis, descriptions)]
-    else:
-      self.options = [discord.SelectOption(**ks) for ks in options]
+    self.options = [discord.SelectOption(**ks) for ks in options]
     self.placeholder: Optional[str] = placeholder
     self.author_id: int = author_id
     self.ctx: MyContext = ctx
@@ -225,16 +229,10 @@ class MyContext(commands.Context):
     await view.wait()
     return view.value
 
-  async def multi_select(self, message: str = "Please select one or more of the options.", options: List[dict] = [], *, values: list = [], emojis: list = [], descriptions: list = [], default: str = None, placeholder: str = None, min_values: int = 1, max_values: int = 1, timeout: float = 60.0, delete_after: bool = True, author_id: Optional[int] = None, **kwargs) -> Optional[list]:
+  async def multi_select(self, message: str = "Please select one or more of the options.", options: list[MultiSelectViewOptions] = [], *, embed: Optional[Embed] = None, placeholder: str = None, min_values: int = 1, max_values: int = 1, timeout: float = 60.0, delete_after: bool = True, author_id: Optional[int] = None, **kwargs) -> Optional[list]:
     author_id = author_id or self.author.id
     view = MultiSelectView(
         options=options,
-        # depricate this at some point
-        values=values,
-        emojis=emojis,
-        descriptions=descriptions,
-        default=default,
-        # ############################
         placeholder=placeholder,
         timeout=timeout,
         min_values=min_values,
@@ -243,25 +241,12 @@ class MyContext(commands.Context):
         delete_after=delete_after,
         author_id=author_id,
     )
-    kwargs["embed"] = kwargs.pop("embed", embed(title=message))
-    view.message = await self.send(view=view, **kwargs)
+    embed = embed or Embed(title=message)
+    view.message = await self.send(view=view, embed=embed, **kwargs)
     await view.wait()
     return view.values
 
-  # async def modal(self, message: str, *, modal_button: Optional[str] = "Modal", modal_title: Optional[str] = "Modal", modal_items: List[dict] = [], author_id: Optional[int] = None, **kwargs):
-  #   author_id = author_id or self.author.id
-  #   view = ModalView(
-  #       modal_button=modal_button,
-  #       modal_title=modal_title,
-  #       modal_items=modal_items,
-  #       author_id=author_id,
-  #   )
-  #   kwargs["embed"] = kwargs.pop("embed", embed(title=message))
-  #   view.message = await self.send(view=view, **kwargs)
-  #   await view.wait()
-  #   return view.value
-
-  async def edit(self, content: str | None = ..., embed: embed | None = ..., view: discord.ui.View | None = ...) -> discord.Message:
+  async def edit(self, content: str | None = ..., embed: Embed | None = ..., view: discord.ui.View | None = ...) -> discord.Message:
     if self.interaction:
       return await self.interaction.edit_original_response(content=content, embed=embed, view=view)
     if not self.bot_message:

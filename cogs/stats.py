@@ -315,8 +315,10 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
     rate_control = chat_cog._spam_check
     free_rate = [str(key) for key, value in rate_control.free._cache.items() if value._tokens == 0]
     voted_rate = [str(key) for key, value in rate_control.voted._cache.items() if value._tokens == 0]
-    patron_rate = [str(key) for key, value in rate_control.patron._cache.items() if value._tokens == 0]
-    await ctx.send(f"{total:,} messages ({cpm:.2f}/min)\n**Rate-limits**\nFree: {len(free_rate)} users\nVoted: {len(voted_rate)} users\nPatron: {len(patron_rate)} users\n{counter_message}")
+    patron_rate_1 = [str(key) for key, value in rate_control.patron_1._cache.items() if value._tokens == 0]
+    patron_rate_2 = [str(key) for key, value in rate_control.patron_2._cache.items() if value._tokens == 0]
+    patron_rate_3 = [str(key) for key, value in rate_control.patron_3._cache.items() if value._tokens == 0]
+    await ctx.send(f"{total:,} messages ({cpm:.2f}/min)\n**Rate-limits**\nFree: {len(free_rate)} users\nVoted: {len(voted_rate)} users\nPatron 1: {len(patron_rate_1)} users\nPatron 2: {len(patron_rate_2)}\nPatron 3: {len(patron_rate_3)}\n{counter_message}")
 
   @commands.command("socketstats")
   async def socketstats(self, ctx: MyContext):

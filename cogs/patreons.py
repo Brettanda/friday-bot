@@ -29,6 +29,7 @@ class PatreonConfig:
   __slots__ = ("id", "_current_tier", "_amount_cents", "guild_ids")
 
   id: int
+  _current_tier: int
   _amount_cents: int
   guild_ids: list[int]
 
@@ -56,8 +57,9 @@ class PatreonConfig:
 
   @property
   def max_guilds(self) -> int:
-    # TODO: Make this dynamic with the tiers
-    return 1
+    if self.tier >= PremiumTiersNew.tier_2.value:
+      return 1
+    return 0
 
   @property
   def guilds_remaining(self) -> int:
@@ -101,6 +103,8 @@ class Patreons(commands.Cog):
         if i['id'] == shit['relationships']['user']['data']['id']:
           r['user_id'] = i['attributes']['social_connections']['discord']['user_id']
       members.append(r)
+    # # me is patron
+    # members.append({"current_tier": "7212079", "amount_cents": "150", "user_id": "215227961048170496"})
 
     query = "SELECT * FROM patrons"
     records = await conn.fetch(query)
@@ -175,6 +179,7 @@ class Patreons(commands.Cog):
 
   @norm_patreon_server.command("activate")
   @commands.guild_only()
+  @checks.user_is_min_tier(tier=config.PremiumTiersNew.tier_2)
   async def norm_patreon_server_true(self, ctx: GuildContext):
     async with ctx.typing():
       con = next((c for c in await self.get_patrons() if str(c) == str(ctx.author.id)), None)
@@ -193,7 +198,7 @@ class Patreons(commands.Cog):
       guild_names = [f"`{g.name if not isinstance(g, int) else None}` (ID: {g if isinstance(g, int) else g.id})" for g in guilds]
       return await ctx.send(embed=embed(title=f"You can only activate {con.max_guilds} server{'s' if con.max_guilds > 1 else ''}", description=f"The server{'s' if con.max_guilds > 1 else ''} you already have activated {'are' if con.max_guilds > 1 else 'is'}:\n\n" + '\n'.join(guild_names), color=MessageColors.error()))
 
-    query = f"INSERT INTO patrons (user_id,tier,guild_ids) VALUES ($1,{config.PremiumTiersNew.tier_1.value},array[$2]::text[]) ON CONFLICT (user_id) DO UPDATE SET guild_ids=array_append(patrons.guild_ids,$2) WHERE NOT ($2=any(patrons.guild_ids));"
+    query = "INSERT INTO patrons (user_id,guild_ids) VALUES ($1,array[$2]::text[]) ON CONFLICT (user_id) DO UPDATE SET guild_ids=array_append(patrons.guild_ids,$2) WHERE NOT ($2=any(patrons.guild_ids));"
     await ctx.db.execute(query, str(ctx.author.id), str(ctx.guild.id))
     await ctx.send(embed=embed(title="You have upgraded this server to premium"))
 

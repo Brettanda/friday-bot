@@ -7,8 +7,7 @@ import re
 from collections import defaultdict
 from enum import Enum
 # import random
-from typing import TYPE_CHECKING, Any, Optional, Sequence, List, Tuple
-from typing_extensions import Annotated
+from typing import TYPE_CHECKING, Any, List, Optional, Sequence, Tuple
 
 import discord
 import numpy as np
@@ -17,6 +16,7 @@ from async_timeout import timeout
 from discord.ext import commands, tasks
 # sys.path.insert(1, os.path.join(sys.path[0], '..'))
 from pyfiglet import figlet_format
+from typing_extensions import Annotated
 
 from functions import MessageColors, checks, embed, exceptions
 from functions.config import PremiumTiersNew
@@ -182,9 +182,10 @@ class Fun(commands.Cog):
 
     return board_str.strip()
 
-  @commands.command(name='souptime', help='Soup Time')
+  @commands.command(name='souptime')
   @commands.cooldown(1, 7, commands.BucketType.user)
-  async def norm_souptime(self, ctx: MyContext):
+  async def souptime(self, ctx: MyContext):
+    """Soup Time"""
     await ctx.reply(embed=embed(
         title="Here is sum soup, just for you",
         color=MessageColors.souptime(),
@@ -192,8 +193,9 @@ class Fun(commands.Cog):
         image=random.choice(config['soups'])
     ))
 
-  @commands.command(name="coinflip", aliases=["coin"], help="Flip a coin")
-  async def norm_coinflip(self, ctx: MyContext):
+  @commands.command(name="coinflip", aliases=["coin"])
+  async def coinflip(self, ctx: MyContext):
+    """Flip a coin"""
     await ctx.reply(embed=embed(title="The coin landed on: " + random.choice(["Heads", "Tails"])))
 
   # @cog_ext.cog_slash(
@@ -205,13 +207,13 @@ class Fun(commands.Cog):
   #   await ctx.send(embed=embed(title="The coin landed on: " + random.choice(["Heads", "Tails"])))
 
   # @commands.command(name="mostroles", description="Show the server members with the most roles")
-  # async def norm_mostroles(self, ctx):
+  # async def mostroles(self, ctx):
   #   # Requires members intent
   #   for member in ctx.guild.members:
   #     print(member)
 
   # @commands.command(name="secretsanta", aliases=["ss"], description="Secret Santa", hidden=True)
-  # async def norm_secret_santa(self, ctx, members: commands.Greedy[discord.Member]):
+  # async def secret_santa(self, ctx, members: commands.Greedy[discord.Member]):
   #   print("something")
 
   # @cog_ext.cog_slash(name="secretsanta", description="Secret Santa", options=[create_option("members", "The members of the secret santa", 6, True)], guild_ids=[243159711237537802, 707441352367013899])
@@ -494,8 +496,9 @@ class Fun(commands.Cog):
 
   #   await self.bot.invoke(redditlink)
 
-  @commands.command("8ball", help="Ask the magic 8ball a question")
+  @commands.command("8ball")
   async def eightball(self, ctx: MyContext, *, question: str):
+    """Ask the magic 8ball a question"""
     answers = [
         "It is certain.",
         "It is decidedly so.",
@@ -521,8 +524,9 @@ class Fun(commands.Cog):
 
     await ctx.send(embed=embed(title=f"🎱 | {random.choice(answers)}"))
 
-  @commands.command("rng", help="Get a random number between the given range")
+  @commands.command("rng")
   async def rng(self, ctx: MyContext, start: int = 0, end: int = 100):
+    """Get a random number between the given range"""
     if start > end:
       return await ctx.send(embed=embed(title="Start cannot be greater than end", color=MessageColors.error()))
     try:
@@ -537,8 +541,9 @@ class Fun(commands.Cog):
     else:
       await ctx.send(embed=embed(title=f"{number}"))
 
-  @commands.command("choice", aliases=["pick", "select"], help="Pick a random item from a list. For multiple items, separate them with a comma.")
+  @commands.command("choice", aliases=["pick", "select"])
   async def choice(self, ctx: MyContext, *, choices: str):
+    """Pick a random item from a list. For multiple items, separate them with a comma."""
     new_choices = choices.split(",")
     await ctx.send(embed=embed(title=f"{random.choice(new_choices)}"))
 
@@ -572,9 +577,7 @@ class Fun(commands.Cog):
   @commands.guild_only()
   @is_nacl_server()
   async def callroulette(self, ctx: GuildContext, excluded_channels: Annotated[List[discord.VoiceChannel], commands.Greedy[discord.VoiceChannel]] = []):
-    """
-      Auto ignores voicechannels that are currently occupied.
-    """
+    """Auto ignores voicechannels that are currently occupied."""
     if ctx.author in [i for i, _ in self.callroulette_batch]:
       return await ctx.send(embed=embed(title="You already have callroulette active", color=MessageColors.error()))
 
