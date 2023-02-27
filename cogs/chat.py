@@ -408,6 +408,7 @@ class Chat(commands.Cog):
     self.get_guild_config.invalidate(self, ctx.guild.id)
     await ctx.send(embed=embed(title=f"New Persona `{choice[0].capitalize()}`"))
 
+  @cache.cache()
   async def content_filter_flagged(self, text: str) -> tuple[bool, list[str]]:
     if self.bot.testing:
       return False, []
