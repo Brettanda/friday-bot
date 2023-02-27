@@ -770,7 +770,7 @@ class Music(commands.Cog):
       await ctx.send(embed=embed(title=f'{ctx.author.mention} has voted to shuffle the playlist.', color=MessageColors.music()))
 
   @commands.command(name="equalizer", aliases=['eq'], extras={"examples": Equalizer.options(), "params": Equalizer.options()})
-  @checks.is_min_tier(config.PremiumTiersNew.tier_1)
+  @checks.is_min_tier(config.PremiumTiersNew.tier_2)
   @commands.guild_only()
   @commands.max_concurrency(1, commands.BucketType.guild, wait=True)
   @can_play()

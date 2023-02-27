@@ -248,13 +248,15 @@ class PremiumPerks:
 
   @property
   def max_chat_characters(self) -> int:
-    if self.tier == PremiumTiersNew.free:
-      return 100
-    return 200
+    if self.tier.value >= PremiumTiersNew.tier_3.value:
+      return 300
+    if self.tier.value >= PremiumTiersNew.tier_2.value:
+      return 200
+    return 100
 
   @property
   def max_chat_history(self) -> int:
-    if self.tier.value >= PremiumTiersNew.tier_1.value:
+    if self.tier.value >= PremiumTiersNew.tier_2.value:
       return 5
     return 3
 
