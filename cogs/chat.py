@@ -211,6 +211,7 @@ class Translation:
   detectedSourceLanguage: Optional[str]
 
   @classmethod
+  @cache.cache(ignore_kwargs=True)
   async def from_text(cls, text: str, from_lang: str = None, to_lang: str = "en", *, parent: Chat) -> Self:
     self = cls()
 
