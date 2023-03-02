@@ -49,12 +49,13 @@ if TYPE_CHECKING:
     channel: str
     author: str
     used: str
-    user_msg: str
-    bot_msg: Optional[str]
     failed: bool
     filtered: Optional[int]
     persona: str
-    prompt: Optional[str]
+    messages: Optional[list[dict[str, str]]]
+    prompt_tokens: Optional[int]
+    completion_tokens: Optional[int]
+    total_tokens: Optional[int]
 
 log = logging.getLogger(__name__)
 
@@ -147,10 +148,10 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
       self._data_joins_batch.clear()
 
   async def bulk_insert_chats(self):
-    query = """INSERT INTO chats (guild_id, channel_id, author_id, used, user_msg, bot_msg, failed, filtered, prompt)
-               SELECT x.guild, x.channel, x.author, x.used, x.user_msg, x.bot_msg, x.failed, x.filtered, x.prompt
+    query = """INSERT INTO chats (guild_id, channel_id, author_id, used, failed, filtered, messages, prompt_tokens, completion_tokens, total_tokens)
+               SELECT x.guild, x.channel, x.author, x.used, x.failed, x.filtered, x.messages, x.prompt_tokens, x.completion_tokens, x.total_tokens
                FROM jsonb_to_recordset($1::jsonb) AS
-               x(guild TEXT, channel TEXT, author TEXT, used TIMESTAMP, user_msg TEXT, bot_msg TEXT, failed BOOLEAN, filtered INT, prompt TEXT)"""
+               x(guild TEXT, channel TEXT, author TEXT, used TIMESTAMP, failed BOOLEAN, filtered INT, messages JSONB, prompt_tokens INT, completion_tokens INT, total_tokens INT)"""
 
     if self._data_chats_batch:
       await self.bot.pool.execute(query, self._data_chats_batch)
@@ -227,10 +228,18 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
           'current_count': len(self.bot.guilds),
       })
 
-  async def register_chat(self, user_msg: discord.Message, bot_msg: Optional[discord.Message], failed: bool, *, prompt: str = None, filtered: Optional[int] = None, persona: Annotated[str, Optional[str]] = "friday"):
-    user_message = user_msg.clean_content
-    bot_message = bot_msg and bot_msg.clean_content
-
+  async def register_chat(
+          self,
+          user_msg: discord.Message,
+          failed: bool,
+          *,
+          messages: list[dict[str, str]] = None,
+          filtered: Optional[int] = None,
+          persona: Annotated[str, Optional[str]] = "friday",
+          prompt_tokens: int = 0,
+          completion_tokens: int = 0,
+          total_tokens: int = 0
+  ):
     self.bot.chat_stats[user_msg.author.id] += 1
     if user_msg.guild is None:
       guild_id = None
@@ -243,12 +252,13 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
           'channel': str(user_msg.channel.id),
           'author': str(user_msg.author.id),
           'used': user_msg.created_at.isoformat(),
-          'user_msg': user_message,
-          'bot_msg': bot_message,
           'failed': failed,
           'filtered': filtered,
           'persona': persona,
-          'prompt': prompt,
+          'messages': messages,
+          'prompt_tokens': prompt_tokens,
+          'completion_tokens': completion_tokens,
+          'total_tokens': total_tokens,
       })
 
   @commands.Cog.listener()
@@ -278,8 +288,28 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
     await self.register_joins(guild, False)
 
   @commands.Cog.listener()
-  async def on_chat_completion(self, user_msg: discord.Message, bot_msg: discord.Message, failed: bool, *, prompt: str = None, filtered: Optional[int] = None, persona: Annotated[str, Optional[str]] = "friday"):
-    await self.register_chat(user_msg, bot_msg, failed, filtered=filtered, persona=persona, prompt=prompt)
+  async def on_chat_completion(
+          self,
+          user_msg: discord.Message,
+          failed: bool,
+          *,
+          messages: list[dict[str, str]] = None,
+          filtered: Optional[int] = None,
+          persona: Annotated[str, Optional[str]] = "friday",
+          prompt_tokens: int = 0,
+          completion_tokens: int = 0,
+          total_tokens: int = 0
+  ):
+    await self.register_chat(
+        user_msg,
+        failed,
+        filtered=filtered,
+        persona=persona,
+        messages=messages,
+        prompt_tokens=prompt_tokens,
+        completion_tokens=completion_tokens,
+        total_tokens=total_tokens
+    )
 
   @commands.Cog.listener()
   async def on_socket_event_type(self, event_type):

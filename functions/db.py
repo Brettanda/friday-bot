@@ -11,7 +11,6 @@ from typing import TypedDict
 
 import asyncpg
 import click
-import discord
 
 log = logging.getLogger(__name__)
 
@@ -61,7 +60,7 @@ class Migrations:
     except FileNotFoundError:
       return {
           'version': 0,
-          'database_uri': discord.utils.MISSING,
+          'database_uri': os.environ["DBURL"],
       }
 
   def get_revisions(self) -> dict[int, Revision]:
@@ -112,7 +111,9 @@ class Migrations:
         f'-- Reason: {reason}\n\n'
     )
 
-    path.write_text(stub, encoding='utf-8')  # , newline='\n')
+    with open(path, 'w', encoding='utf-8', newline='\n') as fp:
+      fp.write(stub)
+
     self.save()
     return Revision(kind=kind, description=reason, version=self.version + 1, file=path)
 

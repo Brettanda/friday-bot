@@ -6,7 +6,7 @@ import functools
 import logging
 import os
 from collections import Counter, defaultdict
-from typing import TYPE_CHECKING, ClassVar, List, Literal, Optional, Union
+from typing import TYPE_CHECKING, ClassVar, List, Literal, Optional, TypedDict, Union
 
 import asyncpg
 import discord
@@ -36,7 +36,7 @@ openai.api_key = os.environ["OPENAI"]
 POSSIBLE_SENSITIVE_MESSAGE = "*Possibly sensitive:* ||"
 POSSIBLE_OFFENSIVE_MESSAGE = "**I failed to respond because my message might have been offensive, please choose another topic or try again**"
 
-PERSONAS = [("🥰", "default", "Fridays default persona"), ("🏴‍☠️", "pirate", "Friday becomes one with the sea")]
+PERSONAS = [("🥰", "default", "Fridays default persona"), ("🏴‍☠️", "pirate", "Friday becomes one with the sea"), ("🍙", "kinyoubi", "Friday becomes one with the anime")]
 
 logging.getLogger("openai").setLevel(logging.WARNING)
 
@@ -145,29 +145,37 @@ class SpamChecker:
     return False, None, None
 
 
+class ChatHistoryMessages(TypedDict):
+  role: str  # Literal["user", "assistant", "system"]
+  content: str
+
+
 class ChatHistory:
   _limit: ClassVar[int] = 3
   _messages_per_group: ClassVar[int] = 2
 
   def __init__(self):
     self.lock = asyncio.Lock()
-    self._history: List[str] = []
+    self._history: list[ChatHistoryMessages] = []
     self._bot_name: str = "Friday"
+    self.completion_tokens: int = 0
+    self.prompt_tokens: int = 0
+    self.total_tokens: int = 0
 
   def __repr__(self) -> str:
     return f"<Chathistory len={len(self.history())}>"
 
   def __str__(self) -> str:
-    return "\n".join(self.history())
+    return "\n".join(str(m) for m in self.history())
 
   def __len__(self) -> int:
-    return len("\n".join(self.history()))
+    return len("\n".join(str(m) for m in self.history()))
 
   def history(self, *, limit=_limit) -> list:
     return self._history[::-1][:limit * self._messages_per_group][::-1]
 
   def bot_repeating(self, *, limit=_limit) -> bool:
-    bot_messages = [item for item in self.history(limit=limit) if item.startswith(f"{self._bot_name}: ")][::-1] or []
+    bot_messages = [item for item in self.history(limit=limit) if item["role"] == "assistant"][::-1] or []
     repeats = [item for x, item in enumerate(bot_messages) if item == bot_messages[x - 1]]
     repeats = [*repeats, repeats[0]] if len(repeats) > 0 else repeats
     return bool(repeats and len(repeats) >= 3)
@@ -179,24 +187,21 @@ class ChatHistory:
       string = string.replace(old, new)
     return name if string.lower() not in banned else "Cat"
 
-  async def prompt(self, user_content: str, user_name: str, bot_name: str = "Friday", *, limit=_limit) -> str:
+  async def messages(self, *, my_name: str = None, user_name: str = None, limit=_limit, bonus_setup: str = None) -> list[ChatHistoryMessages]:
     async with self.lock:
       while len(self._history) > limit * self._messages_per_group:
         self._history.pop(0)
-      return '\n'.join(self.history(limit=limit)) + ("\n" if len(self.history(limit=limit)) > 0 else "") + f"{user_name}: {user_content}\n{bot_name}:"
+      response: list[ChatHistoryMessages] = [{'role': 'system', 'content': f"You're '{my_name}', a friendly & funny Discord chatbot made by 'Motostar' and chatting with a person named '{user_name}'. You'll never respond with more than 100 characters with a strong bias for short answers{' ' + bonus_setup if bonus_setup else ''}"}]
+      return response + self._history
 
   async def add_message(self, msg: discord.Message, bot_content: str, *, user_content: str = None, user_name: str = None, bot_name: str = None):
     async with self.lock:
-      bot_seperator = "" if bot_content.startswith(" ") else " "
       user_content = user_content or msg.clean_content
-      user_seperator = "" if user_content.startswith(" ") else " "
       user_name = user_name or msg.author.display_name
       self._bot_name = bot_name = bot_name or msg.guild and msg.guild.me.display_name or "Friday"
 
-      to_add_user = f"{self.banned_nickname(user_name)}:{user_seperator}{user_content}"
-      to_add_bot = f"{self.banned_nickname(bot_name)}:{bot_seperator}{bot_content}"
-      self._history.append(to_add_user)
-      self._history.append(to_add_bot)
+      self._history.append({"role": "user", "content": user_content})
+      self._history.append({"role": "assistant", "content": bot_content})
 
 
 class CooldownByRepeating(commands.CooldownMapping):
@@ -211,6 +216,7 @@ class Translation:
   detectedSourceLanguage: Optional[str]
 
   @classmethod
+  @cache.cache(ignore_kwargs=True)
   async def from_text(cls, text: str, from_lang: str = None, to_lang: str = "en", *, parent: Chat) -> Self:
     self = cls()
 
@@ -395,12 +401,22 @@ class Chat(commands.Cog):
     self.get_guild_config.invalidate(self, ctx.guild.id)
     await ctx.send(embed=embed(title="Chat channel cleared", description="I will no longer respond to messages in this channel"))
 
-  @commands.command(name="persona", help="Change Friday's persona")
+  @commands.hybrid_command(name="persona")
   @commands.guild_only()
   @checks.is_mod_and_min_tier(tier=PremiumTiersNew.tier_1, manage_channels=True)
   async def persona(self, ctx: GuildContext):
-    current = await ctx.pool.fetchval("SELECT persona FROM servers WHERE id=$1", str(ctx.guild.id))
-    choice = await ctx.multi_select("Please select a new persona", [p.capitalize() for _, p, _ in PERSONAS], values=[p for _, p, _ in PERSONAS], emojis=[e for e, _, _ in PERSONAS], descriptions=[d for _, _, d in PERSONAS], default=current, placeholder=f"Current: {current.capitalize()}")
+    """Change Friday's persona"""
+    current: str = await ctx.db.fetchval("SELECT persona FROM servers WHERE id=$1", str(ctx.guild.id))  # type: ignore
+    choice = await ctx.multi_select(
+        "Please select a new persona",
+        options=[{
+            "label": p.capitalize(),
+            "value": p,
+            "emoji": e,
+            "description": d,
+            "default": p == current,
+        } for e, p, d in PERSONAS],
+        placeholder=f"Current: {current.capitalize()}")
     if choice is None:
       return await ctx.send(embed=embed(title="No change made"))
 
@@ -408,6 +424,7 @@ class Chat(commands.Cog):
     self.get_guild_config.invalidate(self, ctx.guild.id)
     await ctx.send(embed=embed(title=f"New Persona `{choice[0].capitalize()}`"))
 
+  @cache.cache()
   async def content_filter_flagged(self, text: str) -> tuple[bool, list[str]]:
     if self.bot.testing:
       return False, []
@@ -416,7 +433,7 @@ class Chat(commands.Cog):
           None,
           functools.partial(
               lambda: openai.Moderation.create(
-                  model="text-moderation-latest",
+                  model="text-moderation-stable",
                   input=text,
               )))
     if response is None:
@@ -426,31 +443,30 @@ class Chat(commands.Cog):
     return bool(response["flagged"] == 1), categories
 
   async def openai_req(self, msg: discord.Message, current_tier: PremiumTiersNew, persona: str = None, *, content: str = None) -> Optional[str]:
-    if self.bot.testing:
-      return "This message is a test"
     content = content or msg.clean_content
     author_prompt_name = msg.author.display_name
     my_prompt_name = msg.guild.me.display_name if msg.guild else self.bot.user.name
-    prompt = await self.chat_history[msg.channel.id].prompt(content, author_prompt_name, my_prompt_name, limit=PremiumPerks(current_tier).max_chat_history)
-    engine = os.environ["OPENAIMODEL"]
-    if persona and persona == "pirate":
-      engine = os.environ["OPENAIMODELPIRATE"]
+
+    bonus = None
+    if persona == "pirate":
+      bonus = "You'll only respond like a pirate to all messages"
+    elif persona == "kinyoubi":
+      bonus = "You'll only respond like a anime girl to all messages"
+    messages = await self.chat_history[msg.channel.id].messages(my_name=my_prompt_name, user_name=author_prompt_name, bonus_setup=bonus)
     async with self.api_lock:
       response = await self.bot.loop.run_in_executor(
           None,
           functools.partial(
-              lambda: openai.Completion.create(
-                  model=engine,
-                  prompt=prompt,
-                  temperature=0.8,
+              lambda: openai.ChatCompletion.create(
+                  model="gpt-3.5-turbo",
+                  messages=messages + [{'role': 'user', 'content': content}],
                   max_tokens=PremiumPerks(current_tier).max_chat_tokens,
-                  top_p=0.9,
                   user=str(msg.channel.id),
-                  frequency_penalty=1.5,
-                  presence_penalty=1.5,
-                  stop=[f"\n{author_prompt_name}:", f"\n{my_prompt_name}:", "\n", "\n###\n"]
               )))
-    return response.get("choices")[0].get("text").replace("\n", "") if response is not None else None  # type: ignore
+    self.chat_history[msg.channel.id].completion_tokens += response["usage"]["completion_tokens"]
+    self.chat_history[msg.channel.id].prompt_tokens += response["usage"]["prompt_tokens"]
+    self.chat_history[msg.channel.id].total_tokens += response["usage"]["total_tokens"]
+    return response.get("choices")[0]["message"]["content"].replace("\n", "") if response is not None else None  # type: ignore
 
   @commands.Cog.listener()
   async def on_message(self, msg: discord.Message):
@@ -601,39 +617,22 @@ class Chat(commands.Cog):
       resp = await ctx.reply(f"**{ctx.lang.chat.flagged}**", webhook=webhook, mention_author=False)
       log.info(f"{PremiumTiersNew(current_tier)} - [{ctx.lang_code}] [{ctx.author.name}] {content}  [Me] Flagged message: \"{response}\" {formats.human_join(flagged_categories, final='and')}")
       await self.webhook.safe_send(username=self.bot.user.name, avatar_url=self.bot.user.display_avatar.url, content=f"{PremiumTiersNew(current_tier)} - **{ctx.author.name}:** {content}\n**Me:** Flagged message: {response} {flagged_categories}")
-    self.bot.dispatch("chat_completion", msg, resp, False, filtered=int(flagged), persona=msg.guild and config and config.persona, prompt="\n".join(self.chat_history[msg.channel.id].history(limit=PremiumPerks(current_tier).max_chat_history)))
+    self.bot.dispatch(
+        "chat_completion",
+        msg,
+        False,
+        filtered=int(flagged),
+        persona=msg.guild and config and config.persona,
+        messages=self.chat_history[msg.channel.id].history(limit=PremiumPerks(current_tier).max_chat_history),
+        prompt_tokens=self.chat_history[msg.channel.id].prompt_tokens,
+        completion_tokens=self.chat_history[msg.channel.id].completion_tokens,
+        total_tokens=self.chat_history[msg.channel.id].total_tokens)
 
     async with chat_history.lock:
       if chat_history.bot_repeating():
         self.chat_history.pop(ctx.channel.id)
         self.bot.chat_repeat_counter[msg.channel.id] += 1
         log.info("Popped chat history for channel #{}".format(ctx.channel))
-
-  # async def check_for_answer_questions(self, msg: discord.Message, min_tiers: list) -> bool:
-  #   if msg.author.bot:
-  #     return False
-  #   if (len(msg.clean_content) > 100 and not min_tiers["min_g_t1"]) or (len(msg.clean_content) > 200 and min_tiers["min_g_t1"]):
-  #     return False
-  #   if msg.guild is not None:
-  #     if self.bot.log.get_guild_chat_channel(msg.guild) != msg.channel.id:
-  #       if msg.guild.me not in msg.mentions:
-  #         return False
-  #   # if msg.guild is not None:
-  #   #   muted = self.bot.log.get_guild_muted(msg.guild)
-  #   #   if muted == 1 or muted is True:
-  #   #     return False
-  #   # if not await self.global_chat_checks(msg):
-  #   #   return False
-  #   bucket_minute, bucket_hour = self.spam_control_minute.get_bucket(msg), self.spam_control_hour.get_bucket(msg)
-  #   current = msg.created_at.replace(tzinfo=datetime.timezone.utc).timestamp()
-  #   retry_after_minute, retry_after_hour = bucket_minute.update_rate_limit(current), bucket_hour.update_rate_limit(current)
-  #   if (retry_after_minute or retry_after_hour):  # and msg.author.id != self.bot.owner_id:
-  #     raise commands.CommandOnCooldown(bucket_minute, retry_after_minute)
-  #     return False
-  #   return True
-
-  # async def search_questions(self, msg: discord.Message) -> str:
-  #   return ""
 
 
 async def setup(bot):
