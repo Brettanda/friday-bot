@@ -166,10 +166,10 @@ class ChatHistory:
     return f"<Chathistory len={len(self.history())}>"
 
   def __str__(self) -> str:
-    return "\n".join(self.history())
+    return "\n".join(str(m) for m in self.history())
 
   def __len__(self) -> int:
-    return len("\n".join(self.history()))
+    return len("\n".join(str(m) for m in self.history()))
 
   def history(self, *, limit=_limit) -> list:
     return self._history[::-1][:limit * self._messages_per_group][::-1]
