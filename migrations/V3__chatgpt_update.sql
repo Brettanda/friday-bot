@@ -1,0 +1,7 @@
+-- Revises: V2
+-- Creation Date: 2022-09-03 23:20:04.364877 UTC
+-- Reason: custom embeds
+ALTER TABLE chats ADD COLUMN IF NOT EXISTS messages JSONB;
+ALTER TABLE chats ADD COLUMN IF NOT EXISTS prompt_tokens INT DEFAULT 0;
+ALTER TABLE chats ADD COLUMN IF NOT EXISTS completion_tokens INT DEFAULT 0;
+ALTER TABLE chats ADD COLUMN IF NOT EXISTS total_tokens INT DEFAULT 0;
