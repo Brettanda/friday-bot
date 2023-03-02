@@ -3,6 +3,7 @@ services:
     build: .
     depends_on:
       - lavalink
+      - db
     restart: unless-stopped
     env_file: .env
     environment:

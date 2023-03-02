@@ -4,7 +4,7 @@ autopep8
 d20==1.1.2
 topggpy==1.4.0
 discord-ext-menus @ git+https://github.com/Rapptz/discord-ext-menus@fbb8803779373357e274e1540b368365fd9d8074
-discord.py==2.1.1
+discord.py==2.2.2
 click
 fuzzywuzzy==0.18.0
 python-Levenshtein
@@ -41,11 +41,11 @@ youtube-dl==2021.1.24.1
 # spacy==3.0.6
 google-cloud-translate==3.10.1
 # pyspellchecker==0.6.2
-openai>=0.26.4.0
+openai>=0.27.0
 python-slugify==8.0.0
 profanity==1.1
 pyfiglet==0.8.post1
-asyncpg==0.27.0
+asyncpg>=0.27.0
 asyncpraw>=7.6.1
 pytest
 pytest-asyncio==0.20.3

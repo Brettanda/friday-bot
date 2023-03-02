@@ -52,10 +52,15 @@ def guild_is_min_tier(tier: PremiumTiersNew = PremiumTiersNew.tier_1):
       raise commands.NoPrivateMessage()
     if tier == PremiumTiersNew.free:
       return True
-    guild_tier: Optional[int] = await ctx.db.fetchval("""SELECT tier FROM patrons WHERE $1 = ANY(patrons.guild_ids) LIMIT 1""", str(ctx.guild.id))
-    if guild_tier is None:
+    pat_cog = ctx.bot.patreon
+    if pat_cog is None:
       return False
-    return guild_tier >= tier.value
+    user_id = await ctx.db.fetchval("""SELECT user_id FROM patrons WHERE $1 = ANY(patrons.guild_ids) LIMIT 1""", str(ctx.guild.id))
+    config_ = [p for p in await pat_cog.get_patrons() if str(p.id) == str(user_id)]
+    if len(config_) == 0:
+      return False
+
+    return config_[0].tier >= tier.value
   return commands.check(predicate)
 
 
