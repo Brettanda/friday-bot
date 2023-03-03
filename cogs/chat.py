@@ -133,13 +133,13 @@ class SpamChecker:
     if streaked_rate and vote_count >= 2 and tier < PremiumTiersNew.tier_1:
       return True, streaked_bucket, "streaked"
 
-    if patron_1_rate and tier >= PremiumTiersNew.tier_1:
+    if patron_1_rate and tier <= PremiumTiersNew.tier_1:
       return True, patron_1_bucket, "patron_1"
 
-    if patron_2_rate and tier >= PremiumTiersNew.tier_2:
+    if patron_2_rate and tier <= PremiumTiersNew.tier_2:
       return True, patron_2_bucket, "patron_2"
 
-    if patron_3_rate and tier >= PremiumTiersNew.tier_3:
+    if patron_3_rate and tier <= PremiumTiersNew.tier_3:
       return True, patron_3_bucket, "patron_3"
 
     return False, None, None
