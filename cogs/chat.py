@@ -133,13 +133,13 @@ class SpamChecker:
     if streaked_rate and vote_count >= 2 and tier < PremiumTiersNew.tier_1:
       return True, streaked_bucket, "streaked"
 
-    if patron_1_rate and tier >= PremiumTiersNew.tier_1:
+    if patron_1_rate and tier <= PremiumTiersNew.tier_1:
       return True, patron_1_bucket, "patron_1"
 
-    if patron_2_rate and tier >= PremiumTiersNew.tier_2:
+    if patron_2_rate and tier <= PremiumTiersNew.tier_2:
       return True, patron_2_bucket, "patron_2"
 
-    if patron_3_rate and tier >= PremiumTiersNew.tier_3:
+    if patron_3_rate and tier <= PremiumTiersNew.tier_3:
       return True, patron_3_bucket, "patron_3"
 
     return False, None, None
@@ -456,9 +456,9 @@ class Chat(commands.Cog):
     bonus = None
     if current_tier >= PremiumTiersNew.tier_2:
       if persona == "pirate":
-        bonus = "To all messages you'll respond in the style of a pirate."
+        bonus = "To all messages, you'll respond in the style of a pirate."
       elif persona == "kinyoubi":
-        bonus = "To all messages you'll respond in the style of a anime girl."
+        bonus = "To all messages, you'll respond in the style of an anime girl."
     elif persona != "friday" and msg.guild:
       await self.bot.pool.execute("UPDATE servers SET persona=$1 WHERE id=$2", "friday", str(msg.guild.id))
       self.get_guild_config.invalidate(self, msg.guild.id)
@@ -472,6 +472,7 @@ class Chat(commands.Cog):
                   messages=messages + [{'role': 'user', 'content': content}],
                   max_tokens=PremiumPerks(current_tier).max_chat_tokens,
                   user=str(msg.channel.id),
+                  stop=[".", "!", r"\n"]
               )))
     if response is None:
       return None
@@ -579,7 +580,6 @@ class Chat(commands.Cog):
     # Anything to do with sending messages needs to be below the above check
     response = None
     is_spamming, rate_limiter, rate_name = self._spam_check.is_spamming(msg, current_tier, vote_streak and vote_streak.days or 0)
-    resp = None
     if is_spamming and rate_limiter:
       if not ctx.bot_permissions.embed_links:
         return
@@ -599,7 +599,7 @@ class Chat(commands.Cog):
         view.add_item(discord.ui.Button(label=ctx.lang.chat.ratelimit.ads.patron.button, url="https://patreon.com/join/fridaybot"))
       now = discord.utils.utcnow()
       retry_dt = now + datetime.timedelta(seconds=rate_limiter.per)
-      resp = await ctx.reply(embed=embed(title=ctx.lang.chat.ratelimit.title.format(count=f"{formats.plural(rate_limiter.rate):message}", human=human_timedelta(retry_dt, source=now, accuracy=2), stamp=format_dt(retry_after, style='R')), description=ad_message, color=MessageColors.error()), view=view, webhook=webhook, mention_author=False)
+      await ctx.reply(embed=embed(title=ctx.lang.chat.ratelimit.title.format(count=f"{formats.plural(rate_limiter.rate):message}", human=human_timedelta(retry_dt, source=now, accuracy=2), stamp=format_dt(retry_after, style='R')), description=ad_message, color=MessageColors.error()), view=view, webhook=webhook, mention_author=False)
       return
     chat_history = self.chat_history[msg.channel.id]
     async with ctx.typing():
@@ -608,7 +608,7 @@ class Chat(commands.Cog):
         response = await self.openai_req(msg, current_tier, config and config.persona, content=str(translation).strip('\n'))
       except Exception as e:
         # resp = await ctx.send(embed=embed(title="", color=MessageColors.error()))
-        self.bot.dispatch("chat_completion", msg, resp, True, filtered=None, messages=self.chat_history[msg.channel.id].history(limit=PremiumPerks(current_tier).max_chat_history),)
+        self.bot.dispatch("chat_completion", msg, True, filtered=None, messages=self.chat_history[msg.channel.id].history(limit=PremiumPerks(current_tier).max_chat_history),)
         log.error(f"OpenAI error: {e}")
         await ctx.reply(embed=embed(title=ctx.lang.chat.try_again_later, colour=MessageColors.error()), webhook=webhook, mention_author=False)
         return
@@ -622,11 +622,11 @@ class Chat(commands.Cog):
       response = str(final_translation)
 
     if not flagged:
-      resp = await ctx.reply(content=response, allowed_mentions=discord.AllowedMentions.none(), webhook=webhook, mention_author=False)
+      await ctx.reply(content=response, allowed_mentions=discord.AllowedMentions.none(), webhook=webhook, mention_author=False)
       log.info(f"{PremiumTiersNew(current_tier)}[{msg.guild and config and config.persona}] - [{ctx.lang_code}] [{ctx.author.name}] {content}  [Me] {response}")
       await self.webhook.safe_send(username=self.bot.user.name, avatar_url=self.bot.user.display_avatar.url, content=f"{PremiumTiersNew(current_tier)} - **{ctx.author.name}:** {content}\n**Me:** {response}")
     else:
-      resp = await ctx.reply(f"**{ctx.lang.chat.flagged}**", webhook=webhook, mention_author=False)
+      await ctx.reply(f"**{ctx.lang.chat.flagged}**", webhook=webhook, mention_author=False)
       log.info(f"{PremiumTiersNew(current_tier)}[{msg.guild and config and config.persona}] - [{ctx.lang_code}] [{ctx.author.name}] {content}  [Me] Flagged message: \"{response}\" {formats.human_join(flagged_categories, final='and')}")
       await self.webhook.safe_send(username=self.bot.user.name, avatar_url=self.bot.user.display_avatar.url, content=f"{PremiumTiersNew(current_tier)} - **{ctx.author.name}:** {content}\n**Me:** Flagged message: {response} {flagged_categories}")
     self.bot.dispatch(

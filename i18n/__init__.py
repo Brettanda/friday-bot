@@ -816,8 +816,56 @@ class Scheduledevents(Struct):
   ...
 
 
-class Patreons(Struct):
-  ...
+class PatreonsCommandsActivate(AppCommandDefault):
+  command_name: str = "activate"
+  help: str = "Activate your Patronage or update your Patreon tier."
+
+
+class PatreonsCommandsStatus(AppCommandDefault):
+  command_name: str = "status"
+  help: str = "Updates Friday to recognize your Patreon tier and guilds."
+
+
+class PatreonsCommandsServerCommandsActivate(AppCommandDefault):
+  command_name: str = "activate"
+  help: str = "Adds the current server from your Patron tier"
+
+
+class PatreonsCommandsServerCommandsDeactivate(AppCommandDefault):
+  command_name: str = "deactivate"
+  help: str = "Removes the current server from your Patron tier"
+
+
+class PatreonsCommandsServerCommandsInfo(AppCommandDefault):
+  command_name: str = "info"
+  help: str = "Activate the server that you would like to apply your patronage to"
+
+
+class PatreonsCommandsServerCommands(Struct):
+  activate = PatreonsCommandsServerCommandsActivate()
+  deactivate = PatreonsCommandsServerCommandsDeactivate()
+  info = PatreonsCommandsServerCommandsInfo()
+
+
+class PatreonsCommandsServer(AppCommandGroupDefault):
+  command_name = "server"
+  help: str = "Activate the server that you would like to apply your patronage to"
+  commands = PatreonsCommandsServerCommands()
+
+
+class PatreonsCommands(Struct):
+  activate = PatreonsCommandsActivate()
+  status = PatreonsCommandsStatus()
+  server = PatreonsCommandsServer()
+
+
+class PatreonsPatreons(AppCommandGroupDefault):
+  help = "Commands for Friday's Patrons"
+  commands = PatreonsCommands()
+
+
+class Patreons(CogDefault):
+  patreon = PatreonsPatreons()
 
 
 class Api(Struct):
