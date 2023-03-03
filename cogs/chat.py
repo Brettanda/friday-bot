@@ -608,7 +608,7 @@ class Chat(commands.Cog):
         response = await self.openai_req(msg, current_tier, config and config.persona, content=str(translation).strip('\n'))
       except Exception as e:
         # resp = await ctx.send(embed=embed(title="", color=MessageColors.error()))
-        self.bot.dispatch("chat_completion", msg, resp, True, filtered=None, messages=self.chat_history[msg.channel.id].history(limit=PremiumPerks(current_tier).max_chat_history),)
+        self.bot.dispatch("chat_completion", msg, True, filtered=None, messages=self.chat_history[msg.channel.id].history(limit=PremiumPerks(current_tier).max_chat_history),)
         log.error(f"OpenAI error: {e}")
         await ctx.reply(embed=embed(title=ctx.lang.chat.try_again_later, colour=MessageColors.error()), webhook=webhook, mention_author=False)
         return
@@ -622,11 +622,11 @@ class Chat(commands.Cog):
       response = str(final_translation)
 
     if not flagged:
-      resp = await ctx.reply(content=response, allowed_mentions=discord.AllowedMentions.none(), webhook=webhook, mention_author=False)
+      await ctx.reply(content=response, allowed_mentions=discord.AllowedMentions.none(), webhook=webhook, mention_author=False)
       log.info(f"{PremiumTiersNew(current_tier)}[{msg.guild and config and config.persona}] - [{ctx.lang_code}] [{ctx.author.name}] {content}  [Me] {response}")
       await self.webhook.safe_send(username=self.bot.user.name, avatar_url=self.bot.user.display_avatar.url, content=f"{PremiumTiersNew(current_tier)} - **{ctx.author.name}:** {content}\n**Me:** {response}")
     else:
-      resp = await ctx.reply(f"**{ctx.lang.chat.flagged}**", webhook=webhook, mention_author=False)
+      await ctx.reply(f"**{ctx.lang.chat.flagged}**", webhook=webhook, mention_author=False)
       log.info(f"{PremiumTiersNew(current_tier)}[{msg.guild and config and config.persona}] - [{ctx.lang_code}] [{ctx.author.name}] {content}  [Me] Flagged message: \"{response}\" {formats.human_join(flagged_categories, final='and')}")
       await self.webhook.safe_send(username=self.bot.user.name, avatar_url=self.bot.user.display_avatar.url, content=f"{PremiumTiersNew(current_tier)} - **{ctx.author.name}:** {content}\n**Me:** Flagged message: {response} {flagged_categories}")
     self.bot.dispatch(
