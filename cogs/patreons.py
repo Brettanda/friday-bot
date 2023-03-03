@@ -71,6 +71,7 @@ class Patreons(commands.Cog):
 
   def __init__(self, bot: Friday) -> None:
     self.bot: Friday = bot
+    self.owner_patroned: config.PremiumTiersNew = config.PremiumTiersNew.free
 
   def __repr__(self) -> str:
     return f"<cogs.{self.__cog_name__}>"
@@ -104,7 +105,8 @@ class Patreons(commands.Cog):
           r['user_id'] = i['attributes']['social_connections']['discord']['user_id']
       members.append(r)
     # # me is patron
-    # members.append({"current_tier": "7212079", "amount_cents": "150", "user_id": "215227961048170496"})
+    if self.owner_patroned >= config.PremiumTiersNew.tier_1:
+      members.append({"current_tier": str(self.owner_patroned.patreon_tier), "amount_cents": "150", "user_id": "215227961048170496"})
 
     query = "SELECT * FROM patrons"
     records = await conn.fetch(query)
@@ -135,6 +137,13 @@ class Patreons(commands.Cog):
         footer="For the full list of patreon commands type `!help patreon`",
     ),
         view=PatreonButtons())
+
+  @norm_patreon.command("owner")
+  @commands.is_owner()
+  async def patreon_owner(self, ctx: MyContext, tier: int = config.PremiumTiersNew.free.value):
+    self.owner_patroned = config.PremiumTiersNew(tier)
+    self.get_patrons.invalidate(self)
+    await ctx.send(f"You are '{self.owner_patroned}' a patron")
 
   @norm_patreon.command("activate", aliases=["update"])
   async def patreon_update(self, ctx: MyContext):

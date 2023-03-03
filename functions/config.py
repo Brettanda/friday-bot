@@ -194,6 +194,15 @@ class PremiumTiersNew(enum.Enum):
       return cls.tier_3
     return cls.free
 
+  @property
+  def patreon_tier(self) -> Optional[int]:
+    if self.value == self.tier_1.value:
+      return 8434506
+    elif self.value == self.tier_2.value:
+      return 7212079
+    elif self.value == self.tier_3.value:
+      return 7378874
+
   def __str__(self):
     return self.name.capitalize().replace("_", " ")
 

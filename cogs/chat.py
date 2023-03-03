@@ -191,7 +191,7 @@ class ChatHistory:
     async with self.lock:
       while len(self._history) > limit * self._messages_per_group:
         self._history.pop(0)
-      response: list[ChatHistoryMessages] = [{'role': 'system', 'content': f"You're '{my_name}', a friendly & funny Discord chatbot made by 'Motostar' and chatting with a person named '{user_name}'. You'll never respond with more than 100 characters with a strong bias for short answers{' ' + bonus_setup if bonus_setup else ''}"}]
+      response: list[ChatHistoryMessages] = [{'role': 'system', 'content': f"You're '{my_name}', a friendly & funny Discord chatbot made by 'Motostar' and chatting with a person named '{user_name}'. You will not make any response that is longer than 18 words{'. ' + bonus_setup if bonus_setup else ''}"}]
       return response + self._history
 
   async def add_message(self, msg: discord.Message, bot_content: str, *, user_content: str = None, user_name: str = None, bot_name: str = None):
@@ -304,7 +304,7 @@ class Chat(commands.Cog):
   @commands.hybrid_group("chat", fallback="talk", invoke_without_command=True, case_insensitive=True)
   @app_commands.describe(message="Your message to Friday")
   async def chat(self, ctx: MyContext, *, message: str):
-    """Chat with Friday, powered by GPT-3 and get a response."""
+    """Chat with Friday, powered by ChatGPT and get a response."""
     try:
       await self.chat_message(ctx, content=message)
     except ChatError as e:
@@ -422,6 +422,12 @@ class Chat(commands.Cog):
 
     await ctx.db.execute("UPDATE servers SET persona=$1 WHERE id=$2", choice[0], str(ctx.guild.id))
     self.get_guild_config.invalidate(self, ctx.guild.id)
+    try:
+      self.chat_history.pop(ctx.channel.id)
+    except KeyError:
+      pass
+    except Exception as e:
+      raise e
     await ctx.send(embed=embed(title=f"New Persona `{choice[0].capitalize()}`"))
 
   @cache.cache()
@@ -448,25 +454,31 @@ class Chat(commands.Cog):
     my_prompt_name = msg.guild.me.display_name if msg.guild else self.bot.user.name
 
     bonus = None
-    if persona == "pirate":
-      bonus = "You'll only respond like a pirate to all messages"
-    elif persona == "kinyoubi":
-      bonus = "You'll only respond like a anime girl to all messages"
+    if current_tier >= PremiumTiersNew.tier_2:
+      if persona == "pirate":
+        bonus = "To all messages you'll respond in the style of a pirate."
+      elif persona == "kinyoubi":
+        bonus = "To all messages you'll respond in the style of a anime girl."
+    elif persona != "friday" and msg.guild:
+      await self.bot.pool.execute("UPDATE servers SET persona=$1 WHERE id=$2", "friday", str(msg.guild.id))
+      self.get_guild_config.invalidate(self, msg.guild.id)
     messages = await self.chat_history[msg.channel.id].messages(my_name=my_prompt_name, user_name=author_prompt_name, bonus_setup=bonus)
     async with self.api_lock:
       response = await self.bot.loop.run_in_executor(
           None,
           functools.partial(
               lambda: openai.ChatCompletion.create(
-                  model="gpt-3.5-turbo",
+                  model="gpt-3.5-turbo-0301",
                   messages=messages + [{'role': 'user', 'content': content}],
                   max_tokens=PremiumPerks(current_tier).max_chat_tokens,
                   user=str(msg.channel.id),
               )))
-    self.chat_history[msg.channel.id].completion_tokens += response["usage"]["completion_tokens"]
-    self.chat_history[msg.channel.id].prompt_tokens += response["usage"]["prompt_tokens"]
-    self.chat_history[msg.channel.id].total_tokens += response["usage"]["total_tokens"]
-    return response.get("choices")[0]["message"]["content"].replace("\n", "") if response is not None else None  # type: ignore
+    if response is None:
+      return None
+    self.chat_history[msg.channel.id].completion_tokens += response.get("usage")["completion_tokens"]  # type: ignore
+    self.chat_history[msg.channel.id].prompt_tokens += response.get("usage")["prompt_tokens"]  # type: ignore
+    self.chat_history[msg.channel.id].total_tokens += response.get("usage")["total_tokens"]  # type: ignore
+    return response.get("choices")[0]["message"]["content"].replace("\n", "")   # type: ignore
 
   @commands.Cog.listener()
   async def on_message(self, msg: discord.Message):
@@ -596,7 +608,7 @@ class Chat(commands.Cog):
         response = await self.openai_req(msg, current_tier, config and config.persona, content=str(translation).strip('\n'))
       except Exception as e:
         # resp = await ctx.send(embed=embed(title="", color=MessageColors.error()))
-        self.bot.dispatch("chat_completion", msg, resp, True, filtered=None, prompt="\n".join(chat_history.history(limit=PremiumPerks(current_tier).max_chat_history)))
+        self.bot.dispatch("chat_completion", msg, resp, True, filtered=None, messages=self.chat_history[msg.channel.id].history(limit=PremiumPerks(current_tier).max_chat_history),)
         log.error(f"OpenAI error: {e}")
         await ctx.reply(embed=embed(title=ctx.lang.chat.try_again_later, colour=MessageColors.error()), webhook=webhook, mention_author=False)
         return
@@ -611,11 +623,11 @@ class Chat(commands.Cog):
 
     if not flagged:
       resp = await ctx.reply(content=response, allowed_mentions=discord.AllowedMentions.none(), webhook=webhook, mention_author=False)
-      log.info(f"{PremiumTiersNew(current_tier)} - [{ctx.lang_code}] [{ctx.author.name}] {content}  [Me] {response}")
+      log.info(f"{PremiumTiersNew(current_tier)}[{msg.guild and config and config.persona}] - [{ctx.lang_code}] [{ctx.author.name}] {content}  [Me] {response}")
       await self.webhook.safe_send(username=self.bot.user.name, avatar_url=self.bot.user.display_avatar.url, content=f"{PremiumTiersNew(current_tier)} - **{ctx.author.name}:** {content}\n**Me:** {response}")
     else:
       resp = await ctx.reply(f"**{ctx.lang.chat.flagged}**", webhook=webhook, mention_author=False)
-      log.info(f"{PremiumTiersNew(current_tier)} - [{ctx.lang_code}] [{ctx.author.name}] {content}  [Me] Flagged message: \"{response}\" {formats.human_join(flagged_categories, final='and')}")
+      log.info(f"{PremiumTiersNew(current_tier)}[{msg.guild and config and config.persona}] - [{ctx.lang_code}] [{ctx.author.name}] {content}  [Me] Flagged message: \"{response}\" {formats.human_join(flagged_categories, final='and')}")
       await self.webhook.safe_send(username=self.bot.user.name, avatar_url=self.bot.user.display_avatar.url, content=f"{PremiumTiersNew(current_tier)} - **{ctx.author.name}:** {content}\n**Me:** Flagged message: {response} {flagged_categories}")
     self.bot.dispatch(
         "chat_completion",
