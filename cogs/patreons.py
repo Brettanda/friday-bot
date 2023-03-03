@@ -124,7 +124,7 @@ class Patreons(commands.Cog):
       return
     self.bot.dispatch("invalidate_patreon", ctx.guild.id)
 
-  @commands.group(name="patreon", aliases=["patron"], invoke_without_command=True, case_insensitive=True)
+  @commands.hybrid_group(name="patreon", aliases=["patron"], invoke_without_command=True, case_insensitive=True)
   @commands.guild_only()
   async def norm_patreon(self, ctx: GuildContext):
     """Commands for Friday's Patrons"""
@@ -138,7 +138,7 @@ class Patreons(commands.Cog):
     ),
         view=PatreonButtons())
 
-  @norm_patreon.command("owner")
+  @norm_patreon.command("owner", with_app_command=False)
   @commands.is_owner()
   async def patreon_owner(self, ctx: MyContext, tier: int = config.PremiumTiersNew.free.value):
     self.owner_patroned = config.PremiumTiersNew(tier)
@@ -180,7 +180,7 @@ class Patreons(commands.Cog):
         description=f"**Connected Discord Account**: {statuses['connected_discord']}\n**Activated Server ID(s)**: {statuses['activated_server_ids']}\n**Current Server Activated**: {statuses['current_server_activated']}"
     ))
 
-  @norm_patreon.group("server", invoke_without_command=True, case_insensitive=True)
+  @norm_patreon.group("server", fallback="info", invoke_without_command=True, case_insensitive=True)
   @commands.guild_only()
   async def norm_patreon_server(self, ctx: MyContext):
     """Activate the server that you would like to apply your patronage to"""

@@ -456,9 +456,9 @@ class Chat(commands.Cog):
     bonus = None
     if current_tier >= PremiumTiersNew.tier_2:
       if persona == "pirate":
-        bonus = "To all messages you'll respond in the style of a pirate."
+        bonus = "To all messages, you'll respond in the style of a pirate."
       elif persona == "kinyoubi":
-        bonus = "To all messages you'll respond in the style of a anime girl."
+        bonus = "To all messages, you'll respond in the style of an anime girl."
     elif persona != "friday" and msg.guild:
       await self.bot.pool.execute("UPDATE servers SET persona=$1 WHERE id=$2", "friday", str(msg.guild.id))
       self.get_guild_config.invalidate(self, msg.guild.id)
@@ -472,6 +472,7 @@ class Chat(commands.Cog):
                   messages=messages + [{'role': 'user', 'content': content}],
                   max_tokens=PremiumPerks(current_tier).max_chat_tokens,
                   user=str(msg.channel.id),
+                  stop=[".", "!", r"\n"]
               )))
     if response is None:
       return None
@@ -579,7 +580,6 @@ class Chat(commands.Cog):
     # Anything to do with sending messages needs to be below the above check
     response = None
     is_spamming, rate_limiter, rate_name = self._spam_check.is_spamming(msg, current_tier, vote_streak and vote_streak.days or 0)
-    resp = None
     if is_spamming and rate_limiter:
       if not ctx.bot_permissions.embed_links:
         return
@@ -599,7 +599,7 @@ class Chat(commands.Cog):
         view.add_item(discord.ui.Button(label=ctx.lang.chat.ratelimit.ads.patron.button, url="https://patreon.com/join/fridaybot"))
       now = discord.utils.utcnow()
       retry_dt = now + datetime.timedelta(seconds=rate_limiter.per)
-      resp = await ctx.reply(embed=embed(title=ctx.lang.chat.ratelimit.title.format(count=f"{formats.plural(rate_limiter.rate):message}", human=human_timedelta(retry_dt, source=now, accuracy=2), stamp=format_dt(retry_after, style='R')), description=ad_message, color=MessageColors.error()), view=view, webhook=webhook, mention_author=False)
+      await ctx.reply(embed=embed(title=ctx.lang.chat.ratelimit.title.format(count=f"{formats.plural(rate_limiter.rate):message}", human=human_timedelta(retry_dt, source=now, accuracy=2), stamp=format_dt(retry_after, style='R')), description=ad_message, color=MessageColors.error()), view=view, webhook=webhook, mention_author=False)
       return
     chat_history = self.chat_history[msg.channel.id]
     async with ctx.typing():
