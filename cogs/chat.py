@@ -422,6 +422,12 @@ class Chat(commands.Cog):
 
     await ctx.db.execute("UPDATE servers SET persona=$1 WHERE id=$2", choice[0], str(ctx.guild.id))
     self.get_guild_config.invalidate(self, ctx.guild.id)
+    try:
+      self.chat_history.pop(ctx.channel.id)
+    except KeyError:
+      pass
+    except Exception as e:
+      raise e
     await ctx.send(embed=embed(title=f"New Persona `{choice[0].capitalize()}`"))
 
   @cache.cache()
