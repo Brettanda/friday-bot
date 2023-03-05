@@ -284,7 +284,7 @@ class ChatCommandsInfo(AppCommandDefault):
   help: str = "Displays information about the current conversation"
   no_history: str = "No history found"
   response_title: str = "Chat Info"
-  response_field_titles: list[str] = ["Messages", "Voted messages", "Voting Streak messages", "Patroned messages", "Recent history resets", "Message History"]
+  response_field_titles: list[str] = ["Messages", "Voted messages", "Voting Streak messages", "Patroned Tier 1 messages", "Patroned Tier 2 messages", "Patroned Tier 3 messages", "Recent history resets", "Message History"]
   response_rate: str = "{rate} remaining"
 
 
