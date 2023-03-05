@@ -124,22 +124,22 @@ class SpamChecker:
     if hour_rate:
       return True, hour_bucket, None
 
-    if free_rate and vote_count == 0 and tier < PremiumTiersNew.tier_1:
+    if free_rate and vote_count == 0 and tier == PremiumTiersNew.free:
       return True, free_bucket, "free"
 
-    if voted_rate and 2 > vote_count > 0 and tier < PremiumTiersNew.tier_1:
+    if voted_rate and 2 > vote_count > 0 and tier == PremiumTiersNew.voted:
       return True, voted_bucket, "voted"
 
-    if streaked_rate and vote_count >= 2 and tier < PremiumTiersNew.tier_1:
+    if streaked_rate and vote_count >= 2 and tier == PremiumTiersNew.streaked:
       return True, streaked_bucket, "streaked"
 
-    if patron_1_rate and tier <= PremiumTiersNew.tier_1:
+    if patron_1_rate and tier == PremiumTiersNew.tier_1:
       return True, patron_1_bucket, "patron_1"
 
-    if patron_2_rate and tier <= PremiumTiersNew.tier_2:
+    if patron_2_rate and tier == PremiumTiersNew.tier_2:
       return True, patron_2_bucket, "patron_2"
 
-    if patron_3_rate and tier <= PremiumTiersNew.tier_3:
+    if patron_3_rate and tier >= PremiumTiersNew.tier_3:
       return True, patron_3_bucket, "patron_3"
 
     return False, None, None
