@@ -102,8 +102,11 @@ class Patreons(commands.Cog):
       }
       for i in resp['included']:
         if i['id'] == shit['relationships']['user']['data']['id']:
+          if i['attributes']['social_connections']['discord'] is None:
+            continue
           r['user_id'] = i['attributes']['social_connections']['discord']['user_id']
-      members.append(r)
+      if r.get('user_id') is not None:
+        members.append(r)
     # # me is patron
     if self.owner_patroned >= config.PremiumTiersNew.tier_1:
       members.append({"current_tier": str(self.owner_patroned.patreon_tier), "amount_cents": "150", "user_id": "215227961048170496"})
