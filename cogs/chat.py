@@ -555,7 +555,18 @@ class Chat(commands.Cog):
         current_tier = PremiumTiersNew(config.tier)
 
       if config.webhook is not None:
-        webhook = await config.webhook_fetched()
+        try:
+          webhook = await config.webhook_fetched()
+        except discord.NotFound:
+          await self.bot.pool.execute("""UPDATE servers SET chatchannel_webhook=NULL WHERE id=$1;""", str(config.id))
+          self.get_guild_config.invalidate(self, config.id)
+          log.info(f"{config.id} deleted their webhook chatchannel without disabling it first")
+          try:
+            await ctx.send(embed=embed(title="Failed to find webhook, please asign a new one", color=MessageColors.ERROR), ephemeral=True)
+            return
+          except BaseException as e:
+            log.error(e)
+            return
 
     dbl = self.bot.dbl
     vote_streak = dbl and await dbl.user_streak(ctx.author.id)
