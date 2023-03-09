@@ -135,7 +135,7 @@ class Patreons(commands.Cog):
         title="Become a Patron!",
         description="Become a Patron and get access to awesome features.\n\nYou can view all of the available features on Patreon.\n\nA few of the features that you will get access include:",
         fieldstitle=["Better Rate-limiting", "Personas", "Cool role(s)", "Priority Support", "And more"],
-        fieldsval=["100 messages/12 hours instead of 30 messages/12 hours.", "Change the persona that Friday uses when chatting in your server", "You will be granted role(s) in the support server.", "Get priority support for your encounters with Friday", "Get the full list of benefits on Patreon."],
+        fieldsval=["Get up to 300 messages/12 hours instead of 30 messages/12 hours.", "Change the persona that Friday uses when chatting in your server", "You will be granted role(s) in the support server.", "Get priority support for your encounters with Friday", "Get the full list of benefits on Patreon."],
         fieldsin=[False] * 5,
         footer="For the full list of patreon commands type `!help patreon`",
     ),
