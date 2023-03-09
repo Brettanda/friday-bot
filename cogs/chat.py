@@ -20,7 +20,7 @@ from slugify import slugify
 
 from cogs.log import CustomWebhook
 from functions import MessageColors, MyContext, cache, checks, embed, formats
-from functions.config import PremiumPerks, PremiumTiersNew
+from functions.config import ChatSpamConfig, PremiumPerks, PremiumTiersNew
 from functions.time import format_dt, human_timedelta
 
 if TYPE_CHECKING:
@@ -86,24 +86,15 @@ class UserConfig:
 
 
 class SpamChecker:
-  absolute_minute_rate: int = 20
-  absolute_hour_rate: int = 200
-  free_rate: int = 30
-  voted_rate: int = 60
-  streaked_rate: int = 75
-  patron_1_rate: int = 75
-  patron_2_rate: int = 150
-  patron_3_rate: int = 300
-
   def __init__(self):
-    self.absolute_minute = commands.CooldownMapping.from_cooldown(self.absolute_minute_rate, 60, commands.BucketType.user)
-    self.absolute_hour = commands.CooldownMapping.from_cooldown(self.absolute_hour_rate, 3600, commands.BucketType.user)
-    self.free = commands.CooldownMapping.from_cooldown(self.free_rate, 43200, commands.BucketType.user)
-    self.voted = commands.CooldownMapping.from_cooldown(self.voted_rate, 43200, commands.BucketType.user)
-    self.streaked = commands.CooldownMapping.from_cooldown(self.streaked_rate, 43200, commands.BucketType.user)
-    self.patron_1 = commands.CooldownMapping.from_cooldown(self.patron_1_rate, 43200, commands.BucketType.user)
-    self.patron_2 = commands.CooldownMapping.from_cooldown(self.patron_2_rate, 43200, commands.BucketType.user)
-    self.patron_3 = commands.CooldownMapping.from_cooldown(self.patron_3_rate, 43200, commands.BucketType.user)
+    self.absolute_minute = commands.CooldownMapping.from_cooldown(ChatSpamConfig.absolute_minute_rate, 60, commands.BucketType.user)
+    self.absolute_hour = commands.CooldownMapping.from_cooldown(ChatSpamConfig.absolute_hour_rate, 3600, commands.BucketType.user)
+    self.free = commands.CooldownMapping.from_cooldown(ChatSpamConfig.free_rate, 43200, commands.BucketType.user)
+    self.voted = commands.CooldownMapping.from_cooldown(ChatSpamConfig.voted_rate, 43200, commands.BucketType.user)
+    self.streaked = commands.CooldownMapping.from_cooldown(ChatSpamConfig.streaked_rate, 43200, commands.BucketType.user)
+    self.patron_1 = commands.CooldownMapping.from_cooldown(ChatSpamConfig.patron_1_rate, 43200, commands.BucketType.user)
+    self.patron_2 = commands.CooldownMapping.from_cooldown(ChatSpamConfig.patron_2_rate, 43200, commands.BucketType.user)
+    self.patron_3 = commands.CooldownMapping.from_cooldown(ChatSpamConfig.patron_3_rate, 43200, commands.BucketType.user)
     # self.self_token = commands.CooldownMapping.from_cooldown(1000, 43200, commands.BucketType.user)
 
   def is_spamming(self, msg: discord.Message, tier: PremiumTiersNew, vote_count: int) -> tuple[bool, Optional[Cooldown], Optional[Literal["free", "voted", "streaked", "patron_1", "patron_2", "patron_3"]]]:
