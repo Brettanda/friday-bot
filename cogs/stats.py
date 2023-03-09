@@ -373,11 +373,13 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
 
   @chatstats.command("global")
   async def chatstats_global(self, ctx: MyContext):
-    query = """SELECT COUNT(*) FROM chats;"""
-    total = await ctx.db.fetchval(query)
+    query = """SELECT COUNT(*), SUM(prompt_tokens) AS "prompt_tokens",SUM(completion_tokens) AS "bot_tokens",SUM(total_tokens) AS "total_tokens" FROM chats;"""
+    res = await ctx.db.fetchrow(query)
+    assert res is not None
+    total, prompt_tokens, bot_tokens, total_tokens = res
 
     e = discord.Embed(title="Chat Stats", colour=discord.Colour.blurple())
-    e.description = f"{total:,} chats used."
+    e.description = f"{total:,} chats used.\n{prompt_tokens} prompt tokens used.\n{bot_tokens} completion tokens used.\n{total_tokens:,} tokens used."
 
     # query = """SELECT command, COUNT(*) AS "uses"
     #            FROM chats
@@ -426,11 +428,13 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
 
   @chatstats.command("today")
   async def chatstats_today(self, ctx: MyContext):
-    query = """SELECT COUNT(*) FROM chats WHERE used > (CURRENT_TIMESTAMP - INTERVAL '1 day');"""
-    total = await ctx.db.fetchval(query)
+    query = """SELECT COUNT(*), SUM(prompt_tokens) AS "prompt_tokens",SUM(completion_tokens) AS "bot_tokens",SUM(total_tokens) AS "total_tokens" FROM chats WHERE used > (CURRENT_TIMESTAMP - INTERVAL '1 day');"""
+    res = await ctx.db.fetchrow(query)
+    assert res is not None
+    total, prompt_tokens, bot_tokens, total_tokens = res
 
     e = discord.Embed(title="Last 24 Hour Chat Stats", colour=discord.Colour.blurple())
-    e.description = f"{total:,} chats used today."
+    e.description = f"{total:,} chats used today.\n{prompt_tokens} prompt tokens used today.\n{bot_tokens} bot tokens used today.\n{total_tokens:,} total tokens used today."
 
     query = """SELECT guild_id, COUNT(*) AS "uses"
                    FROM chats

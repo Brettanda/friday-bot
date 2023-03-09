@@ -1,3 +1,4 @@
+version: "3"
 services:
   bot:
     build: .
@@ -18,6 +19,17 @@ services:
       - 5678:5678
       - 443:443
       - 5000:5000
+    deploy:
+      resources:
+        limits:
+          cpus: '0.8'
+          memory: 1500M
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "-h",'"guilds:707441352367013899"', "http://localhost:443/guilds" ]
+      interval: 10s
+      timeout: 30s
+      retries: 5
+      start_period: 5s
   lavalink:
     image: fredboat/lavalink:dev
     restart: unless-stopped
