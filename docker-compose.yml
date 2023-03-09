@@ -24,6 +24,12 @@ services:
         limits:
           cpus: '0.8'
           memory: 1500M
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "-h",'"guilds:707441352367013899"', "http://localhost:443/guilds" ]
+      interval: 10s
+      timeout: 30s
+      retries: 5
+      start_period: 5s
   lavalink:
     image: fredboat/lavalink:dev
     restart: unless-stopped
