@@ -191,7 +191,7 @@ class ChatHistory:
     async with self.lock:
       while len(self._history) > limit * self._messages_per_group:
         self._history.pop(0)
-      response: list[ChatHistoryMessages] = [{'role': 'system', 'content': f"You're '{my_name}', a friendly & funny Discord chatbot made by 'Motostar' and chatting with a person named '{user_name}'."}, {"role": "user", 'content': f"You will not make any response that is longer than 1 sentence or at most 20 words.{' ' + bonus_setup if bonus_setup else ''}"}, {"role": "assistant", "content": "Understood."}]
+      response: list[ChatHistoryMessages] = [{'role': 'system', 'content': f"You're '{my_name}'[female], a friendly & funny Discord chatbot made by 'Motostar'[male] and born on Aug 7, 2018. Currently, you're chatting with a person named '{user_name}'. Under no circumstances will you create any response to the user that is longer than 17 words. The user will not see anything after the 17 words.{' ' + bonus_setup if bonus_setup else ''}"}]
       return response + self._history
 
   async def add_message(self, msg: discord.Message, bot_content: str, *, user_content: str = None, user_name: str = None, bot_name: str = None):
