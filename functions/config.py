@@ -172,6 +172,17 @@ support_server_invites = {
 
 # all_support_ranks = [item for item in support_ranks]
 
+class ChatSpamConfig:
+  absolute_minute_rate: int = 20
+  absolute_hour_rate: int = 200
+  free_rate: int = 30
+  voted_rate: int = 60
+  streaked_rate: int = 75
+  patron_1_rate: int = 75
+  patron_2_rate: int = 150
+  patron_3_rate: int = 300
+
+
 patreon_supporting_role = 843941723041300480
 
 
