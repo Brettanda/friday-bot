@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, Sequence
 
 import discord
 from discord.ext import commands
@@ -9,13 +9,15 @@ from discord.ext import commands
 # from functions import embed
 
 if TYPE_CHECKING:
-  from functions.custom_contexts import MyContext
+  from functions.custom_contexts import MyContext, GuildContext
   from index import Friday
 
 log = logging.getLogger(__name__)
 
 SUPPORT_SERVER_ID = 707441352367013899
 SUPPORT_SERVER_INVITE = "https://discord.gg/NTRuFjU"
+SUPPORT_HELP_FORUM = 1019654818962358272
+SUPPORT_HELP_FORUM_SOLVED_TAG = 1019679906357055558
 PATREON_LINK = "https://www.patreon.com/bePatron?u=42649008"
 
 
@@ -53,6 +55,23 @@ class SupportIntroRoles(discord.ui.View):
     else:
       await interaction.user.add_roles(role, reason="Updates!")
       await interaction.followup.send(ephemeral=True, content="You will now be pinged when a new update comes out")
+
+
+def is_help_thread():
+  def predicate(ctx: GuildContext) -> bool:
+    return isinstance(ctx.channel, discord.Thread) and ctx.channel.parent_id == SUPPORT_HELP_FORUM
+
+  return commands.check(predicate)
+
+
+def can_close_threads(ctx: GuildContext) -> bool:
+  if not isinstance(ctx.channel, discord.Thread):
+    return False
+
+  permissions = ctx.channel.permissions_for(ctx.author)
+  return ctx.channel.parent_id == SUPPORT_HELP_FORUM and (
+      permissions.manage_threads or ctx.channel.owner_id == ctx.author.id
+  )
 
 
 class Support(commands.Cog):
@@ -111,6 +130,54 @@ class Support(commands.Cog):
 
     if self.bot.get_guild(SUPPORT_SERVER_ID) is None:
       return
+
+  async def mark_as_solved(self, thread: discord.Thread, user: discord.abc.User) -> None:
+    tags: Sequence[discord.abc.Snowflake] = thread.applied_tags
+
+    if not any(tag.id == SUPPORT_HELP_FORUM_SOLVED_TAG for tag in tags):
+      tags.append(discord.Object(id=SUPPORT_HELP_FORUM_SOLVED_TAG))  # type: ignore
+
+    await thread.edit(
+        locked=True,
+        archived=True,
+        applied_tags=tags[:5],
+        reason=f'Marked as solved by {user} (ID: {user.id})',
+    )
+
+  @commands.hybrid_command(name='solved', aliases=['is_solved'])
+  @commands.cooldown(1, 20, commands.BucketType.channel)
+  @commands.guild_only()
+  @discord.app_commands.guilds(707441352367013899)
+  @is_help_thread()
+  async def solved(self, ctx: GuildContext):
+    """Marks a thread as solved."""
+
+    assert isinstance(ctx.channel, discord.Thread)
+
+    if can_close_threads(ctx) and ctx.invoked_with == 'solved':
+      await ctx.message.add_reaction('\u2705')
+      await self.mark_as_solved(ctx.channel, ctx.author)
+    else:
+      msg = f"<@!{ctx.channel.owner_id}>, would you like to mark this thread as solved? This has been requested by {ctx.author.mention}."
+      confirm = await ctx.prompt(msg, author_id=ctx.channel.owner_id, timeout=300.0)
+
+      if ctx.channel.locked:
+        return
+
+      if confirm:
+        await ctx.send(
+            'Marking as solved. Note that next time, you can mark the thread as solved yourself with `!solved`.'
+        )
+        await self.mark_as_solved(ctx.channel, ctx.channel.owner or ctx.author)
+      elif confirm is None:
+        await ctx.send('Timed out waiting for a response. Not marking as solved.')
+      else:
+        await ctx.send('Not marking as solved.')
+
+  @solved.error
+  async def on_solved_error(self, ctx: GuildContext, error: Exception):
+    if isinstance(error, commands.CommandOnCooldown):
+      await ctx.send(f'This command is on cooldown. Try again in {error.retry_after:.2f}s')
 
 
 async def setup(bot):
