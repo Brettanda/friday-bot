@@ -379,7 +379,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
     total, prompt_tokens, bot_tokens, total_tokens = res
 
     e = discord.Embed(title="Chat Stats", colour=discord.Colour.blurple())
-    e.description = f"{total:,} chats used.\n{prompt_tokens} prompt tokens used.\n{bot_tokens} completion tokens used.\n{total_tokens:,} tokens used."
+    e.description = f"{total:,} chats used.\n{prompt_tokens:,} prompt tokens used.\n{bot_tokens:,} completion tokens used.\n{total_tokens:,} tokens used."
 
     # query = """SELECT command, COUNT(*) AS "uses"
     #            FROM chats
@@ -434,7 +434,7 @@ class Stats(commands.Cog, command_attrs=dict(hidden=True)):
     total, prompt_tokens, bot_tokens, total_tokens = res
 
     e = discord.Embed(title="Last 24 Hour Chat Stats", colour=discord.Colour.blurple())
-    e.description = f"{total:,} chats used today.\n{prompt_tokens} prompt tokens used today.\n{bot_tokens} bot tokens used today.\n{total_tokens:,} total tokens used today."
+    e.description = f"{total:,} chats used today.\n{prompt_tokens:,} prompt tokens used today.\n{bot_tokens:,} bot tokens used today.\n{total_tokens:,} total tokens used today."
 
     query = """SELECT guild_id, COUNT(*) AS "uses"
                    FROM chats

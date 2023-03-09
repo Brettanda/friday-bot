@@ -133,7 +133,7 @@ class TopGG(commands.Cog):
         f"Your voting streak is currently `{record_streak and record_streak['days'] or '0'}` and expires {streak_expiration}. "
         f"**To increase your streak, you need to vote at least once per day**. You can vote every 12 hours.\n\nWhen you vote you get:",
         fieldstitle=["Better rate limiting"],
-        fieldsval=["60 messages/12 hours instead of 30 messages/12 hours."]
+        fieldsval=[f"{SpamChecker.voted_rate} messages/12 hours instead of {SpamChecker.free_rate} messages/12 hours."]
     ), view=view)
 
   @commands.command(extras={"examples": ["test", "upvote"]}, hidden=True)
