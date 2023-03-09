@@ -87,36 +87,31 @@ class UserConfig:
 
 class SpamChecker:
   def __init__(self):
-    self.absolute_minute = commands.CooldownMapping.from_cooldown(6, 30, commands.BucketType.user)
-    self.absolute_hour = commands.CooldownMapping.from_cooldown(180, 3600, commands.BucketType.user)
+    self.absolute_minute = commands.CooldownMapping.from_cooldown(20, 60, commands.BucketType.user)
+    self.absolute_hour = commands.CooldownMapping.from_cooldown(200, 3600, commands.BucketType.user)
     self.free = commands.CooldownMapping.from_cooldown(30, 43200, commands.BucketType.user)
     self.voted = commands.CooldownMapping.from_cooldown(60, 43200, commands.BucketType.user)
     self.streaked = commands.CooldownMapping.from_cooldown(75, 43200, commands.BucketType.user)
-    self.patron_1 = commands.CooldownMapping.from_cooldown(50, 43200, commands.BucketType.user)
-    self.patron_2 = commands.CooldownMapping.from_cooldown(120, 43200, commands.BucketType.user)
-    self.patron_3 = commands.CooldownMapping.from_cooldown(200, 43200, commands.BucketType.user)
+    self.patron_1 = commands.CooldownMapping.from_cooldown(75, 43200, commands.BucketType.user)
+    self.patron_2 = commands.CooldownMapping.from_cooldown(150, 43200, commands.BucketType.user)
+    self.patron_3 = commands.CooldownMapping.from_cooldown(300, 43200, commands.BucketType.user)
     # self.self_token = commands.CooldownMapping.from_cooldown(1000, 43200, commands.BucketType.user)
 
   def is_spamming(self, msg: discord.Message, tier: PremiumTiersNew, vote_count: int) -> tuple[bool, Optional[Cooldown], Optional[Literal["free", "voted", "streaked", "patron_1", "patron_2", "patron_3"]]]:
     current = msg.created_at.timestamp()
 
-    min_bucket = self.absolute_minute.get_bucket(msg, current)
-    hour_bucket = self.absolute_hour.get_bucket(msg, current)
-    free_bucket = self.free.get_bucket(msg, current)
-    voted_bucket = self.voted.get_bucket(msg, current)
-    streaked_bucket = self.streaked.get_bucket(msg, current)
-    patron_1_bucket = self.patron_1.get_bucket(msg, current)
-    patron_2_bucket = self.patron_2.get_bucket(msg, current)
-    patron_3_bucket = self.patron_3.get_bucket(msg, current)
+    def define(mapping: commands.CooldownMapping) -> tuple[commands.Cooldown | None, float | None]:
+      bucket = mapping.get_bucket(msg, current)
+      return bucket, bucket and bucket.update_rate_limit(current)
 
-    min_rate = min_bucket and min_bucket.update_rate_limit(current)
-    hour_rate = hour_bucket and hour_bucket.update_rate_limit(current)
-    free_rate = free_bucket and free_bucket.update_rate_limit(current)
-    voted_rate = voted_bucket and voted_bucket.update_rate_limit(current)
-    streaked_rate = streaked_bucket and streaked_bucket.update_rate_limit(current)
-    patron_1_rate = patron_1_bucket and patron_1_bucket.update_rate_limit(current)
-    patron_2_rate = patron_2_bucket and patron_2_bucket.update_rate_limit(current)
-    patron_3_rate = patron_3_bucket and patron_3_bucket.update_rate_limit(current)
+    min_bucket, min_rate = define(self.absolute_minute)
+    hour_bucket, hour_rate = define(self.absolute_hour)
+    free_bucket, free_rate = define(self.free)
+    voted_bucket, voted_rate = define(self.voted)
+    streaked_bucket, streaked_rate = define(self.streaked)
+    patron_1_bucket, patron_1_rate = define(self.patron_1)
+    patron_2_bucket, patron_2_rate = define(self.patron_2)
+    patron_3_bucket, patron_3_rate = define(self.patron_3)
 
     if min_rate:
       return True, min_bucket, None
