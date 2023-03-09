@@ -86,37 +86,41 @@ class UserConfig:
 
 
 class SpamChecker:
+  absolute_minute_rate: int = 20
+  absolute_hour_rate: int = 200
+  free_rate: int = 30
+  voted_rate: int = 60
+  streaked_rate: int = 75
+  patron_1_rate: int = 75
+  patron_2_rate: int = 150
+  patron_3_rate: int = 300
+
   def __init__(self):
-    self.absolute_minute = commands.CooldownMapping.from_cooldown(6, 30, commands.BucketType.user)
-    self.absolute_hour = commands.CooldownMapping.from_cooldown(180, 3600, commands.BucketType.user)
-    self.free = commands.CooldownMapping.from_cooldown(30, 43200, commands.BucketType.user)
-    self.voted = commands.CooldownMapping.from_cooldown(60, 43200, commands.BucketType.user)
-    self.streaked = commands.CooldownMapping.from_cooldown(75, 43200, commands.BucketType.user)
-    self.patron_1 = commands.CooldownMapping.from_cooldown(50, 43200, commands.BucketType.user)
-    self.patron_2 = commands.CooldownMapping.from_cooldown(120, 43200, commands.BucketType.user)
-    self.patron_3 = commands.CooldownMapping.from_cooldown(200, 43200, commands.BucketType.user)
+    self.absolute_minute = commands.CooldownMapping.from_cooldown(self.absolute_minute_rate, 60, commands.BucketType.user)
+    self.absolute_hour = commands.CooldownMapping.from_cooldown(self.absolute_hour_rate, 3600, commands.BucketType.user)
+    self.free = commands.CooldownMapping.from_cooldown(self.free_rate, 43200, commands.BucketType.user)
+    self.voted = commands.CooldownMapping.from_cooldown(self.voted_rate, 43200, commands.BucketType.user)
+    self.streaked = commands.CooldownMapping.from_cooldown(self.streaked_rate, 43200, commands.BucketType.user)
+    self.patron_1 = commands.CooldownMapping.from_cooldown(self.patron_1_rate, 43200, commands.BucketType.user)
+    self.patron_2 = commands.CooldownMapping.from_cooldown(self.patron_2_rate, 43200, commands.BucketType.user)
+    self.patron_3 = commands.CooldownMapping.from_cooldown(self.patron_3_rate, 43200, commands.BucketType.user)
     # self.self_token = commands.CooldownMapping.from_cooldown(1000, 43200, commands.BucketType.user)
 
   def is_spamming(self, msg: discord.Message, tier: PremiumTiersNew, vote_count: int) -> tuple[bool, Optional[Cooldown], Optional[Literal["free", "voted", "streaked", "patron_1", "patron_2", "patron_3"]]]:
     current = msg.created_at.timestamp()
 
-    min_bucket = self.absolute_minute.get_bucket(msg, current)
-    hour_bucket = self.absolute_hour.get_bucket(msg, current)
-    free_bucket = self.free.get_bucket(msg, current)
-    voted_bucket = self.voted.get_bucket(msg, current)
-    streaked_bucket = self.streaked.get_bucket(msg, current)
-    patron_1_bucket = self.patron_1.get_bucket(msg, current)
-    patron_2_bucket = self.patron_2.get_bucket(msg, current)
-    patron_3_bucket = self.patron_3.get_bucket(msg, current)
+    def define(mapping: commands.CooldownMapping) -> tuple[commands.Cooldown | None, float | None]:
+      bucket = mapping.get_bucket(msg, current)
+      return bucket, bucket and bucket.update_rate_limit(current)
 
-    min_rate = min_bucket and min_bucket.update_rate_limit(current)
-    hour_rate = hour_bucket and hour_bucket.update_rate_limit(current)
-    free_rate = free_bucket and free_bucket.update_rate_limit(current)
-    voted_rate = voted_bucket and voted_bucket.update_rate_limit(current)
-    streaked_rate = streaked_bucket and streaked_bucket.update_rate_limit(current)
-    patron_1_rate = patron_1_bucket and patron_1_bucket.update_rate_limit(current)
-    patron_2_rate = patron_2_bucket and patron_2_bucket.update_rate_limit(current)
-    patron_3_rate = patron_3_bucket and patron_3_bucket.update_rate_limit(current)
+    min_bucket, min_rate = define(self.absolute_minute)
+    hour_bucket, hour_rate = define(self.absolute_hour)
+    free_bucket, free_rate = define(self.free)
+    voted_bucket, voted_rate = define(self.voted)
+    streaked_bucket, streaked_rate = define(self.streaked)
+    patron_1_bucket, patron_1_rate = define(self.patron_1)
+    patron_2_bucket, patron_2_rate = define(self.patron_2)
+    patron_3_bucket, patron_3_rate = define(self.patron_3)
 
     if min_rate:
       return True, min_bucket, None
@@ -191,7 +195,7 @@ class ChatHistory:
     async with self.lock:
       while len(self._history) > limit * self._messages_per_group:
         self._history.pop(0)
-      response: list[ChatHistoryMessages] = [{'role': 'system', 'content': f"You're '{my_name}'[female], a friendly & funny Discord chatbot made by 'Motostar'[male] and born on Aug 7, 2018. Currently, you're chatting with a person named '{user_name}'. Under no circumstances will you create any response to the user that is longer than 17 words. The user will not see anything after the 17 words.{' ' + bonus_setup if bonus_setup else ''}"}]
+      response: list[ChatHistoryMessages] = [{'role': 'system', 'content': f"First, you're '{my_name}'[female], a friend & funny Discord chatbot made by 'Motostar'[male] and born on Aug 7, 2018. Second, you're chatting with a persona named '{user_name}'. Third and most important, your responses must never exceed 100 characters or 17 words. Anything further will be cut off.{' ' + bonus_setup if bonus_setup else ''}"}]
       return response + self._history
 
   async def add_message(self, msg: discord.Message, bot_content: str, *, user_content: str = None, user_name: str = None, bot_name: str = None):
