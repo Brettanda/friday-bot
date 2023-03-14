@@ -36,7 +36,7 @@ openai.api_key = os.environ["OPENAI"]
 POSSIBLE_SENSITIVE_MESSAGE = "*Possibly sensitive:* ||"
 POSSIBLE_OFFENSIVE_MESSAGE = "**I failed to respond because my message might have been offensive, please choose another topic or try again**"
 
-PERSONAS = [("🥰", "default", "Fridays default persona"), ("🏴‍☠️", "pirate", "Friday becomes one with the sea"), ("🍙", "kinyoubi", "Friday becomes one with the anime")]
+PERSONAS = [("🥰", "default", "Fridays default persona"), ("🏴‍☠️", "pirate", "Friday becomes one with the sea"), ("🍙", "kinyoubi", "Friday becomes one with the anime"), ("🇬🇧", "british", "Friday becomes British")]
 
 logging.getLogger("openai").setLevel(logging.WARNING)
 
@@ -454,6 +454,8 @@ class Chat(commands.Cog):
         bonus = "To all messages, you'll respond in the style of a pirate."
       elif persona == "kinyoubi":
         bonus = "To all messages, you'll respond in the style of an anime girl."
+      elif persona == "british":
+        bonus = "To all messages, you'll respond in the style of a british person."
     elif persona != "friday" and msg.guild:
       await self.bot.pool.execute("UPDATE servers SET persona=$1 WHERE id=$2", "friday", str(msg.guild.id))
       self.get_guild_config.invalidate(self, msg.guild.id)
