@@ -121,7 +121,8 @@ class Log(commands.Cog):
   @commands.Cog.listener()
   async def on_shard_ready(self, shard_id):
     shard = self.bot.get_shard(shard_id)
-    await relay_info(f"Logged on as #{shard_id} {self.bot.user}! - {shard and shard.latency*1000:,.0f} ms", self.bot, logger=log)
+    # await relay_info(f"Logged on as #{shard_id} {self.bot.user}! - {shard and shard.latency*1000:,.0f} ms", self.bot, logger=log)
+    log.info(f"Logged on as #{shard_id} {self.bot.user}! - {shard and shard.latency*1000:,.0f} ms")
 
   @commands.Cog.listener()
   async def on_disconnect(self):
