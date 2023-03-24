@@ -386,7 +386,7 @@ def main(ctx, prod, canary):
     from launcher import setup_logging
 
     with setup_logging("Friday"):
-      asyncio.run(run_bot())
+      asyncio.run(run_bot(), debug=True)
 
 
 @main.group(short_help='database stuff', options_metavar='[options]')
