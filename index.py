@@ -21,6 +21,7 @@ from topgg.webhook import WebhookManager
 
 import cogs
 import functions
+from cogs.support import Support
 # from cogs.sharding import Sharding
 from functions.config import Config
 from functions.db import Migrations
@@ -356,6 +357,10 @@ class Friday(commands.AutoShardedBot):
   def patreon(self) -> Optional[Patreons]:
     return self.get_cog("Patreons")  # type: ignore
 
+  @property
+  def support(self) -> Optional[Support]:
+    return self.get_cog("Support")  # type: ignore
+
   # @property
   # def sharding(self) -> Optional[Sharding]:
   #   return self.get_cog("Sharding")  # type: ignore
@@ -386,7 +391,7 @@ def main(ctx, prod, canary):
     from launcher import setup_logging
 
     with setup_logging("Friday"):
-      asyncio.run(run_bot())
+      asyncio.run(run_bot(), debug=True)
 
 
 @main.group(short_help='database stuff', options_metavar='[options]')
