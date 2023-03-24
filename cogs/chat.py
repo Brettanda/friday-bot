@@ -571,6 +571,11 @@ class Chat(commands.Cog):
     if vote_streak and not current_tier > PremiumTiersNew.voted:
       current_tier = PremiumTiersNew.voted
 
+    # is server booster
+    support = self.bot.support
+    if support and await support.is_server_boosted(ctx.author.id):
+      current_tier = PremiumTiersNew.tier_1
+
     patron_cog = self.bot.patreon
     if patron_cog is not None:
       patrons = await patron_cog.get_patrons()
