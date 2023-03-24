@@ -6,6 +6,8 @@ from typing import TYPE_CHECKING, Optional, Sequence
 import discord
 from discord.ext import commands
 
+from functions import cache
+
 # from functions import embed
 
 if TYPE_CHECKING:
@@ -80,6 +82,27 @@ class Support(commands.Cog):
   def __init__(self, bot: Friday):
     self.bot: Friday = bot
 
+  @cache.cache()
+  async def is_server_boosted(self, user_id: int) -> bool:
+    guild = self.bot.get_guild(SUPPORT_SERVER_ID)
+    if guild is None:
+      return False
+
+    member = await self.bot.get_or_fetch_member(guild, user_id)
+    if member is None:
+      return False
+
+    return member.premium_since is not None
+
+  async def clear_is_server_boosted(self, before: discord.Member, after: discord.Member):
+    if after.guild.id != SUPPORT_SERVER_ID:
+      return
+
+    if before.premium_since == after.premium_since:
+      return
+
+    self.is_server_boosted.invalidate(self, after.id)
+
   @commands.hybrid_command(name="support")
   async def _support(self, ctx: MyContext):
     """Get an invite link to my support server"""
@@ -94,6 +117,8 @@ class Support(commands.Cog):
   async def on_member_update(self, before: discord.Member, after: discord.Member):
     if after.guild.id != SUPPORT_SERVER_ID:
       return
+
+    await self.clear_is_server_boosted(before, after)
 
     if before.roles == after.roles:
       return

@@ -98,6 +98,7 @@ def setup_logging(name: Optional[str] = ...):
     logging.getLogger("discord").setLevel(logging.INFO)
     logging.getLogger("discord.http").setLevel(logging.WARNING)
     logging.getLogger('discord.state').addFilter(RemoveNoise())
+    logging.getLogger("asyncio").setLevel(logging.WARNING)
 
     log.setLevel(logging.INFO)
 

@@ -268,9 +268,11 @@ class PremiumPerks:
 
   @property
   def max_chat_characters(self) -> int:
-    if self.tier.value >= PremiumTiersNew.tier_3.value:
+    if self.tier >= PremiumTiersNew.tier_3:
+      return 400
+    if self.tier >= PremiumTiersNew.tier_2:
       return 300
-    if self.tier.value >= PremiumTiersNew.tier_2.value:
+    if self.tier >= PremiumTiersNew.voted:
       return 200
     return 100
 
@@ -282,9 +284,13 @@ class PremiumPerks:
 
   @property
   def max_chat_tokens(self) -> int:
-    if not self.tier >= PremiumTiersNew.tier_1:
-      return 25
-    return 50
+    if self.tier >= PremiumTiersNew.tier_3:
+      return 150
+    if self.tier >= PremiumTiersNew.tier_2:
+      return 100
+    if self.tier >= PremiumTiersNew.voted:
+      return 50
+    return 25
 
 
 allowed_mentions = discord.AllowedMentions(roles=False, everyone=False, users=True, replied_user=False)
