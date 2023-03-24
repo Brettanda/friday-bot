@@ -182,11 +182,11 @@ class ChatHistory:
       string = string.replace(old, new)
     return name if string.lower() not in banned else "Cat"
 
-  async def messages(self, *, my_name: str = None, user_name: str = None, limit=_limit, bonus_setup: str = None) -> list[ChatHistoryMessages]:
+  async def messages(self, *, my_name: str = None, user_name: str = None, limit=_limit, tier: PremiumTiersNew = PremiumTiersNew.free, bonus_setup: str = None) -> list[ChatHistoryMessages]:
     async with self.lock:
       while len(self._history) > limit * self._messages_per_group:
         self._history.pop(0)
-      response: list[ChatHistoryMessages] = [{'role': 'system', 'content': f"First, you're '{my_name}'[female], a friend & funny Discord chatbot made by 'Motostar'[male] and born on Aug 7, 2018. Second, you're chatting with a persona named '{user_name}'. Third and most important, your responses must never exceed 100 characters or 17 words. Anything further will be cut off.{' ' + bonus_setup if bonus_setup else ''}"}]
+      response: list[ChatHistoryMessages] = [{'role': 'system', 'content': f"First, you're '{my_name}'[female], a friend & funny Discord chatbot made by 'Motostar'[male] and born on Aug 7, 2018. Second, you're chatting with a persona named '{user_name}'. Third and most important, your responses must never exceed {PremiumPerks(tier).max_chat_tokens} tokens. Anything further will be cut off.{' ' + bonus_setup if bonus_setup else ''}"}]
       return response + self._history
 
   async def add_message(self, msg: discord.Message, bot_content: str, *, user_content: str = None, user_name: str = None, bot_name: str = None):
@@ -434,7 +434,7 @@ class Chat(commands.Cog):
           None,
           functools.partial(
               lambda: openai.Moderation.create(
-                  model="text-moderation-stable",
+                  model="text-moderation-latest",
                   input=text,
               )))
     if response is None:
@@ -459,13 +459,13 @@ class Chat(commands.Cog):
     elif persona != "friday" and msg.guild:
       await self.bot.pool.execute("UPDATE servers SET persona=$1 WHERE id=$2", "friday", str(msg.guild.id))
       self.get_guild_config.invalidate(self, msg.guild.id)
-    messages = await self.chat_history[msg.channel.id].messages(my_name=my_prompt_name, user_name=author_prompt_name, bonus_setup=bonus)
+    messages = await self.chat_history[msg.channel.id].messages(my_name=my_prompt_name, user_name=author_prompt_name, tier=current_tier, bonus_setup=bonus)
     async with self.api_lock:
       response = await self.bot.loop.run_in_executor(
           None,
           functools.partial(
               lambda: openai.ChatCompletion.create(
-                  model="gpt-3.5-turbo-0301",
+                  model="gpt-3.5-turbo",
                   messages=messages + [{'role': 'user', 'content': content}],
                   max_tokens=PremiumPerks(current_tier).max_chat_tokens,
                   user=str(msg.channel.id),
