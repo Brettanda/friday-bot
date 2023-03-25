@@ -456,9 +456,9 @@ class Chat(commands.Cog):
         bonus = "To all messages, you'll respond in the style of an anime girl."
       elif persona == "british":
         bonus = "To all messages, you'll respond in the style of a british person."
-    elif persona != "friday" and msg.guild:
-      await self.bot.pool.execute("UPDATE servers SET persona=$1 WHERE id=$2", "friday", str(msg.guild.id))
-      self.get_guild_config.invalidate(self, msg.guild.id)
+    # elif persona != "friday" and msg.guild:
+    #   await self.bot.pool.execute("UPDATE servers SET persona=$1 WHERE id=$2", "friday", str(msg.guild.id))
+    #   self.get_guild_config.invalidate(self, msg.guild.id)
     messages = await self.chat_history[msg.channel.id].messages(my_name=my_prompt_name, user_name=author_prompt_name, tier=current_tier, bonus_setup=bonus)
     async with self.api_lock:
       response = await self.bot.loop.run_in_executor(
