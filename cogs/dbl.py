@@ -132,8 +132,8 @@ class TopGG(commands.Cog):
         description=f"{vote_message}\n"
         f"Your voting streak is currently `{record_streak and record_streak['days'] or '0'}` and expires {streak_expiration}. "
         f"**To increase your streak, you need to vote at least once per day**. You can vote every 12 hours.\n\nWhen you vote you get:",
-        fieldstitle=["Better rate limiting"],
-        fieldsval=[f"{config.ChatSpamConfig.voted_rate} messages/12 hours instead of {config.ChatSpamConfig.free_rate} messages/12 hours."]
+        fieldstitle=["Better rate limiting", "Longer chat messages"],
+        fieldsval=[f"{config.ChatSpamConfig.voted_rate} messages/12 hours instead of {config.ChatSpamConfig.free_rate} messages/12 hours.", f"{config.PremiumPerks(config.PremiumTiersNew.voted).max_chat_characters} characters instead of {config.PremiumPerks(config.PremiumTiersNew.free).max_chat_characters} characters."]
     ), view=view)
 
   @commands.command(extras={"examples": ["test", "upvote"]}, hidden=True)
