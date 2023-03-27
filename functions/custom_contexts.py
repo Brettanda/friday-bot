@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import io
-from typing import TYPE_CHECKING, Any, Optional, Protocol, TypedDict, Union
+from typing import TYPE_CHECKING, Any, Optional, Protocol, TypedDict, Union, TypeVar, Generic, Callable
 
 import discord
 from discord.ext import commands
@@ -16,6 +16,8 @@ if TYPE_CHECKING:
 
   from i18n import I18n
   from index import Friday
+
+T = TypeVar('T')
 
 
 class ConnectionContextManager(Protocol):
@@ -150,6 +152,45 @@ class MultiSelectView(discord.ui.View):
         await self.message.edit(view=None, content=None, embeds=[Embed(title="This is safe to dismiss now")])
 
 
+class DisambiguatorView(discord.ui.View, Generic[T]):
+  message: discord.Message
+  selected: T
+
+  def __init__(self, ctx: MyContext, data: list[T], entry: Callable[[T], Any]):
+    super().__init__()
+    self.ctx: MyContext = ctx
+    self.data: list[T] = data
+
+    options = []
+    for i, x in enumerate(data):
+      opt = entry(x)
+      if not isinstance(opt, discord.SelectOption):
+        opt = discord.SelectOption(label=str(opt))
+      opt.value = str(i)
+      options.append(opt)
+
+    select = discord.ui.Select(options=options)
+
+    select.callback = self.on_select_submit
+    self.select = select
+    self.add_item(select)
+
+  async def interaction_check(self, interaction: discord.Interaction) -> bool:
+    if interaction.user.id != self.ctx.author.id:
+      await interaction.response.send_message('This select menu is not meant for you, sorry.', ephemeral=True)
+      return False
+    return True
+
+  async def on_select_submit(self, interaction: discord.Interaction):
+    index = int(self.select.values[0])
+    self.selected = self.data[index]
+    await interaction.response.defer()
+    if not self.message.flags.ephemeral:
+      await self.message.delete()
+
+    self.stop()
+
+
 class MyContext(commands.Context):
   channel: Union[discord.VoiceChannel, discord.TextChannel, discord.Thread, discord.DMChannel]
   prefix: str
@@ -203,6 +244,23 @@ class MyContext(commands.Context):
   @property
   def lang(self) -> I18n:
     return self.bot.language_files.get(self.lang_code, self.bot.language_files["en"])
+
+  async def disambiguate(self, matches: list[T], entry: Callable[[T], Any], *, ephemeral: bool = False) -> T:
+    if len(matches) == 0:
+      raise ValueError('No results found.')
+
+    if len(matches) == 1:
+      return matches[0]
+
+    if len(matches) > 25:
+      raise ValueError('Too many results... sorry.')
+
+    view = DisambiguatorView(self, matches, entry)
+    view.message = await self.send(
+        'There are too many matches... Which one did you mean?', view=view, ephemeral=ephemeral
+    )
+    await view.wait()
+    return view.selected
 
   async def prompt(
           self,

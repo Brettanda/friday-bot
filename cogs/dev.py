@@ -478,7 +478,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     await ctx.reply(embed=embed(title="Commands loaded"))
 
   @dev.command("time")
-  async def time(self, ctx: MyContext, *, _time: time.TimeWithTimezone):
+  async def time(self, ctx: MyContext, *, _time: time.Time):
     await ctx.send(f"{time.format_dt(_time.dt)} ({time.format_dt(_time.dt, style='R')}) `{time.format_dt(_time.dt)}`")
 
   @dev.command(name="sudo")

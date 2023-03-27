@@ -310,7 +310,17 @@ class Moderation(commands.Cog):
         await self.bot.get_or_fetch_member(ctx.guild, member.id)
         await ctx.guild.ban(member, reason=reason)
         if reminder and duration is not None:
-          await reminder.create_timer(duration.dt, "tempban", ctx.guild.id, ctx.author.id, member.id, connection=ctx.pool, created=ctx.message.created_at)
+          zone = await reminder.get_timezone(ctx.author.id)
+          await reminder.create_timer(
+              duration.dt,
+              "tempban",
+              ctx.guild.id,
+              ctx.author.id,
+              member.id,
+              connection=ctx.pool,
+              created=ctx.message.created_at,
+              timezone=zone or "UTC"
+          )
       except discord.HTTPException:
         failed += 1
 
@@ -736,7 +746,17 @@ class Moderation(commands.Cog):
         try:
           await member.add_roles(role, reason=reason)
           if duration is not None and reminder:
-            await reminder.create_timer(duration.dt, "tempmute", ctx.guild.id, ctx.author.id, member.id, role.id, created=ctx.message.created_at)
+            zone = await reminder.get_timezone(ctx.author.id)
+            await reminder.create_timer(
+                duration.dt,
+                "tempmute",
+                ctx.guild.id,
+                ctx.author.id,
+                member.id,
+                role.id,
+                created=ctx.message.created_at,
+                timezone=zone or "UTC"
+            )
         except discord.HTTPException:
           failed += 1
 
