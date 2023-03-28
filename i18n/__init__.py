@@ -685,6 +685,7 @@ class Redditlink(Struct):
 class ReminderErrors(Struct):
   not_found = "No reminder found"
   empty = "You have no reminders."
+  no_find_timezone = 'Could not find timezone for {argument}'
 
 
 class ReminderCommandsSetParametersWhen(AppCommandParameterDefault):
@@ -713,15 +714,16 @@ class ReminderCommandsList(AppCommandDefault):
   command_name = "list"
   help = "List all reminders."
   list_title = "Reminders"
+  ten_limit = 'Only showing up to 10 reminders.'
 
 
 class ReminderCommandsDeleteParametersReminder(AppCommandParameterDefault):
-  name = "reminder"
-  description = "The reminder to delete"
+  name = "id"
+  description = "The id of the reminder to delete"
 
 
 class ReminderCommandsDeleteParameters(Struct):
-  reminder = ReminderCommandsDeleteParametersReminder()
+  id = ReminderCommandsDeleteParametersReminder()
 
 
 class ReminderCommandsDelete(AppCommandDefault):
@@ -750,9 +752,42 @@ class ReminderReminder(AppCommandGroupDefault):
   commands = ReminderCommands()
 
 
+class TimezoneCommandsSetParametersTimezone(AppCommandParameterDefault):
+  name = "timezone"
+  description = "Sets your timezone for all related commands."
+
+
+class TimezoneCommandsSetParameters(Struct):
+  timezone = TimezoneCommandsSetParametersTimezone()
+
+
+class TimezoneCommandsSet(AppCommandDefault):
+  command_name = "set"
+  help = "Sets your timezone for all related commands."
+  response = "Your timezone has been set to {tz}"
+  parameters = TimezoneCommandsSetParameters()
+
+
+class TimezoneCommandsClear(AppCommandDefault):
+  command_name = "clear"
+  help = "Clears your timezone."
+  response = 'Your timezone has been cleared.'
+
+
+class TimezoneCommands(Struct):
+  set = TimezoneCommandsSet()
+  clear = TimezoneCommandsClear()
+
+
+class ReminderTimezone(AppCommandGroupDefault):
+  help = "Commands related to managing timezone info."
+  commands = TimezoneCommands()
+
+
 class Reminder(CogDefault):
   # cog_description = "Set reminders for yourself"
   reminder = ReminderReminder()
+  timezone = ReminderTimezone()
   errors = ReminderErrors()
 
 

@@ -92,9 +92,9 @@ def setup_logging(name: Optional[str] = ...):
   log = logging.getLogger()
 
   try:
+    discord.utils.setup_logging()
     # __enter__
     max_bytes = 8 * 1024 * 1024  # 8 MiB
-    logging.getLogger("discord").setLevel(logging.INFO)
     logging.getLogger("discord").setLevel(logging.INFO)
     logging.getLogger("discord.http").setLevel(logging.WARNING)
     logging.getLogger('discord.state').addFilter(RemoveNoise())
@@ -105,12 +105,12 @@ def setup_logging(name: Optional[str] = ...):
     filehandler = RotatingFileHandler(filename="logging.log", encoding="utf-8", mode="w", maxBytes=max_bytes, backupCount=5)
     filehandler.setFormatter(_ColourFormatterFile())
 
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setFormatter(_ColourFormatterShort())
-    handler.addFilter(RemoveDuplicate())
+    # handler = logging.StreamHandler(sys.stdout)
+    # handler.setFormatter(_ColourFormatterShort())
+    # handler.addFilter(RemoveDuplicate())
 
     log.addHandler(filehandler)
-    log.addHandler(handler)
+    # log.addHandler(handler)
 
     yield
   finally:
