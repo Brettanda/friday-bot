@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+import re
 import textwrap
+from typing import Callable, Iterable, Literal, Optional, TypeVar, overload
+
 import numpy as np
 from discord.app_commands import Choice
 from fuzzywuzzy import fuzz
+
+T = TypeVar('T')
 
 
 def autocomplete(arr: list[Choice], value: str | float | int) -> list[Choice]:
@@ -79,3 +84,64 @@ def levenshtein_string_list(string: str, arr: list[str], *, min_: float = 0.7) -
       ],
       key=lambda x: x[0],
   )
+
+
+@overload
+def finder(
+    text: str,
+    collection: Iterable[T],
+    *,
+    key: Optional[Callable[[T], str]] = ...,
+    raw: Literal[True],
+) -> list[tuple[int, int, T]]:
+  ...
+
+
+@overload
+def finder(
+    text: str,
+    collection: Iterable[T],
+    *,
+    key: Optional[Callable[[T], str]] = ...,
+    raw: Literal[False],
+) -> list[T]:
+  ...
+
+
+@overload
+def finder(
+    text: str,
+    collection: Iterable[T],
+    *,
+    key: Optional[Callable[[T], str]] = ...,
+    raw: bool = ...,
+) -> list[T]:
+  ...
+
+
+def finder(
+    text: str,
+    collection: Iterable[T],
+    *,
+    key: Optional[Callable[[T], str]] = None,
+    raw: bool = False,
+) -> list[tuple[int, int, T]] | list[T]:
+  suggestions: list[tuple[int, int, T]] = []
+  text = str(text)
+  pat = '.*?'.join(map(re.escape, text))
+  regex = re.compile(pat, flags=re.IGNORECASE)
+  for item in collection:
+    to_search = key(item) if key else str(item)
+    r = regex.search(to_search)
+    if r:
+      suggestions.append((len(r.group()), r.start(), item))
+
+  def sort_key(tup: tuple[int, int, T]) -> tuple[int, int, str | T]:
+    if key:
+      return tup[0], tup[1], key(tup[2])
+    return tup
+
+  if raw:
+    return sorted(suggestions, key=sort_key)
+  else:
+    return [z for _, _, z in sorted(suggestions, key=sort_key)]

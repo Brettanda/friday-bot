@@ -12,10 +12,8 @@ python-Levenshtein
 # flair==0.8.0.post1
 grpcio
 h5py
+lxml
 pytz
-# Keras==2.4.3
-# Keras-Preprocessing==1.1.2
-# nltk==3.5
 numpy==1.24.1
 oauthlib==3.2.2
 Pillow==9.4.0
