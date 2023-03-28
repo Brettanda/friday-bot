@@ -448,14 +448,14 @@ class Chat(commands.Cog):
     author_prompt_name = msg.author.display_name
     my_prompt_name = msg.guild.me.display_name if msg.guild else self.bot.user.name
 
-    bonus = None
+    bonus = "Talk to me in the style of a friend."
     if current_tier >= PremiumTiersNew.tier_2:
       if persona == "pirate":
-        bonus = "To all messages, you'll respond in the style of a pirate."
+        bonus = "Talk to me in the style of a pirate."
       elif persona == "kinyoubi":
-        bonus = "To all messages, you'll respond in the style of an anime girl."
+        bonus = "Talk to me in the style of an anime girl."
       elif persona == "british":
-        bonus = "To all messages, you'll respond in the style of a british person."
+        bonus = "Talk to me in the style of a british person."
     # elif persona != "friday" and msg.guild:
     #   await self.bot.pool.execute("UPDATE servers SET persona=$1 WHERE id=$2", "friday", str(msg.guild.id))
     #   self.get_guild_config.invalidate(self, msg.guild.id)
