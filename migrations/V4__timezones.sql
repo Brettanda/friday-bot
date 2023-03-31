@@ -6,4 +6,4 @@ CREATE TABLE IF NOT EXISTS user_settings (
     timezone TEXT -- The user's timezone
 );
 
-ALTER TABLE reminders ADD COLUMN timezone TEXT NOT NULL DEFAULT 'UTC';
+ALTER TABLE reminders ADD COLUMN IF NOT EXISTS timezone TEXT NOT NULL DEFAULT 'UTC';
