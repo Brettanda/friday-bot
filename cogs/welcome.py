@@ -107,14 +107,14 @@ class Welcome(commands.Cog):
               lambda: openai.ChatCompletion.create(
                   model="gpt-3.5-turbo",
                   messages=[
-                      {'role': 'user', 'content': f"You're WelcomeGPT. A bot that welcomes new users to a Discord server with at very short and unique messages with jokes about their name and includes their user mention as their name at least once.\nWelcome, {member.display_name} to the server, with the user mention {member.mention}."},
+                      {'role': 'user', 'content': f"You're WelcomeGPT. You welcome new users to the Discord server '{member.guild.name}' with at very short and unique messages with a joke about their name and include their user mention as their name at least once. Don't include quotation marks.\n Now welcome, {member.display_name} to the server, with the user mention {member.mention}."},
                   ],
                   max_tokens=50,
                   user=str(member.id),
               )))
     if response is None:
       return None
-    message = response.get("choices")[0]["message"]["content"].replace("\n", "")   # type: ignore
+    message = response.get("choices")[0]["message"]["content"]   # type: ignore
     if member.mention not in message:
       message = member.mention + " " + message
     if config.channel:
