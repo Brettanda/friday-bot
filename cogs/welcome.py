@@ -1,13 +1,17 @@
 from __future__ import annotations
 
+import functools
 import logging
 from typing import TYPE_CHECKING, Optional, Union
 
-import discord
 import asyncpg
+import discord
+import openai
 from discord.ext import commands
 
-from functions import MessageColors, cache, embed
+from cogs.chat import Chat
+from functions import MessageColors, cache, checks, embed
+from functions.config import PremiumTiersNew
 
 if TYPE_CHECKING:
   from functions.custom_contexts import GuildContext, MyContext
@@ -28,7 +32,7 @@ def format_message(content: str, user: discord.User | discord.Member, guild: dis
 
 
 class Config:
-  __slots__ = ("bot", "id", "channel_id", "role_id", "message",
+  __slots__ = ("bot", "id", "channel_id", "role_id", "message", "ai",
                )
 
   def __init__(self, *, record: asyncpg.Record, bot: Friday):
@@ -37,6 +41,7 @@ class Config:
     self.channel_id: Optional[int] = int(record["channel_id"], base=10) if record["channel_id"] is not None else None
     self.role_id: Optional[int] = int(record["role_id"], base=10) if record["role_id"] is not None else None
     self.message: str = record["message"]
+    self.ai: bool = record["ai"]
 
   @property
   def channel(self) -> Optional[Union[discord.TextChannel, discord.VoiceChannel, discord.Thread]]:
@@ -90,15 +95,49 @@ class Welcome(commands.Cog):
     await self.add_welcome_role(after)
     await self.send_welcome_message(after)
 
+  async def send_ai_welcome_message(self, config: Config, member: discord.Member) -> None:
+    chat: Chat = self.bot.get_cog("Chat")  # type: ignore
+    if chat is None:
+      log.error("Chat cog not loaded")
+      return
+    async with chat.api_lock:
+      response = await self.bot.loop.run_in_executor(
+          None,
+          functools.partial(
+              lambda: openai.ChatCompletion.create(
+                  model="gpt-3.5-turbo",
+                  messages=[
+                      {'role': 'user', 'content': f"You're WelcomeGPT. You welcome new users to the Discord server '{member.guild.name}' with at very short and unique messages with a joke about their name and include their user mention as their name at least once. Don't include quotation marks.\n Now welcome, {member.display_name} to the server, with the user mention {member.mention}."},
+                  ],
+                  max_tokens=50,
+                  user=str(member.id),
+              )))
+    if response is None:
+      return None
+    message = response.get("choices")[0]["message"]["content"]   # type: ignore
+    if member.mention not in message:
+      message = member.mention + " " + message
+    if config.channel:
+      try:
+        await config.channel.send(message, allowed_mentions=discord.AllowedMentions(users=True))
+        log.info(f"sent welcome message to {config.channel} (ID:{config.channel.id}): {message}")
+      except discord.Forbidden:
+        await self.bot.pool.execute("UPDATE welcome SET ai=FALSE WHERE guild_id=$1", str(member.guild.id))
+        log.warn("missing permission to send welcome message in {config.channel} (ID:{config.channel.id})")
+
   async def send_welcome_message(self, member: discord.Member) -> None:
     config = await self.get_guild_config(member.guild.id)
     if config is None:
       return
     message, channel = config.message, config.channel
-    if message is None or channel is None:
+    if channel is None:
       return
     if not channel.permissions_for(member.guild.me).send_messages:
       log.warning(f"no permission to send welcome message in {channel} (ID:{channel.id})")
+      return
+    if config.ai:
+      return await self.send_ai_welcome_message(config, member)
+    if message is None:
       return
     message = format_message(message, member, member.guild)
     if not isinstance(config.channel, discord.TextChannel):
@@ -183,6 +222,14 @@ class Welcome(commands.Cog):
         fieldsval=[f"```\n{message}\n```", f"{formated_message}"],
         fieldsin=[False] * 2,
         description="" if channel_id is not None else "Don't forget to set a welcome channel"))
+
+  @_welcome.command(name="ai")
+  @checks.is_mod_and_min_tier(tier=PremiumTiersNew.tier_2, manage_guild=True)
+  async def _welcome_ai(self, ctx: GuildContext, *, enabled: bool) -> None:
+    """Allows Friday to respond with unique AI generated messages for every new member to the server"""
+    await self.bot.pool.execute("INSERT INTO welcome (guild_id,ai) VALUES ($1,$2) ON CONFLICT(guild_id) DO UPDATE SET ai=$2", str(ctx.guild.id), enabled)
+    self.get_guild_config.invalidate(self, ctx.guild.id)
+    await ctx.reply(embed=embed(title=f"AI welcome messages are now {'enabled' if enabled else 'disabled'}", description="When enabled, this disables the welcome message that you set"))
 
 
 async def setup(bot):
