@@ -95,6 +95,18 @@ class Welcome(commands.Cog):
     await self.add_welcome_role(after)
     await self.send_welcome_message(after)
 
+  @commands.Cog.listener()
+  async def on_guild_channel_delete(self, channel: discord.abc.GuildChannel):
+    if channel.type is not discord.ChannelType.text:
+      return
+
+    config = await self.get_guild_config(channel.guild.id)
+    if config is None:
+      return
+
+    if config.channel_id == channel.id:
+      await self.bot.pool.execute("UPDATE welcome SET channel_id=NULL WHERE guild_id=$1", str(channel.guild.id))
+
   async def send_ai_welcome_message(self, config: Config, member: discord.Member) -> None:
     chat: Chat = self.bot.get_cog("Chat")  # type: ignore
     if chat is None:
