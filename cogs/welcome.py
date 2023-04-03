@@ -238,7 +238,7 @@ class Welcome(commands.Cog):
   @_welcome.command(name="ai")
   @checks.is_mod_and_min_tier(tier=PremiumTiersNew.tier_2, manage_guild=True)
   async def _welcome_ai(self, ctx: GuildContext, *, enabled: bool) -> None:
-    """Allows Friday to respond with unique AI generated messages for every new member to the server"""
+    """Allows Friday to respond with a unique AI generated messages for every new member to the server"""
     await self.bot.pool.execute("INSERT INTO welcome (guild_id,ai) VALUES ($1,$2) ON CONFLICT(guild_id) DO UPDATE SET ai=$2", str(ctx.guild.id), enabled)
     self.get_guild_config.invalidate(self, ctx.guild.id)
     await ctx.reply(embed=embed(title=f"AI welcome messages are now {'enabled' if enabled else 'disabled'}", description="When enabled, this disables the welcome message that you set"))
