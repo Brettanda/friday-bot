@@ -95,6 +95,19 @@ class Welcome(commands.Cog):
     await self.add_welcome_role(after)
     await self.send_welcome_message(after)
 
+  @commands.Cog.listener()
+  async def on_guild_channel_delete(self, channel: discord.abc.GuildChannel):
+    if channel.type is not discord.ChannelType.text:
+      return
+
+    config = await self.get_guild_config(channel.guild.id)
+    if config is None:
+      return
+
+    if config.channel_id == channel.id:
+      await self.bot.pool.execute("UPDATE welcome SET channel_id=NULL WHERE guild_id=$1", str(channel.guild.id))
+      log.info(f"removed welcome channel for {channel.guild} (ID:{channel.guild.id})")
+
   async def send_ai_welcome_message(self, config: Config, member: discord.Member) -> None:
     chat: Chat = self.bot.get_cog("Chat")  # type: ignore
     if chat is None:
@@ -226,7 +239,7 @@ class Welcome(commands.Cog):
   @_welcome.command(name="ai")
   @checks.is_mod_and_min_tier(tier=PremiumTiersNew.tier_2, manage_guild=True)
   async def _welcome_ai(self, ctx: GuildContext, *, enabled: bool) -> None:
-    """Allows Friday to respond with unique AI generated messages for every new member to the server"""
+    """Allows Friday to respond with a unique AI generated messages for every new member to the server"""
     await self.bot.pool.execute("INSERT INTO welcome (guild_id,ai) VALUES ($1,$2) ON CONFLICT(guild_id) DO UPDATE SET ai=$2", str(ctx.guild.id), enabled)
     self.get_guild_config.invalidate(self, ctx.guild.id)
     await ctx.reply(embed=embed(title=f"AI welcome messages are now {'enabled' if enabled else 'disabled'}", description="When enabled, this disables the welcome message that you set"))
