@@ -292,7 +292,6 @@ class Reminder(commands.Cog):
 
   async def cog_load(self) -> None:
     await self.parse_bcp47_timezones()
-    self._task = self.bot.loop.create_task(self.dispatch_timers())
 
   async def cog_unload(self) -> None:
     self._task.cancel()
