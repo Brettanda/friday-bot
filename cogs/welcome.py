@@ -106,6 +106,7 @@ class Welcome(commands.Cog):
 
     if config.channel_id == channel.id:
       await self.bot.pool.execute("UPDATE welcome SET channel_id=NULL WHERE guild_id=$1", str(channel.guild.id))
+      log.info(f"removed welcome channel for {channel.guild} (ID:{channel.guild.id})")
 
   async def send_ai_welcome_message(self, config: Config, member: discord.Member) -> None:
     chat: Chat = self.bot.get_cog("Chat")  # type: ignore
