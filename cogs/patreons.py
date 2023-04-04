@@ -4,6 +4,7 @@ import os
 from typing import TYPE_CHECKING
 
 import asyncpg
+import asyncio
 import discord
 from discord.ext import commands
 
@@ -72,6 +73,7 @@ class Patreons(commands.Cog):
   def __init__(self, bot: Friday) -> None:
     self.bot: Friday = bot
     self.owner_patroned: config.PremiumTiersNew = config.PremiumTiersNew.free
+    self.api_lock = asyncio.Lock()
 
   def __repr__(self) -> str:
     return f"<cogs.{self.__cog_name__}>"
@@ -80,37 +82,46 @@ class Patreons(commands.Cog):
   async def get_patrons(self) -> list[PatreonConfig]:
     conn = self.bot.pool
 
-    # available options to return ?include=currently_entitled_tiers,address&fields[member]=full_name,is_follower,last_charge_date,last_charge_status,lifetime_support_cents,currently_entitled_amount_cents,patron_status&fields[tier]=amount_cents,created_at,description,discord_role_ids,edited_at,patron_count,published,published_at,requires_shipping,title,url&fields[address]=addressee,city,line_1,line_2,phone_number,postal_code,state
-    # can also be found here https://docs.patreon.com/#get-api-oauth2-v2-campaigns-campaign_id-members
-    s = 'campaigns/5362911/members?include=currently_entitled_tiers,user&fields[user]=url,social_connections&fields[member]=full_name,currently_entitled_amount_cents,patron_status&fields[tier]=amount_cents,discord_role_ids,published_at,requires_shipping,title,url'
-    response = await self.bot.session.get(
-        "https://www.patreon.com/api/oauth2/v2/{}".format(s),
-        headers={
-              'Authorization': "Bearer {}".format(CREATOR_TOKEN),
-              'User-Agent': 'Patreon-Python, version 0.5.0, platform Linux-5.10.102.1-microsoft-standard-WSL2-x86_64-with-glibc2.29',
+    async def api_call(cursor: str = None):
+      # available options to return ?include=currently_entitled_tiers,address&fields[member]=full_name,is_follower,last_charge_date,last_charge_status,lifetime_support_cents,currently_entitled_amount_cents,patron_status&fields[tier]=amount_cents,created_at,description,discord_role_ids,edited_at,patron_count,published,published_at,requires_shipping,title,url&fields[address]=addressee,city,line_1,line_2,phone_number,postal_code,state
+      # can also be found here https://docs.patreon.com/#get-api-oauth2-v2-campaigns-campaign_id-members
+      async with self.api_lock:
+        s = '?include=currently_entitled_tiers,user&fields[user]=social_connections&fields[member]=full_name,currently_entitled_amount_cents,patron_status&fields[tier]=discord_role_ids'
+        response = await self.bot.session.get(
+            f"https://www.patreon.com/api/oauth2/v2/campaigns/5362911/members{s}&page[count]=100{'&page[cursor]='+cursor if cursor else ''}",
+            headers={
+                  'Authorization': "Bearer {}".format(CREATOR_TOKEN),
+                  'User-Agent': 'Patreon-Python, version 0.5.0, platform Linux-5.10.102.1-microsoft-standard-WSL2-x86_64-with-glibc2.29',
 
-        })
-    resp = await response.json()
-
+            })
+        return await response.json()
+    resp = await api_call()
     members: list[dict] = []
-    for shit in resp['data']:
-      if shit['attributes']['patron_status'] != 'active_patron':
-        continue
-      r = {
-          "current_tier": shit["relationships"]["currently_entitled_tiers"]['data'][0]["id"],
-          "amount_cents": shit['attributes']['currently_entitled_amount_cents'],
-      }
-      for i in resp['included']:
-        if i['id'] == shit['relationships']['user']['data']['id']:
-          if i['attributes']['social_connections']['discord'] is None:
-            continue
-          r['user_id'] = i['attributes']['social_connections']['discord']['user_id']
-      if r.get('user_id') is not None:
-        members.append(r)
+
+    def go_through_members(respons):
+      for shit in respons['data']:
+        if shit['attributes']['patron_status'] != 'active_patron':
+          continue
+        r = {
+            "current_tier": len(shit["relationships"]["currently_entitled_tiers"]['data']) and shit["relationships"]["currently_entitled_tiers"]['data'][0]["id"],
+            "amount_cents": shit['attributes']['currently_entitled_amount_cents'],
+        }
+        for i in respons['included']:
+          if i['id'] == shit['relationships']['user']['data']['id']:
+            if i['attributes'].get('social_connections', None) is None or \
+                    i['attributes']['social_connections']['discord'] is None:
+              continue
+            r['user_id'] = i['attributes']['social_connections']['discord']['user_id']
+        if r.get('user_id') is not None:
+          members.append(r)
+    go_through_members(resp)
+    while resp['meta']['pagination']['cursors']['next']:
+      resp = await api_call(resp['meta']['pagination']['cursors']['next'])
+      go_through_members(resp)
+
     # # me is patron
     if self.owner_patroned >= config.PremiumTiersNew.tier_1:
       members.append({"current_tier": str(self.owner_patroned.patreon_tier), "amount_cents": "150", "user_id": "215227961048170496"})
-
     query = "SELECT * FROM patrons"
     records = await conn.fetch(query)
 
