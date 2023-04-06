@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 import asyncio
-import datetime
 import json
 import re
 from collections import defaultdict
 from enum import Enum
 # import random
-from typing import TYPE_CHECKING, Any, List, Optional, Sequence, Tuple
+from typing import TYPE_CHECKING, List, Sequence, Tuple, Optional
 
 import discord
 import numpy as np
@@ -15,11 +14,9 @@ import numpy.random as random
 from async_timeout import timeout
 from discord.ext import commands, tasks
 # sys.path.insert(1, os.path.join(sys.path[0], '..'))
-from pyfiglet import figlet_format
 from typing_extensions import Annotated
 
-from functions import MessageColors, checks, embed, exceptions
-from functions.config import PremiumTiersNew
+from functions import MessageColors, embed, exceptions
 
 if TYPE_CHECKING:
   from functions.custom_contexts import GuildContext, MyContext
@@ -54,10 +51,7 @@ class Fun(commands.Cog):
 
   def __init__(self, bot: Friday):
     self.bot: Friday = bot
-    self.countdowns: list[tuple[str, str, str, Any, float]] = []
     self.rpsoptions = ["rock", "paper", "scissors"]
-    self.countdown_messages: list[tuple[discord.Message, Any, float]] = []
-    self.loop_countdown.add_exception_type(discord.NotFound)
     # self.timeouter = None
     # self.timeoutCh = None
 
@@ -70,17 +64,12 @@ class Fun(commands.Cog):
     return f"<cogs.{self.__cog_name__}>"
 
   async def cog_load(self) -> None:
-    self.loop_countdown.start()
     self.poll_loop.start()
-    countdowns = await self.bot.pool.fetch("SELECT guild,channel,message,title,time FROM countdowns")
-    for countdown in countdowns:
-      self.countdowns.append(tuple(c for c in countdown))
     if self.callroulette_loop.is_running():
       self.callroulette_loop.cancel()
     self.callroulette_loop.start()
 
   async def cog_unload(self):
-    self.loop_countdown.stop()
     self.poll_loop.stop()
     self.callroulette_loop.stop()
 
@@ -398,95 +387,6 @@ class Fun(commands.Cog):
   # async def slash_poll_conclude(self, ctx: SlashContext, message: discord.Message):
   #   if not message.embeds[0].title.startswith("Poll: "):
   #     return await ctx.send(embed=embed(title="That message is not a poll", color=MessageColors.error()))
-
-  def get_time(self, now: float, future: float) -> tuple[float, float, float]:
-    time = datetime.timedelta(seconds=future - now)
-    sec = time.seconds
-    hours = sec // 3600
-    minutes = (sec // 60) - (hours * 60)
-    sec = sec % 60
-    return hours, minutes, sec
-
-  @commands.command(name="countdown", aliases=["cd"])
-  @commands.max_concurrency(3, commands.BucketType.guild, wait=True)
-  async def countdown(self, ctx: GuildContext, hours: int = 0, minutes: int = 0, seconds: int = 0, title: Optional[str] = None):
-    """Start a countdown. This command only updates every 10 seconds to avoid being ratelimited by Discord"""
-    if hours == 0 and minutes == 0 and seconds == 0:
-      return await ctx.send_help(ctx.command)
-
-    if hours < 0 or minutes < 0 or seconds < 0:
-      return await ctx.reply(embed=embed(title="Only positive numbers are accepted", color=MessageColors.error()))
-
-    current_countdowns = [item for item in self.countdowns if (item[0] is not None and item[0] == ctx.guild.id) or (item[0] is None and ctx.author.dm_channel is not None and item[1] == ctx.author.dm_channel.id)] if ctx.guild is not None else []
-    free_max, paid_max = 3, 8
-    if len(current_countdowns) > free_max:
-      if ctx.guild is not None:
-        guild_min = await checks.guild_is_min_tier(PremiumTiersNew.tier_1).predicate(ctx)
-        if len(current_countdowns) > free_max and not guild_min:
-          return await ctx.reply(embed=embed(title=f"This server can only have a max of {free_max} concurrent countdowns per server", description="To unlock more please check out [patreon.com/fridaybot](https://www.patreon.com/bePatron?u=42649008)", color=MessageColors.error()))
-        elif len(current_countdowns) > paid_max and guild_min:
-          return await ctx.reply(embed=embed(title=f"This server can only have a max of {paid_max} concurrent countdowns per server", color=MessageColors.error()))
-      if ctx.guild is None and ctx.author.dm_channel is not None:
-        user_min = await checks.user_is_min_tier(PremiumTiersNew.tier_1).predicate(ctx)
-        if len(current_countdowns) > free_max and not user_min:
-          return await ctx.reply(embed=embed(title=f"You can only have a max of {free_max} concurrent countdowns per server", description="To unlock more please check out [patreon.com/fridaybot](https://www.patreon.com/bePatron?u=42649008)", color=MessageColors.error()))
-        elif len(current_countdowns) > paid_max and user_min:
-          return await ctx.reply(embed=embed(title=f"You can only have a max of {paid_max} concurrent countdowns per server", color=MessageColors.error()))
-
-    duration = datetime.timedelta(hours=hours, minutes=minutes, seconds=seconds)
-    if duration.days > 0:
-      return await ctx.reply(embed=embed(title="Countdowns can't be set to any longer than 24 hours", color=MessageColors.error()))
-    now = datetime.datetime.utcnow().timestamp()
-    future = now + duration.seconds
-    hs, min, secs = self.get_time(now, future)
-    message = await ctx.send(embed=embed(title=f"Countdown: {title if title is not None else ''}", description="```" + figlet_format(f"{hs}:{min}:{secs}") + "```"))
-    await ctx.db.execute("INSERT INTO countdowns (guild,channel,message,title,time) VALUES ($1,$2,$3,$4,$5) ON CONFLICT DO NOTHING", str(message.guild.id), str(message.channel.id), str(message.id), title, future)  # type: ignore
-    self.countdowns.append((str(ctx.guild.id), str(ctx.channel.id), str(message.id), title, future))
-    self.countdown_messages.append((message, title, future))
-
-  @tasks.loop(seconds=10.0)
-  async def loop_countdown(self):
-    to_remove = []
-    if len(self.countdown_messages) == 0:
-      for x, (guild_id, channel_id, message_id, title, time) in enumerate(self.countdowns):
-        guild = self.bot.get_guild(int(guild_id))
-        if guild is None:
-          continue
-
-        channel = guild.get_channel(int(channel_id))
-        if channel is None:
-          continue
-
-        try:
-          message = channel and await channel.fetch_message(int(message_id))  # type: ignore
-        except discord.NotFound:
-          to_remove.append(str(message_id))
-          self.countdowns.pop(x)
-        else:
-          self.countdown_messages.append((message, title, time))
-    now = datetime.datetime.utcnow().timestamp()
-    for x, (message, title, time) in enumerate(self.countdown_messages):
-      if time <= now:
-        await message.edit(embed=embed(title=f"Countdown: {title if title is not None else ''}", description="```" + figlet_format("Done!") + "```"))
-        to_remove.append(str(message.id))
-        self.countdowns.pop(x)
-      else:
-        hours, minutes, sec = self.get_time(now, time)
-        await message.edit(embed=embed(title=f"Countdown: {title if title is not None else ''}", description="```" + figlet_format(f"{hours}:{minutes}:{sec}") + "```"))
-    if len(to_remove) > 0:
-      await self.bot.pool.execute(f"""DELETE FROM countdowns WHERE message IN ('{"', '".join(to_remove)}')""")
-    self.countdown_messages.clear()
-
-  @commands.Cog.listener()
-  async def on_raw_message_delete(self, payload: discord.RawMessageDeleteEvent):
-    if payload.guild_id is not None and len([item for item in self.countdowns if int(item[2]) == payload.message_id]) > 0:
-      await self.bot.pool.execute("DELETE FROM countdowns WHERE message=$1", str(payload.message_id))
-      self.countdown_messages.pop(self.countdown_messages.index([i for i in self.countdown_messages if int(i[0].id) == payload.message_id][0]))
-      self.countdowns.pop(self.countdowns.index([i for i in self.countdowns if int(i[2]) == payload.message_id][0]))
-
-  @loop_countdown.before_loop
-  async def before_loop_countdown(self):
-    await self.bot.wait_until_ready()
 
   # @commands.command("soup", help="Get a random soup picture")
   # async def soup(self, ctx: MyContext):
