@@ -238,11 +238,21 @@ class Welcome(commands.Cog):
 
   @_welcome.command(name="ai")
   @checks.is_mod_and_min_tier(tier=PremiumTiersNew.tier_2, manage_guild=True)
-  async def _welcome_ai(self, ctx: GuildContext, *, enabled: bool) -> None:
+  async def _welcome_ai(self, ctx: GuildContext, enabled: bool) -> None:
     """Allows Friday to respond with a unique AI generated messages for every new member to the server"""
     await self.bot.pool.execute("INSERT INTO welcome (guild_id,ai) VALUES ($1,$2) ON CONFLICT(guild_id) DO UPDATE SET ai=$2", str(ctx.guild.id), enabled)
     self.get_guild_config.invalidate(self, ctx.guild.id)
     await ctx.reply(embed=embed(title=f"AI welcome messages are now {'enabled' if enabled else 'disabled'}", description="When enabled, this disables the welcome message that you set"))
+
+  @_welcome.command(name="test", aliases=["preview"])
+  async def _welcome_test(self, ctx: GuildContext, member: discord.Member = commands.Author):
+    """Fakes a member joining the server, this is useful for testing your welcome message"""
+    config = await self.get_guild_config(ctx.guild.id, connection=ctx.db)
+    if config is None:
+      return await ctx.send(embed=embed(title="Welcome", description="Welcome is not enabled for this server.", color=MessageColors.error()))
+    member.pending = False
+    await self.on_member_join(member)
+    await ctx.send(embed=embed(title="Sent welcome message"), ephemeral=True)
 
 
 async def setup(bot):
