@@ -473,9 +473,9 @@ class Chat(commands.Cog):
               )))
     if response is None:
       return None
-    self.chat_history[msg.channel.id].completion_tokens += response.get("usage")["completion_tokens"]  # type: ignore
-    self.chat_history[msg.channel.id].prompt_tokens += response.get("usage")["prompt_tokens"]  # type: ignore
-    self.chat_history[msg.channel.id].total_tokens += response.get("usage")["total_tokens"]  # type: ignore
+    self.chat_history[msg.channel.id].completion_tokens = response.get("usage")["completion_tokens"]  # type: ignore
+    self.chat_history[msg.channel.id].prompt_tokens = response.get("usage")["prompt_tokens"]  # type: ignore
+    self.chat_history[msg.channel.id].total_tokens = response.get("usage")["total_tokens"]  # type: ignore
     return response.get("choices")[0]["message"]["content"].replace("\n", "")   # type: ignore
 
   @commands.Cog.listener()

@@ -122,7 +122,7 @@ class Welcome(commands.Cog):
                   messages=[
                       {'role': 'user', 'content': f"You're WelcomeGPT. You welcome new users to the Discord server '{member.guild.name}' with at very short and unique messages with a joke about their name and include their user mention as their name at least once. Don't include quotation marks.\n Now welcome, {member.display_name} to the server, with the user mention {member.mention}."},
                   ],
-                  max_tokens=50,
+                  max_tokens=75,
                   user=str(member.id),
               )))
     if response is None:
