@@ -292,6 +292,14 @@ class PremiumPerks:
       return 50
     return 25
 
+  @property
+  def max_chat_channels(self) -> int:
+    if self.tier >= PremiumTiersNew.tier_3:
+      return 3
+    if self.tier >= PremiumTiersNew.tier_2:
+      return 2
+    return 1
+
 
 allowed_mentions = discord.AllowedMentions(roles=False, everyone=False, users=True, replied_user=False)
 
