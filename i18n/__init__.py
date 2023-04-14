@@ -300,14 +300,14 @@ class ChatChat(AppCommandGroupDefault):
   commands = ChatChatCommands()
 
 
-class ChatChatChannelCommandsSetParameters(Struct):
+class ChatChatChannelCommandsChannelParameter(Struct):
   channel = ParameterChannel()
 
 
-class ChatChatChannelCommandsSet(AppCommandDefault):
-  command_name = "set"
-  help = "Set the current channel so that I will always try to respond with something"
-  parameters = ChatChatChannelCommandsSetParameters()
+class ChatChatChannelCommandsAdd(AppCommandDefault):
+  command_name = "add"
+  help = "Add a channel so that I will always try to respond with something"
+  parameters = ChatChatChannelCommandsChannelParameter()
 
 
 class ChatChatChannelCommandsWebhookParametersEnable(AppCommandParameterDefault):
@@ -316,6 +316,7 @@ class ChatChatChannelCommandsWebhookParametersEnable(AppCommandParameterDefault)
 
 
 class ChatChatChannelCommandsWebhookParameters(Struct):
+  channel = ParameterChannel()
   enable = ChatChatChannelCommandsWebhookParametersEnable()
 
 
@@ -325,15 +326,35 @@ class ChatChatChannelCommandsWebhook(AppCommandDefault):
   parameters = ChatChatChannelCommandsWebhookParameters()
 
 
+class ChatChatChannelCommandsList(AppCommandDefault):
+  command_name = "list"
+  help = "Lists the channels that Friday will always try to respond with something"
+
+
+class ChatChatChannelCommandsRemove(AppCommandDefault):
+  command_name = "remove"
+  help = "Removes a chat channel"
+  parameters = ChatChatChannelCommandsChannelParameter()
+
+
 class ChatChatChannelCommandsClear(AppCommandDefault):
   command_name = "clear"
   help = "Clear the current chat channel"
 
 
+class ChatChatChannelCommandsPersona(AppCommandDefault):
+  command_name = "persona"
+  help = "Change Friday's persona for a chat channel"
+  parameters = ChatChatChannelCommandsChannelParameter()
+
+
 class ChatChatChannelCommands(Struct):
-  set = ChatChatChannelCommandsSet()
+  add = ChatChatChannelCommandsAdd()
   webhook = ChatChatChannelCommandsWebhook()
+  list = ChatChatChannelCommandsList()
+  remove = ChatChatChannelCommandsRemove()
   clear = ChatChatChannelCommandsClear()
+  persona = ChatChatChannelCommandsPersona()
 
 
 class ChatChatchannel(AppCommandGroupDefault):

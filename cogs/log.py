@@ -43,12 +43,11 @@ log = logging.getLogger(__name__)
 
 
 class Config:
-  __slots__ = ("bot", "id", "chat_channel", "disabled_commands", "restricted_commands", "bot_channel", "lang",)
+  __slots__ = ("bot", "id", "disabled_commands", "restricted_commands", "bot_channel", "lang",)
 
   def __init__(self, *, record: asyncpg.Record, bot: Friday):
     self.bot: Friday = bot
     self.id: int = int(record["id"], base=10)
-    self.chat_channel: discord.TextChannel = record["chatchannel"]
     self.disabled_commands: Set[str] = set(record["disabled_commands"] or [])
     self.restricted_commands: Set[str] = set(record["restricted_commands"] or [])
     self.bot_channel: Optional[int] = int(record["botchannel"], base=10) if record["botchannel"] else None
