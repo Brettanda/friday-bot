@@ -3,10 +3,12 @@ from __future__ import annotations
 import asyncio
 import datetime
 import functools
+import json
 import logging
 import os
 from collections import Counter, defaultdict
-from typing import TYPE_CHECKING, ClassVar, List, Literal, Optional, TypedDict, Union
+from typing import (TYPE_CHECKING, ClassVar, List, Literal, Optional,
+                    TypedDict, Union)
 
 import asyncpg
 import discord
@@ -15,19 +17,18 @@ import validators
 from discord import app_commands
 from discord.app_commands.checks import Cooldown
 from discord.ext import commands
-from google.cloud import translate_v2 as translate
 from slugify import slugify
 
 from cogs.log import CustomWebhook
-from functions import MessageColors, MyContext, cache, checks, embed, formats
+from functions import MessageColors, MyContext, cache, config, embed, formats
 from functions.config import ChatSpamConfig, PremiumPerks, PremiumTiersNew
 from functions.time import format_dt, human_timedelta
 
 if TYPE_CHECKING:
-  from typing_extensions import Self
-
   from functions.custom_contexts import GuildContext
   from index import Friday
+
+GuildMessageableChannel = Union[discord.TextChannel, discord.VoiceChannel, discord.StageChannel, discord.Thread]
 
 log = logging.getLogger(__name__)
 
@@ -36,7 +37,7 @@ openai.api_key = os.environ["OPENAI"]
 POSSIBLE_SENSITIVE_MESSAGE = "*Possibly sensitive:* ||"
 POSSIBLE_OFFENSIVE_MESSAGE = "**I failed to respond because my message might have been offensive, please choose another topic or try again**"
 
-PERSONAS = [("🥰", "default", "Fridays default persona"), ("🏴‍☠️", "pirate", "Friday becomes one with the sea"), ("🍙", "kinyoubi", "Friday becomes one with the anime"), ("🇬🇧", "british", "Friday becomes British")]
+PERSONAS = [("🥰", "default", "Fridays default persona"), ("🏴‍☠️", "pirate", "Friday becomes one with the sea"), ("🍙", "kinyoubi", "Friday becomes one with the anime"), ("🇬🇧", "british", "Friday becomes British"), ("📝", "custom", "Make your own")]
 
 logging.getLogger("openai").setLevel(logging.WARNING)
 
@@ -45,44 +46,114 @@ class ChatError(commands.CheckFailure):
   pass
 
 
-class Config:
-  __slots__ = ("bot", "id", "chat_channel_id", "chat_channel_webhook_url", "persona", "tier", "puser",)
+class ConfigChatChannel:
+  def __init__(self, id: str, guild_id: str, webhook_url: Optional[str], persona: Optional[str] = None, persona_custom: Optional[str] = None):
+    self.id = int(id, base=10)
+    self.guild_id = int(guild_id, base=10)
+    self.webhook_url = webhook_url
+    self.persona = persona or "default"
+    self.persona_custom = persona_custom
 
-  def __init__(self, *, record: asyncpg.Record, bot: Friday):
+  async def get_or_fetch_channel(self, guild: discord.Guild) -> Optional[GuildMessageableChannel]:
+    return guild.get_channel(self.id) or \
+        await guild.fetch_channel(self.id)  # type: ignore
+
+  def webhook(self, bot: Friday) -> Optional[discord.Webhook]:
+    if self.webhook_url:
+      return discord.Webhook.from_url(self.webhook_url, session=bot.session)
+
+
+class Config:
+  __slots__ = ("bot", "id", "chat_channels", "puser",)
+
+  def __init__(self, *, record: asyncpg.Record, ccrecord: list[asyncpg.Record], bot: Friday):
     self.bot: Friday = bot
     self.id: int = int(record["id"], base=10)
-    self.chat_channel_id: Optional[int] = record.get("chatchannel") and int(record["chatchannel"], base=10)
-    self.chat_channel_webhook_url: Optional[str] = record.get("chatchannel_webhook")
-    self.tier: int = record["tier"] if record else 0
     self.puser: Optional[int] = record["user_id"] if record else None
-    self.persona: Optional[str] = record["persona"]
+    self.chat_channels: list[ConfigChatChannel] = [ConfigChatChannel(**c) for c in ccrecord]
 
-  @property
-  def chat_channel(self) -> Optional[Union[discord.TextChannel, discord.VoiceChannel, discord.Thread]]:
-    if self.chat_channel_id:
-      guild = self.bot.get_guild(self.id)
-      return guild and guild.get_channel(self.chat_channel_id)  # type: ignore
-
-  @property
-  def webhook(self) -> Optional[discord.Webhook]:
-    if self.chat_channel_webhook_url:
-      return discord.Webhook.from_url(self.chat_channel_webhook_url, session=self.bot.session)
-
-  async def webhook_fetched(self) -> Optional[discord.Webhook]:
-    if self.webhook is not None:
-      if self.webhook.is_partial():
-        return await self.bot.fetch_webhook(self.webhook.id)
-      return self.webhook
+  def get_chat_channel(self, channel_id: int) -> Optional[ConfigChatChannel]:
+    for c in self.chat_channels:
+      if c.id == channel_id:
+        return c
 
 
 class UserConfig:
-  __slots__ = ("bot", "user_id", "tier", "guild_ids",)
+  __slots__ = ("bot", "user_id", "guild_ids",)
 
   def __init__(self, *, record: asyncpg.Record, bot: Friday):
     self.bot: Friday = bot
     self.user_id: int = int(record["user_id"], base=10)
-    self.tier: int = record["tier"] if record else 0
     self.guild_ids: List[int] = record["guild_ids"] or []
+
+
+class PersonaCustomModal(discord.ui.Modal, title='Custom Persona'):
+  duration = discord.ui.TextInput(label='Persona', placeholder='Talk like an anime girl.', min_length=0, max_length=150)
+
+  def __init__(self, cog: Chat) -> None:
+    super().__init__()
+    self.cog: Chat = cog
+
+  async def on_submit(self, interaction: discord.Interaction) -> None:
+    await interaction.response.defer()
+    await self.cog.bot.pool.execute("UPDATE chatchannels SET persona_custom=$1 WHERE id=$2", self.duration.value, str(interaction.channel_id))
+    self.cog.get_guild_config.invalidate(self.cog, interaction.guild_id)
+    await interaction.edit_original_response(embed=embed(
+        title=f"New Persona `Custom` set with the prompt `{self.duration.value}`"
+    ), view=None)
+
+
+class PersonaOptions(discord.ui.View):
+  def __init__(self, cog: Chat, current: str, author_id: int, is_tiered: bool = False) -> None:
+    super().__init__()
+    self.cog: Chat = cog
+    self.current: str = current.lower()
+    self.author_id: int = author_id
+    self.is_tiered: bool = is_tiered
+    self.message: Optional[discord.Message] = None
+
+    if is_tiered:
+      self.select.options = [discord.SelectOption(emoji=m[0], label=m[1].capitalize(), value=m[1], description=m[2], default=m[1].lower() == current.lower()) for m in PERSONAS]
+    else:
+      self.select.options = [discord.SelectOption(emoji=m[0], label=m[1].capitalize(), value=m[1], description=m[2], default=m[1].lower() == current.lower()) for m in PERSONAS if m[1] != "custom"]
+
+    self.clear_items()
+    self.add_item(self.select)
+    if current.lower() == "custom" and is_tiered:
+      self.add_item(self.custom)
+
+  @discord.ui.select(
+      custom_id="persona_select",
+      options=[discord.SelectOption(label="Failed to load")],
+      min_values=0, max_values=1)
+  async def select(self, interaction: discord.Interaction, select: discord.ui.Select):
+    await self.cog.bot.pool.execute("UPDATE chatchannels SET persona=$1 WHERE id=$2", select.values[0], str(interaction.channel_id))
+    self.cog.get_guild_config.invalidate(self.cog, interaction.guild_id)
+    if select.values[0].lower() == "custom":
+      await interaction.response.send_modal(PersonaCustomModal(self.cog))
+      return
+    try:
+      if interaction.channel_id:
+        self.cog.chat_history.pop(interaction.channel_id)
+    except KeyError:
+      pass
+    await interaction.response.edit_message(embed=embed(title=f"New Persona `{select.values[0].capitalize()}`"), view=None)
+    self.stop()
+
+  @discord.ui.button(label="Custom", style=discord.ButtonStyle.primary, emoji="📝", custom_id="persona_custom")
+  async def custom(self, interaction: discord.Interaction, button: discord.ui.Button):
+    await interaction.response.send_modal(PersonaCustomModal(self.cog))
+
+  async def interaction_check(self, interaction: discord.Interaction) -> bool:
+    if interaction.user and interaction.user.id == self.author_id:
+      return True
+    else:
+      await interaction.response.send_message('This confirmation dialog is not for you.', ephemeral=True)
+      return False
+
+  async def on_timeout(self) -> None:
+    if self.message:
+      await self.message.delete()
 
 
 class SpamChecker:
@@ -95,7 +166,6 @@ class SpamChecker:
     self.patron_1 = commands.CooldownMapping.from_cooldown(ChatSpamConfig.patron_1_rate, 43200, commands.BucketType.user)
     self.patron_2 = commands.CooldownMapping.from_cooldown(ChatSpamConfig.patron_2_rate, 43200, commands.BucketType.user)
     self.patron_3 = commands.CooldownMapping.from_cooldown(ChatSpamConfig.patron_3_rate, 43200, commands.BucketType.user)
-    # self.self_token = commands.CooldownMapping.from_cooldown(1000, 43200, commands.BucketType.user)
 
   def is_spamming(self, msg: discord.Message, tier: PremiumTiersNew, vote_count: int) -> tuple[bool, Optional[Cooldown], Optional[Literal["free", "voted", "streaked", "patron_1", "patron_2", "patron_3"]]]:
     current = msg.created_at.timestamp()
@@ -182,12 +252,31 @@ class ChatHistory:
       string = string.replace(old, new)
     return name if string.lower() not in banned else "Cat"
 
-  async def messages(self, *, my_name: str = None, user_name: str = None, limit=_limit, tier: PremiumTiersNew = PremiumTiersNew.free, bonus_setup: str = None) -> list[ChatHistoryMessages]:
+  async def messages(self, *, my_name: str = None, user_name: str = None, limit=_limit, tier: PremiumTiersNew = PremiumTiersNew.free, lang: str = "English", persona: str = None, persona_custom: str = None) -> list[ChatHistoryMessages]:
+    bonus = "Talk like a friend."
+    if persona == "pirate":
+      bonus = "Talk like a pirate."
+    elif persona == "kinyoubi":
+      bonus = "Talk like an anime girl."
+    elif persona == "british":
+      bonus = "Talk like a british person."
+    if tier >= PremiumTiersNew.tier_2:
+      if persona == "custom":
+        bonus = persona_custom
+    # elif persona != "friday" and msg.guild:
+    #   await self.bot.pool.execute("UPDATE servers SET persona=$1 WHERE id=$2", "friday", str(msg.guild.id))
+    #   self.get_guild_config.invalidate(self, msg.guild.id)
     async with self.lock:
       while len(self._history) > limit * self._messages_per_group:
         self._history.pop(0)
-      response: list[ChatHistoryMessages] = [{'role': 'system', 'content': f"First, you're '{my_name}'[female], a friend & funny Discord chatbot made by 'Motostar'[male] and born on Aug 7, 2018. Second, you're chatting with a persona named '{user_name}'. Third and most important, your responses must never exceed {PremiumPerks(tier).max_chat_tokens} tokens. Anything further will be cut off.{' ' + bonus_setup if bonus_setup else ''}"}]
-      return response + self._history
+      response: list[ChatHistoryMessages] = [
+          {'role': 'system', 'content': f"You're '{my_name}'[female] a friendly & funny Discord chatbot made by 'Motostar'[male] and born on Aug 7, 2018. You're chatting with a person named '{user_name}'. You'll respond in language {user_name} speaks in. Most important, your responses will be very short and must never exceed {PremiumPerks(tier).max_chat_tokens} tokens."},
+          # {'(Female Replacement Intelligent Digital Assistant Youth)' if my_name == 'friday' else ''}
+          *self._history
+      ]
+      if bonus:
+        response.insert(len(response), {'role': "user", "content": bonus})
+      return response
 
   async def add_message(self, msg: discord.Message, bot_content: str, *, user_content: str = None, user_name: str = None, bot_name: str = None):
     async with self.lock:
@@ -204,44 +293,11 @@ class CooldownByRepeating(commands.CooldownMapping):
     return (msg.content)
 
 
-class Translation:
-  text: str
-  translatedText: str
-  input: str
-  detectedSourceLanguage: Optional[str]
-
-  @classmethod
-  @cache.cache(ignore_kwargs=True)
-  async def from_text(cls, text: str, from_lang: str = None, to_lang: str = "en", *, parent: Chat) -> Self:
-    self = cls()
-
-    self.text = text
-    self.translatedText = text
-    self.input = text
-    self.detectedSourceLanguage = from_lang
-    if from_lang != to_lang and from_lang != "ep" and to_lang != "ep":
-      try:
-        trans_func = functools.partial(parent.translate_client.translate, source_language=from_lang, target_language=to_lang)
-        translation = await parent.bot.loop.run_in_executor(None, trans_func, text)
-        self.input = translation.get("input", text)
-        self.detectedSourceLanguage = translation.get("detectedSourceLanguage", from_lang)
-        if translation is not None and translation.get("translatedText", None) is not None:
-          self.translatedText = translation["translatedText"]
-      except OSError:
-        pass
-
-    return self
-
-  def __str__(self) -> str:
-    return self.translatedText if self.translatedText is not None else self.text
-
-
 class Chat(commands.Cog):
   """Chat with Friday, say something on Friday's behalf, and more with the chat commands."""
 
   def __init__(self, bot: Friday):
     self.bot: Friday = bot
-    self.translate_client = translate.Client()  # _http=self.bot.http)
 
     # https://help.openai.com/en/articles/5008629-can-i-use-concurrent-api-calls
     self.api_lock = asyncio.Semaphore(2)  # bot.openai_api_lock
@@ -262,15 +318,19 @@ class Chat(commands.Cog):
     LEFT OUTER JOIN patrons p
       ON s.id = ANY(p.guild_ids)
     WHERE s.id=$1"""
+    ccquery = """SELECT *
+    FROM chatchannels
+    WHERE guild_id=$1"""
     conn = self.bot.pool
     try:
       record = await conn.fetchrow(query, str(guild_id))
+      ccrecord = await conn.fetch(ccquery, str(guild_id))
     except Exception as e:
       raise e
     else:
-      log.debug(f"PostgreSQL Query: \"{query}\" + {str(guild_id)}")
+      log.debug(f"PostgreSQL Query: \"{query}\" + {str(guild_id)}\n\"{ccquery}\"")
       if record is not None:
-        return Config(record=record, bot=self.bot)
+        return Config(record=record, ccrecord=ccrecord, bot=self.bot)
     return None
 
   @commands.Cog.listener()
@@ -348,82 +408,133 @@ class Chat(commands.Cog):
       self.bot.chat_repeat_counter[ctx.channel.id] += 1
       await ctx.send(embed=embed(title="My chat history has been reset", description="I have forgotten the last few messages"))
 
-  @commands.hybrid_group(name="chatchannel", fallback="set", extras={"examples": ["#channel"]}, invoke_without_command=True, case_insensitive=True)
-  @commands.guild_only()
-  @commands.has_permissions(manage_channels=True)
-  async def chatchannel(self, ctx: GuildContext, channel: discord.TextChannel = None):
-    """Set the current channel so that I will always try to respond with something"""
-    if channel is None:
-      config = await self.get_guild_config(ctx.guild.id)
-      return await ctx.send(embed=embed(title="Current chat channel", description=f"{config and config.chat_channel and config.chat_channel.mention}"))
+  async def create_chatchannel(self, ctx: GuildContext, channel: GuildMessageableChannel) -> None:
+    assert self.bot.patreon is not None
+    current_tier = PremiumTiersNew.free
+    patrons = await self.bot.patreon.get_patrons()
 
-    await ctx.db.execute("UPDATE servers SET chatchannel=$1 WHERE id=$2", str(channel.id), str(ctx.guild.id))
+    patron = next((p for p in patrons if p.id == ctx.author.id), None)
+
+    if patron is not None:
+      current_tier = PremiumTiersNew(patron.tier) if patron.tier > current_tier.value else current_tier
+
+    current_chat_channel_ids: list[str] = await ctx.db.fetch("SELECT id FROM chatchannels WHERE guild_id=$1", str(ctx.guild.id))
+    if len(current_chat_channel_ids) >= config.PremiumPerks(current_tier).max_chat_channels:
+      await ctx.send(embed=embed(title="You have reached the maximum amount of chat channels you can have", color=MessageColors.error()))
+      return
+
+    await ctx.db.execute("INSERT INTO chatchannels (id,guild_id) VALUES($1,$2) ON CONFLICT DO NOTHING", str(channel.id), str(ctx.guild.id))
     self.get_guild_config.invalidate(self, ctx.guild.id)
     await ctx.send(embed=embed(title="Chat channel set", description=f"I will now respond to every message in this channel\n{channel.mention}"))
 
-  @chatchannel.command("webhook", extras={"examples": {"1", "0", "false", "true"}})
+  @commands.hybrid_group(name="chatchannel", fallback="add", extras={"examples": ["#channel"]}, invoke_without_command=True, case_insensitive=True)
+  @commands.guild_only()
+  @commands.has_permissions(manage_channels=True)
+  async def chatchannel(self, ctx: GuildContext, channel: GuildMessageableChannel):
+    """Set the current channel so that I will always try to respond with something"""
+    await self.create_chatchannel(ctx, channel)
+
+  @chatchannel.command("webhook", extras={"examples": {"#chatbot 1", "#chatbot 0", "#chatchannel false", "#chatchannel true"}})
   @commands.guild_only()
   @commands.has_permissions(manage_channels=True)
   @commands.bot_has_permissions(manage_webhooks=True)
-  async def chatchannel_webhook(self, ctx: GuildContext, enable: bool = None):
+  async def chatchannel_webhook(self, ctx: GuildContext, channel: GuildMessageableChannel, enable: bool = None):
     """Toggles webhook chatting with Friday in the current chat channel"""
 
     config = await self.get_guild_config(ctx.guild.id)
-    if config is None or config.chat_channel is None:
-      return await ctx.send(embed=embed(title="No chat channel set", description="Setup a chat channel before running this command", colour=MessageColors.red()))
+    c = config and config.get_chat_channel(channel.id)
+    if config is None or c is None:
+      prompt = await ctx.prompt("This channel has not been set as a chatchannel yet. Would you like to set it as a chatchannel now?", timeout=30)
+      if prompt is not True:
+        return
+      await self.create_chatchannel(ctx, channel)
+      config = await self.get_guild_config(ctx.guild.id)
+      c = config and config.get_chat_channel(channel.id)
+      assert c is not None
 
+      if enable is None:
+        return await ctx.edit(embed=embed(title=f"The current chat channel's webhook mode is set to {bool(c and c.webhook_url is not None)}"))
+
+      webhook = None
+      if enable is True and c.webhook(self.bot) is None:
+        try:
+          avatar = await self.bot.user.avatar.read() if self.bot.user.avatar else None
+          webhook = await config.chat_channel.create_webhook(name=self.bot.user.display_name, avatar=avatar)  # type: ignore
+        except Exception:
+          return await ctx.edit(embed=embed(title="Looks like I can't make webhooks on that channel", color=MessageColors.red()))
+      await ctx.db.execute("UPDATE chatchannels SET webhook_url=$1 WHERE id=$2", webhook and webhook.url, str(channel.id))
+      self.get_guild_config.invalidate(self, ctx.guild.id)
+      await ctx.edit(embed=embed(title=f"Webhook mode is now {enable}"))
+      return
     if enable is None:
-      return await ctx.send(embed=embed(title=f"The current chat channel's webhook mode is set to {bool(config.webhook is not None)}"))
+      return await ctx.send(embed=embed(title=f"The current chat channel's webhook mode is set to {bool(c and c.webhook_url is not None)}"))
 
     webhook = None
-    if enable is True and config.webhook is None:
+    if enable is True and c.webhook(self.bot) is None:
       try:
         avatar = await self.bot.user.avatar.read() if self.bot.user.avatar else None
         webhook = await config.chat_channel.create_webhook(name=self.bot.user.display_name, avatar=avatar)  # type: ignore
       except Exception:
         return await ctx.send(embed=embed(title="Looks like I can't make webhooks on that channel", color=MessageColors.red()))
-
-    await ctx.db.execute("UPDATE servers SET chatchannel_webhook=$1 WHERE id=$2", webhook and webhook.url, str(ctx.guild.id))
+    await ctx.db.execute("UPDATE chatchannels SET webhook_url=$1 WHERE id=$2", webhook and webhook.url, str(channel.id))
     self.get_guild_config.invalidate(self, ctx.guild.id)
     await ctx.send(embed=embed(title=f"Webhook mode is now {enable}"))
+
+  @chatchannel.command(name="remove")
+  @commands.guild_only()
+  @commands.has_permissions(manage_channels=True)
+  async def chatchannel_remove(self, ctx: GuildContext, channel: GuildMessageableChannel):
+    """Removes a chat channel"""
+    await ctx.db.execute("DELETE FROM chatchannels WHERE id=$1 AND guild_id=$2;", str(channel.id), str(ctx.guild.id))
+    self.get_guild_config.invalidate(self, ctx.guild.id)
+    await ctx.send(embed=embed(title="Chat channel removed", description="I will no longer respond to messages in this channel"))
+
+  @chatchannel.command(name="list")
+  @commands.guild_only()
+  async def chatchannel_list(self, ctx: GuildContext):
+    """Lists the channels that Friday will always try to respond with something"""
+    channel_ids: list[asyncpg.Record] = await ctx.db.fetch("SELECT id FROM chatchannels WHERE guild_id=$1", str(ctx.guild.id))
+    if channel_ids is None:
+      return await ctx.send(embed=embed(title="No chat channels set"))
+    await ctx.send(embed=embed(title="Chat channels", description="\n".join([f"<#{channel_id['id']}>" for channel_id in channel_ids])))
 
   @chatchannel.command(name="clear")
   @commands.guild_only()
   @commands.has_permissions(manage_channels=True)
   async def chatchannel_clear(self, ctx: GuildContext):
     """Clear the current chat channel"""
-    await ctx.db.execute("UPDATE servers SET chatchannel=NULL WHERE id=$1", str(ctx.guild.id))
+    await ctx.db.execute("DELETE FROM chatchannels WHERE guild_id=$1;", str(ctx.guild.id))
     self.get_guild_config.invalidate(self, ctx.guild.id)
     await ctx.send(embed=embed(title="Chat channel cleared", description="I will no longer respond to messages in this channel"))
 
-  @commands.hybrid_command(name="persona")
+  @chatchannel.command(name="persona")
   @commands.guild_only()
-  @checks.is_mod_and_min_tier(tier=PremiumTiersNew.tier_1, manage_channels=True)
+  @commands.has_permissions(manage_channels=True)
+  async def chatchannel_persona(self, ctx: GuildContext, channel: GuildMessageableChannel):
+    """Change Friday's persona for a chat channel"""
+    config = await self.get_guild_config(ctx.guild.id)
+    c = config and config.get_chat_channel(channel.id)
+    current_tier = await self.fetch_current_tier(ctx)
+    if config is None or c is None:
+      prompt = await ctx.prompt("This channel has not been set as a chatchannel yet. Would you like to set it as a chatchannel now?", timeout=30)
+      if prompt is not True:
+        return
+      await self.create_chatchannel(ctx, channel)
+      config = await self.get_guild_config(ctx.guild.id)
+      c = config and config.get_chat_channel(channel.id)
+      assert c is not None
+      view = PersonaOptions(self, c.persona, ctx.author.id, bool(current_tier >= PremiumTiersNew.tier_2))
+      view.message = await ctx.edit(view=view, embed=None, content=None)
+      return
+    view = PersonaOptions(self, c.persona, ctx.author.id, bool(current_tier >= PremiumTiersNew.tier_2))
+    view.message = await ctx.send(view=view)
+
+  @commands.hybrid_command(name="persona", with_app_command=False, hidden=True)
+  @commands.guild_only()
+  @commands.has_permissions(manage_channels=True)
   async def persona(self, ctx: GuildContext):
     """Change Friday's persona"""
-    current: str = await ctx.db.fetchval("SELECT persona FROM servers WHERE id=$1", str(ctx.guild.id))  # type: ignore
-    choice = await ctx.multi_select(
-        "Please select a new persona",
-        options=[{
-            "label": p.capitalize(),
-            "value": p,
-            "emoji": e,
-            "description": d,
-            "default": p == current,
-        } for e, p, d in PERSONAS],
-        placeholder=f"Current: {current.capitalize()}")
-    if choice is None:
-      return await ctx.send(embed=embed(title="No change made"))
-
-    await ctx.db.execute("UPDATE servers SET persona=$1 WHERE id=$2", choice[0], str(ctx.guild.id))
-    self.get_guild_config.invalidate(self, ctx.guild.id)
-    try:
-      self.chat_history.pop(ctx.channel.id)
-    except KeyError:
-      pass
-    except Exception as e:
-      raise e
-    await ctx.send(embed=embed(title=f"New Persona `{choice[0].capitalize()}`"))
+    await ctx.send(embed=embed(title="This command has been moved to `/chatchannel persona`", colour=MessageColors.error()), ephemeral=True)
 
   @cache.cache()
   async def content_filter_flagged(self, text: str) -> tuple[bool, list[str]]:
@@ -443,23 +554,21 @@ class Chat(commands.Cog):
     categories = [name for name, value in response['categories'].items() if value == 1]
     return bool(response["flagged"] == 1), categories
 
-  async def openai_req(self, msg: discord.Message, current_tier: PremiumTiersNew, persona: str = None, *, content: str = None) -> Optional[str]:
+  async def openai_req(
+      self,
+      msg: discord.Message,
+      current_tier: PremiumTiersNew,
+      persona: str = None,
+      persona_custom: str = None,
+      *,
+      content: str = None,
+      lang: str = "English",
+  ) -> Optional[str]:
     content = content or msg.clean_content
     author_prompt_name = msg.author.display_name
     my_prompt_name = msg.guild.me.display_name if msg.guild else self.bot.user.name
 
-    bonus = "Talk to me in the style of a friend."
-    if current_tier >= PremiumTiersNew.tier_2:
-      if persona == "pirate":
-        bonus = "Talk to me in the style of a pirate."
-      elif persona == "kinyoubi":
-        bonus = "Talk to me in the style of an anime girl."
-      elif persona == "british":
-        bonus = "Talk to me in the style of a british person."
-    # elif persona != "friday" and msg.guild:
-    #   await self.bot.pool.execute("UPDATE servers SET persona=$1 WHERE id=$2", "friday", str(msg.guild.id))
-    #   self.get_guild_config.invalidate(self, msg.guild.id)
-    messages = await self.chat_history[msg.channel.id].messages(my_name=my_prompt_name, user_name=author_prompt_name, tier=current_tier, bonus_setup=bonus)
+    messages = await self.chat_history[msg.channel.id].messages(my_name=my_prompt_name, user_name=author_prompt_name, tier=current_tier, lang=lang, persona=persona, persona_custom=persona_custom)
     async with self.api_lock:
       response = await self.bot.loop.run_in_executor(
           None,
@@ -469,7 +578,6 @@ class Chat(commands.Cog):
                   messages=messages + [{'role': 'user', 'content': content}],
                   max_tokens=PremiumPerks(current_tier).max_chat_tokens,
                   user=str(msg.channel.id),
-                  stop=[".", "!", r"\n"]
               )))
     if response is None:
       return None
@@ -507,7 +615,7 @@ class Chat(commands.Cog):
     if not ctx.bot_permissions.send_messages:
       return
 
-    valid = validators.url(msg.clean_content)
+    valid = validators.url(msg.clean_content)  # type: ignore
     if valid:
       return
 
@@ -517,53 +625,8 @@ class Chat(commands.Cog):
     except ChatError:
       pass
 
-  async def chat_message(self, ctx: MyContext | GuildContext, *, content: str = None) -> None:
-    msg = ctx.message
-    content = content or msg.clean_content
+  async def fetch_current_tier(self, ctx: MyContext | GuildContext) -> PremiumTiersNew:
     current_tier: PremiumTiersNew = PremiumTiersNew.free
-
-    config = None
-    webhook = None
-    if ctx.guild:
-      if self.bot.log and not ctx.interaction:
-        conf = await self.bot.log.get_guild_config(ctx.guild.id)
-        if not conf:
-          await ctx.db.execute(f"INSERT INTO servers (id) VALUES ({str(ctx.guild.id)}) ON CONFLICT DO NOTHING")
-          self.bot.log.get_guild_config.invalidate(self.bot.log, ctx.guild.id)
-          self.get_guild_config.invalidate(self, ctx.guild.id)
-          conf = await self.bot.log.get_guild_config(ctx.guild.id)
-        if "chat" in conf.disabled_commands:
-          return
-
-      config = await self.get_guild_config(ctx.guild.id)
-      if config is None:
-        log.error(f"Config was not available in chat for (guild: {ctx.guild.id if ctx.guild else None}) (channel type: {ctx.channel.type if ctx.channel else 'uhm'}) (user: {msg.author.id})")
-        raise ChatError("Guild config not available, please contact developer.")
-
-      if not ctx.command:
-        chat_channel = config.chat_channel
-        if chat_channel is not None and ctx.channel != chat_channel:
-          if ctx.guild.me not in msg.mentions:
-            return
-        elif chat_channel is None and ctx.guild.me not in msg.mentions:
-          return
-
-      if config.tier:
-        current_tier = PremiumTiersNew(config.tier)
-
-      if config.webhook is not None:
-        try:
-          webhook = await config.webhook_fetched()
-        except discord.NotFound:
-          await self.bot.pool.execute("""UPDATE servers SET chatchannel_webhook=NULL WHERE id=$1;""", str(config.id))
-          self.get_guild_config.invalidate(self, config.id)
-          log.info(f"{config.id} deleted their webhook chatchannel without disabling it first")
-          try:
-            await ctx.send(embed=embed(title="Failed to find webhook, please asign a new one", color=MessageColors.ERROR), ephemeral=True)
-            return
-          except BaseException as e:
-            log.error(e)
-            return
 
     dbl = self.bot.dbl
     vote_streak = dbl and await dbl.user_streak(ctx.author.id)
@@ -585,14 +648,68 @@ class Chat(commands.Cog):
       if patron is not None:
         current_tier = PremiumTiersNew(patron.tier) if patron.tier > current_tier.value else current_tier
 
+    return current_tier
+
+  async def chat_message(self, ctx: MyContext | GuildContext, *, content: str = None) -> None:
+    msg = ctx.message
+    content = content or msg.clean_content
+    current_tier: PremiumTiersNew = PremiumTiersNew.free
+
+    config = None
+    webhook = None
+    chat_channel = None
+    if ctx.guild:
+      if self.bot.log and not ctx.interaction:
+        conf = await self.bot.log.get_guild_config(ctx.guild.id)
+        if not conf:
+          await ctx.db.execute(f"INSERT INTO servers (id) VALUES ({str(ctx.guild.id)}) ON CONFLICT DO NOTHING")
+          self.bot.log.get_guild_config.invalidate(self.bot.log, ctx.guild.id)
+          self.get_guild_config.invalidate(self, ctx.guild.id)
+          conf = await self.bot.log.get_guild_config(ctx.guild.id)
+        if "chat" in conf.disabled_commands:
+          return
+
+      config: Optional[Config] = await self.get_guild_config(ctx.guild.id)
+      if config is None:
+        log.error(f"Config was not available in chat for (guild: {ctx.guild.id if ctx.guild else None}) (channel type: {ctx.channel.type if ctx.channel else 'uhm'}) (user: {msg.author.id})")
+        raise ChatError("Guild config not available, please contact developer.")
+
+      chat_channel = config.get_chat_channel(ctx.channel.id)
+      if not ctx.command:
+        chat_channel_channel = chat_channel and await chat_channel.get_or_fetch_channel(ctx.guild)
+        if chat_channel_channel is not None and ctx.channel != chat_channel_channel:
+          if ctx.guild.me not in msg.mentions:
+            return
+        elif chat_channel_channel is None and ctx.guild.me not in msg.mentions:
+          return
+
+      if chat_channel is not None:
+        try:
+          webhook = chat_channel.webhook(self.bot)
+        except discord.NotFound:
+          await self.bot.pool.execute("""UPDATE chatchannels SET webhook_url=NULL WHERE id=$1;""", str(chat_channel.id))
+          self.get_guild_config.invalidate(self, config.id)
+          log.info(f"{config.id} deleted their webhook chatchannel without disabling it first")
+          try:
+            await ctx.send(embed=embed(title="Failed to find webhook, please asign a new one", color=MessageColors.ERROR), ephemeral=True)
+            return
+          except BaseException as e:
+            log.error(e)
+            return
+
+    current_tier = await self.fetch_current_tier(ctx)
+
     char_count = len(content)
     max_content = PremiumPerks(PremiumTiersNew(current_tier)).max_chat_characters
     if char_count > max_content:
       raise ChatError(f"Message is too long. Max length is {max_content} characters.")
 
+    dbl = self.bot.dbl
+    vote_streak = dbl and await dbl.user_streak(ctx.author.id)
+
     # Anything to do with sending messages needs to be below the above check
     response = None
-    is_spamming, rate_limiter, rate_name = self._spam_check.is_spamming(msg, current_tier, vote_streak and vote_streak.days or 0)
+    is_spamming, rate_limiter, rate_name = await self.bot.loop.run_in_executor(None, self._spam_check.is_spamming, msg, current_tier, vote_streak and vote_streak.days or 0)
     if is_spamming and rate_limiter:
       if not ctx.bot_permissions.embed_links:
         return
@@ -616,9 +733,8 @@ class Chat(commands.Cog):
       return
     chat_history = self.chat_history[msg.channel.id]
     async with ctx.typing():
-      translation = await Translation.from_text(content, from_lang=ctx.lang_code, parent=self)
       try:
-        response = await self.openai_req(msg, current_tier, config and config.persona, content=str(translation).strip('\n'))
+        response = await self.openai_req(msg, current_tier, chat_channel and chat_channel.persona, chat_channel and chat_channel.persona_custom, content=content, lang=ctx.lang_code)
       except Exception as e:
         # resp = await ctx.send(embed=embed(title="", color=MessageColors.error()))
         self.bot.dispatch("chat_completion", msg, True, filtered=None, messages=self.chat_history[msg.channel.id].history(limit=PremiumPerks(current_tier).max_chat_history),)
@@ -629,25 +745,21 @@ class Chat(commands.Cog):
         raise ChatError(ctx.lang.chat.no_response)
       await chat_history.add_message(msg, response, user_content=content)
       flagged, flagged_categories = await self.content_filter_flagged(response)
-    if translation is not None and translation.detectedSourceLanguage != "en" and response is not None and "dynamic" not in response:
-      chars_to_strip = "?!,;'\":`"
-      final_translation = await Translation.from_text(response.replace("dynamic", ""), from_lang="en", to_lang=str(translation.detectedSourceLanguage) if translation.translatedText.strip(chars_to_strip).lower() != translation.input.strip(chars_to_strip).lower() else "en", parent=self)
-      response = str(final_translation)
 
     if not flagged:
       await ctx.reply(content=response, allowed_mentions=discord.AllowedMentions.none(), webhook=webhook, mention_author=False)
-      log.info(f"{PremiumTiersNew(current_tier)}[{msg.guild and config and config.persona}] - [{ctx.lang_code}] [{ctx.author.name}] {content}  [Me] {response}")
+      log.info(f"{PremiumTiersNew(current_tier)}[{msg.guild and chat_channel and chat_channel.persona}] - [{ctx.lang_code}] [{ctx.author.name}] {content}  [Me] {response}")
       await self.webhook.safe_send(username=self.bot.user.name, avatar_url=self.bot.user.display_avatar.url, content=f"{PremiumTiersNew(current_tier)} - **{ctx.author.name}:** {content}\n**Me:** {response}")
     else:
       await ctx.reply(f"**{ctx.lang.chat.flagged}**", webhook=webhook, mention_author=False)
-      log.info(f"{PremiumTiersNew(current_tier)}[{msg.guild and config and config.persona}] - [{ctx.lang_code}] [{ctx.author.name}] {content}  [Me] Flagged message: \"{response}\" {formats.human_join(flagged_categories, final='and')}")
+      log.info(f"{PremiumTiersNew(current_tier)}[{msg.guild and chat_channel and chat_channel.persona}] - [{ctx.lang_code}] [{ctx.author.name}] {content}  [Me] Flagged message: \"{response}\" {formats.human_join(flagged_categories, final='and')}")
       await self.webhook.safe_send(username=self.bot.user.name, avatar_url=self.bot.user.display_avatar.url, content=f"{PremiumTiersNew(current_tier)} - **{ctx.author.name}:** {content}\n**Me:** Flagged message: {response} {flagged_categories}")
     self.bot.dispatch(
         "chat_completion",
         msg,
         False,
         filtered=int(flagged),
-        persona=msg.guild and config and config.persona,
+        persona=msg.guild and chat_channel and chat_channel.persona,
         messages=self.chat_history[msg.channel.id].history(limit=PremiumPerks(current_tier).max_chat_history),
         prompt_tokens=self.chat_history[msg.channel.id].prompt_tokens,
         completion_tokens=self.chat_history[msg.channel.id].completion_tokens,

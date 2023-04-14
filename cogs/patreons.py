@@ -157,6 +157,8 @@ class Patreons(commands.Cog):
   async def patreon_owner(self, ctx: MyContext, tier: int = config.PremiumTiersNew.free.value):
     self.owner_patroned = config.PremiumTiersNew(tier)
     self.get_patrons.invalidate(self)
+    if ctx.guild is not None:
+      self.bot.dispatch("invalidate_patreon", ctx.guild.id)
     await ctx.send(f"You are '{self.owner_patroned}' a patron")
 
   @norm_patreon.command("activate", aliases=["update"])
