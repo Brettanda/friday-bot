@@ -683,9 +683,6 @@ class Chat(commands.Cog):
         elif chat_channel_channel is None and ctx.guild.me not in msg.mentions:
           return
 
-      if config.tier:
-        current_tier = PremiumTiersNew(config.tier)
-
       if chat_channel is not None:
         try:
           webhook = chat_channel.webhook(self.bot)
