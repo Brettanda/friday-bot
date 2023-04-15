@@ -275,7 +275,7 @@ class ChatHistory:
           *self._history
       ]
       if bonus:
-        response.insert(len(response), {'role': "user", "content": bonus})
+        response.append({'role': "user", "content": bonus})
       return response
 
   async def add_message(self, msg: discord.Message, bot_content: str, *, user_content: str = None, user_name: str = None, bot_name: str = None):
