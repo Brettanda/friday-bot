@@ -99,6 +99,50 @@ class ConfirmationView(discord.ui.View):
     self.stop()
 
 
+class ConfirmationModalView(discord.ui.View):
+  def __init__(self, *, modal: discord.ui.Modal, timeout: float, author_id: int, ctx: MyContext, delete_after: bool) -> None:
+    super().__init__(timeout=timeout)
+    self.modal = modal
+    self.delete_after: bool = delete_after
+    self.author_id: int = author_id
+    self.ctx: MyContext = ctx
+    self.message: Optional[discord.Message] = None
+
+  async def interaction_check(self, interaction: discord.Interaction) -> bool:
+    if interaction.user and interaction.user.id == self.author_id:
+      return True
+    else:
+      await interaction.response.send_message('This confirmation dialog is not for you.', ephemeral=True)
+      return False
+
+  async def on_timeout(self) -> None:
+    if self.delete_after and self.message:
+      if not self.message.flags.ephemeral:
+        await self.message.delete()
+      else:
+        await self.message.edit(view=None, content=None, embeds=[Embed(title="This is safe to dismiss now")])
+
+  @discord.ui.button(emoji="\N{WRITING HAND}", label='Open Modal', custom_id="modal_prompt_true", style=discord.ButtonStyle.primary)
+  async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
+    await interaction.response.send_modal(self.modal)
+    if self.delete_after and self.message:
+      if not self.message.flags.ephemeral:
+        await self.message.delete()
+      else:
+        await self.message.edit(view=None, content=None, embeds=[Embed(title="This is safe to dismiss now")])
+    self.stop()
+
+  @discord.ui.button(emoji="\N{HEAVY MULTIPLICATION X}", label='Cancel', custom_id="modal_prompt_false", style=discord.ButtonStyle.red)
+  async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
+    await interaction.response.defer()
+    if self.delete_after and self.message:
+      if not self.message.flags.ephemeral:
+        await self.message.delete()
+      else:
+        await self.message.edit(view=None, content=None, embeds=[Embed(title="This is safe to dismiss now")])
+    self.stop()
+
+
 class MultiSelectViewOptions(TypedDict, total=False):
   label: str
   value: str
@@ -286,6 +330,31 @@ class MyContext(commands.Context):
     view.message = await self.send(view=view, embed=embed, **kwargs)
     await view.wait()
     return view.value
+
+  async def prompt_modal(
+      self,
+      modal: discord.ui.Modal,
+      *,
+      timeout: float = 60.0,
+      delete_after: bool = True,
+      author_id: Optional[int] = None,
+      **kwargs
+  ) -> None:
+    if self.interaction is not None:
+      await self.interaction.response.send_modal(modal)
+      return
+    author_id = author_id or self.author.id
+    if self.author.bot and author_id == 892865928520413245:
+      # unit testing bots can't use interactions :(
+      return
+    view = ConfirmationModalView(
+        modal=modal,
+        timeout=timeout,
+        delete_after=delete_after,
+        ctx=self,
+        author_id=author_id
+    )
+    await self.send(view=view, embed=Embed(title="Open the modal to continue"), ephemeral=True, **kwargs)
 
   async def multi_select(self, message: str = "Please select one or more of the options.", options: list[MultiSelectViewOptions] = [], *, embed: Optional[Embed] = None, placeholder: str = None, min_values: int = 1, max_values: int = 1, timeout: float = 60.0, delete_after: bool = True, author_id: Optional[int] = None, **kwargs) -> Optional[list]:
     author_id = author_id or self.author.id
