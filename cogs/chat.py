@@ -37,7 +37,7 @@ openai.api_key = os.environ["OPENAI"]
 POSSIBLE_SENSITIVE_MESSAGE = "*Possibly sensitive:* ||"
 POSSIBLE_OFFENSIVE_MESSAGE = "**I failed to respond because my message might have been offensive, please choose another topic or try again**"
 
-PERSONAS = [("🥰", "default", "Fridays default persona"), ("🏴‍☠️", "pirate", "Friday becomes one with the sea"), ("🍙", "kinyoubi", "Friday becomes one with the anime"), ("🇬🇧", "british", "Friday becomes British"), ("📝", "custom", "Make your own")]
+PERSONAS = [("🥰", "default", "Fridays default persona"), ("🏴‍☠️", "pirate", "Friday becomes one with the sea"), ("🍙", "kinyoubi", "Friday becomes one with the anime"), ("🇬🇧", "british", "Friday becomes British"), ("📝", "custom", "Make your own (premium only)")]
 
 logging.getLogger("openai").setLevel(logging.WARNING)
 
@@ -112,10 +112,7 @@ class PersonaOptions(discord.ui.View):
     self.is_tiered: bool = is_tiered
     self.message: Optional[discord.Message] = None
 
-    if is_tiered:
-      self.select.options = [discord.SelectOption(emoji=m[0], label=m[1].capitalize(), value=m[1], description=m[2], default=m[1].lower() == current.lower()) for m in PERSONAS]
-    else:
-      self.select.options = [discord.SelectOption(emoji=m[0], label=m[1].capitalize(), value=m[1], description=m[2], default=m[1].lower() == current.lower()) for m in PERSONAS if m[1] != "custom"]
+    self.select.options = [discord.SelectOption(emoji=m[0], label=m[1].capitalize(), value=m[1], description=m[2], default=m[1].lower() == current.lower()) for m in PERSONAS]
 
     self.clear_items()
     self.add_item(self.select)
@@ -127,6 +124,9 @@ class PersonaOptions(discord.ui.View):
       options=[discord.SelectOption(label="Failed to load")],
       min_values=0, max_values=1)
   async def select(self, interaction: discord.Interaction, select: discord.ui.Select):
+    if not self.is_tiered and select.values[0].lower() == "custom":
+      await interaction.response.edit_message(embed=embed(title="This feature is only available to premium users", color=MessageColors.error()), view=None)
+      return
     await self.cog.bot.pool.execute("UPDATE chatchannels SET persona=$1 WHERE id=$2", select.values[0], str(interaction.channel_id))
     self.cog.get_guild_config.invalidate(self.cog, interaction.guild_id)
     if select.values[0].lower() == "custom":
@@ -275,7 +275,7 @@ class ChatHistory:
           *self._history
       ]
       if bonus:
-        response.append({'role': "user", "content": bonus})
+        response.append({'role': "system", "content": bonus})
       return response
 
   async def add_message(self, msg: discord.Message, bot_content: str, *, user_content: str = None, user_name: str = None, bot_name: str = None):
@@ -514,7 +514,9 @@ class Chat(commands.Cog):
     """Change Friday's persona for a chat channel"""
     config = await self.get_guild_config(ctx.guild.id)
     c = config and config.get_chat_channel(channel.id)
-    current_tier = await self.fetch_current_tier(ctx)
+    if self.bot.patreon is None:
+      return await ctx.send(embed=embed(title="This command is not available right now, please contact the developer on the support server", color=MessageColors.error()))
+    current_tier = await self.bot.patreon.fetch_current_tier(ctx)
     if config is None or c is None:
       prompt = await ctx.prompt("This channel has not been set as a chatchannel yet. Would you like to set it as a chatchannel now?", timeout=30)
       if prompt is not True:
@@ -625,31 +627,6 @@ class Chat(commands.Cog):
     except ChatError:
       pass
 
-  async def fetch_current_tier(self, ctx: MyContext | GuildContext) -> PremiumTiersNew:
-    current_tier: PremiumTiersNew = PremiumTiersNew.free
-
-    dbl = self.bot.dbl
-    vote_streak = dbl and await dbl.user_streak(ctx.author.id)
-
-    if vote_streak and not current_tier > PremiumTiersNew.voted:
-      current_tier = PremiumTiersNew.voted
-
-    # is server booster
-    support = self.bot.support
-    if support and await support.is_server_boosted(ctx.author.id):
-      current_tier = PremiumTiersNew.tier_1
-
-    patron_cog = self.bot.patreon
-    if patron_cog is not None:
-      patrons = await patron_cog.get_patrons()
-
-      patron = next((p for p in patrons if p.id == ctx.author.id), None)
-
-      if patron is not None:
-        current_tier = PremiumTiersNew(patron.tier) if patron.tier > current_tier.value else current_tier
-
-    return current_tier
-
   async def chat_message(self, ctx: MyContext | GuildContext, *, content: str = None) -> None:
     msg = ctx.message
     content = content or msg.clean_content
@@ -697,7 +674,8 @@ class Chat(commands.Cog):
             log.error(e)
             return
 
-    current_tier = await self.fetch_current_tier(ctx)
+    assert self.bot.patreon is not None
+    current_tier = await self.bot.patreon.fetch_current_tier(ctx)
 
     char_count = len(content)
     max_content = PremiumPerks(PremiumTiersNew(current_tier)).max_chat_characters
