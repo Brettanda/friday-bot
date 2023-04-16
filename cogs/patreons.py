@@ -138,6 +138,43 @@ class Patreons(commands.Cog):
       return
     self.bot.dispatch("invalidate_patreon", ctx.guild.id)
 
+  async def fetch_current_tier(self, ctx: MyContext | GuildContext) -> PremiumTiersNew:
+    current_tier: PremiumTiersNew = PremiumTiersNew.free
+
+    dbl = self.bot.dbl
+    vote_streak = dbl and await dbl.user_streak(ctx.author.id)
+
+    if vote_streak and not current_tier > PremiumTiersNew.voted:
+      current_tier = PremiumTiersNew.voted
+
+    # is server booster
+    support = self.bot.support
+    if support and await support.is_server_boosted(ctx.author.id):
+      current_tier = PremiumTiersNew.tier_1
+
+    patron_cog = self.bot.patreon
+    if patron_cog is not None:
+      patrons = await patron_cog.get_patrons()
+
+      patron = next((p for p in patrons if p.id == ctx.author.id), None)
+
+      if patron is not None:
+        current_tier = PremiumTiersNew(patron.tier) if patron.tier > current_tier.value else current_tier
+
+    return current_tier
+
+  async def fetch_current_patreon_tier(self, ctx: MyContext | GuildContext) -> PremiumTiersNew:
+    current_tier: PremiumTiersNew = PremiumTiersNew.free
+
+    patrons = await self.get_patrons()
+
+    patron = next((p for p in patrons if p.id == ctx.author.id), None)
+
+    if patron is not None:
+      current_tier = PremiumTiersNew(patron.tier) if patron.tier > current_tier.value else current_tier
+
+    return current_tier
+
   @commands.hybrid_group(name="patreon", aliases=["patron"], invoke_without_command=True, case_insensitive=True)
   @commands.guild_only()
   async def norm_patreon(self, ctx: GuildContext):

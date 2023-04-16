@@ -514,7 +514,9 @@ class Chat(commands.Cog):
     """Change Friday's persona for a chat channel"""
     config = await self.get_guild_config(ctx.guild.id)
     c = config and config.get_chat_channel(channel.id)
-    current_tier = await self.fetch_current_tier(ctx)
+    if self.bot.patreon is None:
+      return await ctx.send(embed=embed(title="This command is not available right now, please contact the developer on the support server", color=MessageColors.error()))
+    current_tier = await self.bot.patreon.fetch_current_tier(ctx)
     if config is None or c is None:
       prompt = await ctx.prompt("This channel has not been set as a chatchannel yet. Would you like to set it as a chatchannel now?", timeout=30)
       if prompt is not True:
@@ -625,31 +627,6 @@ class Chat(commands.Cog):
     except ChatError:
       pass
 
-  async def fetch_current_tier(self, ctx: MyContext | GuildContext) -> PremiumTiersNew:
-    current_tier: PremiumTiersNew = PremiumTiersNew.free
-
-    dbl = self.bot.dbl
-    vote_streak = dbl and await dbl.user_streak(ctx.author.id)
-
-    if vote_streak and not current_tier > PremiumTiersNew.voted:
-      current_tier = PremiumTiersNew.voted
-
-    # is server booster
-    support = self.bot.support
-    if support and await support.is_server_boosted(ctx.author.id):
-      current_tier = PremiumTiersNew.tier_1
-
-    patron_cog = self.bot.patreon
-    if patron_cog is not None:
-      patrons = await patron_cog.get_patrons()
-
-      patron = next((p for p in patrons if p.id == ctx.author.id), None)
-
-      if patron is not None:
-        current_tier = PremiumTiersNew(patron.tier) if patron.tier > current_tier.value else current_tier
-
-    return current_tier
-
   async def chat_message(self, ctx: MyContext | GuildContext, *, content: str = None) -> None:
     msg = ctx.message
     content = content or msg.clean_content
@@ -697,7 +674,8 @@ class Chat(commands.Cog):
             log.error(e)
             return
 
-    current_tier = await self.fetch_current_tier(ctx)
+    assert self.bot.patreon is not None
+    current_tier = await self.bot.patreon.fetch_current_tier(ctx)
 
     char_count = len(content)
     max_content = PremiumPerks(PremiumTiersNew(current_tier)).max_chat_characters
