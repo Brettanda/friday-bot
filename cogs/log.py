@@ -270,6 +270,10 @@ class Log(commands.Cog):
           if config.bot_channel is not None and ctx.channel.id != config.bot_channel:
             if ctx.command.name in config.restricted_commands and not ctx.permissions.manage_guild:
               await ctx.send(f"<#{config.bot_channel}>", embed=embed(title="This command is restricted to the bot channel.", color=MessageColors.error()), delete_after=30, ephemeral=True)
+              try:
+                await ctx.message.delete(delay=30)
+              except discord.Forbidden:
+                pass
               return False
     return True
 
