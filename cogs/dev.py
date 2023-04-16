@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import copy
-import datetime
 import importlib
 import io
 import logging
@@ -15,20 +14,22 @@ import textwrap
 import time as _time
 import traceback
 from contextlib import redirect_stdout
-from typing import TYPE_CHECKING, Any, Literal, Optional, Sequence, Union
+from typing import (TYPE_CHECKING, Any, Awaitable, Callable, Literal, Optional,
+                    Union)
 
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
-from typing_extensions import Annotated
 
 import cogs
 from cogs.help import syntax
 from functions import (MessageColors, MyContext,  # , query  # , MessageColors
                        build_docs, embed, time)
 from functions.custom_contexts import GuildContext
+from functions.formats import TabularData, plural
 
 if TYPE_CHECKING:
+  from asyncpg import Record
   from typing_extensions import Self
 
   from index import Friday
@@ -214,43 +215,6 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       pass
     await new_channel.send(f"{say}")
 
-  @dev.command(name="edit")
-  async def edit(self, ctx: MyContext, message: discord.Message, *, edit: str):
-    from support import SupportIntroRoles
-    try:
-      await ctx.message.delete()
-    except BaseException:
-      pass
-    if message.id == 707520808448294983:
-      return await message.edit(content=edit, view=SupportIntroRoles())
-    await message.edit(content=edit)
-
-  @dev.command(name="react")
-  @commands.bot_has_permissions(add_reactions=True)
-  async def react(self, ctx: MyContext, messages: commands.Greedy[discord.Message], reactions: Annotated[Sequence[discord.Emoji], commands.Greedy[RawEmoji]]):
-    try:
-      await ctx.message.delete()
-    except BaseException:
-      pass
-    for msg in messages:
-      for reaction in reactions:
-        try:
-          await msg.add_reaction(reaction)
-        except BaseException:
-          pass
-
-  @dev.command(name="restart")
-  async def restart(self, ctx: MyContext):
-    five_seconds = datetime.timedelta(seconds=5)
-    dt = ctx.message.created_at + five_seconds
-    stat = await ctx.send(embed=embed(title=f"Restarting {time.format_dt(dt, style='R')}"))
-
-    if ctx.bot_permissions.manage_messages:
-      await ctx.message.delete()
-    await stat.delete()
-    stdout, stderr = await self.run_process("systemctl daemon-reload && systemctl restart friday.service")
-    await ctx.send(f"```sh\n{stdout}\n{stderr}```")
-
   @dev.group(name="reload", invoke_without_command=True)
   async def reload(self, ctx: MyContext, *, modules: str):
     mods = [mod.strip("\"") for mod in modules.split(" ")]
@@ -435,32 +399,6 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       pass
     await ctx.send(embed=embed(title=f"{object_id} has been unblocked"))
 
-  @dev.command(name="voice")
-  async def voice(self, ctx: MyContext):
-    await ctx.send(embed=embed(title=f"I am in `{len(self.bot.voice_clients)}` voice channels"))
-
-  @dev.command(name="update")
-  async def update(self, ctx: MyContext):
-    async with ctx.typing():
-      if self.bot.canary:
-        stdout, stderr = await self.run_process("git reset --hard && git pull origin canary && git submodule update")
-      elif self.bot.prod:
-        stdout, stderr = await self.run_process("git reset --hard && git pull origin master && git submodule update")
-      else:
-        return await ctx.reply(embed=embed(title="You are not on a branch", color=MessageColors.error()))
-
-    await ctx.send(stdout)
-    if stdout.startswith("Already up-to-date."):
-      return
-    async with ctx.typing():
-      stdout, stderr = await self.run_process("python -m pip install --upgrade pip && python -m pip install -r requirements.txt --upgrade --no-cache-dir")
-    await ctx.safe_send(stdout)
-
-  @dev.command(name="cogs")
-  async def cogs(self, ctx: MyContext):
-    cogs = ", ".join(self.bot.cogs)
-    await ctx.reply(embed=embed(title=f"{len(self.bot.cogs)} total cogs", description=f"{cogs}"))
-
   @dev.command(name="log")
   async def log(self, ctx: MyContext):
     async with ctx.typing():
@@ -501,11 +439,112 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     for i in range(times):
       await new_ctx.reinvoke()
 
-  # @dev.command(name="mysql")
-  # async def mysql(self, ctx: MyContext, *, string: str):
-  #   async with ctx.channel.typing():
-  #     response = await self.bot.db.query(string)
-  #   await ctx.reply(f"```mysql\n{[tuple(r) for r in response] if response is not None else 'failed'}\n```")
+  @commands.group(invoke_without_command=True)
+  async def sql(self, ctx: MyContext, *, query: str):
+    """Run some SQL."""
+    query = self.cleanup_code(query)
+
+    is_multistatement = query.count(';') > 1
+    strategy: Callable[[str], Union[Awaitable[list[Record]], Awaitable[str]]]
+    if is_multistatement:
+        # fetch does not support multiple statements
+      strategy = ctx.db.execute
+    else:
+      strategy = ctx.db.fetch
+
+    try:
+      start = _time.perf_counter()
+      results = await strategy(query)
+      dt = (_time.perf_counter() - start) * 1000.0
+    except Exception:
+      return await ctx.send(f'```py\n{traceback.format_exc()}\n```')
+
+    rows = len(results)
+    if isinstance(results, str) or rows == 0:
+      return await ctx.send(f'`{dt:.2f}ms: {results}`')
+
+    headers = list(results[0].keys())
+    table = TabularData()
+    table.set_columns(headers)
+    table.add_rows(list(r.values()) for r in results)
+    render = table.render()
+
+    fmt = f'```\n{render}\n```\n*Returned {plural(rows):row} in {dt:.2f}ms*'
+    if len(fmt) > 2000:
+      fp = io.BytesIO(fmt.encode('utf-8'))
+      await ctx.send('Too many results...', file=discord.File(fp, 'results.txt'))
+    else:
+      await ctx.send(fmt)
+
+  async def send_sql_results(self, ctx: MyContext, records: list[Any]):
+    headers = list(records[0].keys())
+    table = TabularData()
+    table.set_columns(headers)
+    table.add_rows(list(r.values()) for r in records)
+    render = table.render()
+
+    fmt = f'```\n{render}\n```'
+    if len(fmt) > 2000:
+      fp = io.BytesIO(fmt.encode('utf-8'))
+      await ctx.send('Too many results...', file=discord.File(fp, 'results.txt'))
+    else:
+      await ctx.send(fmt)
+
+  @sql.command(name='schema')
+  async def sql_schema(self, ctx: MyContext, *, table_name: str):
+    """Runs a query describing the table schema."""
+    query = """SELECT column_name, data_type, column_default, is_nullable
+                  FROM INFORMATION_SCHEMA.COLUMNS
+                  WHERE table_name = $1
+              """
+
+    results: list[Record] = await ctx.db.fetch(query, table_name)
+
+    if len(results) == 0:
+      await ctx.send('Could not find a table with that name')
+      return
+
+    await self.send_sql_results(ctx, results)
+
+  @sql.command(name='tables')
+  async def sql_tables(self, ctx: MyContext):
+    """Lists all SQL tables in the database."""
+
+    query = """SELECT table_name
+                  FROM information_schema.tables
+                  WHERE table_schema='public' AND table_type='BASE TABLE'
+              """
+
+    results: list[Record] = await ctx.db.fetch(query)
+
+    if len(results) == 0:
+      await ctx.send('Could not find any tables')
+      return
+
+    await self.send_sql_results(ctx, results)
+
+  @sql.command(name='sizes')
+  async def sql_sizes(self, ctx: MyContext):
+    """Display how much space the database is taking up."""
+
+    # Credit: https://wiki.postgresql.org/wiki/Disk_Usage
+    query = """
+          SELECT nspname || '.' || relname AS "relation",
+              pg_size_pretty(pg_relation_size(C.oid)) AS "size"
+            FROM pg_class C
+            LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+            WHERE nspname NOT IN ('pg_catalog', 'information_schema')
+            ORDER BY pg_relation_size(C.oid) DESC
+            LIMIT 20;
+      """
+
+    results: list[Record] = await ctx.db.fetch(query)
+
+    if len(results) == 0:
+      await ctx.send('Could not find any tables')
+      return
+
+    await self.send_sql_results(ctx, results)
 
   @dev.command(name="html")
   async def html(self, ctx: MyContext):
