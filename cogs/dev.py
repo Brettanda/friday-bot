@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import copy
-import datetime
 import importlib
 import io
 import logging
@@ -21,7 +20,6 @@ from typing import (TYPE_CHECKING, Any, Awaitable, Callable, Literal, Optional,
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
-from typing_extensions import Annotated
 
 import cogs
 from cogs.help import syntax
@@ -217,43 +215,6 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       pass
     await new_channel.send(f"{say}")
 
-  @dev.command(name="edit")
-  async def edit(self, ctx: MyContext, message: discord.Message, *, edit: str):
-    from support import SupportIntroRoles
-    try:
-      await ctx.message.delete()
-    except BaseException:
-      pass
-    if message.id == 707520808448294983:
-      return await message.edit(content=edit, view=SupportIntroRoles())
-    await message.edit(content=edit)
-
-  @dev.command(name="react")
-  @commands.bot_has_permissions(add_reactions=True)
-  async def react(self, ctx: MyContext, messages: commands.Greedy[discord.Message], reactions: Annotated[Sequence[discord.Emoji], commands.Greedy[RawEmoji]]):
-    try:
-      await ctx.message.delete()
-    except BaseException:
-      pass
-    for msg in messages:
-      for reaction in reactions:
-        try:
-          await msg.add_reaction(reaction)
-        except BaseException:
-          pass
-
-  @dev.command(name="restart")
-  async def restart(self, ctx: MyContext):
-    five_seconds = datetime.timedelta(seconds=5)
-    dt = ctx.message.created_at + five_seconds
-    stat = await ctx.send(embed=embed(title=f"Restarting {time.format_dt(dt, style='R')}"))
-
-    if ctx.bot_permissions.manage_messages:
-      await ctx.message.delete()
-    await stat.delete()
-    stdout, stderr = await self.run_process("systemctl daemon-reload && systemctl restart friday.service")
-    await ctx.send(f"```sh\n{stdout}\n{stderr}```")
-
   @dev.group(name="reload", invoke_without_command=True)
   async def reload(self, ctx: MyContext, *, modules: str):
     mods = [mod.strip("\"") for mod in modules.split(" ")]
@@ -437,32 +398,6 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     except KeyError:
       pass
     await ctx.send(embed=embed(title=f"{object_id} has been unblocked"))
-
-  @dev.command(name="voice")
-  async def voice(self, ctx: MyContext):
-    await ctx.send(embed=embed(title=f"I am in `{len(self.bot.voice_clients)}` voice channels"))
-
-  @dev.command(name="update")
-  async def update(self, ctx: MyContext):
-    async with ctx.typing():
-      if self.bot.canary:
-        stdout, stderr = await self.run_process("git reset --hard && git pull origin canary && git submodule update")
-      elif self.bot.prod:
-        stdout, stderr = await self.run_process("git reset --hard && git pull origin master && git submodule update")
-      else:
-        return await ctx.reply(embed=embed(title="You are not on a branch", color=MessageColors.error()))
-
-    await ctx.send(stdout)
-    if stdout.startswith("Already up-to-date."):
-      return
-    async with ctx.typing():
-      stdout, stderr = await self.run_process("python -m pip install --upgrade pip && python -m pip install -r requirements.txt --upgrade --no-cache-dir")
-    await ctx.safe_send(stdout)
-
-  @dev.command(name="cogs")
-  async def cogs(self, ctx: MyContext):
-    cogs = ", ".join(self.bot.cogs)
-    await ctx.reply(embed=embed(title=f"{len(self.bot.cogs)} total cogs", description=f"{cogs}"))
 
   @dev.command(name="log")
   async def log(self, ctx: MyContext):
