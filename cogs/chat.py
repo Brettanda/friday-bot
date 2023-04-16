@@ -270,12 +270,13 @@ class ChatHistory:
       while len(self._history) > limit * self._messages_per_group:
         self._history.pop(0)
       response: list[ChatHistoryMessages] = [
-          {'role': 'system', 'content': f"You're '{my_name}'[female] a friendly & funny Discord chatbot made by 'Motostar'[male] and born on Aug 7, 2018. You're chatting with a person named '{user_name}'. You'll respond in language {user_name} speaks in. Most important, your responses will be very short and must never exceed {PremiumPerks(tier).max_chat_tokens} tokens."},
+          {'role': 'system', 'content': f"You're '{my_name}'[female] a friendly & funny Discord chatbot made by 'Motostar'[male] and born on Aug 7, 2018. You're chatting with '{user_name}'. You'll respond in the users language."},
           # {'(Female Replacement Intelligent Digital Assistant Youth)' if my_name == 'friday' else ''}
-          *self._history
       ]
       if bonus:
         response.append({'role': "system", "content": bonus})
+      response.append({'role': "system", "content": f"Your response will not exceed {PremiumPerks(tier).max_chat_tokens - 4} tokens."})
+      response.extend(self._history)
       return response
 
   async def add_message(self, msg: discord.Message, bot_content: str, *, user_content: str = None, user_name: str = None, bot_name: str = None):
