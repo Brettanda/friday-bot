@@ -290,7 +290,7 @@ class PremiumPerks:
       return 100
     if self.tier >= PremiumTiersNew.voted:
       return 50
-    return 25
+    return 30
 
   @property
   def max_chat_channels(self) -> int:
