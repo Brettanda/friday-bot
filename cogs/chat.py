@@ -37,7 +37,7 @@ openai.api_key = os.environ["OPENAI"]
 POSSIBLE_SENSITIVE_MESSAGE = "*Possibly sensitive:* ||"
 POSSIBLE_OFFENSIVE_MESSAGE = "**I failed to respond because my message might have been offensive, please choose another topic or try again**"
 
-PERSONAS = [("🥰", "default", "Fridays default persona"), ("🏴‍☠️", "pirate", "Friday becomes one with the sea"), ("🍙", "kinyoubi", "Friday becomes one with the anime"), ("🇬🇧", "british", "Friday becomes British"), ("📝", "custom", "Make your own")]
+PERSONAS = [("🥰", "default", "Fridays default persona"), ("🏴‍☠️", "pirate", "Friday becomes one with the sea"), ("🍙", "kinyoubi", "Friday becomes one with the anime"), ("🇬🇧", "british", "Friday becomes British"), ("📝", "custom", "Make your own (premium only)")]
 
 logging.getLogger("openai").setLevel(logging.WARNING)
 
@@ -112,10 +112,7 @@ class PersonaOptions(discord.ui.View):
     self.is_tiered: bool = is_tiered
     self.message: Optional[discord.Message] = None
 
-    if is_tiered:
-      self.select.options = [discord.SelectOption(emoji=m[0], label=m[1].capitalize(), value=m[1], description=m[2], default=m[1].lower() == current.lower()) for m in PERSONAS]
-    else:
-      self.select.options = [discord.SelectOption(emoji=m[0], label=m[1].capitalize(), value=m[1], description=m[2], default=m[1].lower() == current.lower()) for m in PERSONAS if m[1] != "custom"]
+    self.select.options = [discord.SelectOption(emoji=m[0], label=m[1].capitalize(), value=m[1], description=m[2], default=m[1].lower() == current.lower()) for m in PERSONAS]
 
     self.clear_items()
     self.add_item(self.select)
@@ -127,6 +124,9 @@ class PersonaOptions(discord.ui.View):
       options=[discord.SelectOption(label="Failed to load")],
       min_values=0, max_values=1)
   async def select(self, interaction: discord.Interaction, select: discord.ui.Select):
+    if not self.is_tiered and select.values[0].lower() == "custom":
+      await interaction.response.edit_message(embed=embed(title="This feature is only available to premium users", color=MessageColors.error()), view=None)
+      return
     await self.cog.bot.pool.execute("UPDATE chatchannels SET persona=$1 WHERE id=$2", select.values[0], str(interaction.channel_id))
     self.cog.get_guild_config.invalidate(self.cog, interaction.guild_id)
     if select.values[0].lower() == "custom":
