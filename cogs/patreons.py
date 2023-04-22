@@ -160,6 +160,13 @@ class Patreons(commands.Cog):
 
       if patron is not None:
         current_tier = PremiumTiersNew(patron.tier) if patron.tier > current_tier.value else current_tier
+      else:
+        if ctx.guild:
+          for p in patrons:
+            if p.tier >= PremiumTiersNew.tier_2.value:
+              for g in p.guild_ids:
+                if g == ctx.guild.id and p.tier >= current_tier.value:
+                  current_tier = PremiumTiersNew(p.tier)
 
     return current_tier
 
