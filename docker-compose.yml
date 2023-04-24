@@ -24,6 +24,9 @@ services:
         limits:
           cpus: '0.8'
           memory: 1500M
+    dns:
+      - 1.1.1.2
+      - 1.0.0.2
     healthcheck:
       test: [ "CMD", "curl", "-f", "-h",'"guilds:707441352367013899"', "http://localhost:443/guilds" ]
       interval: 10s
