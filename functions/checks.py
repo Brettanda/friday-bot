@@ -207,7 +207,7 @@ def is_mod_or_guild_permissions(**perms: bool):
       if con and any(arole in con.mod_roles for arole in ctx.author.roles):
         return True
 
-    resolved = ctx.permissions
+    resolved = ctx.author.guild_permissions
     if all(getattr(resolved, name, None) == value for name, value in perms.items()):
       return True
     raise commands.MissingPermissions([name for name, value in perms.items() if getattr(resolved, name, None) != value])
