@@ -309,8 +309,15 @@ class Chat(commands.Cog):
     # channel_id: list
     self.chat_history: defaultdict[int, ChatHistory] = defaultdict(lambda: ChatHistory())
 
+    openai.aiosession.set(self.bot.session)
+
   def __repr__(self) -> str:
     return f"<cogs.{self.__cog_name__}>"
+
+  async def cog_unload(self) -> None:
+    session = openai.aiosession.get()
+    if session is not None:
+      await session.close()
 
   @cache.cache()
   async def get_guild_config(self, guild_id: int) -> Optional[Config]:
@@ -544,13 +551,10 @@ class Chat(commands.Cog):
     if self.bot.testing:
       return False, []
     async with self.api_lock:
-      response = await self.bot.loop.run_in_executor(
-          None,
-          functools.partial(
-              lambda: openai.Moderation.create(
+      response = await openai.Moderation.acreate(
                   model="text-moderation-latest",
                   input=text,
-              )))
+              )
     if response is None:
       return False, []
     response = response["results"][0]  # type: ignore
@@ -573,15 +577,12 @@ class Chat(commands.Cog):
 
     messages = await self.chat_history[msg.channel.id].messages(my_name=my_prompt_name, user_name=author_prompt_name, tier=current_tier, lang=lang, persona=persona, persona_custom=persona_custom)
     async with self.api_lock:
-      response = await self.bot.loop.run_in_executor(
-          None,
-          functools.partial(
-              lambda: openai.ChatCompletion.create(
-                  model="gpt-3.5-turbo",
-                  messages=messages + [{'role': 'user', 'content': content}],
-                  max_tokens=PremiumPerks(current_tier).max_chat_tokens,
-                  user=str(msg.channel.id),
-              )))
+      response = await openai.ChatCompletion.acreate(
+          model="gpt-3.5-turbo-0613",
+          messages=messages + [{'role': 'user', 'content': f"{content}"}],
+          max_tokens=PremiumPerks(current_tier).max_chat_tokens,
+          user=str(msg.channel.id),
+      )
     if response is None:
       return None
     self.chat_history[msg.channel.id].completion_tokens = response.get("usage")["completion_tokens"]  # type: ignore

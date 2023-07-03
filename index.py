@@ -101,8 +101,8 @@ class Translator(app_commands.Translator):
 
 async def get_prefix(bot: Friday, message: discord.Message):
   if message.guild is not None:
-    return commands.when_mentioned_or(bot.prefixes[message.guild.id])(bot, message)
-  return commands.when_mentioned_or(functions.config.defaultPrefix)(bot, message)
+    return bot.prefixes[message.guild.id]
+  return functions.config.defaultPrefix
 
 
 class Friday(commands.AutoShardedBot):
