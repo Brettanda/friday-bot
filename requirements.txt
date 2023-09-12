@@ -4,7 +4,7 @@ autopep8
 d20==1.1.2
 topggpy==1.4.0
 discord-ext-menus @ git+https://github.com/Rapptz/discord-ext-menus@fbb8803779373357e274e1540b368365fd9d8074
-discord.py[speed,docs,test]==2.2.3
+discord.py[speed,docs,test]==2.3.2
 click
 fuzzywuzzy==0.18.0
 python-Levenshtein
@@ -19,29 +19,20 @@ oauthlib==3.2.2
 Pillow==9.4.0
 psutil
 expiringdict==1.2.2
-# PyNaCl==1.4.0
 python-dateutil==2.8.2
 python-dotenv==0.21.1
 requests==2.28.2
-# tensorboard>=2.2.0
-# tensorboard-plugin-wit==1.8.0
-# tensorflow>=2.2.0
-typing-extensions
 urllib3==1.26.14
 validators==0.20.0
 wavelink==2.6.3
 youtube-dl==2021.1.24.1
-# spacy==3.0.6
 google-cloud-translate==3.10.1
-# pyspellchecker==0.6.2
 openai>=0.27.0
 python-slugify==8.0.0
 profanity==1.1
 pyfiglet==0.8.post1
 asyncpg>=0.27.0
 asyncpraw>=7.6.1
-pytest
-pytest-asyncio==0.20.3
 pytest-dependency==0.5.1
 humanize==4.5.0
 lru-dict
