@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, List, Optional, Set
 import asyncpg
 import discord
 from discord.ext import commands  # , tasks
-from wavelink import errors as wavelink_errors
+from wavelink import exceptions as wavelink_errors
 
 # from discord_slash.http import SlashCommandRequest
 from functions import (MessageColors, MyContext,  # , FakeInteractionMessage
