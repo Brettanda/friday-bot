@@ -363,7 +363,7 @@ class Log(commands.Cog):
     #     return
 
     ignored = (commands.CommandNotFound, commands.NotOwner, )
-    wave_errors = (wavelink_errors.LoadTrackError, wavelink_errors.WavelinkError,)
+    wave_errors = (wavelink_errors.WavelinkException,)
     just_send = (commands.DisabledCommand, commands.MissingPermissions, commands.RoleNotFound, commands.MaxConcurrencyReached, asyncio.TimeoutError, commands.BadArgument, exceptions.RequiredTier)
     error = getattr(error, 'original', error)
 
