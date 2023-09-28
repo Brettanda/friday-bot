@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, List, Optional, Set
 import asyncpg
 import discord
 from discord.ext import commands  # , tasks
-from wavelink import errors as wavelink_errors
+from wavelink import exceptions as wavelink_errors
 
 # from discord_slash.http import SlashCommandRequest
 from functions import (MessageColors, MyContext,  # , FakeInteractionMessage
@@ -363,7 +363,7 @@ class Log(commands.Cog):
     #     return
 
     ignored = (commands.CommandNotFound, commands.NotOwner, )
-    wave_errors = (wavelink_errors.LoadTrackError, wavelink_errors.WavelinkError,)
+    wave_errors = (wavelink_errors.WavelinkException,)
     just_send = (commands.DisabledCommand, commands.MissingPermissions, commands.RoleNotFound, commands.MaxConcurrencyReached, asyncio.TimeoutError, commands.BadArgument, exceptions.RequiredTier)
     error = getattr(error, 'original', error)
 
