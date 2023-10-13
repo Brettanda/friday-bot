@@ -389,6 +389,13 @@ class Music(commands.Cog):
     # else:
     #   await payload.player.channel.create_instance(topic=f"🎵 {payload.track.title}{' by ' + payload.track.requester if payload.track.requester is not None else ''}", reason="Next track started.")
 
+  @commands.Cog.listener()
+  async def on_wavelink_track_end(self, payload: TrackEventPayload):
+    if not payload.player.queue.is_empty:
+      return
+
+    await payload.player.disconnect()
+
   def required(self, ctx: GuildContext, player: Player) -> int:
     channel = player.channel
     assert channel is not None
