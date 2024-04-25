@@ -1,26 +1,37 @@
-import sys
-import datetime
-import discord
+from __future__ import annotations
+
 import asyncio
+import datetime
 import io
+import logging
+import os
+import sys
+import traceback
+import typing
+from collections import Counter
+from typing import TYPE_CHECKING, List, Optional, Set
+
+import asyncpg
+import discord
+from discord.ext import commands  # , tasks
+from wavelink import exceptions as wavelink_errors
+
+# from discord_slash.http import SlashCommandRequest
+from functions import (MessageColors, MyContext,  # , FakeInteractionMessage
+                       cache, embed, exceptions, relay_info, time, views)
+
 # import mysql.connector
 
-import typing
-from typing import TYPE_CHECKING
-from discord.ext import commands  # , tasks
-# from discord_slash.http import SlashCommandRequest
-from functions import MessageColors, embed, relay_info, exceptions, config, views, MyContext, cache  # , FakeInteractionMessage
-import traceback
-
-from collections import Counter
-
-import os
 
 if TYPE_CHECKING:
-  from index import Friday as Bot
+  from index import Friday
+
+  class CommandError(commands.CommandError):
+    log: Optional[bool]
 
 # import discord_slash
 
+log = logging.getLogger(__name__)
 
 # with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'config.json')) as f:
 #   config = json.load(f)
@@ -30,19 +41,17 @@ if TYPE_CHECKING:
 #     raise commands.CheckFailure("Currently I am disabled, my boss has been notified, please try again later :)")
 #   return True
 
+
 class Config:
-  __slots__ = ("bot", "id", "chat_channel", "tier", "lang",)
+  __slots__ = ("bot", "id", "disabled_commands", "restricted_commands", "bot_channel", "lang",)
 
-  @classmethod
-  async def from_record(cls, record, bot):
-    self = cls()
-
-    self.bot: "Bot" = bot
+  def __init__(self, *, record: asyncpg.Record, bot: Friday):
+    self.bot: Friday = bot
     self.id: int = int(record["id"], base=10)
-    self.chat_channel = record["chatchannel"]
-    self.tier = record["tier"]
-    self.lang = record["lang"]
-    return self
+    self.disabled_commands: Set[str] = set(record["disabled_commands"] or [])
+    self.restricted_commands: Set[str] = set(record["restricted_commands"] or [])
+    self.bot_channel: Optional[int] = int(record["botchannel"], base=10) if record["botchannel"] else None
+    self.lang: str = record["lang"]
 
 
 class CustomWebhook(discord.Webhook):
@@ -63,10 +72,8 @@ class CustomWebhook(discord.Webhook):
 class Log(commands.Cog):
   """Everything that is required for the bot to run but can also be reloaded without restarting the bot"""
 
-  def __init__(self, bot: "Bot"):
-    self.bot = bot
-    self.loop = bot.loop
-    self.loop.create_task(self.setup())
+  def __init__(self, bot: Friday):
+    self.bot: Friday = bot
 
     self.spam_control = commands.CooldownMapping.from_cooldown(5, 15.0, commands.BucketType.user)
     self.super_spam_control = commands.CooldownMapping.from_cooldown(5, 60, commands.BucketType.user)
@@ -75,124 +82,78 @@ class Log(commands.Cog):
 
     self._auto_spam_count = Counter()
 
-    self.logger = self.bot.logger
-
-    # if not hasattr(self.bot, "slash"):
-    #   self.bot.slash = SlashCommand(self.bot, sync_commands=True, sync_on_cog_reload=True)  # , debug_guild=243159711237537802)
-
     self.bot.process_commands = self.process_commands
     # self.bot.on_error = self.on_error
 
-    # self.check_for_mydb.start()
+  def __repr__(self) -> str:
+    return f"<cogs.{self.__cog_name__}>"
 
-    self.bot.add_check(self.check_perms)
-
-  def __repr__(self):
-    return "<cogs.Log>"
-
-  async def setup(self) -> None:
-    if not hasattr(self, "bot_managers"):
-      self.bot_managers = {}
-      for guild_id, role_id in await self.bot.db.query("SELECT id,bot_manager FROM servers"):
-        if role_id is not None:
-          self.bot_managers.update({str(guild_id): str(role_id)})
-
-  def check_perms(self, ctx):
+  async def bot_check(self, ctx: MyContext) -> bool:
     if hasattr(ctx.channel, "type") and ctx.channel.type == discord.ChannelType.private:
       return True
 
-    required_perms = [("send_messages", True), ("read_messages", True), ("embed_links", True), ("add_reactions", True)]
-    guild = ctx.guild
-    me = guild.me if guild is not None else ctx.bot.user
-    permissions = ctx.channel.permissions_for(me)
-    missing = [perm for perm, value in required_perms if getattr(permissions, perm) != value]
-
-    if not missing:
-      return True
-
-    raise commands.BotMissingPermissions(missing)
-
-  # @tasks.loop(seconds=10.0)
-  # async def check_for_mydb(self):
-  #   try:
-  #     self.mydb.ping(reconnect=True, attempts=10, delay=0.1)
-  #   except mysql.connector.InterfaceError as e:
-  #     await relay_info("Disconnected from MYDB", self.bot, logger=self.logger)
-  #     raise e
-
-  # @check_for_mydb.before_loop
-  # async def before_check_for_mydb(self):
-  #   await self.bot.wait_until_ready()
-  #   while self.bot.is_closed():
-  #     await asyncio.sleep(0.1)
-
-  # def cog_unload(self):
-    # self.check_for_mydb.stop()
+    return await commands.bot_has_permissions(
+        send_messages=True,
+        read_messages=True,
+        embed_links=True,
+    ).predicate(ctx)
 
   @commands.Cog.listener()
   async def on_shard_connect(self, shard_id):
-    await relay_info(f"Shard #{shard_id} has connected", self.bot, logger=self.logger)
+    await relay_info(f"Shard #{shard_id} has connected", self.bot, logger=log)
 
   @commands.Cog.listener()
   async def on_connect(self):
-    self.logger.debug("Connected")
+    log.debug("Connected")
 
   @commands.Cog.listener()
   async def on_ready(self):
     if not self.bot.views_loaded:
-      # for name, view in views.__dict__.items():
-      #   if isinstance(view, discord.):
-      #     self.bot.add_view(view)
-      self.bot.add_view(views.SupportIntroRoles())
       self.bot.add_view(views.Links())
       self.bot.add_view(views.StopButton())
-      # self.bot.add_view(views.PaginationButtons())
-
-    await relay_info(f"Apart of {len(self.bot.guilds)} guilds", self.bot, logger=self.logger)
     if not hasattr(self.bot, "uptime"):
-      self.bot.uptime = datetime.datetime.utcnow()
+      self.bot.uptime = discord.utils.utcnow()
+
+    await relay_info(f"Apart of {len(self.bot.guilds)} guilds", self.bot, logger=log)
     self.bot.ready = True
 
   @commands.Cog.listener()
   async def on_shard_ready(self, shard_id):
-    await relay_info(f"Logged on as #{shard_id} {self.bot.user}! - {self.bot.get_shard(shard_id).latency*1000:,.0f} ms", self.bot, logger=self.logger)
+    shard = self.bot.get_shard(shard_id)
+    # await relay_info(f"Logged on as #{shard_id} {self.bot.user}! - {shard and shard.latency*1000:,.0f} ms", self.bot, logger=log)
+    log.info(f"Logged on as #{shard_id} {self.bot.user}! - {shard and shard.latency*1000:,.0f} ms")
 
   @commands.Cog.listener()
   async def on_disconnect(self):
-    self.logger.debug("Disconnected")
+    log.debug("Disconnected")
 
   @commands.Cog.listener()
   async def on_shard_disconnect(self, shard_id):
-    await relay_info(f"Shard #{shard_id} has disconnected", self.bot, logger=self.logger)
+    log.info(f"Shard #{shard_id} has disconnected")
 
   @commands.Cog.listener()
   async def on_shard_reconnect(self, shard_id):
-    await relay_info(f"Shard #{shard_id} has reconnected", self.bot, logger=self.logger)
+    log.info(f"Shard #{shard_id} has reconnected")
 
   @commands.Cog.listener()
   async def on_resumed(self):
-    self.logger.debug("Resumed")
+    log.debug("Resumed")
 
   @commands.Cog.listener()
   async def on_shard_resumed(self, shard_id):
-    await relay_info(f"Shard #{shard_id} has resumed", self.bot, logger=self.logger)
+    log.info(f"Shard #{shard_id} has resumed")
+    self.bot.resumes[shard_id].append(discord.utils.utcnow())
 
   @commands.Cog.listener()
   async def on_guild_join(self, guild: discord.Guild):
-    while self.bot.is_closed():
-      await asyncio.sleep(0.1)
-    await self.bot.db.query(f"INSERT INTO servers (id,lang) VALUES ({str(guild.id)},'{guild.preferred_locale.split('-')[0]}') ON CONFLICT DO NOTHING")
-    await relay_info(f"I have joined a new guild, making the total **{len(self.bot.guilds)}**", self.bot, short=f"I have joined a new guild, making the total {len(self.bot.guilds)}", webhook=self.log_join, logger=self.logger)
+    await self.bot.wait_until_ready()
+    await self.bot.pool.execute(f"INSERT INTO servers (id,lang) VALUES ({str(guild.id)},'{guild.preferred_locale.value.split('-')[0]}') ON CONFLICT DO NOTHING")
+    await relay_info(f"I have joined a new guild, making the total **{len(self.bot.guilds)}**", self.bot, short=f"I have joined ({guild} [{guild.id}]), making the total {len(self.bot.guilds)}", webhook=self.log_join, logger=log)
 
   @commands.Cog.listener()
   async def on_guild_remove(self, guild):
-    while self.bot.is_closed():
-      await asyncio.sleep(0.1)
-    await self.bot.db.query(
-          f"DELETE FROM servers WHERE id='{str(guild.id)}';"
-          f"DELETE FROM blacklist WHERE guild_id='{str(guild.id)}';"
-          f"DELETE FROM welcome WHERE guild_id='{str(guild.id)}';")
-    await relay_info(f"I have been removed from a guild, making the total **{len(self.bot.guilds)}**", self.bot, short=f"I have been removed from a guild, making the total {len(self.bot.guilds)}", webhook=self.log_join, logger=self.logger)
+    await self.bot.wait_until_ready()
+    await relay_info(f"I have been removed from a guild, making the total **{len(self.bot.guilds)}**", self.bot, short=f"I have been removed from ({guild} [{guild.id}]), making the total {len(self.bot.guilds)}", webhook=self.log_join, logger=log)
 
   @commands.Cog.listener()
   async def on_message_edit(self, before, after):
@@ -201,16 +162,12 @@ class Log(commands.Cog):
     await self.bot.process_commands(after)
 
   @commands.Cog.listener()
-  async def on_command(self, ctx: "MyContext"):
-    self.logger.info(f"Command: {ctx.message.clean_content}")
-
-  @commands.Cog.listener()
   async def on_command_completion(self, ctx: "MyContext"):
-    self.logger.debug(f"Finished Command: {ctx.message.clean_content.encode('unicode_escape')}")
+    log.debug(f"Finished Command: {ctx.message.clean_content.encode('unicode_escape')}")
 
   @commands.Cog.listener()
   async def on_slash_command(self, ctx):
-    self.logger.info(f"Slash Command: {ctx.command} {ctx.kwargs}")
+    log.info(f"Slash Command: {ctx.command} {ctx.kwargs}")
 
   # @commands.Cog.listener()
   # async def on_slash_command_error(self, ctx: SlashContext, ex):
@@ -219,7 +176,7 @@ class Log(commands.Cog):
   #     if ctx._deffered_hidden or not ctx.deferred:
   #       await ctx.send(hidden=True, content=str(ex) or "An error has occured, try again later.")
   #     else:
-  #       await ctx.send(embed=embed(title=str(ex) or "An error has occured, try again later.", color=MessageColors.ERROR))
+  #       await ctx.send(embed=embed(title=str(ex) or "An error has occured, try again later.", color=MessageColors.error()))
   #   if not isinstance(ex, (
   #           discord.NotFound,
   #           commands.CheckFailure,
@@ -238,7 +195,7 @@ class Log(commands.Cog):
   @commands.Cog.listener()
   async def on_interaction(self, interaction: discord.Interaction):
     if interaction.type != discord.InteractionType.application_command:
-      self.logger.info(f"Interaction: {interaction.data.get('custom_id','No ID')} {interaction.type}")
+      log.info(f"Interaction: {interaction.data and interaction.data.get('custom_id','No ID')} {interaction.type}")
 
     # if interaction.type == discord.InteractionType.application_command:
     #   command = self.bot.get_command(interaction.data["name"])
@@ -282,7 +239,7 @@ class Log(commands.Cog):
   #     if ctx._deferred_hidden or not ctx.deferred:
   #       await ctx.send(hidden=True, content=str(ex) or "An error has occured, try again later.")
   #     else:
-  #       await ctx.send(embed=embed(title=str(ex) or "An error has occured, try again later.", color=MessageColors.ERROR))
+  #       await ctx.send(embed=embed(title=str(ex) or "An error has occured, try again later.", color=MessageColors.error()))
   #   if not isinstance(ex, (
   #           discord.NotFound,
   #           commands.CheckFailure,
@@ -292,23 +249,54 @@ class Log(commands.Cog):
   #           commands.MaxConcurrencyReached)) and (not hasattr(ex, "log") or (hasattr(ex, "log") and ex.log is True)):
   #     raise ex
 
+  async def bot_check_once(self, ctx: MyContext):
+    if ctx.command.cog_name not in ("Dev", "Config"):
+      if ctx.author.id in self.bot.blacklist:
+        return False
+
+      if ctx.guild is not None and ctx.guild.id in self.bot.blacklist:
+        return False
+
+      if ctx.guild:
+        config = await self.get_guild_config(ctx.guild.id)
+        if not config:
+          await ctx.db.execute(f"INSERT INTO servers (id) VALUES ({str(ctx.guild.id)}) ON CONFLICT DO NOTHING")
+          self.get_guild_config.invalidate(self, ctx.guild.id)
+          config = await self.get_guild_config(ctx.guild.id)
+        if config is not None:
+          if ctx.command.name in config.disabled_commands:
+            return False
+
+          if config.bot_channel is not None and ctx.channel.id != config.bot_channel:
+            if ctx.command.name in config.restricted_commands and not ctx.permissions.manage_guild:
+              await ctx.send(f"<#{config.bot_channel}>", embed=embed(title="This command is restricted to the bot channel.", color=MessageColors.error()), delete_after=30, ephemeral=True)
+              try:
+                await ctx.message.delete(delay=30)
+              except discord.Forbidden:
+                pass
+              return False
+    return True
+
   async def process_commands(self, message):
-    ctx = await self.bot.get_context(message)
+    ctx = await self.bot.get_context(message, cls=MyContext)
 
     if ctx.command is None:
       return
 
-    bucket = self.spam_control.get_bucket(message)
+    if not ctx.bot_permissions.send_messages:
+      return log.error(f"Bot is missing the Send Messages permission. [#{ctx.channel} ({ctx.channel.id})]")
+
     current = message.created_at.replace(tzinfo=datetime.timezone.utc).timestamp()
-    retry_after = bucket.update_rate_limit(current)
+    bucket = self.spam_control.get_bucket(message, current)
+    retry_after = bucket and bucket.update_rate_limit(current)
     author_id = message.author.id
 
-    super_bucket = self.super_spam_control.get_bucket(message)
-    super_retry_after = super_bucket.get_retry_after(current)
+    super_bucket = self.super_spam_control.get_bucket(message, current)
+    super_retry_after = super_bucket and super_bucket.get_retry_after(current)
 
     if retry_after and author_id != self.bot.owner_id and author_id != 892865928520413245:
       self._auto_spam_count[author_id] += 1
-      super_retry_after = super_bucket.update_rate_limit(current)
+      super_retry_after = super_bucket and super_bucket.update_rate_limit(current)
       if super_retry_after and self._auto_spam_count[author_id] == 5:
         await self.log_spammer(ctx, message, retry_after, notify=True)
       elif self._auto_spam_count[author_id] > 5:
@@ -324,113 +312,119 @@ class Log(commands.Cog):
 
     await self.bot.invoke(ctx)
 
-  def get_prefixes(self) -> [str]:
+  def get_prefixes(self) -> List[str]:
     return ["/", "!", "f!", "!f", "%", ">", "?", "-", "(", ")"]
 
   @cache.cache()
-  async def get_guild_config(self, guild_id: int) -> typing.Optional[Config]:
+  async def get_guild_config(self, guild_id: int, *, connection: asyncpg.Connection = None) -> Config:
     query = "SELECT * FROM servers WHERE id=$1 LIMIT 1;"
-    async with self.bot.db.pool.acquire(timeout=300.0) as conn:
+    conn = connection or self.bot.pool
+    record = await conn.fetchrow(query, str(guild_id))
+    log.debug(f"PostgreSQL Query: \"{query}\" + {str(guild_id)}")
+    if not record:
+      query = "INSERT INTO servers (id) VALUES ($1) RETURNING *;"
       record = await conn.fetchrow(query, str(guild_id))
-      self.bot.logger.debug(f"PostgreSQL Query: \"{query}\" + {str(guild_id)}")
-      if record is not None:
-        return await Config.from_record(record, self.bot)
-      return None
-
-  async def fetch_user_tier(self, user: discord.User):
-    if user.id == self.bot.owner_id:
-      return list(config.premium_tiers)[-1]
-    if user is not None:
-      member = await self.bot.get_or_fetch_member(self.bot.get_guild(config.support_server_id), user.id)
-      if member is None:
-        raise exceptions.NotInSupportServer()
-      roles = [role.id for role in member.roles]
-      if config.patreon_supporting_role not in roles:
-        raise exceptions.NotSupporter()
-      # role = [role for role in roles if role in config.premium_roles.values()]
-      # something = list(config.premium_roles.values())[::2]
-      available_tiers_roles = [tier for tier in config.premium_roles.values() if tier != 843941723041300480]
-      available_tiers_roles = available_tiers_roles[::2]
-      x, final_tier = 0, None
-      for tier in available_tiers_roles:
-        if tier in [role.id for role in member.roles]:
-          final_tier = available_tiers_roles.index(tier)
-          final_tier = list(config.premium_tiers)[final_tier + 1]
-        x += 1
-      return final_tier if final_tier is not None else None
-
-  @discord.utils.cached_property
-  def log_chat(self) -> CustomWebhook:
-    return CustomWebhook.partial(os.environ.get("WEBHOOKCHATID"), os.environ.get("WEBHOOKCHATTOKEN"), session=self.bot.session)
+    return Config(record=record, bot=self.bot)
 
   @discord.utils.cached_property
   def log_info(self) -> CustomWebhook:
-    return CustomWebhook.partial(os.environ.get("WEBHOOKINFOID"), os.environ.get("WEBHOOKINFOTOKEN"), session=self.bot.session)
+    return CustomWebhook.partial(os.environ.get("WEBHOOKINFOID"), os.environ.get("WEBHOOKINFOTOKEN"), session=self.bot.session)  # type: ignore
 
   @discord.utils.cached_property
   def log_errors(self) -> CustomWebhook:
-    return CustomWebhook.partial(os.environ.get("WEBHOOKERRORSID"), os.environ.get("WEBHOOKERRORSTOKEN"), session=self.bot.session)
+    return CustomWebhook.partial(os.environ.get("WEBHOOKERRORSID"), os.environ.get("WEBHOOKERRORSTOKEN"), session=self.bot.session)  # type: ignore
 
   @discord.utils.cached_property
   def log_join(self) -> CustomWebhook:
-    return CustomWebhook.partial(os.environ.get("WEBHOOKJOINID"), os.environ.get("WEBHOOKJOINTOKEN"), session=self.bot.session)
+    return CustomWebhook.partial(os.environ.get("WEBHOOKJOINID"), os.environ.get("WEBHOOKJOINTOKEN"), session=self.bot.session)  # type: ignore
 
   async def log_spammer(self, ctx, message, retry_after, *, notify=False):
     guild_id = getattr(ctx.guild, "id", None)
-    self.logger.warning(f"Spamming: {{User: {message.author.id}, Guild: {guild_id}, Retry: {retry_after}}}")
+    log.warning(f"Spamming: {{User: {message.author.id}, Guild: {guild_id}, Retry: {retry_after}}}")
+
+  # @commands.Cog.listener()
+  # async def on_application_command_error(self, ctx: discord.ApplicationContext, error: Exception):
+  #   just_send = (commands.DisabledCommand, commands.BotMissingPermissions, commands.MissingPermissions, commands.RoleNotFound,)
+  #   error = getattr(error, 'original', error)
+  #   # if hasattr(error, "log") and error.log is False:
+  #   #   return
+
+  #   # if isinstance(error, just_send):
+  #   log.error(f"{error}")
+  #   await ctx.respond(embed=embed(title=str(error) or "An error has occured, try again later.", color=MessageColors.error()), ephemeral=True)
 
   @commands.Cog.listener()
-  async def on_command_error(self, ctx: "MyContext", error):
+  async def on_command_error(self, ctx: MyContext, error: CommandError):
     if hasattr(ctx.command, 'on_error'):
       return
 
+    # if ctx.cog:
+    #   if ctx.cog._get_overridden_method(ctx.cog.cog_command_error) is not None:
+    #     return
+
     ignored = (commands.CommandNotFound, commands.NotOwner, )
-    just_send = (commands.DisabledCommand, commands.BotMissingPermissions, commands.MissingPermissions, commands.RoleNotFound, asyncio.TimeoutError)
+    wave_errors = (wavelink_errors.WavelinkException,)
+    just_send = (commands.DisabledCommand, commands.MissingPermissions, commands.RoleNotFound, commands.MaxConcurrencyReached, asyncio.TimeoutError, commands.BadArgument, exceptions.RequiredTier)
     error = getattr(error, 'original', error)
 
-    if isinstance(error, ignored) or (hasattr(error, "log") and error.log is False):
+    if isinstance(error, (*ignored, *wave_errors)) or (hasattr(error, "log") and error and error.log is False):
+      log.warning(f"Ignored error called: {error}")
       return
 
     if isinstance(error, just_send):
-      await ctx.send(embed=embed(title=error, color=MessageColors.ERROR))
+      await ctx.send(embed=embed(title=str(error), color=MessageColors.error()), ephemeral=True)
+    elif isinstance(error, commands.BotMissingPermissions):
+      if "send_messages" in error.missing_permissions:
+        log.error("Failed to respond to command. Missing send_messages permission.")
+      elif "embed_links" in error.missing_permissions:
+        await ctx.send(str(error), ephemeral=True)
+      else:
+        await ctx.send(embed=embed(title=str(error), color=MessageColors.error()), ephemeral=True)
+    elif isinstance(error, commands.BadUnionArgument) and "into Member or User." in str(error):
+      await ctx.send(embed=embed(title="Invalid user. Please mention a user or provide a user ID.", color=MessageColors.error()))
     elif isinstance(error, (commands.MissingRequiredArgument, commands.TooManyArguments)):
       await ctx.send_help(ctx.command)
     elif isinstance(error, commands.CommandOnCooldown):
       retry_after = discord.utils.utcnow() + datetime.timedelta(seconds=error.retry_after)
-      await ctx.send(embed=embed(title=f"This command is on a cooldown, and will be available <t:{int(retry_after.timestamp())}:R>", color=MessageColors.ERROR))
+      await ctx.send(embed=embed(title=f"This command is on a cooldown, and will be available in `{time.human_timedelta(retry_after)}` or <t:{int(retry_after.timestamp())}:R>", color=MessageColors.error()), ephemeral=True)
     elif isinstance(error, (exceptions.RequiredTier, exceptions.NotInSupportServer)):
-      await ctx.send(embed=embed(title=error, color=MessageColors.ERROR))
+      await ctx.send(embed=embed(title=str(error), color=MessageColors.error()), ephemeral=True)
+    elif isinstance(error, commands.CheckFailure):
+      log.warn(f"{ctx.guild and ctx.guild.id or 'Private Message'} {ctx.channel} {ctx.author} {error}")
     elif isinstance(error, commands.NoPrivateMessage):
-      await ctx.send(embed=embed(title="This command does not work in non-server text channels", color=MessageColors.ERROR))
+      await ctx.send(embed=embed(title="This command does not work in non-server text channels", color=MessageColors.error()), ephemeral=True)
+    elif isinstance(error, OverflowError):
+      await ctx.send(embed=embed(title="An arguments number is too large.", color=MessageColors.error()), ephemeral=True)
     elif isinstance(error, commands.CommandInvokeError):
       original = error.original
       if not isinstance(original, discord.HTTPException):
         print(f"In {ctx.command.qualified_name}:", file=sys.stderr)
         traceback.print_tb(original.__traceback__)
-        self.logger.error(f"{original.__class__.__name__}: {original}", sys.stderr.readline)
+        log.error(f"{original.__class__.__name__}: {original}", sys.stderr.readline)
     else:
-      self.logger.error('Ignoring exception in command {}:'.format(ctx.command), exc_info=(type(error), error, error.__traceback__))
+      if error:
+        log.error('Ignoring exception in command {}:'.format(ctx.command), exc_info=(type(error), error, error.__traceback__))
       if not self.bot.prod and not self.bot.canary:
         return
       try:
         await self.log_errors.safe_send(username=self.bot.user.name, avatar_url=self.bot.user.display_avatar.url, content=f"Ignoring exception in command {ctx.command}:\n{''.join(traceback.format_exception(type(error), error, error.__traceback__))}")
       except Exception as e:
-        self.logger.error(f"ERROR while ignoring exception in command {ctx.command}: {e}")
+        log.error(f"ERROR while ignoring exception in command {ctx.command}: {e}")
       else:
-        self.logger.info("ERROR sent")
+        log.info("ERROR sent")
 
   async def on_error(self, event: str, *args, **kwargs):
     trace = traceback.format_exc()
-    self.logger.error(f"ERROR in {event}: ", exc_info=trace)
+    log.error(f"ERROR in {event}: ", exc_info=trace)  # type: ignore
     if not self.bot.prod and not self.bot.canary:
       return
     try:
       await self.log_errors.safe_send(username=self.bot.user.name, avatar_url=self.bot.user.display_avatar.url, content=f"```\nERROR in {event}: \n{trace}\n```")
     except Exception as e:
-      self.logger.error(f"ERROR while logging {event}: {e}")
+      log.error(f"ERROR while logging {event}: {e}")
     else:
-      self.logger.info("ERROR sent")
+      log.info("ERROR sent")
 
 
-def setup(bot):
-  bot.add_cog(Log(bot))
+async def setup(bot):
+  await bot.add_cog(Log(bot))

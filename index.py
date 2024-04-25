@@ -1,134 +1,257 @@
+from __future__ import annotations
+
 import asyncio
+import datetime
 import logging
+import multiprocessing
 import os
 import sys
-from collections import defaultdict
-from importlib import reload
-from logging.handlers import RotatingFileHandler
-from typing import Optional
+import traceback
+from collections import Counter, defaultdict
+from typing import TYPE_CHECKING, Any, AsyncIterator, Iterable, Optional
 
 import aiohttp
+import asyncpg
+import click
 import discord
-from dotenv import load_dotenv
+from discord import app_commands
 from discord.ext import commands
-from typing_extensions import TYPE_CHECKING
+from dotenv import load_dotenv
+from topgg.webhook import WebhookManager
 
 import cogs
 import functions
+from cogs.support import Support
+# from cogs.sharding import Sharding
+from functions.config import Config
+from functions.db import Migrations
+from functions.languages import load_languages
 
 if TYPE_CHECKING:
+  from concurrent.futures import ThreadPoolExecutor
+
+  from i18n import I18n
+  from launcher import Cluster
+
   from .cogs.database import Database
+  from .cogs.dbl import TopGG
   from .cogs.log import Log
+  from .cogs.patreons import Patreons
+  from .cogs.reminder import Reminder
+  from .cogs.sharding import Event
+
 
 load_dotenv()
 
-TOKEN = os.environ.get('TOKENTEST')
+log = logging.getLogger(__name__)
 
 
-async def get_prefix(bot: "Friday", message: discord.Message):
+class Translator(app_commands.Translator):
+  async def translate(self, string: app_commands.locale_str, locale: discord.Locale, ctx: app_commands.TranslationContext) -> Optional[str]:
+    lang: str = locale.value.split("-")[0]
+    data = ctx.data
+    cog = getattr(data, "binding", None) or (getattr(data, "commands", None) and data.commands[0].binding) or (getattr(data, "command", None) and data.command.binding)
+    cog_name = cog.__class__.__name__.lower()
+    if cog is None:
+      return None
+    lang_file: dict[str, I18n] = cog.bot.language_files
+    try:
+      c = lang_file[lang][cog_name]
+      trans = None
+      if ctx.location.name in ("command_name", "command_description"):
+        command_name = data.name.lower()
+        parent_name = data.parent and data.parent.name
+        if parent_name is not None:
+          c = c[parent_name]["commands"][command_name]
+        else:
+          c = c[command_name]
+        if ctx.location.name == "command_name":
+          trans = c["command_name"].translate(str.maketrans("", "", r"""!"#$%&'()*+,./:;<=>?@[\]^`{|}~""")).lower().replace(" ", "_")
+        elif ctx.location.name == "command_description":
+          trans = c["help"]
+      elif ctx.location.name in ("group_name", "group_description"):
+        command_name = data.name.lower()
+        c = c[command_name]
+        if ctx.location.name == "group_name":
+          trans = c["command_name"].translate(str.maketrans("", "", r"""!"#$%&'()*+,./:;<=>?@[\]^`{|}~""")).lower().replace(" ", "_")
+        elif ctx.location.name == "group_description":
+          # trans = c[command_name]["help"]
+          trans = c.help
+      elif ctx.location.name in ("parameter_name", "parameter_description"):
+        group_name = data.command.parent and data.command.parent.name
+        command_name = data.command.name.lower()
+        param_name = data.name.lower()
+        try:
+          if group_name is not None:
+            c = c[group_name]["commands"][command_name]["parameters"][param_name]
+          else:
+            c = c[command_name]["parameters"][param_name]
+        except KeyError as e:
+          if lang == "en":
+            log.error(str(e))
+          raise e
+        if ctx.location.name == "parameter_name":
+          trans = c["name"].lower().replace(" ", "_")
+        elif ctx.location.name == "parameter_description":
+          trans = c["description"]
+      return trans if trans and trans != string.message else None
+    except KeyError:
+      return None
+
+
+async def get_prefix(bot: Friday, message: discord.Message):
   if message.guild is not None:
-    return commands.when_mentioned_or(bot.prefixes[message.guild.id])(bot, message)
-  return commands.when_mentioned_or(functions.config.defaultPrefix)(bot, message)
+    return bot.prefixes[message.guild.id]
+  return functions.config.defaultPrefix
 
 
 class Friday(commands.AutoShardedBot):
   """Friday is a discord bot that is designed to be a flexible and easy to use bot."""
 
-  def __init__(self, loop=None, **kwargs):
-    self.cluster_name = kwargs.pop("cluster_name", None)
-    self.cluster_idx = kwargs.pop("cluster_idx", 0)
-    self.should_start = kwargs.pop("start", False)
-    self._logger = kwargs.pop("logger")
+  user: discord.ClientUser
+  pool: asyncpg.Pool
+  topgg_webhook: WebhookManager
+  command_stats: Counter[str]
+  socket_stats: Counter[str]
+  chat_stats: Counter[int]
+  logging_handler: Any
+  bot_app_info: discord.AppInfo
+  uptime: datetime.datetime
+  chat_repeat_counter: Counter[int]
+  old_help_command: commands.HelpCommand | None
+  language_files: dict[str, I18n]
 
-    if loop is None:
-      self.loop = asyncio.new_event_loop()
-      asyncio.set_event_loop(self.loop)
-    else:
-      self.loop = loop
+  def __init__(self, **kwargs):
+    self.cluster: Cluster | None = kwargs.pop("cluster", None)
+    self.cluster_name: str | None = kwargs.pop("cluster_name", None)
+    self.cluster_idx: int = kwargs.pop("cluster_idx", 0)
+    self.openai_api_lock: asyncio.Semaphore = kwargs.pop("openai_api_lock", asyncio.Semaphore(2))
+    self.tasks: multiprocessing.Queue[Event] | None = kwargs.pop("tasks", None)
+    self.tasks_to_complete: multiprocessing.Queue[Event] | None = kwargs.pop("tasks_to_complete", None)
+    self.task_executer: ThreadPoolExecutor | None = kwargs.pop("task_executer", None)
+
     super().__init__(
         command_prefix=get_prefix,
         strip_after_prefix=True,
         case_insensitive=True,
-        intents=functions.config.intents,
+        intents=discord.Intents(
+            guilds=True,
+            voice_states=True,
+            messages=True,
+            reactions=True,
+            members=True,
+            bans=True,
+            guild_scheduled_events=True,
+            message_content=True,
+        ),
         status=discord.Status.idle,
-        owner_id=215227961048170496,
         description=functions.config.description,
-        member_cache_flags=functions.config.member_cache,
+        member_cache_flags=discord.MemberCacheFlags.all(),
         chunk_guilds_at_startup=False,
-        allowed_mentions=functions.config.allowed_mentions,
+        allowed_mentions=discord.AllowedMentions(roles=False, everyone=False, users=True),
         enable_debug_events=True,
-        # heartbeat_timeout=150.0,
-        loop=self.loop, **kwargs
+        **kwargs
     )
 
-    self.session = None
-    self.restartPending = False
     self.views_loaded = False
 
     # guild_id: str("!")
     self.prefixes = defaultdict(lambda: str("!"))
-    self.prod = True if len(sys.argv) > 1 and (sys.argv[1] == "--prod" or sys.argv[1] == "--production") else False
-    self.canary = True if len(sys.argv) > 1 and (sys.argv[1] == "--canary") else False
     self.ready = False
+    self.testing = False
 
-    self.load_extension("cogs.database")
-    self.load_extension("cogs.log")
-    self.loop.run_until_complete(self.setup(True))
-    self.logger.info(f"Cluster Starting {kwargs.get('shard_ids', None)}, {kwargs.get('shard_count', 1)}")
-    if self.should_start:
-      self.run(kwargs["token"])
+    # shard_id: List[datetime.datetime]
+    # shows the last attempted IDENTIFYs and RESUMEs
+    self.resumes: defaultdict[int, list[datetime.datetime]] = defaultdict(list)
+    self.identifies: defaultdict[int, list[datetime.datetime]] = defaultdict(list)
 
   def __repr__(self) -> str:
-    return f"<Friday username=\"{self.user.display_name}\" id={self.user.id}>"
+    return f"<Friday username=\"{self.user.display_name if self.user else None}\" id={self.user.id if self.user else None}>"
 
   @property
-  def log(self) -> Optional["Log"]:
-    return self.get_cog("Log")
+  def prod(self) -> bool:
+    return self.user.id == 476303446547365891  # Prod bot
 
   @property
-  def logger(self) -> logging.Logger:
-    return self._logger
+  def canary(self) -> bool:
+    return self.user.id == 760615464300445726  # Canary bot id
 
-  @property
-  def db(self) -> Optional["Database"]:
-    return self.get_cog("Database")
+  @classmethod
+  def from_launcher(
+      cls,
+      *,
+      cluster: Cluster | None = None,
+      cluster_name: str = None,
+      cluster_idx: int = 0,
+      tasks: multiprocessing.Queue[Event] = None,
+      tasks_to_complete: multiprocessing.Queue[Event] = None,
+      task_executer: ThreadPoolExecutor = None,
+      openai_api_lock: asyncio.Semaphore = asyncio.Semaphore(2),
+      **kwargs
+  ) -> None:
+    self = cls(
+        cluster=cluster,
+        cluster_name=cluster_name,
+        cluster_idx=cluster_idx,
+        tasks=tasks,
+        tasks_to_complete=tasks_to_complete,
+        task_executer=task_executer,
+        openai_api_lock=openai_api_lock
+    )
+    log.info(f"Cluster Starting {kwargs.get('shard_ids', None)}, {kwargs.get('shard_count', 1)}")
+    self.run(kwargs["token"])
 
-  async def get_context(self, message, *, cls=None) -> functions.MyContext:
-    return await super().get_context(message, cls=functions.MyContext)
+  async def get_context(self, origin: discord.Message | discord.Interaction, /, *, cls=None) -> functions.MyContext:
+    return await super().get_context(origin, cls=cls or functions.MyContext)
 
-  async def setup(self, load_extentions: bool = False):
-    self.session: aiohttp.ClientSession() = aiohttp.ClientSession(loop=self.loop)
+  async def setup_hook(self) -> None:
+    self.session = aiohttp.ClientSession()
 
-    for guild_id, prefix in await self.db.query("SELECT id,prefix FROM servers"):
+    self.blacklist: Config[bool] = Config("blacklist.json")
+
+    await load_languages(self)
+
+    self.languages = Config("languages.json")
+
+    await self.tree.set_translator(Translator())
+
+    # await self.load_extension("cogs.database")
+    await self.load_extension("cogs.log")
+
+    self.bot_app_info = await self.application_info()
+    self.owner_id = self.bot_app_info.team and self.bot_app_info.team.owner_id or self.bot_app_info.owner.id
+    self.owner = self.get_user(self.owner_id) or await self.fetch_user(self.owner_id)
+
+    # Should replace with a json file at some point
+    for guild_id, prefix in await self.pool.fetch("SELECT id,prefix FROM servers WHERE prefix!=$1::text", "!"):
       self.prefixes[int(guild_id, base=10)] = prefix
 
-    if load_extentions:
-      for cog in [*cogs.default, *cogs.spice]:
-        path = "spice.cogs." if cog.lower() in cogs.spice else "cogs."
-        try:
-          self.load_extension(f"{path}{cog}")
-        except Exception as e:
-          self.logger.error(f"Failed to load extenstion {cog} with \n {e}")
+    for cog in [*cogs.default, *cogs.spice]:
+      path = "spice.cogs." if cog.lower() in cogs.spice else "cogs."
+      await self.load_extension(f"{path}{cog}")
 
-  async def reload_cogs(self):
-    self.ready = False
-    reload(cogs)
-    reload(functions)
+  def _clear_gateway_data(self) -> None:
+    one_week_ago = discord.utils.utcnow() - datetime.timedelta(days=7)
+    for shard_id, dates in self.identifies.items():
+      to_remove = [index for index, dt in enumerate(dates) if dt < one_week_ago]
+      for index in reversed(to_remove):
+        del dates[index]
 
-    for i in functions.modules:
-      if not i.startswith("_"):
-        reload(getattr(functions, i))
+    for shard_id, dates in self.resumes.items():
+      to_remove = [index for index, dt in enumerate(dates) if dt < one_week_ago]
+      for index in reversed(to_remove):
+        del dates[index]
 
-    self.reload_extension("cogs.log")
-    for i in cogs.default:
-      self.reload_extension(f"cogs.{i}")
-    self.ready = True
+  async def before_identify_hook(self, shard_id: int, *, initial: bool):
+    self._clear_gateway_data()
+    self.identifies[shard_id].append(discord.utils.utcnow())
+    await super().before_identify_hook(shard_id, initial=initial)
 
   async def on_message(self, ctx):
     if not self.ready:
       return
 
-    if ctx.author.bot and not ctx.author.id == 892865928520413245:
+    if ctx.author.bot and not ctx.author.id == 892865928520413245 and not ctx.author.id == 968261189828231308:
       return
 
     await self.process_commands(ctx)
@@ -138,7 +261,7 @@ class Friday(commands.AutoShardedBot):
     if member is not None:
       return member
 
-    shard = self.get_shard(guild.shard_id)
+    shard: discord.ShardInfo = self.get_shard(guild.shard_id)   # type: ignore  # will never be None
     if shard.is_ws_ratelimited():
       try:
         member = await guild.fetch_member(member_id)
@@ -152,42 +275,210 @@ class Friday(commands.AutoShardedBot):
       return None
     return members[0]
 
+  async def resolve_member_ids(self, guild: discord.Guild, member_ids: Iterable[int]) -> AsyncIterator[discord.Member]:
+    """Bulk resolves member IDs to member instances, if possible.
+    Members that can't be resolved are discarded from the list.
+    This is done lazily using an asynchronous iterator.
+    Note that the order of the resolved members is not the same as the input.
+    Parameters
+    -----------
+    guild: Guild
+        The guild to resolve from.
+    member_ids: Iterable[int]
+        An iterable of member IDs.
+    Yields
+    --------
+    Member
+        The resolved members.
+    """
+
+    needs_resolution = []
+    for member_id in member_ids:
+      member = guild.get_member(member_id)
+      if member is not None:
+        yield member
+      else:
+        needs_resolution.append(member_id)
+
+    total_need_resolution = len(needs_resolution)
+    if total_need_resolution == 1:
+      shard: discord.ShardInfo = self.get_shard(guild.shard_id)   # type: ignore  # will never be None
+      if shard.is_ws_ratelimited():
+        try:
+          member = await guild.fetch_member(needs_resolution[0])
+        except discord.HTTPException:
+          pass
+        else:
+          yield member
+      else:
+        members = await guild.query_members(limit=1, user_ids=needs_resolution, cache=True)
+        if members:
+          yield members[0]
+    elif 0 < total_need_resolution <= 100:
+      # Only a single resolution call needed here
+      resolved = await guild.query_members(limit=100, user_ids=needs_resolution, cache=True)
+      for member in resolved:
+        yield member
+    elif total_need_resolution > 0:
+      # We need to chunk these in bits of 100...
+      for index in range(0, total_need_resolution, 100):
+        to_resolve = needs_resolution[index: index + 100]
+        members = await guild.query_members(limit=100, user_ids=to_resolve, cache=True)
+        for member in members:
+          yield member
+
   async def on_error(self, event_method, *args, **kwargs):
     return await self.log.on_error(event_method, *args, **kwargs)
 
-  async def close(self):
+  async def close(self) -> None:
     await super().close()
     await self.session.close()
 
+  async def start(self) -> None:
+    await super().start(os.environ['TOKEN'], reconnect=True)
 
-if __name__ == "__main__":
-  print(f"Python version: {sys.version}")
-  max_bytes = 32 * 1024 * 1024  # 32 MiB
-  logging.getLogger("discord").setLevel(logging.INFO)
-  logging.getLogger("discord.http").setLevel(logging.WARNING)
+  @property
+  def log(self) -> Log:
+    return self.get_cog("Log")  # type: ignore
 
-  log = logging.getLogger("Friday")
-  log.setLevel(logging.INFO)
-  filehandler = RotatingFileHandler(filename="logging.log", encoding="utf-8", maxBytes=max_bytes, backupCount=5)
-  formatter = logging.Formatter("%(levelname)s:%(name)s: %(message)s")
-  filehandler.setFormatter(logging.Formatter("%(asctime)s:%(name)s:%(levelname)-8s%(message)s"))
-  handler = logging.StreamHandler(sys.stdout)
-  handler.setFormatter(formatter)
-  log.addHandler(handler)
-  log.addHandler(filehandler)
-  handler.setFormatter(formatter)
+  @property
+  def db(self) -> Optional[Database]:
+    return self.get_cog("Database")  # type: ignore
 
-  bot = Friday(logger=log)
-  if len(sys.argv) > 1:
-    if sys.argv[1] == "--prod" or sys.argv[1] == "--production":
-      TOKEN = os.environ.get("TOKEN")
-    elif sys.argv[1] == "--canary":
-      TOKEN = os.environ.get("TOKENCANARY")
-  loop = asyncio.get_event_loop()
+  @property
+  def reminder(self) -> Optional[Reminder]:
+    return self.get_cog("Reminder")  # type: ignore
+
+  @property
+  def dbl(self) -> Optional[TopGG]:
+    return self.get_cog("TopGG")  # type: ignore
+
+  @property
+  def patreon(self) -> Optional[Patreons]:
+    return self.get_cog("Patreons")  # type: ignore
+
+  @property
+  def support(self) -> Optional[Support]:
+    return self.get_cog("Support")  # type: ignore
+
+  # @property
+  # def sharding(self) -> Optional[Sharding]:
+  #   return self.get_cog("Sharding")  # type: ignore
+
+
+async def run_bot():
+  log = logging.getLogger()
   try:
-    loop.run_until_complete(bot.start(TOKEN, reconnect=True))
-  except KeyboardInterrupt:
-    logging.info("STOPED")
-    loop.run_until_complete(bot.close())
-  finally:
-    loop.close()
+    pool = await functions.db.create_pool()
+  except Exception:
+    click.echo('Could not set up PostgreSQL. Exiting.', file=sys.stderr)
+    log.exception('Could not set up PostgreSQL. Exiting.')
+    return
+
+  async with Friday() as bot:
+    bot.pool = pool
+    await bot.start()
+
+
+@click.group(invoke_without_command=True, options_metavar='[options]')
+@click.pass_context
+@click.option('--prod', help='Run in production mode.', is_flag=True)
+@click.option('--canary', help='Run in production mode.', is_flag=True)
+def main(ctx, prod, canary):
+  """Launches the bot."""
+  if ctx.invoked_subcommand is None:
+    print(f"Python version: {sys.version}")
+    from launcher import setup_logging
+
+    with setup_logging("Friday"):
+      asyncio.run(run_bot(), debug=True)
+
+
+@main.group(short_help='database stuff', options_metavar='[options]')
+def db():
+  pass
+
+
+async def ensure_uri_can_run() -> bool:
+  connection: asyncpg.Connection = await asyncpg.connect(os.environ["DBURL"])
+  await connection.close()
+  return True
+
+
+# @db.command()
+# @click.option('--reason', '-r', help='The reason for this revision.', default='Initial migration')
+# def init(reason):
+#   """Initializes the database and creates the initial revision."""
+
+#   asyncio.run(ensure_uri_can_run())
+
+#   migrations = Migrations()
+#   migrations.database_uri = os.environ["DBURL"]
+#   revision = migrations.create_revision(reason)
+#   click.echo(f'created revision V{revision.version!r}')
+#   click.secho('hint: use the `upgrade` command to apply', fg='yellow')
+
+
+@db.command()
+@click.option('--reason', '-r', help='The reason for this revision.', required=True)
+def migrate(reason):
+  """Creates a new revision for you to edit."""
+  asyncio.run(ensure_uri_can_run())
+
+  migrations = Migrations()
+  if migrations.is_next_revision_taken():
+    click.echo('an unapplied migration already exists for the next version, exiting')
+    click.secho('hint: apply pending migrations with the `upgrade` command', bold=True)
+    return
+
+  revision = migrations.create_revision(reason)
+  click.echo(f'Created revision V{revision.version!r}')
+
+
+async def run_upgrade(migrations: Migrations) -> int:
+  connection: asyncpg.Connection = await asyncpg.connect(migrations.database_uri)
+  return await migrations.upgrade(connection)
+
+
+@db.command()
+@click.option('--sql', help='Print the SQL instead of executing it', is_flag=True)
+def upgrade(sql):
+  """Upgrades the database at the given revision (if any)."""
+  asyncio.run(ensure_uri_can_run())
+
+  migrations = Migrations()
+
+  if sql:
+    migrations.display()
+    return
+
+  try:
+    applied = asyncio.run(run_upgrade(migrations))
+  except Exception:
+    traceback.print_exc()
+    click.secho('failed to apply migrations due to error', fg='red')
+  else:
+    click.secho(f'Applied {applied} revisions(s)', fg='green')
+
+
+@db.command()
+def current():
+  """Shows the current active revision version"""
+  migrations = Migrations()
+  click.echo(f'Version {migrations.version}')
+
+
+@db.command()
+@click.option('--reverse', help='Print in reverse order (oldest first).', is_flag=True)
+def logs(reverse):
+  """Displays the revision history"""
+  migrations = Migrations()
+  # Revisions is oldest first already
+  revs = reversed(migrations.ordered_revisions) if not reverse else migrations.ordered_revisions
+  for rev in revs:
+    as_yellow = click.style(f'V{rev.version:>03}', fg='yellow')
+    click.echo(f'{as_yellow} {rev.description.replace("_", " ")}')
+
+
+if __name__ == '__main__':
+  main()

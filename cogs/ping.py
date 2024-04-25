@@ -1,28 +1,31 @@
+from __future__ import annotations
+
 from discord.ext import commands
+from typing import TYPE_CHECKING
 
 from functions import embed
 
-from typing_extensions import TYPE_CHECKING
-
 if TYPE_CHECKING:
-  from index import Friday as Bot
+  from functions import MyContext
+  from index import Friday
 
 
 class Ping(commands.Cog):
   """Ping? Pong!"""
 
-  def __init__(self, bot: "Bot"):
-    self.bot = bot
+  def __init__(self, bot: Friday):
+    self.bot: Friday = bot
 
   def __repr__(self) -> str:
-    return "<cogs.Ping content=\"Pong\">"
+    return f"<cogs.{self.__cog_name__} content=\"Pong\">"
 
-  @commands.command(name="ping", help="Pong!")
-  async def norm_ping(self, ctx):
+  @commands.hybrid_command(name="ping")
+  async def ping(self, ctx: MyContext):
     """Pong!"""
-    latency = f"{self.bot.get_shard(ctx.guild.shard_id).latency*1000:,.0f}" if ctx.guild is not None else f"{self.bot.latency*1000:,.0f}"
-    return await ctx.send(embed=embed(title="Pong!", description=f"⏳ API is {latency}ms"))
+    shard = ctx.guild and self.bot.get_shard(ctx.guild.shard_id)
+    latency = f"{shard.latency*1000:,.0f}" if shard is not None else f"{self.bot.latency*1000:,.0f}"
+    await ctx.send(embed=embed(title=ctx.lang.ping.ping.response_title, description=ctx.lang.ping.ping.response_description.format(ping=latency)))
 
 
-def setup(bot):
-  bot.add_cog(Ping(bot))
+async def setup(bot):
+  await bot.add_cog(Ping(bot))

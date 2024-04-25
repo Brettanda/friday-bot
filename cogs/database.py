@@ -1,12 +1,15 @@
-import asyncpg
-import os
+from __future__ import annotations
+
+import logging
+from typing import TYPE_CHECKING
 
 from discord.ext import commands
-from typing_extensions import TYPE_CHECKING
-from typing import Optional, Union
 
 if TYPE_CHECKING:
   from index import Friday as Bot
+
+
+log = logging.getLogger(__name__)
 
 
 class Database(commands.Cog):
@@ -18,37 +21,151 @@ class Database(commands.Cog):
     self.columns = {
         "servers": [
             "id text PRIMARY KEY NOT NULL",
-            "tier text NULL",
             "prefix varchar(5) NOT NULL DEFAULT '!'",
-            "patreon_user text NULL DEFAULT NULL",
-            "lang varchar(2) NULL DEFAULT NULL",
-            "max_mentions json NULL DEFAULT NULL",
-            "max_messages json NULL DEFAULT NULL",
-            "max_content json NULL DEFAULT NULL",
+            "max_mentions jsonb NULL DEFAULT NULL",
+            "max_messages jsonb NULL DEFAULT NULL",
+            "max_content jsonb NULL DEFAULT NULL",
             "remove_invites boolean DEFAULT false",
             "bot_manager text DEFAULT NULL",
-            "persona text DEFAULT 'friday'",
+            "persona text DEFAULT 'default'",
+            # "default_event_role_id bigint DEFAULT NULL",
             "customjoinleave text NULL",
             "chatchannel text NULL DEFAULT NULL",
+            "chatchannel_webhook text NULL",
+            "chatstoprepeating boolean DEFAULT true",
+            "botchannel text NULL DEFAULT NULL",
             "musicchannel text NULL DEFAULT NULL",
+            "disabled_commands text[] DEFAULT array[]::text[]",
+            "restricted_commands text[] DEFAULT array[]::text[]",
             "mute_role text NULL DEFAULT NULL",
+            "mod_roles text[] NOT NULL DEFAULT array[]::text[]",
+            "report_channel text NULL DEFAULT NULL",
             "automod_whitelist text[] DEFAULT array[]::text[]",
             "mod_log_channel text NULL DEFAULT NULL",
-            "mod_log_events text[] DEFAULT array['bans', 'mutes', 'unbans', 'unmutes', 'kicks']::text[]",
+            "mod_log_events text[] DEFAULT array['bans', 'mutes', 'unbans', 'unmutes', 'kicks', 'timeouts']::text[]",
             r"muted_members text[] DEFAULT array[]::text[]",
-            r"customsounds json[] NOT NULL DEFAULT array[]::json[]",
+            "raid_mode smallint NOT NULL DEFAULT 0",
+            "raid_mode_reason text NOT NULL DEFAULT 'Raid Mode enabled'",
+            "raid_mode_auto smallint[] DEFAULT NULL",
+            r"customsounds jsonb[] NOT NULL DEFAULT array[]::jsonb[]",
+            "tags jsonb[] DEFAULT array[]::jsonb[]",
             "reddit_extract boolean DEFAULT false",
         ],
-        "votes": [
-            "id text PRIMARY KEY NOT NULL",
-            "to_remind boolean NOT NULL DEFAULT false",
-            "has_reminded boolean NOT NULL DEFAULT false",
-            "voted_time timestamp NULL DEFAULT NULL"
+        # "stats": [
+        #   "cluster_id serial PRIMARY KEY NOT NULL",
+        #   "shard_id serial NOT NULL",
+        #   "latency int NOT NULL",
+        #  # "status boolean"
+        #   "guild_count int NOT NULL",
+        #   "last_update timestamp NOT NULL",
+        # ],
+        "joined": [
+            "time TIMESTAMP WITH TIME ZONE",
+            "guild_id text",
+            "joined boolean DEFAULT NULL",
+            "current_count bigint DEFAULT NULL",
+        ],
+        "voting_streaks": [
+            "user_id bigint PRIMARY KEY NOT NULL",
+            "created timestamp NOT NULL DEFAULT (now() at time zone 'utc')",
+            "last_vote timestamp NOT NULL DEFAULT (now() at time zone 'utc')",
+            "days bigint NOT NULL DEFAULT 1",
+            "expires timestamp NOT NULL",
+        ],
+        "reminders": [
+            "id bigserial PRIMARY KEY NOT NULL",
+            "expires timestamp NOT NULL",
+            "created timestamp NOT NULL DEFAULT (now() at time zone 'utc')",
+            "event text",
+            "extra jsonb DEFAULT '{}'::jsonb",
+        ],
+        "logs": [
+            "id bigserial PRIMARY KEY NOT NULL",
+            "id_specific bigint NOT NULL DEFAULT 0",
+            "guild_id text NOT NULL",
+            "channel_id text NOT NULL",
+            "message_id text NOT NULL",
+            "target text NOT NULL",
+            "moderator text NOT NULL",
+            "action text NOT NULL",
+            "reason text NOT NULL",
         ],
         "patrons": [
             "user_id text PRIMARY KEY NOT NULL",
             "tier smallint NOT NULL DEFAULT 0",
-            "guild_id text NULL DEFAULT NULL"
+            "guild_ids text[] NOT NULL DEFAULT array[]::text[]",
+        ],
+        "commands": [
+            "id bigserial PRIMARY KEY NOT NULL",
+            "guild_id text NOT NULL",
+            "channel_id text NOT NULL",
+            "author_id text NOT NULL",
+            "used TIMESTAMP WITH TIME ZONE",
+            "prefix text",
+            "command text",
+            "failed boolean",
+        ],
+        "chats": [
+            "id bigserial PRIMARY KEY NOT NULL",
+            "guild_id text NOT NULL",
+            "channel_id text NOT NULL",
+            "author_id text NOT NULL",
+            "used TIMESTAMP WITH TIME ZONE",
+            "user_msg text",
+            "bot_msg text",
+            "prompt text",
+            "failed boolean",
+            "filtered int NULL",
+            "persona text DEFAULT 'friday'",
+        ],
+        "scheduledevents": [
+            "id bigserial PRIMARY KEY NOT NULL",
+            "guild_id bigint NOT NULL",
+            "event_id bigint UNIQUE NOT NULL",
+            "role_id bigint UNIQUE NOT NULL",
+            "subscribers bigint[] NOT NULL DEFAULT array[]::bigint[]",
+        ],
+        "starboard": [
+            "id bigserial PRIMARY KEY NOT NULL",
+            "channel_id bigint",
+            "threshold int NOT NULL DEFAULT 1",
+            "locked boolean NOT NULL DEFAULT false",
+        ],
+        "starboard_entries": [
+            "id bigserial PRIMARY KEY NOT NULL",
+            "bot_message_id bigint",
+            "message_id bigint UNIQUE NOT NULL",
+            "channel_id bigint",
+            "author_id bigint",
+            "guild_id bigint NOT NULL REFERENCES starboard (id) ON DELETE CASCADE ON UPDATE NO ACTION",
+        ],
+        "starrers": [
+            "id bigserial PRIMARY KEY NOT NULL",
+            "author_id bigint NOT NULL",
+            "entry_id bigint NOT NULL REFERENCES starboard_entries (id) ON DELETE CASCADE ON UPDATE NO ACTION",
+        ],
+        "embeds": [
+            "id bigserial PRIMARY KEY NOT NULL",
+            "name text NOT NULL",
+            "guild_id bigint NOT NULL",
+            "channel_id bigint NOT NULL",
+            "message_id bigint NOT NULL",
+            "embed jsonb NOT NULL",
+        ],
+        "plonks": [
+            "id bigserial PRIMARY KEY NOT NULL",
+            "guild_id bigint NOT NULL",
+            "entity_id bigint UNIQUE NOT NULL",
+        ],
+        "command_config": [
+            "id bigserial PRIMARY KEY NOT NULL",
+            "guild_id bigint NOT NULL",
+            "channel_id bigint NOT NULL",
+            "name text",
+            "ignore boolean",
+            "whitelist boolean",
+            "restrict boolean",
+            "modonly boolean"
         ],
         "countdowns": [
             "guild text NULL",
@@ -57,11 +174,30 @@ class Database(commands.Cog):
             "title text NULL",
             "time bigint NOT NULL"
         ],
+        "tags": [
+            "id bigserial PRIMARY KEY NOT NULL",
+            "name text",
+            "content text",
+            "owner_id bigint",
+            "uses int NOT NULL DEFAULT 0",
+            "location_id bigint",
+            "created timestamp DEFAULT (now() at time zone 'utc')",
+        ],
+        "tag_lookup": [
+            "id bigserial PRIMARY KEY NOT NULL",
+            "name text",
+            "location_id bigint",
+            "owner_id bigint",
+            "created_at timestamp DEFAULT (now() at time zone 'utc')",
+            "tag_id bigint NOT NULL REFERENCES tags (id) ON DELETE CASCADE ON UPDATE NO ACTION",
+        ],
         "welcome": [
             "guild_id text PRIMARY KEY NOT NULL",
             "role_id text DEFAULT NULL",
             "channel_id text DEFAULT NULL",
-            "message text DEFAULT NULL"
+            "message text DEFAULT NULL",
+            "image_background_url text DEFAULT NULL",
+            "image_background_dimensions text DEFAULT NULL",
         ],
         "blacklist": [
             "guild_id text PRIMARY KEY NOT NULL",
@@ -70,75 +206,24 @@ class Database(commands.Cog):
             "words text[]"
         ],
     }
-    hostname = 'localhost' if self.bot.prod or self.bot.canary else os.environ["DBHOSTNAME"]
-    username = os.environ["DBUSERNAMECANARY"] if self.bot.canary else os.environ["DBUSERNAME"] if self.bot.prod else os.environ["DBUSERNAMELOCAL"]
-    password = os.environ["DBPASSWORDCANARY"] if self.bot.canary else os.environ["DBPASSWORD"] if self.bot.prod else os.environ["DBPASSWORDLOCAL"]
-    database = os.environ["DBDATABASECANARY"] if self.bot.canary else os.environ["DBDATABASE"] if self.bot.prod else os.environ["DBDATABASELOCAL"]
-    kwargs = {
-        'command_timeout': 60,
-        'max_size': 20,
-        'min_size': 20,
-    }
-    self._connection: asyncpg.Pool = self.loop.run_until_complete(asyncpg.create_pool(host=hostname, user=username, password=password, database=database, loop=self.loop, **kwargs))
-    if self.bot.cluster_idx == 0:
-      self.loop.run_until_complete(self.create_tables())
-      self.loop.run_until_complete(self.sync_table_columns())
+    self.indexes = [
+        "CREATE UNIQUE INDEX IF NOT EXISTS command_config_uniq_idx ON command_config (channel_id, name, whitelist);",
+        "CREATE UNIQUE INDEX IF NOT EXISTS starrers_uniq_idx ON starrers (author_id, entry_id);",
+        # Extension 'cogs.database' raised an error: UndefinedObjectError: operator class "gin_trgm_ops" does not exist for access method "gin"
+        # "CREATE INDEX IF NOT EXISTS tags_name_trgm_idx ON tags USING GIN (name gin_trgm_ops);",
+        # "CREATE INDEX IF NOT EXISTS tag_lookup_name_trgm_idx ON tag_lookup USING GIN (name gin_trgm_ops);",
 
-  def __repr__(self):
-    return "<cogs.Database>"
+        "CREATE INDEX IF NOT EXISTS tags_name_lower_idx ON tags (LOWER(name));",
+        "CREATE UNIQUE INDEX IF NOT EXISTS tags_uniq_idx ON tags (LOWER(name), location_id);",
+        "CREATE INDEX IF NOT EXISTS tag_lookup_name_lower_idx ON tag_lookup (LOWER(name));",
+        "CREATE UNIQUE INDEX IF NOT EXISTS tag_lookup_uniq_idx ON tag_lookup (LOWER(name), location_id);",
+        "CREATE UNIQUE INDEX IF NOT EXISTS scheduledevents_event_id_role_id ON scheduledevents (event_id, role_id);",
+    ]
 
-  @property
-  def pool(self) -> asyncpg.Pool:
-    return self._connection
-
-  @commands.Cog.listener()
-  async def on_ready(self):
-    actual_guilds, checked_guilds = [str(guild.id) for guild in self.bot.guilds], []
-    for guild_id in await self.query("SELECT id FROM servers"):
-      if str(guild_id[0]) in actual_guilds:
-        checked_guilds.append(guild_id)
-    if len(checked_guilds) == len(self.bot.guilds):
-      self.bot.logger.info("All guilds are in the Database")
-
-  async def create_tables(self):
-    async with self.pool.acquire(timeout=300.0) as conn:
-      async with conn.transaction():
-        for table in self.columns:
-          await conn.execute(f"CREATE TABLE IF NOT EXISTS {table} ({','.join(self.columns[table])});")
-
-  async def sync_table_columns(self):
-    # https://stackoverflow.com/questions/9991043/how-can-i-test-if-a-column-exists-in-a-table-using-an-sql-statement
-    async with self.pool.acquire(timeout=300.0) as conn:
-      async with conn.transaction():
-        for table in self.columns:
-          for column in self.columns[table]:
-            result = await conn.fetch(f"SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='{table}' AND column_name='{column.split(' ')[0]}') LIMIT 1")
-            if not result[0].get("exists"):
-              await conn.execute(f"ALTER TABLE {table} ADD COLUMN {column};")
-
-  async def query(self, query: str, *params) -> Optional[Union[str, list]]:
-    async with self.pool.acquire(timeout=300.0) as mycursor:
-      if "select" in query.lower():
-        result = await mycursor.fetch(query, *params)
-      else:
-        await mycursor.execute(query, *params)
-    if hasattr(self.bot, "logger"):
-      self.bot.logger.debug(f"PostgreSQL Query: \"{query}\" + {params}")
-    if "select" in query.lower():
-      if isinstance(result, list) and len(result) == 1 and "limit 1" in query.lower():
-        result = [tuple(i) for i in result][0]
-        if len(result) == 1:
-          return result[0]
-        return result
-      if isinstance(result, list) and len(result) > 0 and "limit 1" not in query.lower():
-        return [tuple(i) for i in result]
-      elif isinstance(result, list) and len(result) == 0 and "limit 1" in query.lower():
-        return None
-      return result
-
-  def cog_unload(self):
-    self.update_local_values.stop()
+  def __repr__(self) -> str:
+    return f"<cogs.{self.__cog_name__}>"
 
 
-def setup(bot):
-  bot.add_cog(Database(bot))
+async def setup(bot):
+    ...
+#   await bot.add_cog(Database(bot))

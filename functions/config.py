@@ -1,5 +1,159 @@
-from typing import Optional
+from __future__ import annotations
+
+import asyncio
+import enum
+import json
+import os
+import uuid
+from typing import (Any, Callable, Dict, Generic, Optional, Type, TypeVar,
+                    Union, overload)
+
 import discord
+from discord.ext import commands
+from typing_extensions import Self
+
+_T = TypeVar('_T')
+
+ObjectHook = Callable[[Dict[str, Any]], Any]
+
+
+class Config(Generic[_T]):
+  """The "database" object. Internally based on ``json``."""
+
+  def __init__(
+      self,
+      name: str,
+      *,
+      object_hook: Optional[ObjectHook] = None,
+      encoder: Optional[Type[json.JSONEncoder]] = None,
+      load_later: bool = False,
+  ):
+    self.name = name
+    self.object_hook = object_hook
+    self.encoder = encoder
+    self.loop = asyncio.get_running_loop()
+    self.lock = asyncio.Lock()
+    self._db: Dict[str, Union[_T, Any]] = {}
+    if load_later:
+      self.loop.create_task(self.load())
+    else:
+      self.load_from_file()
+
+  def load_from_file(self):
+    try:
+      with open(self.name, 'r', encoding='utf-8') as f:
+        self._db = json.load(f, object_hook=self.object_hook)
+    except FileNotFoundError:
+      self._db = {}
+
+  async def load(self):
+    async with self.lock:
+      await self.loop.run_in_executor(None, self.load_from_file)
+
+  def _dump(self):
+    temp = f'{uuid.uuid4()}-{self.name}.tmp'
+    with open(temp, 'w', encoding='utf-8') as tmp:
+      json.dump(self._db.copy(), tmp, ensure_ascii=True, cls=self.encoder, separators=(',', ':'))
+
+    # atomically move the file
+    os.replace(temp, self.name)
+
+  async def save(self) -> None:
+    async with self.lock:
+      await self.loop.run_in_executor(None, self._dump)
+
+  @overload
+  def get(self, key: Any) -> Optional[Union[_T, Any]]:
+    ...
+
+  @overload
+  def get(self, key: Any, default: Any) -> Union[_T, Any]:
+    ...
+
+  def get(self, key: Any, default: Any = None) -> Optional[Union[_T, Any]]:
+    """Retrieves a config entry."""
+    return self._db.get(str(key), default)
+
+  async def put(self, key: Any, value: Union[_T, Any]) -> None:
+    """Edits a config entry."""
+    self._db[str(key)] = value
+    await self.save()
+
+  async def remove(self, key: Any) -> None:
+    """Removes a config entry."""
+    del self._db[str(key)]
+    await self.save()
+
+  def __contains__(self, item: Any) -> bool:
+    return str(item) in self._db
+
+  def __getitem__(self, item: Any) -> Union[_T, Any]:
+    return self._db[str(item)]
+
+  def __len__(self) -> int:
+    return len(self._db)
+
+  def all(self) -> Dict[str, Union[_T, Any]]:
+    return self._db
+
+
+class ReadOnly(Generic[_T]):
+  """The "database" object. Internally based on ``json``."""
+
+  def __init__(
+      self,
+      name: str,
+      *,
+      object_hook: Optional[ObjectHook] = None,
+      encoder: Optional[Type[json.JSONEncoder]] = None,
+      load_later: bool = False,
+  ):
+    self.name = name
+    self.object_hook = object_hook
+    self.encoder = encoder
+    self.loop = asyncio.get_running_loop()
+    self.lock = asyncio.Lock()
+    self._db: Dict[str, Union[_T, Any]] = {}
+    if load_later:
+      self.loop.create_task(self.load())
+    else:
+      self.load_from_file()
+
+  def load_from_file(self):
+    try:
+      with open(self.name, 'r', encoding='utf-8') as f:
+        self._db = json.load(f, object_hook=self.object_hook)
+    except FileNotFoundError:
+      self._db = {}
+
+  async def load(self):
+    async with self.lock:
+      await self.loop.run_in_executor(None, self.load_from_file)
+
+  @overload
+  def get(self, key: Any) -> Optional[Union[_T, Any]]:
+    ...
+
+  @overload
+  def get(self, key: Any, default: Any) -> Union[_T, Any]:
+    ...
+
+  def get(self, key: Any, default: Any = None) -> Optional[Union[_T, Any]]:
+    """Retrieves a config entry."""
+    return self._db.get(str(key), default)
+
+  def __contains__(self, item: Any) -> bool:
+    return str(item) in self._db
+
+  def __getitem__(self, item: Any) -> Union[_T, Any]:
+    return self._db[str(item)]
+
+  def __len__(self) -> int:
+    return len(self._db)
+
+  def all(self) -> Dict[str, Union[_T, Any]]:
+    return self._db
+
 
 defaultPrefix = "!"
 
@@ -16,99 +170,139 @@ support_server_invites = {
 }
 
 
-intents = discord.Intents(
-    guilds=True,
-    voice_states=True,
-    messages=True,
-    reactions=True,
-    members=True,
-    bans=True,
-    # invites=True,
-)
-
-member_cache = discord.MemberCacheFlags(joined=True)
-
 # all_support_ranks = [item for item in support_ranks]
+
+class ChatSpamConfig:
+  absolute_minute_rate: int = 20
+  absolute_hour_rate: int = 200
+  free_rate: int = 30
+  voted_rate: int = 60
+  streaked_rate: int = 75
+  patron_1_rate: int = 75
+  patron_2_rate: int = 150
+  patron_3_rate: int = 300
+
 
 patreon_supporting_role = 843941723041300480
 
 
-class PremiumTiers:
+class PremiumTiersNew(enum.Enum):
   free = 0
-  tier_1 = 1
-  tier_2 = 2
-  tier_3 = 3
-  tier_4 = 4
+  voted = 1
+  streaked = 1.5
+  tier_1 = 2
+  tier_2 = 3
+  tier_3 = 4
+  tier_4 = 5
 
-  roles = [
-        844090257221222401,
-        851980183962910720,
-        858993523536429056,
-        858993776994418708
-  ]
+  @classmethod
+  def from_patreon_tier(cls, tier: int = 7212079) -> PremiumTiersNew:
+    if int(tier) == 8434506:  # Patreon Tier 1
+      return cls.tier_1
+    if int(tier) == 7212079:  # Patreon Tier 2
+      return cls.tier_2
+    if int(tier) == 7378874:  # Patreon Tier 3
+      return cls.tier_3
+    return cls.free
 
-  def get_role(self, tier: int) -> Optional[int]:
-    if tier == 0 or tier > len(self.roles):
-      return None
-    return self.roles[tier - 1]
+  @property
+  def patreon_tier(self) -> Optional[int]:
+    if self.value == self.tier_1.value:
+      return 8434506
+    elif self.value == self.tier_2.value:
+      return 7212079
+    elif self.value == self.tier_3.value:
+      return 7378874
 
+  def __str__(self):
+    return self.name.capitalize().replace("_", " ")
 
-premium_tiers = {
-    "free": 0,
-    "t1_one_guild": 1,
-    "t1_three_guilds": 2,
-    "t2_one_guild": 3,
-    "t3_one_guild": 4,
-    "t4_one_guild": 5,
-}
+  def __ge__(self, other: Self):
+    return self.value >= other.value
 
-premium_roles = {
-    "t1_one_guild": 844090257221222401,
-    premium_tiers["t1_one_guild"]: 844090257221222401,
-    "t1_three_guilds": 849440438598238218,
-    premium_tiers["t1_three_guilds"]: 849440438598238218,
-    "t2_one_guild": 851980183962910720,
-    premium_tiers["t2_one_guild"]: 851980183962910720,
-    # "t2_three_guilds": 851980649920331798,
-    # premium_tiers["t2_three_guilds"]: 851980649920331798,
-    "t3_one_guild": 858993523536429056,
-    premium_tiers["t3_one_guild"]: 858993523536429056,
-    "t4_one_guild": 858993776994418708,
-    premium_tiers["t4_one_guild"]: 858993776994418708,
-}
+  def __gt__(self, other: Self):
+    return self.value > other.value
+
+  def __le__(self, other: Self):
+    return self.value <= other.value
+
+  def __lt__(self, other: Self):
+    return self.value < other.value
 
 
-allowed_mentions = discord.AllowedMentions(roles=False, everyone=False, users=True)
+class PremiumPerks:
+  def __init__(self, tier: PremiumTiersNew = PremiumTiersNew.free):
+    self.tier: PremiumTiersNew = tier
 
-games = [
-    "Developing myself",
-    "Minecraft 1.19",
-    "Super Smash Bros. Ultimate",
-    "Cyberpunk 2078",
-    "Forza Horizon 6",
-    "Red Dead Redemption 3",
-    "Grand Theft Auto V",
-    "Grand Theft Auto VI",
-    "Grand Theft Auto IV",
-    "Grand Theft Auto III",
-    "Ori and the Will of the Wisps",
-    "With the internet",
-    "DOOM Eternal",
-    "D&D (solo)",
-    "Big brain time",
-    "Uploading your consciousness",
-    "Learning everything on the Internet",
-    "some games",
-    "with Machine Learning",
-    "Escape from Tarkov",
-    # "Giving out inspirational quotes",
-    {
-        "type": discord.ActivityType.listening, "content": "myself"
-    },
-    {
-        "type": discord.ActivityType.watching, "content": "", "stats": True
+    self._roles = {
+          PremiumTiersNew.tier_1.value: 844090257221222401,
+          PremiumTiersNew.tier_2.value: 851980183962910720,
+          PremiumTiersNew.tier_3.value: 858993523536429056,
+          PremiumTiersNew.tier_4.value: 858993776994418708
     }
-]
+
+  def __repr__(self) -> str:
+    return f"<PremiumPerks tier={self.tier}>"
+
+  @property
+  def guild_role(self) -> Optional[int]:
+    """The patron role for the support guild"""
+    return self._roles.get(self.tier.value, None)
+
+  @property
+  def chat_ratelimit(self) -> commands.CooldownMapping:
+    from cogs.chat import SpamChecker
+    if self.tier == PremiumTiersNew.free:
+      return SpamChecker().free
+    elif self.tier == PremiumTiersNew.voted:
+      return SpamChecker().voted
+    elif self.tier == PremiumTiersNew.streaked:
+      return SpamChecker().streaked
+    elif self.tier >= PremiumTiersNew.tier_1:
+      return SpamChecker().patron_1
+    elif self.tier >= PremiumTiersNew.tier_2:
+      return SpamChecker().patron_2
+    elif self.tier >= PremiumTiersNew.tier_3:
+      return SpamChecker().patron_3
+    return SpamChecker().free
+
+  @property
+  def max_chat_characters(self) -> int:
+    if self.tier >= PremiumTiersNew.tier_3:
+      return 400
+    if self.tier >= PremiumTiersNew.tier_2:
+      return 300
+    if self.tier >= PremiumTiersNew.voted:
+      return 200
+    return 100
+
+  @property
+  def max_chat_history(self) -> int:
+    if self.tier.value >= PremiumTiersNew.tier_2.value:
+      return 5
+    return 3
+
+  @property
+  def max_chat_tokens(self) -> int:
+    if self.tier >= PremiumTiersNew.tier_3:
+      return 150
+    if self.tier >= PremiumTiersNew.tier_2:
+      return 100
+    if self.tier >= PremiumTiersNew.voted:
+      return 50
+    return 30
+
+  @property
+  def max_chat_channels(self) -> int:
+    if self.tier >= PremiumTiersNew.tier_3:
+      return 5
+    if self.tier >= PremiumTiersNew.tier_2:
+      return 3
+    return 1
+
+
+allowed_mentions = discord.AllowedMentions(roles=False, everyone=False, users=True, replied_user=False)
+
 
 soups = [
     "https://cdn.discordapp.com/attachments/503687266594586634/504016368618700801/homemade-chicken-noodle-soup.png",

@@ -57,6 +57,7 @@ coverage.xml
 
 # Django stuff:
 *.log
+*.log*
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
@@ -99,6 +100,7 @@ celerybeat-schedule
 
 # Environments
 .env
+.env.*
 .venv
 env/
 venv/
@@ -137,3 +139,13 @@ friday-trans-key.json
 *.sql
 *.sqlite
 *.zip
+
+blacklist.json
+languages.json
+crowdin.yml
+wandb/
+i18n/locales/
+i18n/en/commands.json
+
+migrations/*.json
+!migrations/V*__*.sql

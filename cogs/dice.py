@@ -1,42 +1,46 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import d20
-
+from discord import app_commands
 from discord.ext import commands
-# from discord_slash import cog_ext
 
-from functions import embed, MessageColors  # , checks
+from functions import MessageColors, embed
 
-from functions import MyContext
+if TYPE_CHECKING:
+  from functions import MyContext
+  from index import Friday
 
 
 class Dice(commands.Cog):
   """Roll some dice with advantage or just do some basic math."""
 
-  def __repr__(self):
-    return "<cogs.Dice>"
+  def __init__(self, bot: Friday) -> None:
+    self.bot: Friday = bot
 
-  @commands.command(name="dice", extras={"slash": True, "examples": ["1d20", "5d10k3", "d6"]}, aliases=["d", "r", "roll"], help="D&D dice rolling")
-  async def norm_dice(self, ctx: "MyContext", *, roll: str):
-    if "bump" in roll:
-      return
+  def __repr__(self) -> str:
+    return f"<cogs.{self.__cog_name__}>"
 
-    return await self.dice(ctx, roll)
+  @commands.hybrid_command(extras={"examples": ["1d20", "5d10k3", "d6"]}, aliases=["d", "r", "roll"])
+  @app_commands.describe(roll="The roll to be made. How to: https://d20.readthedocs.io/en/latest/start.html")
+  async def dice(self, ctx: MyContext, *, roll: str):
+    """Dungeons and Dragons dice rolling"""
+    if "bump" in roll.lower():
+      raise commands.NotOwner()
 
-  # @cog_ext.cog_slash(name="dice", description="D&D dice rolling")
-  # @checks.slash(user=False, private=True)
-  # async def slash_dice(self, ctx: "MyContext", *, roll: str):
-  #   return await self.dice(ctx, roll)
-
-  async def dice(self, ctx: "MyContext", roll):
     roll = roll.lower()
 
     result = None
     try:
       result = d20.roll(roll)
     except Exception as e:
-      return await ctx.send(embed=embed(title=f"{e}", color=MessageColors.ERROR))
+      return await ctx.send(embed=embed(title=f"{e}", color=MessageColors.error()))
     else:
-      return await ctx.send(embed=embed(title=f"Your total: {str(result.total)}", description=f"Query: {str(result.ast)}\nResult: {str(result)}"))
+      return await ctx.send(embed=embed(
+          title=ctx.lang.dice.dice.response_title.format(total=str(result.total)),
+          description=ctx.lang.dice.dice.response_description.format(query=str(result.ast), result=str(result))))
 
 
-def setup(bot):
-  bot.add_cog(Dice(bot))
+async def setup(bot):
+  await bot.add_cog(Dice(bot))

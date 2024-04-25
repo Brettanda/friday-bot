@@ -1,194 +1,177 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+import discord
 import pytest
-from typing_extensions import TYPE_CHECKING
+
+from .conftest import send_command, msg_check
 
 if TYPE_CHECKING:
-  from .conftest import bot, voice_channel, channel
+  from .conftest import Friday, UnitTester, UnitTesterUser
 
 
-@pytest.mark.asyncio
-async def test_prefix(bot: "bot", channel: "channel"):
-  content = "!prefix ?"
-  await channel.send(content)
-
-  f_msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
-
-  content = "?prefix !"
-  await channel.send(content)
-  l_msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
-  assert f_msg.embeds[0].title == "My new prefix is `?`" and l_msg.embeds[0].title == "My new prefix is `!`"
+pytestmark = pytest.mark.asyncio
 
 
-@pytest.mark.asyncio
-async def test_lock(bot: "bot", voice_channel: "voice_channel", channel: "channel"):
-  vc = await voice_channel.connect(timeout=10.0)
-  content = "!lock 895486009465266176"
-  await channel.send(content)
+@pytest.mark.dependency()
+async def test_get_cog(friday: Friday):
+  assert friday.get_cog("Moderation") is not None
 
-  f_msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
 
-  await channel.send(content)
-  l_msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
-  await vc.disconnect()
+@pytest.fixture(scope="module")
+async def voice(bot: discord.Client, voice_channel: discord.VoiceChannel, channel: discord.TextChannel) -> discord.VoiceClient:  # type: ignore
+  await bot.wait_until_ready()
+  voice = voice_channel.guild.voice_client or await voice_channel.connect()
+  yield voice
+  await voice.disconnect(force=True)
+  await channel.send("!stop")
+
+
+@pytest.mark.dependency(depends=["test_get_cog"])
+@pytest.mark.dependency(depends=["test_get_cog"])
+async def test_lock(bot: UnitTester, voice_channel: discord.VoiceChannel, channel: discord.TextChannel, voice: discord.VoiceClient):
+  content = f"!lock {voice.channel.id}"
+  com = await send_command(bot, channel, content)
+
+  f_msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+  assert voice.channel.user_limit != 0
+  com = await send_command(bot, channel, content)
+
+  l_msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+  assert voice.channel.user_limit == 0
   assert "Locked" in f_msg.embeds[0].title and "Unlocked" in l_msg.embeds[0].title
 
 
-@pytest.mark.asyncio
-async def test_language(bot: "bot", channel: "channel"):
-  content = "!lang es"
-  await channel.send(content)
+@pytest.mark.dependency(depends=["test_get_cog"])
+@pytest.mark.dependency(depends=["test_get_cog"])
+async def test_massmove(bot: UnitTester, channel: discord.TextChannel, voice_channel, voice: discord.VoiceClient):
+  _id = 245688124108177411
+  content = f"!move {_id}"
+  com = await send_command(bot, channel, content)
 
-  f_msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
-  content = "!lang en"
-  await channel.send(content)
-  l_msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
-  assert f_msg.embeds[0].title == "New language set to: `Spanish`" and l_msg.embeds[0].title == "New language set to: `English`"
+  _, _, new_voice = await bot.wait_for("voice_state_update", check=lambda m, b, a: b.channel.id == voice.channel.id and a.channel.id == _id and b.channel != a.channel, timeout=pytest.timeout)  # type: ignore
+  assert len(new_voice.channel.voice_states) > 0
+
+  msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+  assert "Successfully moved" in msg.embeds[0].title
+
+  assert await channel.send(f"!move {voice_channel.id}")
 
 
-class TestRemoveInvites:
-  @pytest.mark.asyncio
+@pytest.mark.dependency()
+@pytest.mark.dependency(depends=["test_get_cog"])
+@pytest.mark.dependency(depends=["test_get_cog"])
+async def test_ban(bot: UnitTester, channel: discord.TextChannel):
+  content = "!ban 969513051789361162 testing"
+  com = await send_command(bot, channel, content)
+
+  msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+  assert msg.embeds[0].title == "Banned Member ID 969513051789361162"
+
+
+@pytest.mark.dependency(depends=["test_ban"])
+@pytest.mark.dependency(depends=["test_get_cog"])
+@pytest.mark.dependency(depends=["test_get_cog"])
+async def test_unban(bot: UnitTester, channel: discord.TextChannel):
+  content = "!unban <@969513051789361162>"
+  com = await send_command(bot, channel, content)
+
+  msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+  assert "Unbanned" in msg.embeds[0].title
+
+
+@pytest.mark.dependency()
+@pytest.mark.dependency(depends=["test_get_cog"])
+@pytest.mark.dependency(depends=["test_get_cog"])
+async def test_hack_ban(bot: UnitTester, channel: discord.TextChannel):
+  content = "!ban 969513051789361162 testing"
+  com = await send_command(bot, channel, content)
+
+  msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+  assert msg.embeds[0].title == "Banned Member ID 969513051789361162"
+
+
+@pytest.mark.dependency(depends=["test_hack_ban"])
+@pytest.mark.dependency(depends=["test_get_cog"])
+@pytest.mark.dependency(depends=["test_get_cog"])
+async def test_hack_unban(bot: UnitTester, channel: discord.TextChannel):
+  content = "!unban 969513051789361162"
+  com = await send_command(bot, channel, content)
+
+  msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+  assert "Unbanned" in msg.embeds[0].title
+
+
+@pytest.mark.dependency(depends=["test_get_cog"])
+@pytest.mark.dependency(depends=["test_get_cog"])
+async def test_unban_fake(bot: UnitTester, channel: discord.TextChannel):
+  content = "!unban 215227961048170496"
+  com = await send_command(bot, channel, content)
+
+  msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+  assert msg.embeds[0].title == "This member has not been banned."
+
+
+class TestMute:
   @pytest.mark.dependency()
-  async def test_enable(self, bot: "bot", channel: "channel"):
-    content = "!removeinvites 1"
-    await channel.send(content)
+  async def test_create_mute_role(self, bot: UnitTester, channel: discord.TextChannel, guild: discord.Guild):
+    role = await guild.create_role(name="Test Mute Role", reason="Testing mute commands")
+    assert role.name == "Test Mute Role"
 
-    msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
-    assert msg.embeds[0].title == "I will begin to remove invites"
+    content = f"!mute role {role.id}"
+    com = await send_command(bot, channel, content)
 
-  @pytest.mark.asyncio
-  @pytest.mark.parametrize("content", ["https://discord.com/invite/NTRuFjU", "http://discord.com/invite/NTRuFjU", "https://discord.gg/NTRuFjU", "discord.com/invite/NTRuFjU", "discord.gg/NTRuFjU", "discord.gg/discord-developers"])
-  @pytest.mark.dependency(depends=["test_enable"], scope='class')
-  async def test_external_guild(self, bot: "bot", channel: "channel", content: str):
-    msg = await channel.send(content)
+    msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+    assert msg.embeds[0].title == f"Friday will now use `{role.name}` as the new mute role"
 
-    msg = await bot.wait_for("raw_message_delete", check=lambda payload: pytest.raw_message_delete_check(payload, msg), timeout=pytest.timeout)
-    assert msg.cached_message.content == content if msg.cached_message is not None else 1
+  @pytest.mark.dependency(depends=["test_create_mute_role"], scope="class")
+  async def test_mute_role_update(self, bot: UnitTester, channel: discord.TextChannel):
+    content = "!mute role update"
+    com = await send_command(bot, channel, content)
 
-  @pytest.mark.asyncio
-  @pytest.mark.dependency(depends=["test_enable"], scope='class')
-  async def test_xdisable(self, bot: "bot", channel: "channel"):
-    content = "!removeinvites 0"
-    await channel.send(content)
+    msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=30.0)
+    assert msg.embeds[0].title == "Mute role successfully updated"
+    assert len(msg.embeds[0].description) > 10
 
-    l_msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
-    assert l_msg.embeds[0].title == "I will no longer remove invites"
-
-
-@pytest.mark.asyncio
-async def test_deletecommandsafter(bot: "bot", channel: "channel"):
-  content = "!deletecommandsafter 120"
-  await channel.send(content)
-
-  f_msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
-  assert f_msg.embeds[0].title == "I will now delete commands after `120` seconds"
-  content = "!deletecommandsafter"
-  await channel.send(content)
-  l_msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
-  assert l_msg.embeds[0].title == "I will no longer delete command messages"
-
-
-class TestBlacklist:
-  @pytest.mark.asyncio
-  async def test_blacklist(self, bot, channel):
-    content = "!blacklist"
-    await channel.send(content)
-
-    msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
-    assert msg.embeds[0].title == "Blocked words" or msg.embeds[0].title == "No blacklisted words yet, use `!blacklist add <word>` to get started"
-
-  @pytest.mark.asyncio
   @pytest.mark.dependency()
-  async def test_add(self, bot, channel):
-    content = "!blacklist add word"
-    await channel.send(content)
+  @pytest.mark.dependency(depends=["test_create_mute_role"], scope='class')
+  async def test_mute(self, bot: UnitTester, bot_user: UnitTesterUser, channel: discord.TextChannel, guild_user: discord.Guild):
+    content = f"!mute 1m {bot_user.user.id} test"
+    com = await send_command(bot, channel, content)
 
-    msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
-    assert msg.embeds[0].title == "Added `word` to the blacklist" or msg.embeds[0].title == "Can't add duplicate word"
+    _, member = await bot_user.wait_for("member_update", check=lambda before, after: before.id == bot_user.user.id and before.roles != after.roles, timeout=pytest.timeout)  # type: ignore
+    assert "Test Mute Role" in [r.name for r in member.roles]
 
-  @pytest.mark.asyncio
-  @pytest.mark.dependency(depends=["test_add"], scope='class')
-  async def test_add_another(self, bot, channel):
-    content = "!blacklist add bad_word"
-    await channel.send(content)
+    msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+    assert f"Muted {bot_user.user.name}#{bot_user.user.discriminator} and retracted" in msg.embeds[0].title
 
-    msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
-    assert msg.embeds[0].title == "Added `bad_word` to the blacklist" or msg.embeds[0].title == "Can't add duplicate word"
+  @pytest.mark.dependency(depends=["test_create_mute_role", "test_mute"], scope='class')
+  async def test_unmute(self, bot: UnitTester, bot_user: UnitTesterUser, channel: discord.TextChannel, guild_user: discord.Guild):
+    content = f"!unmute {bot_user.user.id} test"
+    com = await send_command(bot, channel, content)
 
-  @pytest.mark.asyncio
-  @pytest.mark.dependency(depends=["test_add"], scope='class')
-  async def test_remove(self, bot, channel):
-    content = "!blacklist remove word"
-    await channel.send(content)
+    msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+    assert "Test Mute Role" not in [r.name for r in guild_user.me.roles]
+    assert msg.embeds[0].title == f"Unmuted {bot_user.user.name}#{bot_user.user.discriminator}"
 
-    def say_check(m) -> bool:
-      return m.channel.id == channel.id and m.author.id == 751680714948214855
+  @pytest.mark.dependency(depends=["test_create_mute_role"], scope='class')
+  async def test_mute_role_unbind(self, bot: UnitTester, bot_user: UnitTesterUser, channel: discord.TextChannel, guild: discord.Guild):
+    content = "!mute role unbind"
+    com = await send_command(bot, channel, content)
 
-    msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
-    assert msg.embeds[0].title == "Removed `word` from the blacklist" or msg.embeds[0].title == "You don't seem to be blacklisting that word"
+    msg = await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=pytest.timeout)  # type: ignore
+    assert msg.embeds[0].title == "Unbinding complete."
 
-  @pytest.mark.asyncio
-  async def test_display(self, bot, channel):
-    content = "!blacklist display"
-    await channel.send(content)
+  # @pytest.mark.dependency(depends=["test_create_mute_role"], scope='class')
+  # async def test_mute_role_delete(self, bot: UnitTester, bot_user: UnitTesterUser, channel: discord.TextChannel, guild: discord.Guild):
+  #   roles = await guild.fetch_roles()
+  #   mute_roles = [r for r in roles if r.name == "Test Mute Role"]
+  #   failed = 0
+  #   for r in mute_roles:
+  #     try:
+  #       await r.delete(reason="Testing mute commands")
+  #     except discord.HTTPException:
+  #       failed += 1
 
-    msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
-    assert msg.embeds[0].title == "Blocked words" or msg.embeds[0].title == "No blacklisted words yet, use `!blacklist add <word>` to get started"
-
-  @pytest.mark.asyncio
-  @pytest.mark.dependency(depends=["test_add_another"], scope='class')
-  async def test_clear(self, bot, channel):
-    content = "!blacklist clear"
-    await channel.send(content)
-
-    msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
-    assert msg.embeds[0].title == "Removed all blacklisted words"
-
-
-class TestWelcome:
-  @pytest.mark.asyncio
-  async def test_welcome(self, bot, channel):
-    content = "!welcome"
-    await channel.send(content)
-
-    msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
-    assert "!welcome" in msg.embeds[0].title
-
-  @pytest.mark.asyncio
-  async def test_display(self, bot, channel):
-    content = "!welcome display"
-    await channel.send(content)
-
-    msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
-    assert "Current Welcome Settings" in msg.embeds[0].title
-
-  @pytest.mark.asyncio
-  async def test_role(self, bot, channel):
-    content = "!welcome role 895463648326221854"
-    await channel.send(content)
-
-    msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
-    content = "!welcome role"
-    await channel.send(content)
-    await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
-    assert "New members will now receive the role " in msg.embeds[0].title
-
-  @pytest.mark.asyncio
-  async def test_channel(self, bot, channel):
-    content = f"!welcome channel {channel.id}"
-    await channel.send(content)
-
-    msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
-    content = "!welcome channel"
-    await channel.send(content)
-    await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
-    assert "Welcome message will be sent to" in msg.embeds[0].title
-
-  @pytest.mark.asyncio
-  async def test_message(self, bot, channel):
-    content = '!welcome message "this is a message to {user} from {server}"'
-    await channel.send(content)
-
-    msg = await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
-    content = "!welcome message"
-    await channel.send(content)
-    await bot.wait_for("message", check=lambda message: pytest.msg_check(message, content=content), timeout=pytest.timeout)
-    assert "This servers welcome message is now" in msg.embeds[0].title and "this is a message to @Friday Unit Tester from Diary" in msg.embeds[0].description
+  #   assert failed == 0
