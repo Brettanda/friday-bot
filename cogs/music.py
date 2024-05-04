@@ -164,8 +164,10 @@ class Equalizer(wavelink.Equalizer):
 
 
 class Track(wavelink.Playable):
-  requester: discord.Member
+  requester: discord.User | discord.Member
 
+class Playlist(wavelink.Playlist):
+  tracks: list[Track]
 
 class CustomSearch(discord.app_commands.Transformer):
   @staticmethod
@@ -206,12 +208,14 @@ class CustomSearch(discord.app_commands.Transformer):
   #       t.requester = interaction.user
   #   return tracks
 
-  async def convert(self, ctx: MyContext, value: str) -> list[Track]:
-    platform = self.get_platform(value)
+  async def convert(self, ctx: MyContext, value: str) -> list[Track] | Playlist:
     value = value.strip("<>")
-    tracks = await wavelink.Playable.search(value)
+    tracks: list[Track] | Playlist = await wavelink.Playable.search(value)
     if isinstance(tracks, list):
       for t in tracks:
+        t.requester = ctx.author
+    elif isinstance(tracks, wavelink.Playlist):
+      for t in tracks.tracks:
         t.requester = ctx.author
     return tracks
 
@@ -219,9 +223,11 @@ class CustomSearch(discord.app_commands.Transformer):
     search = await wavelink.Playable.search(value)
     return [discord.app_commands.Choice(name=track.title, value=track.uri or track.title) for track in search[:25]]
 
+class TrackStartEventPayload(wavelink.TrackStartEventPayload):
+  player: Player
 
 class Player(wavelink.Player):
-  current: Track
+  current: Track | None
 
   def __init__(
       self,
@@ -302,6 +308,7 @@ class Music(commands.Cog):
             identifier=f"{os.environ.get('LAVALINKUSID','MAIN')}",
             uri=f"http://{os.environ['LAVALINKUSHOST']}:{os.environ['LAVALINKUSPORT']}",
             password=os.environ["LAVALINK_SERVER_PASSWORD"],
+            inactive_player_timeout=60
         )
     ]
 
@@ -339,7 +346,7 @@ class Music(commands.Cog):
     print(payload.exception)
 
   @commands.Cog.listener()
-  async def on_wavelink_track_start(self, payload: wavelink.TrackStartEventPayload): # TrackEventPayload
+  async def on_wavelink_track_start(self, payload: TrackStartEventPayload):
     if payload.player.channel is None:
       return
 
@@ -357,6 +364,7 @@ class Music(commands.Cog):
 
     stage_instance = await payload.player.channel.fetch_instance()
     assert stage_instance is not None
+    assert payload.player.current is not None
     await stage_instance.edit(topic=f"🎵 {payload.player.current.title}{' by ' + str(payload.player.current.requester) if payload.player.current.requester is not None else ''}", reason="Next track started.")
     # if payload.player.channel.instance:
     #   stage_instance = await payload.player.channel.fetch_instance()
@@ -366,9 +374,8 @@ class Music(commands.Cog):
 
   @commands.Cog.listener()
   async def on_wavelink_inactive_player(self, player: wavelink.Player): #TrackEventPayload):
-    if not player.queue.is_empty:
-      return
-
+    log.info(f"Player: {player.guild} disconnected because of inactivity")
+    
     await player.disconnect()
 
   def required(self, ctx: GuildContext, player: Player) -> int:
@@ -433,7 +440,7 @@ class Music(commands.Cog):
   @commands.guild_only()
   @commands.max_concurrency(1, commands.BucketType.guild, wait=True)
   @can_play()
-  async def play(self, ctx: GuildContext, *, query: discord.app_commands.Transform[list[Track], CustomSearch]):
+  async def play(self, ctx: GuildContext, *, query: discord.app_commands.Transform[list[Track] | Playlist, CustomSearch]):
     """Play or queue a song with the given query."""
     if not ctx.voice_client:
       if ctx.author.voice is None or ctx.author.voice.channel is None:
@@ -445,6 +452,7 @@ class Music(commands.Cog):
       player.ctx = ctx
     else:
       player: Player = ctx.voice_client  # type: ignore
+    player.autoplay = wavelink.AutoPlayMode.partial
 
     # if player.channel.instance is None:
     #   await player.channel.create_instance(topic=track.title, reason="Music time!")
@@ -457,28 +465,30 @@ class Music(commands.Cog):
         else:
           await ctx.guild.me.request_to_speak()
 
-    new_tracks = []
+    # new_tracks = []
 
     async def _play(track):
       track.requester = ctx.author
       # log.info(track)
-      new_tracks.append(track)
+      # new_tracks.append(track)
       await player.queue.put_wait(track)
 
-    for track in query:
-      try:
-        await _play(track)
-      except BaseException:
-        raise TrackNotFound()
+    if isinstance(query, wavelink.Playlist):
+      log.info("playlist time")
+      for track in query.tracks[1:]:
+        try:
+          await _play(track)
+        except BaseException:
+          raise TrackNotFound()
+
+    if player.playing:
+      if not isinstance(query, wavelink.Playlist):
+        await ctx.send(embed=embed(title=f"Added **{query[0].title}** to the queue.", color=MessageColors.music()))
+      else:
+        await ctx.send(embed=embed(title=f"Added **{len(query.tracks)}** tracks to the queue.", color=MessageColors.music()))
 
     if not player.playing:
       await player.play(query[0])
-
-    if player.playing:
-      if len(new_tracks) == 1:
-        await ctx.send(embed=embed(title=f"Added **{new_tracks[0].title}** to the queue.", color=MessageColors.music()))
-      else:
-        await ctx.send(embed=embed(title=f"Added **{len(new_tracks)}** tracks to the queue.", color=MessageColors.music()))
 
   @commands.command(name="pause")
   @commands.guild_only()
