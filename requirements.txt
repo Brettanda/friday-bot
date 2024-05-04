@@ -24,7 +24,7 @@ python-dotenv==0.21.1
 requests==2.28.2
 urllib3==1.26.14
 validators==0.20.0
-wavelink==2.6.3
+wavelink==3.3.0
 youtube-dl==2021.1.24.1
 google-cloud-translate==3.10.1
 openai>=0.27.0
