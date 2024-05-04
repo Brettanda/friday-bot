@@ -300,8 +300,8 @@ class Music(commands.Cog):
     nodes = [
         wavelink.Node(
             identifier=f"{os.environ.get('LAVALINKUSID','MAIN')}",
-            uri=f"http://{os.environ['LAVALINKUSHOST']}:{os.environ['LAVALINKUSPORT']}",
-            password=os.environ["LAVALINKUSPASS"],
+            uri=f"http://lavalink:2333",
+            password=os.environ["LAVALINK_SERVER_PASSWORD"],
         )
     ]
 
