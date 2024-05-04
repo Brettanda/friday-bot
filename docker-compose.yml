@@ -36,6 +36,8 @@ services:
     image: ghcr.io/lavalink-devs/lavalink:4
     restart: unless-stopped
     env_file: .env
+    environment:
+      - _JAVA_OPTIONS=-Xmx500M
     ports:
       - 2333:2333
     volumes:
