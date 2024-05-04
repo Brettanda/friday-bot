@@ -12,7 +12,7 @@ from typing import (TYPE_CHECKING, ClassVar, List, Literal, Optional,
 
 import asyncpg
 import discord
-import openai
+from openai import AsyncOpenAI
 import validators
 from discord import app_commands
 from discord.app_commands.checks import Cooldown
@@ -32,7 +32,7 @@ GuildMessageableChannel = Union[discord.TextChannel, discord.VoiceChannel, disco
 
 log = logging.getLogger(__name__)
 
-openai.api_key = os.environ["OPENAI"]
+openai = AsyncOpenAI(api_key=os.environ["OPENAI"])
 
 POSSIBLE_SENSITIVE_MESSAGE = "*Possibly sensitive:* ||"
 POSSIBLE_OFFENSIVE_MESSAGE = "**I failed to respond because my message might have been offensive, please choose another topic or try again**"
@@ -87,6 +87,50 @@ class UserConfig:
     self.guild_ids: List[int] = record["guild_ids"] or []
 
 
+class ContinueTokenLimit(discord.ui.View):
+  def __init__(self, cog: Chat, ctx: MyContext, author_id: int, tier: PremiumTiersNew, persona: str, custom_persona: str | None, vote_streak_days: int):
+    super().__init__(timeout=120.0)
+    self.cog: Chat = cog
+    self.message = None
+    self.ctx: MyContext = ctx
+    self.author_id: int = author_id
+    self.tier: PremiumTiersNew = tier
+    self.persona: str = persona
+    self.custom_persona: str | None = custom_persona
+    self.vote_streak_days: int = vote_streak_days
+    self.remaining = 5
+    self.button.label = f"Continue Response ({self.remaining}/5)"
+
+  @discord.ui.button(label="Continue Response", custom_id="continue_response", style=discord.ButtonStyle.primary)
+  async def button(self, interaction: discord.Interaction, button: discord.ui.Button):
+    _, _, _ = self.cog._spam_check.is_spamming(self.ctx.message, self.tier, self.vote_streak_days)
+    self.button.disabled = True
+    self.button.label = "Loading..."
+    await interaction.response.edit_message(view=self)
+    assert interaction.message is not None
+    response, response_reason, _ = await self.cog.openai_req(interaction.message, self.tier, self.persona, self.custom_persona, content=interaction.message.content, lang=self.ctx.lang_code, _continue=True)
+    if response is not None and len(response) >= 2000:
+      await interaction.response.edit_message(view=None)
+      await interaction.response.send_message(content="This message has reached the maximum number of characters for a Discord message", ephemeral=True)
+      self.stop()
+      return
+    await self.cog.chat_history[self.ctx.channel.id].update_last_bot_message(interaction.message.content + (response or ""))
+    self.button.disabled = False
+    self.remaining = self.remaining - 1
+    self.button.label = f"Continue Response ({self.remaining}/5)"
+    self.message = await interaction.edit_original_response(content=interaction.message.content + (response or ""), view=self if response_reason == "length" and not self.remaining <= 0 else None)
+    # if self.remaining <= 0:
+    #   if self.message:
+    #     await self.message.edit(view=None)
+
+    if response_reason != "length" or self.remaining <= 0:
+      self.stop()
+
+  async def on_timeout(self) -> None:
+    if self.message:
+      await self.message.edit(view=None)
+
+
 class PersonaCustomModal(discord.ui.Modal, title='Custom Persona'):
   duration = discord.ui.TextInput(label='Persona', placeholder='Talk like an anime girl.', min_length=0, max_length=150)
 
@@ -125,7 +169,7 @@ class PersonaOptions(discord.ui.View):
       min_values=0, max_values=1)
   async def select(self, interaction: discord.Interaction, select: discord.ui.Select):
     if not self.is_tiered and select.values[0].lower() == "custom":
-      await interaction.response.edit_message(embed=embed(title="This feature is only available to premium users", color=MessageColors.error()), view=None)
+      await interaction.response.send_message(embed=embed(title="This feature is only available to premium users", color=MessageColors.error()), ephemeral=True)
       return
     await self.cog.bot.pool.execute("UPDATE chatchannels SET persona=$1 WHERE id=$2", select.values[0], str(interaction.channel_id))
     self.cog.get_guild_config.invalidate(self.cog, interaction.guild_id)
@@ -270,12 +314,11 @@ class ChatHistory:
       while len(self._history) > limit * self._messages_per_group:
         self._history.pop(0)
       response: list[ChatHistoryMessages] = [
-          {'role': 'system', 'content': f"You're '{my_name}'[female] a friendly & funny Discord chatbot made by 'Motostar'[male] and born on Aug 7, 2018. You're chatting with '{user_name}'. You'll respond in the users language."},
+          {'role': 'system', 'content': f"You're '{my_name}'[female] a friendly & funny Discord chatbot made by 'Motostar'[male] and born on Aug 7, 2018. You'll respond in the users language."},
           # {'(Female Replacement Intelligent Digital Assistant Youth)' if my_name == 'friday' else ''}
       ]
       if bonus:
         response.append({'role': "system", "content": bonus})
-      response.append({'role': "system", "content": f"Your response will not exceed {PremiumPerks(tier).max_chat_tokens - 4} tokens."})
       response.extend(self._history)
       return response
 
@@ -284,9 +327,14 @@ class ChatHistory:
       user_content = user_content or msg.clean_content
       user_name = user_name or msg.author.display_name
       self._bot_name = bot_name = bot_name or msg.guild and msg.guild.me.display_name or "Friday"
+      self._history.append({"role": "user", "content": f"{user_content}"})
+      self._history.append({"role": "assistant", "content": f"{bot_content}"})
 
-      self._history.append({"role": "user", "content": user_content})
-      self._history.append({"role": "assistant", "content": bot_content})
+  async def update_last_bot_message(self, new_content: str):
+    async with self.lock:
+      bot_message_index = self._history.index([msg for msg in self._history if msg.get("role") == "assistant"][-1])
+      log.info(self._history[bot_message_index]["content"])
+      self._history[bot_message_index]["content"] = new_content
 
 
 class CooldownByRepeating(commands.CooldownMapping):
@@ -309,15 +357,8 @@ class Chat(commands.Cog):
     # channel_id: list
     self.chat_history: defaultdict[int, ChatHistory] = defaultdict(lambda: ChatHistory())
 
-    openai.aiosession.set(self.bot.session)
-
   def __repr__(self) -> str:
     return f"<cogs.{self.__cog_name__}>"
-
-  async def cog_unload(self) -> None:
-    session = openai.aiosession.get()
-    if session is not None:
-      await session.close()
 
   @cache.cache()
   async def get_guild_config(self, guild_id: int) -> Optional[Config]:
@@ -551,15 +592,15 @@ class Chat(commands.Cog):
     if self.bot.testing:
       return False, []
     async with self.api_lock:
-      response = await openai.Moderation.acreate(
+      response = await openai.moderations.create(
                   model="text-moderation-latest",
                   input=text,
               )
     if response is None:
       return False, []
-    response = response["results"][0]  # type: ignore
-    categories = [name for name, value in response['categories'].items() if value == 1]
-    return bool(response["flagged"] == 1), categories
+    response = response.results[0]
+    categories = [name for name, value in response.categories if value == 1]
+    return bool(response.flagged == 1), categories
 
   async def openai_req(
       self,
@@ -570,25 +611,34 @@ class Chat(commands.Cog):
       *,
       content: str = None,
       lang: str = "English",
-  ) -> Optional[str]:
+      _continue: bool = False,
+  ) -> tuple[Optional[str], Optional[Literal["stop", "length", "function_call"]], Optional[dict]]:
     content = content or msg.clean_content
     author_prompt_name = msg.author.display_name
     my_prompt_name = msg.guild.me.display_name if msg.guild else self.bot.user.name
 
     messages = await self.chat_history[msg.channel.id].messages(my_name=my_prompt_name, user_name=author_prompt_name, tier=current_tier, lang=lang, persona=persona, persona_custom=persona_custom)
     async with self.api_lock:
-      response = await openai.ChatCompletion.acreate(
-          model="gpt-3.5-turbo-0613",
-          messages=messages + [{'role': 'user', 'content': f"{content}"}],
-          max_tokens=PremiumPerks(current_tier).max_chat_tokens,
-          user=str(msg.channel.id),
-      )
+      if _continue:
+        log.info(messages)
+        response = await openai.chat.completions.create(model=PremiumPerks(current_tier).model,
+        messages=messages,
+        temperature=0,
+        max_tokens=PremiumPerks(current_tier).max_chat_tokens,
+        user=str(msg.channel.id))
+      else:
+        log.info(messages + [{'role': 'user', 'content': f"{content}"}])
+        response = await openai.chat.completions.create(model=PremiumPerks(current_tier).model,
+        messages=messages + [{'role': 'user', 'content': f"{content}"}],
+        max_tokens=PremiumPerks(current_tier).max_chat_tokens,
+        user=str(msg.channel.id))
     if response is None:
-      return None
-    self.chat_history[msg.channel.id].completion_tokens = response.get("usage")["completion_tokens"]  # type: ignore
-    self.chat_history[msg.channel.id].prompt_tokens = response.get("usage")["prompt_tokens"]  # type: ignore
-    self.chat_history[msg.channel.id].total_tokens = response.get("usage")["total_tokens"]  # type: ignore
-    return response.get("choices")[0]["message"]["content"].replace("\n", "")   # type: ignore
+      return None, None, None
+    self.chat_history[msg.channel.id].completion_tokens = response.usage.completion_tokens  # type: ignore
+    self.chat_history[msg.channel.id].prompt_tokens = response.usage.prompt_tokens  # type: ignore
+    self.chat_history[msg.channel.id].total_tokens = response.usage.total_tokens  # type: ignore
+    final_message = response.choices[0].message.content
+    return final_message, response.choices[0].finish_reason, response.choices[0].message.function_call   # type: ignore
 
   @commands.Cog.listener()
   async def on_message(self, msg: discord.Message):
@@ -689,7 +739,7 @@ class Chat(commands.Cog):
 
     # Anything to do with sending messages needs to be below the above check
     response = None
-    is_spamming, rate_limiter, rate_name = await self.bot.loop.run_in_executor(None, self._spam_check.is_spamming, msg, current_tier, vote_streak and vote_streak.days or 0)
+    is_spamming, rate_limiter, rate_name = self._spam_check.is_spamming(msg, current_tier, vote_streak and vote_streak.days or 0)
     if is_spamming and rate_limiter:
       if not ctx.bot_permissions.embed_links:
         return
@@ -714,20 +764,21 @@ class Chat(commands.Cog):
     chat_history = self.chat_history[msg.channel.id]
     async with ctx.typing():
       try:
-        response = await self.openai_req(msg, current_tier, chat_channel and chat_channel.persona, chat_channel and chat_channel.persona_custom, content=content, lang=ctx.lang_code)
+        response, response_reason, response_function_call = await self.openai_req(msg, current_tier, chat_channel and chat_channel.persona, chat_channel and chat_channel.persona_custom, content=content, lang=ctx.lang_code)
       except Exception as e:
         # resp = await ctx.send(embed=embed(title="", color=MessageColors.error()))
         self.bot.dispatch("chat_completion", msg, True, filtered=None, messages=self.chat_history[msg.channel.id].history(limit=PremiumPerks(current_tier).max_chat_history),)
         log.error(f"OpenAI error: {e}")
         await ctx.reply(embed=embed(title=ctx.lang.chat.try_again_later, colour=MessageColors.error()), webhook=webhook, mention_author=False)
         return
-      if response is None or response == "":
-        raise ChatError(ctx.lang.chat.no_response)
-      await chat_history.add_message(msg, response, user_content=content)
-      flagged, flagged_categories = await self.content_filter_flagged(response)
+      if response_reason != "function_call":
+        if response is None or response == "":
+          raise ChatError(ctx.lang.chat.no_response)
+        await chat_history.add_message(msg, response, user_content=content)
+        flagged, flagged_categories = await self.content_filter_flagged(response)
 
     if not flagged:
-      await ctx.reply(content=response, allowed_mentions=discord.AllowedMentions.none(), webhook=webhook, mention_author=False)
+      await ctx.reply(content=response, allowed_mentions=discord.AllowedMentions.none(), webhook=webhook, mention_author=False) 
       log.info(f"{PremiumTiersNew(current_tier)}[{msg.guild and chat_channel and chat_channel.persona}] - [{ctx.lang_code}] [{ctx.author.name}] {content}  [Me] {response}")
       await self.webhook.safe_send(username=self.bot.user.name, avatar_url=self.bot.user.display_avatar.url, content=f"{PremiumTiersNew(current_tier)} - **{ctx.author.name}:** {content}\n**Me:** {response}")
     else:

@@ -300,6 +300,12 @@ class PremiumPerks:
       return 3
     return 1
 
+  @property
+  def model(self) -> str:
+    if self.tier >= PremiumTiersNew.tier_2:
+      return "gpt-4"
+    return "gpt-3.5-turbo"
+
 
 allowed_mentions = discord.AllowedMentions(roles=False, everyone=False, users=True, replied_user=False)
 
