@@ -11,7 +11,6 @@ services:
       # - DBURL=postgresql://fridaylocal:fridaylocal@db:5432/fridaylocal
       - LAVALINKUSHOST=lavalink
       - LAVALINKUSPORT=2333
-      - LAVALINKUSPASS=lavalink
     volumes:
       - .:/usr/src/app
       - /home/certs/:/home/certs/
@@ -22,8 +21,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.8'
-          memory: 1500M
+          cpus: '0.9'
+          memory: 2000M
     dns:
       - 1.1.1.2
       - 1.0.0.2
@@ -54,32 +53,19 @@ services:
     volumes:
       - db:/var/lib/postgresql/data
       - ./migrations:/docker-entrypoint-initdb.d
-  pgadmin:
-    image: dpage/pgadmin4
-    restart: unless-stopped
-    environment:
-      - PGADMIN_DEFAULT_EMAIL=admin@admin.com
-      - PGADMIN_DEFAULT_PASSWORD=root
-    ports:
-      - 5050:6000
-    logging:
-      driver: "none"
-    volumes:
-      - pgadmin:/var/lib/pgadmin
-  portainer:
-    image: portainer/portainer-ce:latest
-    restart: unless-stopped
-    security_opt:
-      - no-new-privileges:true
-    ports:
-      - 9000:9000
-      - 9443:9443
-    volumes:
-      - portainer:/data
-      - /var/run/docker.sock:/var/run/docker.sock
-      # - pgadmin:/var/run/docker.sock
+  # portainer:
+  #   image: portainer/portainer-ce:latest
+  #   restart: unless-stopped
+  #   security_opt:
+  #     - no-new-privileges:true
+  #   ports:
+  #     - 9000:9000
+  #     - 9443:9443
+  #   volumes:
+  #     - portainer:/data
+  #     - /var/run/docker.sock:/var/run/docker.sock
+  #     # - pgadmin:/var/run/docker.sock
 
 volumes:
   db:
-  pgadmin:
-  portainer:
+  # portainer:
