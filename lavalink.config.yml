@@ -3,7 +3,6 @@ server: # REST and WS server
   address: 0.0.0.0
 lavalink:
   server:
-    password: "lavalink"
     sources:
       youtube: true
       bandcamp: true
@@ -39,10 +38,6 @@ lavalink:
       #strategy: "RotateOnBan" # RotateOnBan | LoadBalance | NanoSwitch | RotatingNanoSwitch
       #searchTriggersFail: true # Whether a search 429 should trigger marking the ip as failing
       #retryLimit: -1 # -1 = use default lavaplayer value | 0 = infinity | >0 = retry will happen this numbers times
-    youtubeConfig: # Required for avoiding all age restrictions by YouTube, some restricted videos still can be played without.
-      email: "fridaydbot@gmail.com" # Email of Google account
-      password: "znr5PAW6tch.hmy4rmq" # Password of Google account
-    # Dear hacker, this google account was made just for this 
 metrics:
   prometheus:
     enabled: false

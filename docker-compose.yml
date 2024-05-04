@@ -36,6 +36,7 @@ services:
   lavalink:
     image: fredboat/lavalink:3.7.8
     restart: unless-stopped
+    env_file: .env
     ports:
       - 2333:2333
     volumes:
