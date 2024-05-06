@@ -164,7 +164,8 @@ class Welcome(commands.Cog):
     role = config.role
     if role is None:
       self.get_guild_config.invalidate(self, member.guild.id)
-      return await self.bot.pool.execute("UPDATE welcome SET role_id=NULL WHERE guild_id=$1", str(member.guild.id))
+      await self.bot.pool.execute("UPDATE welcome SET role_id=NULL WHERE guild_id=$1", str(member.guild.id))
+      return
     try:
       await member.add_roles(role, reason="Welcome Role")
     except discord.Forbidden:
