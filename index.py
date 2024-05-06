@@ -39,6 +39,7 @@ if TYPE_CHECKING:
   from .cogs.patreons import Patreons
   from .cogs.reminder import Reminder
   from .cogs.sharding import Event
+  from .cogs.chat import Chat
 
 
 load_dotenv()
@@ -360,6 +361,10 @@ class Friday(commands.AutoShardedBot):
   @property
   def support(self) -> Optional[Support]:
     return self.get_cog("Support")  # type: ignore
+
+  @property
+  def chat(self) -> Optional[Chat]:
+    return self.get_cog("Chat")  # type: ignore
 
   # @property
   # def sharding(self) -> Optional[Sharding]:

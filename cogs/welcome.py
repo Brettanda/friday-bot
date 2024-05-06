@@ -109,25 +109,22 @@ class Welcome(commands.Cog):
       log.info(f"removed welcome channel for {channel.guild} (ID:{channel.guild.id})")
 
   async def send_ai_welcome_message(self, config: Config, member: discord.Member) -> None:
-    chat: Chat = self.bot.get_cog("Chat")  # type: ignore
-    if chat is None:
+    if self.bot.chat is None:
       log.error("Chat cog not loaded")
       return
-    async with chat.api_lock:
-      response = await self.bot.loop.run_in_executor(
-          None,
-          functools.partial(
-              lambda: openai.ChatCompletion.create(
+    async with self.bot.chat.api_lock:
+      response = await self.bot.chat.openai.chat.completions.create(
                   model="gpt-3.5-turbo",
                   messages=[
                       {'role': 'user', 'content': f"You're WelcomeGPT. You welcome new users to the Discord server '{member.guild.name}' with at very short and unique messages with a joke about their name and include their user mention as their name at least once. Don't include quotation marks.\n Now welcome, {member.display_name} to the server, with the user mention {member.mention}."},
                   ],
                   max_tokens=75,
-                  user=str(member.id),
-              )))
+                  user=str(member.id)
+              )
     if response is None:
       return None
-    message = response.get("choices")[0]["message"]["content"]   # type: ignore
+    message = response.choices[0].message.content
+    assert message is not None
     if member.mention not in message:
       message = member.mention + " " + message
     if config.channel:

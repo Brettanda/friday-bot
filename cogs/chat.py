@@ -32,8 +32,6 @@ GuildMessageableChannel = Union[discord.TextChannel, discord.VoiceChannel, disco
 
 log = logging.getLogger(__name__)
 
-openai = AsyncOpenAI(api_key=os.environ["OPENAI"])
-
 POSSIBLE_SENSITIVE_MESSAGE = "*Possibly sensitive:* ||"
 POSSIBLE_OFFENSIVE_MESSAGE = "**I failed to respond because my message might have been offensive, please choose another topic or try again**"
 
@@ -347,6 +345,7 @@ class Chat(commands.Cog):
 
   def __init__(self, bot: Friday):
     self.bot: Friday = bot
+    self.openai = AsyncOpenAI(api_key=os.environ["OPENAI"])
 
     # https://help.openai.com/en/articles/5008629-can-i-use-concurrent-api-calls
     self.api_lock = asyncio.Semaphore(2)  # bot.openai_api_lock
@@ -592,7 +591,7 @@ class Chat(commands.Cog):
     if self.bot.testing:
       return False, []
     async with self.api_lock:
-      response = await openai.moderations.create(
+      response = await self.openai.moderations.create(
                   model="text-moderation-latest",
                   input=text,
               )
@@ -621,14 +620,14 @@ class Chat(commands.Cog):
     async with self.api_lock:
       if _continue:
         log.info(messages)
-        response = await openai.chat.completions.create(model=PremiumPerks(current_tier).model,
+        response = await self.openai.chat.completions.create(model=PremiumPerks(current_tier).model,
         messages=messages,
         temperature=0,
         max_tokens=PremiumPerks(current_tier).max_chat_tokens,
         user=str(msg.channel.id))
       else:
         log.info(messages + [{'role': 'user', 'content': f"{content}"}])
-        response = await openai.chat.completions.create(model=PremiumPerks(current_tier).model,
+        response = await self.openai.chat.completions.create(model=PremiumPerks(current_tier).model,
         messages=messages + [{'role': 'user', 'content': f"{content}"}],
         max_tokens=PremiumPerks(current_tier).max_chat_tokens,
         user=str(msg.channel.id))
