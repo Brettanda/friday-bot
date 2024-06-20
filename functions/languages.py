@@ -91,23 +91,27 @@ async def load_languages(bot: Friday) -> None:
   log.debug(f"path {lang_dir!r}")
 
   if bot.cluster_idx == 0:
-    async with bot.session.post(f"{base_url}/translations/builds", headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"}) as resp:
-      try:
-        resp.raise_for_status()
-      except Exception as e:
-        log.error(e)
-        raise e
-      data = await resp.json()
-      build_id = data["data"]["id"]
-      log.info("Built Crowdin translations")
+    try:
+      async with bot.session.post(f"{base_url}/translations/builds", headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"}) as resp:
+        try:
+          resp.raise_for_status()
+        except Exception as e:
+          log.error(e)
+          raise e
+        data = await resp.json()
+        build_id = data["data"]["id"]
+        log.info("Built Crowdin translations")
 
-      await pull_languages(
-          build_id,
-          bot=bot,
-          lang_dir=lang_dir,
-          base_url=base_url,
-          key=key,
-      )
+        await pull_languages(
+            build_id,
+            bot=bot,
+            lang_dir=lang_dir,
+            base_url=base_url,
+            key=key,
+        )
+    except Exception as e:
+      log.error(e)
+      pass
 
   async with aiofiles.open(os.path.join(lang_dir, "en", "commands.json"), mode="r", encoding="utf8") as f:
     content = json.loads(await f.read())
