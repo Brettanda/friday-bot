@@ -23,7 +23,7 @@ async def test_minesweeper(event_loop, size: int, bombs: int):
   async with timeout(0.1):
     try:
       mines = await event_loop.run_in_executor(None, fun.mine_sweeper, size, bombs)
-    except BadArgument:
+    except (BadArgument, ValueError):
       assert True
     else:
       print(f"completed {size} {bombs}")

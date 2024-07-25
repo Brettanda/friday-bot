@@ -108,6 +108,18 @@ async def test_play_spotify_playlist(bot: UnitTester, friday: Friday, channel: T
   # assert "Now playing: **" in msg.embeds[0].title or "Added " in msg.embeds[0].title or "Added the playlist" in msg.embeds[0].title
 
 
+async def test_play_spotify_album(bot: UnitTester, friday: Friday, channel: TextChannel, guild_friday: Guild):
+  content = "!p https://open.spotify.com/album/5y2plpAX8NtK3q1Klatast?si=cea93f7a11224ae5"
+  await send_command(bot, channel, content)
+
+  await bot.wait_for("message", check=lambda message: message.author.id == friday.user.id, timeout=pytest.timeout * 2)  # type: ignore
+  # with pytest.raises(asyncio.TimeoutError):
+  #   await bot.wait_for("message", check=lambda message: msg_check(message, com), timeout=2)  # type: ignore
+
+  assert await music_is_working(friday, channel, guild_friday)
+  # assert "Now playing: **" in msg.embeds[0].title or "Added " in msg.embeds[0].title or "Added the playlist" in msg.embeds[0].title
+
+
 @pytest.mark.dependency(name="test_play_playlist")
 async def test_play_playlist(bot: UnitTester, friday: Friday, channel: TextChannel, guild_friday: Guild):
   content = "!p https://www.youtube.com/watch?v=jCQd6YqTnOk&list=PLQSoWXSpjA3_FFnFo4yWTtVbZrMkbm-h7"

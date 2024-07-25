@@ -12,8 +12,8 @@ if TYPE_CHECKING:
 pytestmark = pytest.mark.asyncio
 
 
-async def test_chat_history(event_loop):
-  history = ChatHistory(loop=event_loop)
+async def test_chat_history():
+  history = ChatHistory()
 
   assert len(history) == 0
   assert str(history) == ""
