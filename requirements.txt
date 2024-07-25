@@ -1,7 +1,7 @@
-aiohttp==3.8.3
+aiohttp
 async-timeout
 autopep8
-d20==1.1.2
+d20
 topggpy==1.4.0
 discord-ext-menus @ git+https://github.com/Rapptz/discord-ext-menus@fbb8803779373357e274e1540b368365fd9d8074
 discord.py[speed,docs,test]==2.4.0
@@ -16,13 +16,13 @@ lxml
 pytz
 numpy==1.24.1
 oauthlib==3.2.2
-Pillow==9.4.0
+Pillow
 psutil
 expiringdict==1.2.2
 python-dateutil==2.8.2
 python-dotenv==0.21.1
-requests==2.28.2
-urllib3==1.26.14
+requests
+urllib3
 validators==0.20.0
 wavelink==3.4.1
 youtube-dl==2021.1.24.1
