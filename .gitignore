@@ -149,3 +149,4 @@ i18n/en/commands.json
 
 migrations/*.json
 !migrations/V*__*.sql
+ollama/

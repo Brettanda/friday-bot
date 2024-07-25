@@ -1,3 +1,6 @@
+include:
+  - docker-compose.yml
+
 services:
   bot:
     entrypoint: sh -c "exec python3 index.py --canary"
