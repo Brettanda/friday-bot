@@ -631,7 +631,7 @@ class Moderation(commands.Cog):
       await voice.edit(user_limit=len(voice.members))  # type: ignore
       return await ctx.send(embed=embed(title=f"Locked `{voice}`"))
 
-  @commands.command(name="begone", extras={"examples": ["https://discord.com/channels/707441352367013899/707458929696702525/707520808448294983", "707520808448294983"]}, help="Delete unwanted message that I send")
+  @commands.command(name="begone", extras={"examples": ["https://discord.com/channels/707441352367013899/707458929696702525/707520808448294983", "707520808448294983"]}, help="Delete unwanted messages that I send")
   @commands.bot_has_permissions(manage_messages=True)
   async def begone(self, ctx: GuildContext, message: Optional[discord.Message] = None):
     if message is not None and ctx.message.reference is not None:

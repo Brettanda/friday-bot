@@ -23,42 +23,6 @@ SUPPORT_HELP_FORUM_SOLVED_TAG = 1019679906357055558
 PATREON_LINK = "https://www.patreon.com/bePatron?u=42649008"
 
 
-class SupportIntroRoles(discord.ui.View):
-  """This should only be used in the support guild"""
-
-  def __init__(self):
-    super().__init__(timeout=None)
-
-  async def interaction_check(self, interaction: discord.Interaction) -> bool:
-    if interaction.guild_id != 707441352367013899 or interaction.channel_id != 707458929696702525 or interaction.message and interaction.message.id != 707520808448294983:
-      return False
-    if isinstance(interaction.user, discord.User):
-      return False
-    if interaction.user.pending:
-      await interaction.followup.send(ephemeral=True, content="You must complete the membership screening before you can receive this role")
-      return False
-    return True
-
-  @discord.ui.button(emoji="📌", label="Get Updates", style=discord.ButtonStyle.blurple, custom_id="support_updates")
-  async def support_updates(self, interaction: discord.Interaction, button: discord.ui.Button):
-    await interaction.response.defer(ephemeral=True)
-
-    assert interaction.guild is not None
-    role = interaction.guild.get_role(848626624365592636)
-    if role is None:
-      return
-
-    if not isinstance(interaction.user, discord.Member):
-      return
-
-    if role in interaction.user.roles:
-      await interaction.user.remove_roles(role, reason="No more updates :(")
-      await interaction.followup.send(ephemeral=True, content="You will no longer receive pings for updates")
-    else:
-      await interaction.user.add_roles(role, reason="Updates!")
-      await interaction.followup.send(ephemeral=True, content="You will now be pinged when a new update comes out")
-
-
 def is_help_thread():
   def predicate(ctx: GuildContext) -> bool:
     return isinstance(ctx.channel, discord.Thread) and ctx.channel.parent_id == SUPPORT_HELP_FORUM
@@ -140,9 +104,6 @@ class Support(commands.Cog):
     guild: Optional[discord.Guild] = self.bot.get_guild(SUPPORT_SERVER_ID)
     if self.bot.intents.members and guild and not guild.chunked:
       await guild.chunk(cache=True)
-
-    if not self.bot.views_loaded:
-      self.bot.add_view(SupportIntroRoles())
 
   @commands.Cog.listener()
   async def on_member_join(self, member: discord.Member):

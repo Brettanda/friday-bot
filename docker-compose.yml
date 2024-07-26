@@ -51,6 +51,26 @@ services:
       timeout: 4s
       retries: 10
       start_period: 5s
+  # llama:
+  #   image: dhiltgen/ollama:0.1.21-rc2
+  #   container_name: llama
+  #   # expose:
+  #   #   - 11434/tcp
+  #   ports:
+  #     - 11434:11434/tcp
+  #   networks:
+  #     - main
+  #   volumes:
+  #     - ./ollama:/root/.ollama
+  #   healthcheck:
+  #     test: ollama --version || exit 1
+  #   deploy:
+  #     resources:
+  #       reservations:
+  #         devices:
+  #           - driver: nvidia
+  #             device_ids: ['all']
+  #             capabilities: [gpu]
   db:
     image: postgres:15.1
     restart: unless-stopped

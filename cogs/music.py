@@ -308,7 +308,8 @@ class Music(commands.Cog):
             identifier=f"{os.environ.get('LAVALINKUSID','MAIN')}",
             uri=f"http://{os.environ['LAVALINKUSHOST']}:{os.environ['LAVALINKUSPORT']}",
             password=os.environ["LAVALINK_SERVER_PASSWORD"],
-            inactive_player_timeout=60
+            inactive_player_timeout=60,
+            retries=3
         )
     ]
 
