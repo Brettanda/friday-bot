@@ -6,11 +6,9 @@ import logging
 # import json
 import os
 import ssl
-from typing import (TYPE_CHECKING, Any, List, Optional, Protocol, TypedDict,
-                    Union)
+from typing import (TYPE_CHECKING, Any, List, Optional, Protocol, TypedDict)
 
 import aiohttp_cors
-import asyncpg
 import discord
 from aiohttp import web
 from discord.ext import commands
@@ -86,7 +84,7 @@ log = logging.getLogger(__name__)
 
 
 class CogConfig(Protocol):
-  async def get_guild_config(self, guild_id: int, *, connection: Optional[Union[asyncpg.Pool, asyncpg.Connection]] = None):
+  async def get_guild_config(self, guild_id: int):
     ...
 
 
@@ -161,6 +159,10 @@ class API(commands.Cog):
       response.headers["Pragma"] = "no-cache"
       response.headers["Expires"] = "Mon, 01 Jan 1990 00:00:00 GMT"
       return response
+
+    @routes.get("/version")
+    async def version(request: web.Request) -> web.Response:
+      return web.json_response(text="1")
 
     @routes.get("/stats")
     async def stats(request: web.Request) -> web.Response:
@@ -543,7 +545,7 @@ class API(commands.Cog):
 
       self.runner = web.AppRunner(app)
       await self.runner.setup()
-      self.site = web.TCPSite(self.runner, "0.0.0.0", self.port, ssl_context=ssl_ctx)
+      self.site = web.TCPSite(self.runner, "0.0.0.0", self.port) #, ssl_context=ssl_ctx
       await self.site.start()
     except Exception as e:
       log.exception(f"Failed to start aiohttp.web: {e}")

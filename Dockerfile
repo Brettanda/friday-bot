@@ -31,7 +31,7 @@ WORKDIR /usr/src/app
 COPY --from=build /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
 
 EXPOSE 4001
-EXPOSE 443
+# EXPOSE 443
 EXPOSE 5000
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=5 \
