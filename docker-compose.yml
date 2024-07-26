@@ -31,12 +31,6 @@ services:
     dns:
       - 1.1.1.2
       - 1.0.0.2
-    healthcheck:
-      test: [ "CMD", "curl", "-f", "-h",'"guilds:707441352367013899"', "http://localhost:443/guilds" ]
-      interval: 10s
-      timeout: 30s
-      retries: 5
-      start_period: 5s
   lavalink:
     image: ghcr.io/lavalink-devs/lavalink:4
     container_name: lavalink
@@ -54,8 +48,8 @@ services:
       - ./lavalink.config.yml:/opt/Lavalink/application.yml
     healthcheck:
       test: 'curl -f -H "Authorization: $$LAVALINK_SERVER_PASSWORD" http://lavalink:2333/version || exit 1'
-      timeout: 5s
-      retries: 15
+      timeout: 4s
+      retries: 10
       start_period: 5s
   db:
     image: postgres:15.1

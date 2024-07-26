@@ -22,6 +22,10 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
   --mount=type=cache,target=/var/lib/apt,sharing=locked \
   apt-get update && apt-get install -y ffmpeg
 
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+  --mount=type=cache,target=/var/lib/apt,sharing=locked \
+  apt-get update && apt-get install -y curl
+
 WORKDIR /usr/src/app
 
 COPY --from=build /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
@@ -29,6 +33,9 @@ COPY --from=build /usr/local/lib/python3.11/site-packages /usr/local/lib/python3
 EXPOSE 4001
 EXPOSE 443
 EXPOSE 5000
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=5 \
+  CMD curl -f http://localhost:443/version || exit 1
 
 # Just in case https://hynek.me/articles/docker-signals/
 STOPSIGNAL SIGINT
