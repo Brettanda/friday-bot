@@ -19,7 +19,7 @@ services:
       - /home/certs/:/home/certs/
     ports:
       - 5678:5678
-      - 443:443
+      # - 443:443
       - 5000:5000
     networks:
       - fridaybot
