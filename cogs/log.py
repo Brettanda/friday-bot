@@ -169,85 +169,10 @@ class Log(commands.Cog):
   async def on_slash_command(self, ctx):
     log.info(f"Slash Command: {ctx.command} {ctx.kwargs}")
 
-  # @commands.Cog.listener()
-  # async def on_slash_command_error(self, ctx: SlashContext, ex):
-  #   print(ex)
-  #   if not ctx.responded:
-  #     if ctx._deffered_hidden or not ctx.deferred:
-  #       await ctx.send(hidden=True, content=str(ex) or "An error has occured, try again later.")
-  #     else:
-  #       await ctx.send(embed=embed(title=str(ex) or "An error has occured, try again later.", color=MessageColors.error()))
-  #   if not isinstance(ex, (
-  #           discord.NotFound,
-  #           commands.CheckFailure,
-  #           commands.MissingPermissions,
-  #           commands.BotMissingPermissions,
-  #           commands.NoPrivateMessage,
-  #           commands.MaxConcurrencyReached)) and (not hasattr(ex, "log") or (hasattr(ex, "log") and ex.log is True)):
-  #     raise ex
-
-  # async def convert_param(self, ctx: SlashContext, option, param):
-  #   value = option["value"]
-  #   if param.annotation != inspect.Parameter.empty:
-  #     value = await commands.run_converters(ctx, param.annotation, value, 0)
-  #   return value
-
   @commands.Cog.listener()
   async def on_interaction(self, interaction: discord.Interaction):
     if interaction.type != discord.InteractionType.application_command:
       log.info(f"Interaction: {interaction.data and interaction.data.get('custom_id','No ID')} {interaction.type}")
-
-    # if interaction.type == discord.InteractionType.application_command:
-    #   command = self.bot.get_command(interaction.data["name"])
-
-    #   if command is None:
-    #     return await relay_info(f"Missing slash command: {interaction.data['name']}", self.bot, webhook=self.log_errors)
-
-    #   ctx = MyContext(prefix="/", view=StringView(interaction.data["name"]), bot=self.bot, message=FakeInteractionMessage(self.bot, interaction))
-    #   options = {option["name"]: option for option in interaction.data.get("options", {})}
-    #   params, kwargs = [], {}
-    #   for name, param in command.clean_params.items():
-    #     option = options.get(name)
-    #     if not option:
-    #       option = param.default
-    #     else:
-    #       option = await self.convert_param(ctx, option, param)
-    #     if param.kind == inspect.Parameter.KEYWORD_ONLY:
-    #       kwargs[name] = option
-    #     else:
-    #       params.append(option)
-
-    #   async def fallback():
-    #     await asyncio.sleep(2)
-    #     if interaction.response.is_done():
-    #       return
-    #     try:
-    #       await interaction.response.defer()
-    #     except Exception:
-    #       pass
-    #   self.bot.loop.create_task(fallback())
-    #   try:
-    #     self.bot.dispatch("command", ctx)
-    #     if await command.can_run(ctx):
-    #       await command(ctx, *params, **kwargs)
-    #   except Exception as e:
-    #     self.bot.dispatch("command_error", ctx, e)
-
-  # @commands.Cog.listener()
-  # async def on_component_callback_error(self, ctx: ComponentContext, ex: Exception):
-  #   if not ctx.responded:
-  #     if ctx._deferred_hidden or not ctx.deferred:
-  #       await ctx.send(hidden=True, content=str(ex) or "An error has occured, try again later.")
-  #     else:
-  #       await ctx.send(embed=embed(title=str(ex) or "An error has occured, try again later.", color=MessageColors.error()))
-  #   if not isinstance(ex, (
-  #           discord.NotFound,
-  #           commands.CheckFailure,
-  #           commands.MissingPermissions,
-  #           commands.BotMissingPermissions,
-  #           commands.NoPrivateMessage,
-  #           commands.MaxConcurrencyReached)) and (not hasattr(ex, "log") or (hasattr(ex, "log") and ex.log is True)):
-  #     raise ex
 
   async def bot_check_once(self, ctx: MyContext):
     if ctx.command.cog_name not in ("Dev", "Config"):

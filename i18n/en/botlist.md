@@ -14,7 +14,7 @@ Friday's chatbot system is powered by GPT-3 and to make it easy for everyone to 
 @Friday hey, how are you?
 ```
 
-- [Setting a channel to be the chat channel](/commands/moderation/#chatchannel). Friday will respond to every message in that channel as if they were directed to Friday. Eg:
+- Setting a channel to be the chat channel. Friday will respond to every message in that channel as if they were directed to Friday. Eg:
 
 ```md
 hey, what is it like being a bot?
@@ -55,15 +55,3 @@ Log moderation action done automatically by Friday or done by your moderation te
 ## Games
 
 Play some fun games like minesweeper and rock paper scissors right in Discord with Friday's games commands.
-
-## Support development of the bot
-
-[Patreon](https://www.patreon.com/join/fridaybot)
-
-[Documentation](https://docs.friday-bot.com/)
-
-[Discord Server](https://discord.com/invite/NTRuFjU)
-
-[Web Dashboard](https://friday-bot.com/)
-
-[Trello](https://trello.com/b/SCI2mZzR/friday-bot)

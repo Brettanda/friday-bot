@@ -395,7 +395,7 @@ def main(ctx, prod, canary):
     print(f"Python version: {sys.version}")
     from launcher import setup_logging
 
-    with setup_logging("Friday"):
+    with setup_logging():
       asyncio.run(run_bot(), debug=True)
 
 

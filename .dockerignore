@@ -3,6 +3,7 @@
 **/.classpath
 **/.dockerignore
 **/.env
+**/.env.*
 **/.git
 **/.gitignore
 **/.project
@@ -33,3 +34,10 @@ wandb/
 hidden/
 ollama/
 database/
+chatml/
+venv/
+spice/
+lavalink.config.yml
+*.zip
+.mypy_cache/
+.pytest_cache/
