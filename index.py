@@ -333,7 +333,8 @@ class Friday(commands.AutoShardedBot):
 
   async def close(self) -> None:
     await super().close()
-    await self.session.close()
+    if hasattr(self, "session"):
+      await self.session.close()
 
   async def start(self) -> None:
     await super().start(os.environ['TOKEN'], reconnect=True)

@@ -8,7 +8,7 @@ services:
         condition: service_healthy
       lavalink:
         condition: service_healthy
-    restart: unless-stopped
+    restart: on-failure:3
     env_file: .env
     environment:
       # - DBURL=postgresql://fridaylocal:fridaylocal@db:5432/fridaylocal
