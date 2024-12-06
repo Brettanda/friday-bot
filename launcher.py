@@ -121,7 +121,7 @@ def setup_logging(name: Optional[str] = ...):
       log.removeHandler(hdlr)
 
 
-CLUSER_NAMES = (
+CLUSTER_NAMES = (
     "Jarvis",
     "Karen",
     "Ultron",
@@ -132,7 +132,7 @@ CLUSER_NAMES = (
     "Jocasta",
 )
 
-NAMES = iter(CLUSER_NAMES)
+NAMES = iter(CLUSTER_NAMES)
 
 
 TOKEN = os.environ.get('TOKENTEST')

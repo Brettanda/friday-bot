@@ -1,16 +1,16 @@
 # Temp Stage
-FROM python:3.11 AS build
+# FROM python:3.11 AS build
 
-WORKDIR /usr/src/app
+# WORKDIR /usr/src/app
 
 # RUN wget -nc -nc https://the-eye.eu/public/AI/models/nomic-ai/gpt4all/gpt4all-lora-quantized-ggml.bin -P /usr/src/app/models
 
-COPY ./requirements.txt .
-RUN --mount=type=cache,target=/root/.cache/pip \
-  pip install --upgrade pip && pip install -r requirements.txt
 
 # Final Stage
-FROM python:3.11-slim
+FROM python:3.12-slim
+
+# https://stackoverflow.com/questions/68673221/warning-running-pip-as-the-root-user
+ENV PIP_ROOT_USER_ACTION=ignore
 
 # Keeps Python from generating .pyc files in the container
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -20,21 +20,22 @@ ENV PYTHONUNBUFFERED=1
 
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
   --mount=type=cache,target=/var/lib/apt,sharing=locked \
-  apt-get update && apt-get install -y ffmpeg
+  apt-get update && apt-get install -y ffmpeg curl git
 
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-  --mount=type=cache,target=/var/lib/apt,sharing=locked \
-  apt-get update && apt-get install -y curl
+RUN --mount=type=cache,target=/root/.cache/pip \
+  --mount=type=bind,source=requirements.txt,target=/tmp/requirements.txt \
+  pip install --upgrade pip && pip install --requirement /tmp/requirements.txt
 
 WORKDIR /usr/src/app
 
-COPY --from=build /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+# COPY --from=build /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY . .
 
 EXPOSE 4001
 # EXPOSE 443
 EXPOSE 5000
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=5 \
+HEALTHCHECK --interval=60s --timeout=10s --start-period=60s --retries=5 \
   CMD curl -f http://localhost:443/version || exit 1
 
 # Just in case https://hynek.me/articles/docker-signals/

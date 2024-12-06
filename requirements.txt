@@ -14,7 +14,7 @@ grpcio
 h5py
 lxml
 pytz
-numpy==1.24.1
+numpy
 oauthlib==3.2.2
 Pillow
 psutil
