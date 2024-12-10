@@ -41,3 +41,8 @@ lavalink.config.yml
 *.zip
 .mypy_cache/
 .pytest_cache/
+.editorconfig
+.gitmodules
+*.example
+*.sql
+*.csv

@@ -2,7 +2,7 @@
 reportUnnecessaryTypeIgnoreComment = "warning"
 reportAssertAlwaysTrue = "warning"
 reportUnnecessaryIsInstance = "warning"
-pythonVersion = "3.8"
+pythonVersion = "3.12"
 typeCheckingMode = "basic"
 strictParameterNoneValue = false
 include = [
