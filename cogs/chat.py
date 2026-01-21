@@ -592,7 +592,7 @@ class Chat(commands.Cog):
       return False, []
     async with self.api_lock:
       response = await self.openai.moderations.create(
-                  model="text-moderation-latest",
+                  model="omni-moderation-latest",
                   input=text,
               )
     if response is None:
