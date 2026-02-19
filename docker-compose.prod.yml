@@ -1,0 +1,5 @@
+include:
+  - docker-compose.yml
+services:
+  bot:
+    image: motostar/friday
