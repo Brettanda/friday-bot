@@ -6,9 +6,9 @@ services:
       db:
         condition: service_healthy
         restart: true
-      lavalink:
-        condition: service_healthy
-        restart: true
+      # lavalink:
+      #   condition: service_healthy
+      #   restart: true
     restart: on-failure:3
     env_file: .env
     environment:
@@ -29,26 +29,26 @@ services:
     #     limits:
     #       cpus: '0.5'
     #       memory: 2000M
-  lavalink:
-    image: ghcr.io/lavalink-devs/lavalink:4
-    container_name: lavalink
-    restart: unless-stopped
-    env_file: .env
-    environment:
-      - _JAVA_OPTIONS=-Xmx500M
-      - LAVALINK_SERVER_PASSWORD=${LAVALINK_SERVER_PASSWORD}
-      - SERVER_PORT=2333
-    expose:
-      - 2333
-    networks:
-      - fridaybot
-    volumes:
-      - ./lavalink.config.yml:/opt/Lavalink/application.yml
-    healthcheck:
-      test: 'curl -f -H "Authorization: $$LAVALINK_SERVER_PASSWORD" http://lavalink:2333/version || exit 1'
-      timeout: 4s
-      retries: 10
-      start_period: 5s
+  # lavalink:
+  #   image: ghcr.io/lavalink-devs/lavalink:4
+  #   container_name: lavalink
+  #   restart: unless-stopped
+  #   env_file: .env
+  #   environment:
+  #     - _JAVA_OPTIONS=-Xmx500M
+  #     - LAVALINK_SERVER_PASSWORD=${LAVALINK_SERVER_PASSWORD}
+  #     - SERVER_PORT=2333
+  #   expose:
+  #     - 2333
+  #   networks:
+  #     - fridaybot
+  #   volumes:
+  #     - ./lavalink.config.yml:/opt/Lavalink/application.yml
+  #   healthcheck:
+  #     test: 'curl -f -H "Authorization: $$LAVALINK_SERVER_PASSWORD" http://lavalink:2333/version || exit 1'
+  #     timeout: 4s
+  #     retries: 10
+  #     start_period: 5s
   # llama:
   #   image: dhiltgen/ollama:0.1.21-rc2
   #   container_name: llama
