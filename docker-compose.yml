@@ -24,11 +24,11 @@ services:
       - 5000:5000
     networks:
       - fridaybot
-    deploy:
-      resources:
-        limits:
-          cpus: '0.9'
-          memory: 2000M
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '0.5'
+    #       memory: 2000M
   lavalink:
     image: ghcr.io/lavalink-devs/lavalink:4
     container_name: lavalink
